@@ -1,0 +1,148 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// BETTER AUTH TABLES
+// Run `pnpm dlx @better-auth/cli generate` to update these
+// after changing auth.config.ts plugins.
+// ============================================================
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions      Session[]
+  accounts      Account[]
+  members       Member[]
+
+  @@map("user")
+}
+
+model Session {
+  id                    String    @id
+  expiresAt             DateTime
+  token                 String    @unique
+  ipAddress             String?
+  userAgent             String?
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeOrganizationId  String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("session")
+}
+
+model Account {
+  id           String    @id
+  accountId    String
+  providerId   String
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken  String?
+  refreshToken String?
+  idToken      String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope        String?
+  password     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verification")
+}
+
+model Organization {
+  id        String    @id
+  name      String
+  slug      String?   @unique
+  logo      String?
+  metadata  String?
+  createdAt DateTime  @default(now())
+
+  members     Member[]
+  invitations Invitation[]
+  buildings   Building[]
+
+  @@map("organization")
+}
+
+model Member {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String
+  teamId         String?
+  createdAt      DateTime     @default(now())
+
+  @@map("member")
+}
+
+model Invitation {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           String?
+  status         String
+  expiresAt      DateTime
+  inviterId      String
+  createdAt      DateTime     @default(now())
+
+  @@map("invitation")
+}
+
+// ============================================================
+// BUSINESS TABLES
+// Every business table MUST have organizationId for multi-tenancy.
+// ============================================================
+
+model Building {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name        String
+  type        String       // residential, commercial, mixed, industrial, retail
+  address     String
+  city        String?
+  country     String?
+  latitude    Float?
+  longitude   Float?
+  yearBuilt   Int?
+  totalArea   Float?
+  areaUnit    String       @default("sqm") // sqm or sqft
+  floors      Int?
+  description String?
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@map("building")
+}

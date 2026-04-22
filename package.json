@@ -1,0 +1,44 @@
+{
+	"name": "create-novek-saas",
+	"version": "0.1.0",
+	"description": "Scaffold a full-stack SaaS project: NestJS + React + Prisma + Better Auth + Pino + shadcn/ui",
+	"type": "module",
+	"bin": {
+		"create-novek-saas": "./dist/index.js"
+	},
+	"files": [
+		"dist",
+		"template"
+	],
+	"scripts": {
+		"build": "tsc",
+		"dev": "tsc --watch",
+		"start": "node dist/index.js",
+		"prepublishOnly": "pnpm build"
+	},
+	"keywords": [
+		"create",
+		"scaffold",
+		"nestjs",
+		"react",
+		"saas",
+		"prisma",
+		"better-auth",
+		"novektech"
+	],
+	"author": "NovekTech",
+	"license": "MIT",
+	"dependencies": {
+		"@clack/prompts": "^1.2.0",
+		"fs-extra": "^11.3.4",
+		"picocolors": "^1.1.1"
+	},
+	"devDependencies": {
+		"@types/fs-extra": "^11.0.4",
+		"@types/node": "^25.6.0",
+		"typescript": "^6.0.2"
+	},
+	"engines": {
+		"node": ">=20.0.0"
+	}
+}

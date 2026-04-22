@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.log
+.turbo/
+template/apps/*/node_modules/
+template/apps/*/dist/
