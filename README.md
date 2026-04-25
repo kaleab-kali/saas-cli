@@ -2,9 +2,19 @@
 
 Scaffold a production-ready multi-tenant SaaS in seconds.
 
-**Stack baked in:** NestJS 11 + React 19 + Vite + PostgreSQL 16 + Prisma + Better Auth + BullMQ + Redis + Stripe + shadcn/ui + TanStack Query/Router/Table + Turborepo + pnpm workspaces.
+**Stack baked in:** NestJS 11 + React 19 + Vite + PostgreSQL 16 + Prisma + Better Auth + BullMQ + Redis + Stripe + Chapa + shadcn/ui + TanStack Query/Router/Table + Turborepo + pnpm workspaces + i18next.
 
-**Infra baked in:** RBAC, super admin panel, impersonation, audit log, API keys, billing (Stripe), feature flags, entitlements, notifications, reporting, multi-tenant org model, Caddy + PM2 deploy.
+**Infra baked in:**
+- 4-role tenant RBAC (`owner`, `admin`, `member`, `viewer`) + custom roles
+- 4-role platform super-admin (`superAdmin`, `support`, `billingAdmin`, `readOnly`)
+- Impersonation, audit log, broadcasts, cron job monitor
+- API keys, feature flags, entitlement overrides
+- Gateway-agnostic billing (Stripe + Chapa + manual), invoices in smallest currency unit
+- Notifications (in-app + email + bulk + delivery tracking)
+- Reporting (saved reports + scheduler — bring your own data sources)
+- Custom fields, lookups, saved views (generic infra)
+- i18n (English + Amharic seeded)
+- Caddy + PM2 deploy + Docker option
 
 ---
 
@@ -52,11 +62,16 @@ Open `http://localhost:5173/admin-login`. Credentials are in `my-app/.scaffold-c
 
 ## What you get
 
-See [docs/FEATURES.md](./docs/FEATURES.md) for the full list of modules, routes, and infra.
-
-See [docs/USAGE.md](./docs/USAGE.md) for every CLI flag, prompt, and workflow.
-
-See [docs/STRIPPING_DOMAIN.md](./docs/STRIPPING_DOMAIN.md) for notes on the stubbed services (no manual stripping required — schema is pure infra).
+| Doc | What |
+|---|---|
+| [docs/TEMPLATE_SPEC.md](./docs/TEMPLATE_SPEC.md) | The locked spec — what the skeleton ships, what's intentionally out |
+| [docs/FEATURES.md](./docs/FEATURES.md) | Full feature list (modules, routes, infra) |
+| [docs/USAGE.md](./docs/USAGE.md) | CLI flags, prompts, workflows |
+| [docs/ADDING_DOMAIN.md](./docs/ADDING_DOMAIN.md) | Build your first business module on the skeleton |
+| [docs/BILLING.md](./docs/BILLING.md) | Stripe + Chapa + Manual gateway, lifecycle, dunning |
+| [docs/I18N.md](./docs/I18N.md) | Add locales, translation keys |
+| [docs/OAUTH.md](./docs/OAUTH.md) | Wire Google, GitHub, Microsoft providers |
+| [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) | Production deploy (Caddy + PM2 + Postgres + Redis) |
 
 ---
 
