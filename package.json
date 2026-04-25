@@ -1,0 +1,18 @@
+{
+	"name": "create-vyllion-saas-monorepo",
+	"private": true,
+	"version": "0.1.0",
+	"description": "Monorepo for the create-vyllion-saas CLI + template",
+	"workspaces": [
+		"packages/*"
+	],
+	"scripts": {
+		"cli": "node packages/cli/bin/index.js",
+		"link:cli": "cd packages/cli && pnpm link --global",
+		"unlink:cli": "cd packages/cli && pnpm unlink --global"
+	},
+	"packageManager": "pnpm@9.15.0",
+	"engines": {
+		"node": ">=20.0.0"
+	}
+}
