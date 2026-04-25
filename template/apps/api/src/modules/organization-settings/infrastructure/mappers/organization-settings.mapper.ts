@@ -11,7 +11,6 @@ export class OrganizationSettingsMapper {
 			organizationId: row.organizationId,
 			timezone: row.timezone,
 			currency: row.currency,
-			areaUnit: row.areaUnit,
 			dateFormat: row.dateFormat,
 			fiscalYearStartMonth: row.fiscalYearStartMonth,
 			invoiceNumberPrefix: row.invoiceNumberPrefix,
@@ -23,8 +22,7 @@ export class OrganizationSettingsMapper {
 			companyPhone: row.companyPhone,
 			companyEmail: row.companyEmail,
 			taxId: row.taxId,
-			allowGmViewAgentContacts: row.allowGmViewAgentContacts,
-			allowGmExportAgentContacts: row.allowGmExportAgentContacts,
+			taxRatePct: row.taxRatePct,
 			createdAt: row.createdAt,
 			updatedAt: row.updatedAt,
 		});

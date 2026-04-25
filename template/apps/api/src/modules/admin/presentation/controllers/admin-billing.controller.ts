@@ -7,7 +7,7 @@ import {
 	CreditAccountHandler,
 	ExtendTrialHandler,
 	ForceSubscriptionStatusHandler,
-	SetManualPaymentModeHandler,
+	SetSubscriptionGatewayHandler,
 } from "#modules/admin/application/commands/admin-billing.handlers";
 import { SuperAdminGuard } from "#modules/admin/guards/super-admin.guard";
 import { DunningService, type DunningType } from "#modules/billing/application/services/dunning.service";
@@ -33,7 +33,7 @@ export class AdminBillingController {
 		private readonly invoiceLifecycle: InvoiceLifecycleService,
 		private readonly subLifecycle: SubscriptionLifecycleService,
 		private readonly extendTrial: ExtendTrialHandler,
-		private readonly setManualMode: SetManualPaymentModeHandler,
+		private readonly setGateway: SetSubscriptionGatewayHandler,
 		private readonly credit: CreditAccountHandler,
 		private readonly changePlan: ChangeSubscriptionPlanHandler,
 		private readonly forceStatus: ForceSubscriptionStatusHandler,
@@ -74,7 +74,7 @@ export class AdminBillingController {
 		const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 		const rows = await this.prisma.subscriptionInvoice.findMany({
 			where: { status: "paid", paidAt: { gte: start } },
-			select: { paidAt: true, total: true },
+			select: { paidAt: true, totalMinor: true },
 		});
 		const buckets = new Map<string, number>();
 		for (let i = 0; i < 12; i++) {
@@ -85,12 +85,12 @@ export class AdminBillingController {
 		for (const r of rows) {
 			if (!r.paidAt) continue;
 			const key = `${r.paidAt.getFullYear()}-${String(r.paidAt.getMonth() + 1).padStart(2, "0")}`;
-			buckets.set(key, (buckets.get(key) ?? 0) + r.total);
+			buckets.set(key, (buckets.get(key) ?? 0) + r.totalMinor);
 		}
 		return {
-			data: Array.from(buckets.entries()).map(([month, revenueEtb]) => ({
+			data: Array.from(buckets.entries()).map(([month, revenueMinor]) => ({
 				month,
-				revenueEtb: Math.round(revenueEtb),
+				revenueMinor: Math.round(revenueMinor),
 			})),
 		};
 	}
@@ -122,8 +122,8 @@ export class AdminBillingController {
 				organizationId: r.organizationId,
 				organizationName: byId.get(r.organizationId) ?? null,
 				dueDate: r.dueDate,
-				total: r.total,
-				amountPaid: r.amountPaid,
+				totalMinor: r.totalMinor,
+				amountPaidMinor: r.amountPaidMinor,
 				currency: r.currency,
 				daysPastDue: Math.floor((now.getTime() - r.dueDate.getTime()) / 86_400_000),
 			})),
@@ -152,7 +152,7 @@ export class AdminBillingController {
 				invoiceNumber: p.invoice?.number ?? null,
 				organizationId: p.organizationId,
 				organizationName: byId.get(p.organizationId) ?? null,
-				amount: p.amount,
+				amountMinor: p.amountMinor,
 				currency: p.currency,
 				method: p.method,
 				receiptNumber: p.receiptNumber,
@@ -210,13 +210,14 @@ export class AdminBillingController {
 					s.status === "read_only",
 			)
 			.reduce((sum, s) => {
-				const price = s.billingInterval === "annual" ? s.plan.priceAnnualEtb / 12 : s.plan.priceMonthlyEtb;
+				const price =
+					s.billingInterval === "annual" ? s.plan.priceAnnualMinor / 12 : s.plan.priceMonthlyMinor;
 				return sum + price;
 			}, 0);
 		const arr = mrr * 12;
 
-		const outstanding = unpaid.reduce((sum, inv) => sum + (inv.total - inv.amountPaid), 0);
-		const paidLast30 = invoicesThisMonth.filter((i) => i.status === "paid").reduce((sum, i) => sum + i.total, 0);
+		const outstanding = unpaid.reduce((sum, inv) => sum + (inv.totalMinor - inv.amountPaidMinor), 0);
+		const paidLast30 = invoicesThisMonth.filter((i) => i.status === "paid").reduce((sum, i) => sum + i.totalMinor, 0);
 
 		const counts: Record<string, number> = {};
 		for (const row of subsByStatus) counts[row.status] = row._count._all;
@@ -226,23 +227,24 @@ export class AdminBillingController {
 			return (s.status === "active" || s.status === "trialing") && daysLeft >= 0 && daysLeft <= 30;
 		}).length;
 
-		const byPlan: Record<string, { count: number; mrrEtb: number }> = {};
+		const byPlan: Record<string, { count: number; mrrMinor: number }> = {};
 		for (const s of subsAll) {
 			const key = s.plan.slug;
-			if (!byPlan[key]) byPlan[key] = { count: 0, mrrEtb: 0 };
+			if (!byPlan[key]) byPlan[key] = { count: 0, mrrMinor: 0 };
 			byPlan[key].count += 1;
 			if (s.status === "active" || s.status === "trialing") {
-				const price = s.billingInterval === "annual" ? s.plan.priceAnnualEtb / 12 : s.plan.priceMonthlyEtb;
-				byPlan[key].mrrEtb += price;
+				const price =
+					s.billingInterval === "annual" ? s.plan.priceAnnualMinor / 12 : s.plan.priceMonthlyMinor;
+				byPlan[key].mrrMinor += price;
 			}
 		}
 
 		return {
 			data: {
-				mrrEtb: Math.round(mrr),
-				arrEtb: Math.round(arr),
-				outstandingEtb: Math.round(outstanding),
-				paidLast30Etb: Math.round(paidLast30),
+				mrrMinor: Math.round(mrr),
+				arrMinor: Math.round(arr),
+				outstandingMinor: Math.round(outstanding),
+				paidLast30Minor: Math.round(paidLast30),
 				countsByStatus: counts,
 				upcomingRenewals30d: upcomingRenewals,
 				byPlan,
@@ -283,7 +285,6 @@ export class AdminBillingController {
 			include: {
 				plan: { include: { entitlements: true } },
 				invoices: { include: { payments: true }, orderBy: { issueDate: "desc" } },
-				campaigns: { orderBy: { createdAt: "desc" } },
 				usageSnapshots: { orderBy: { snapshotDate: "desc" }, take: 30 },
 				dunningEmails: { orderBy: { sentAt: "desc" }, take: 20 },
 			},
@@ -361,20 +362,24 @@ export class AdminBillingController {
 		return { data: await this.extendTrial.execute(id, body.days, req.adminUser?.id, body.reason) };
 	}
 
-	@Put("subscriptions/:id/manual-mode")
-	@ApiOperation({ summary: "Toggle manual payment mode" })
-	async toggleManual(@Param("id") id: string, @Body() body: { manualMode: boolean }, @Req() req: AdminReq) {
-		return { data: await this.setManualMode.execute(id, body.manualMode, req.adminUser?.id) };
+	@Put("subscriptions/:id/gateway")
+	@ApiOperation({ summary: "Switch billing gateway (stripe | chapa | manual)" })
+	async switchGateway(
+		@Param("id") id: string,
+		@Body() body: { gateway: "stripe" | "chapa" | "manual" },
+		@Req() req: AdminReq,
+	) {
+		return { data: await this.setGateway.execute(id, body.gateway, req.adminUser?.id) };
 	}
 
 	@Post("subscriptions/:id/credit")
-	@ApiOperation({ summary: "Credit/debit org account in ETB" })
+	@ApiOperation({ summary: "Credit/debit org account (smallest currency unit)" })
 	async creditAccount(
 		@Param("id") id: string,
-		@Body() body: { amountEtb: number; note?: string },
+		@Body() body: { amountMinor: number; note?: string },
 		@Req() req: AdminReq,
 	) {
-		return { data: await this.credit.execute(id, body.amountEtb, req.adminUser?.id, body.note) };
+		return { data: await this.credit.execute(id, body.amountMinor, req.adminUser?.id, body.note) };
 	}
 
 	@Put("subscriptions/:id/plan")

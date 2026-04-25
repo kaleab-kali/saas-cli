@@ -8,69 +8,86 @@ type PlanSpec = {
 	slug: string;
 	nameEn: string;
 	nameAm: string;
-	priceMonthlyEtb: number;
-	priceAnnualEtb: number;
-	priceCampaignDailyEtb: number | null;
-	buildingCap: number | null;
-	unitCap: number | null;
+	description: string | null;
+	priceMonthlyMinor: number;
+	priceAnnualMinor: number;
+	currency: string;
 	userCap: number | null;
 	supportSlaHours: number;
+	stripeSupported: boolean;
+	chapaSupported: boolean;
+	manualSupported: boolean;
 	sortOrder: number;
 	entitlements: Ent[];
 };
 
 const PLANS: PlanSpec[] = [
 	{
-		slug: "starter",
-		nameEn: "Starter",
-		nameAm: "Starter",
-		priceMonthlyEtb: 0,
-		priceAnnualEtb: 0,
-		priceCampaignDailyEtb: null,
-		buildingCap: null,
-		unitCap: null,
+		slug: "free",
+		nameEn: "Free",
+		nameAm: "Free",
+		description: "Get started, no card required.",
+		priceMonthlyMinor: 0,
+		priceAnnualMinor: 0,
+		currency: "USD",
 		userCap: 5,
 		supportSlaHours: 48,
+		stripeSupported: true,
+		chapaSupported: true,
+		manualSupported: true,
 		sortOrder: 1,
 		entitlements: [
 			{ featureKey: "core.access", enabled: true },
-			{ featureKey: "api.keys", enabled: false },
+			{ featureKey: "platform.api-keys", enabled: false },
+			{ featureKey: "platform.custom-roles", enabled: false },
 		],
 	},
 	{
-		slug: "growth",
-		nameEn: "Growth",
-		nameAm: "Growth",
-		priceMonthlyEtb: 4900,
-		priceAnnualEtb: 49000,
-		priceCampaignDailyEtb: null,
-		buildingCap: null,
-		unitCap: null,
+		slug: "pro",
+		nameEn: "Pro",
+		nameAm: "Pro",
+		description: "For growing teams.",
+		priceMonthlyMinor: 4900,
+		priceAnnualMinor: 49000,
+		currency: "USD",
 		userCap: 25,
 		supportSlaHours: 24,
+		stripeSupported: true,
+		chapaSupported: true,
+		manualSupported: true,
 		sortOrder: 2,
 		entitlements: [
 			{ featureKey: "core.access", enabled: true },
-			{ featureKey: "api.keys", enabled: true, limit: 5 },
+			{ featureKey: "platform.api-keys", enabled: true, limit: 5 },
+			{ featureKey: "platform.custom-fields", enabled: true, limit: 50 },
+			{ featureKey: "reporting.custom-report-builder", enabled: true, limit: 25 },
 		],
 	},
 	{
 		slug: "enterprise",
 		nameEn: "Enterprise",
 		nameAm: "Enterprise",
-		priceMonthlyEtb: 19900,
-		priceAnnualEtb: 199000,
-		priceCampaignDailyEtb: null,
-		buildingCap: null,
-		unitCap: null,
+		description: "Org-wide compliance, support, audit.",
+		priceMonthlyMinor: 19900,
+		priceAnnualMinor: 199000,
+		currency: "USD",
 		userCap: null,
 		supportSlaHours: 4,
+		stripeSupported: true,
+		chapaSupported: true,
+		manualSupported: true,
 		sortOrder: 3,
 		entitlements: [
 			{ featureKey: "core.access", enabled: true },
-			{ featureKey: "api.keys", enabled: true },
-			{ featureKey: "custom.roles", enabled: true },
-			{ featureKey: "audit.export", enabled: true },
+			{ featureKey: "platform.api-keys", enabled: true },
+			{ featureKey: "platform.custom-roles", enabled: true },
+			{ featureKey: "platform.custom-fields", enabled: true },
+			{ featureKey: "platform.audit-export", enabled: true },
+			{ featureKey: "platform.audit-retention-1year", enabled: true },
+			{ featureKey: "platform.force-2fa", enabled: true },
+			{ featureKey: "platform.ip-allowlist", enabled: true },
+			{ featureKey: "reporting.custom-report-builder", enabled: true },
+			{ featureKey: "reporting.schedule-delivery", enabled: true },
 		],
 	},
 ];
@@ -82,13 +99,15 @@ const seedPlans = async () => {
 			update: {
 				nameEn: plan.nameEn,
 				nameAm: plan.nameAm,
-				priceMonthlyEtb: plan.priceMonthlyEtb,
-				priceAnnualEtb: plan.priceAnnualEtb,
-				priceCampaignDailyEtb: plan.priceCampaignDailyEtb,
-				buildingCap: plan.buildingCap,
-				unitCap: plan.unitCap,
+				description: plan.description,
+				priceMonthlyMinor: plan.priceMonthlyMinor,
+				priceAnnualMinor: plan.priceAnnualMinor,
+				currency: plan.currency,
 				userCap: plan.userCap,
 				supportSlaHours: plan.supportSlaHours,
+				stripeSupported: plan.stripeSupported,
+				chapaSupported: plan.chapaSupported,
+				manualSupported: plan.manualSupported,
 				sortOrder: plan.sortOrder,
 				active: true,
 			},
@@ -96,13 +115,15 @@ const seedPlans = async () => {
 				slug: plan.slug,
 				nameEn: plan.nameEn,
 				nameAm: plan.nameAm,
-				priceMonthlyEtb: plan.priceMonthlyEtb,
-				priceAnnualEtb: plan.priceAnnualEtb,
-				priceCampaignDailyEtb: plan.priceCampaignDailyEtb,
-				buildingCap: plan.buildingCap,
-				unitCap: plan.unitCap,
+				description: plan.description,
+				priceMonthlyMinor: plan.priceMonthlyMinor,
+				priceAnnualMinor: plan.priceAnnualMinor,
+				currency: plan.currency,
 				userCap: plan.userCap,
 				supportSlaHours: plan.supportSlaHours,
+				stripeSupported: plan.stripeSupported,
+				chapaSupported: plan.chapaSupported,
+				manualSupported: plan.manualSupported,
 				sortOrder: plan.sortOrder,
 				active: true,
 			},

@@ -1,12 +1,11 @@
 import { BadRequestException } from "@nestjs/common";
-import { isAreaUnit, isDateFormat } from "../value-objects/settings.vo";
+import { isDateFormat } from "../value-objects/settings.vo";
 
 export interface OrganizationSettingsProps {
 	id: string;
 	organizationId: string;
 	timezone: string;
 	currency: string;
-	areaUnit: string;
 	dateFormat: string;
 	fiscalYearStartMonth: number;
 	invoiceNumberPrefix: string;
@@ -18,8 +17,7 @@ export interface OrganizationSettingsProps {
 	companyPhone: string | null;
 	companyEmail: string | null;
 	taxId: string | null;
-	allowGmViewAgentContacts: boolean;
-	allowGmExportAgentContacts: boolean;
+	taxRatePct: number;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -37,7 +35,6 @@ export class OrganizationSettings {
 	}
 
 	private static validate(p: Partial<OrganizationSettingsProps>) {
-		if (p.areaUnit && !isAreaUnit(p.areaUnit)) throw new BadRequestException(`invalid areaUnit: ${p.areaUnit}`);
 		if (p.dateFormat && !isDateFormat(p.dateFormat))
 			throw new BadRequestException(`invalid dateFormat: ${p.dateFormat}`);
 		if (p.fiscalYearStartMonth !== undefined && (p.fiscalYearStartMonth < 1 || p.fiscalYearStartMonth > 12)) {
@@ -45,6 +42,9 @@ export class OrganizationSettings {
 		}
 		if (p.invoiceNumberPadding !== undefined && (p.invoiceNumberPadding < 1 || p.invoiceNumberPadding > 10)) {
 			throw new BadRequestException("invoiceNumberPadding must be 1-10");
+		}
+		if (p.taxRatePct !== undefined && (p.taxRatePct < 0 || p.taxRatePct > 100)) {
+			throw new BadRequestException("taxRatePct must be 0-100");
 		}
 	}
 

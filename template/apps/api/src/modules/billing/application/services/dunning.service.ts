@@ -60,12 +60,12 @@ export class DunningService {
 			planName: sub.plan.nameEn,
 			invoiceNumber: invoice?.number ?? "",
 			dueDate: invoice?.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-GB") : "",
-			amount: invoice ? `${invoice.total.toFixed(2)} ${invoice.currency}` : "",
+			amount: invoice ? `${(invoice.totalMinor / 100).toFixed(2)} ${invoice.currency}` : "",
 			gracePeriodEndsAt: sub.gracePeriodEndsAt ? new Date(sub.gracePeriodEndsAt).toLocaleDateString("en-GB") : "",
 			readOnlyModeEndsAt: sub.readOnlyModeEndsAt ? new Date(sub.readOnlyModeEndsAt).toLocaleDateString("en-GB") : "",
 			companyName,
 			supportEmail,
-			payUrl: `${process.env.WEB_APP_URL ?? "https://app.propflow.et"}/billing`,
+			payUrl: `${process.env.FRONTEND_URL ?? "http://localhost:5173"}/settings/billing`,
 		};
 		const render = (tpl: string) => tpl.replace(/\{\{(\w+)\}\}/g, (_, name: string) => vars[name] ?? "");
 

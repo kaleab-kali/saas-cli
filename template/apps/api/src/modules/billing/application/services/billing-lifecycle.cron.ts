@@ -174,18 +174,13 @@ export class BillingLifecycleCron {
 		});
 		for (const sub of subs) {
 			try {
-				// Skeleton: building/unit counts are placeholders until domain models exist.
-				const [buildings, units, users] = await Promise.all([
-					Promise.resolve(0),
-					Promise.resolve(0),
-					this.prisma.member.count({ where: { organizationId: sub.organizationId } }),
-				]);
+				const users = await this.prisma.member.count({
+					where: { organizationId: sub.organizationId, removedAt: null },
+				});
 				await this.prisma.usageSnapshot.create({
 					data: {
 						subscriptionId: sub.id,
 						organizationId: sub.organizationId,
-						buildingCount: buildings,
-						unitCount: units,
 						userCount: users,
 					},
 				});

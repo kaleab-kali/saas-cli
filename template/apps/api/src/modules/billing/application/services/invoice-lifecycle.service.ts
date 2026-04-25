@@ -6,14 +6,15 @@ import { SubscriptionLifecycleService } from "./subscription-lifecycle.service";
 interface RenewalInput {
 	subscriptionId: string;
 	organizationId: string;
-	amountEtb: number;
+	amountMinor: number;
+	currency: string;
 	periodStart: Date;
 	billingInterval: string;
 }
 
 export interface ManualInvoiceInput {
 	subscriptionId: string;
-	amountEtb: number;
+	amountMinor: number;
 	periodStart: Date;
 	periodEnd: Date;
 	description?: string;
@@ -23,10 +24,12 @@ export interface ManualInvoiceInput {
 
 export interface ManualPaymentInput {
 	invoiceId: string;
-	amount: number;
+	amountMinor: number;
 	method: string;
 	paidAt?: Date;
-	chapaReference?: string;
+	chapaTxRef?: string;
+	chapaRefId?: string;
+	stripePaymentIntentId?: string;
 	bankReference?: string;
 	receiptNumber?: string;
 	note?: string;
@@ -43,7 +46,7 @@ export class InvoiceLifecycleService {
 	) {}
 
 	async nextInvoiceNumber(organizationId: string): Promise<string> {
-		const prefix = await this.settings.getString("billing.invoicePrefix", "PF-INV");
+		const prefix = await this.settings.getString("billing.invoicePrefix", "INV");
 		const yearReset = await this.settings.getBool("billing.invoiceYearReset", true);
 		const now = new Date();
 		const year = now.getFullYear();
@@ -61,12 +64,15 @@ export class InvoiceLifecycleService {
 		return `${scopePrefix}${String(next).padStart(5, "0")}`;
 	}
 
-	private async computeTotals(subtotalEtb: number) {
-		const vatEnabled = await this.settings.getBool("billing.vatEnabled", true);
-		const vatRatePct = await this.settings.getNumber("billing.vatRate", 15);
-		const vatAmount = vatEnabled ? (subtotalEtb * vatRatePct) / 100 : 0;
-		const total = subtotalEtb + vatAmount;
-		return { vatAmount, total, vatRatePct };
+	private async computeTotals(subtotalMinor: number, organizationId: string) {
+		const orgSettings = await this.prisma.organizationSettings.findUnique({
+			where: { organizationId },
+			select: { taxRatePct: true },
+		});
+		const taxRatePct = orgSettings?.taxRatePct ?? 0;
+		const taxMinor = Math.round(subtotalMinor * (taxRatePct / 100));
+		const totalMinor = subtotalMinor + taxMinor;
+		return { taxMinor, totalMinor, taxRatePct };
 	}
 
 	async createRenewalInvoice(input: RenewalInput) {
@@ -77,7 +83,7 @@ export class InvoiceLifecycleService {
 		periodEnd.setMonth(periodEnd.getMonth() + (input.billingInterval === "annual" ? 12 : 1));
 		const issueDate = new Date();
 		const dueDate = new Date(issueDate.getTime() + dueDays * 86_400_000);
-		const { vatAmount, total } = await this.computeTotals(input.amountEtb);
+		const { taxMinor, totalMinor } = await this.computeTotals(input.amountMinor, input.organizationId);
 		const number = await this.nextInvoiceNumber(input.organizationId);
 		return this.prisma.subscriptionInvoice.create({
 			data: {
@@ -89,11 +95,11 @@ export class InvoiceLifecycleService {
 				dueDate,
 				periodStart: input.periodStart,
 				periodEnd,
-				currency: sub.currency,
-				subtotal: input.amountEtb,
-				vatAmount,
-				total,
-				amountPaid: 0,
+				currency: input.currency || sub.currency,
+				subtotalMinor: input.amountMinor,
+				taxMinor,
+				totalMinor,
+				amountPaidMinor: 0,
 				lineType: "subscription",
 				description: `Renewal — ${input.billingInterval}`,
 				sentAt: issueDate,
@@ -107,7 +113,7 @@ export class InvoiceLifecycleService {
 		const dueDays = await this.settings.getNumber("billing.paymentDueDays", 7);
 		const issueDate = new Date();
 		const dueDate = input.dueDate ?? new Date(issueDate.getTime() + dueDays * 86_400_000);
-		const { vatAmount, total } = await this.computeTotals(input.amountEtb);
+		const { taxMinor, totalMinor } = await this.computeTotals(input.amountMinor, sub.organizationId);
 		const number = await this.nextInvoiceNumber(sub.organizationId);
 		return this.prisma.subscriptionInvoice.create({
 			data: {
@@ -120,10 +126,10 @@ export class InvoiceLifecycleService {
 				periodStart: input.periodStart,
 				periodEnd: input.periodEnd,
 				currency: sub.currency,
-				subtotal: input.amountEtb,
-				vatAmount,
-				total,
-				amountPaid: 0,
+				subtotalMinor: input.amountMinor,
+				taxMinor,
+				totalMinor,
+				amountPaidMinor: 0,
 				lineType: input.lineType ?? "subscription",
 				description: input.description ?? null,
 			},
@@ -154,16 +160,18 @@ export class InvoiceLifecycleService {
 		});
 		if (!inv) throw new NotFoundException("invoice not found");
 		if (inv.status === "void") throw new BadRequestException("cannot pay void invoice");
-		if (input.amount <= 0) throw new BadRequestException("amount must be positive");
+		if (input.amountMinor <= 0) throw new BadRequestException("amount must be positive");
 
 		const payment = await this.prisma.subscriptionPayment.create({
 			data: {
 				invoiceId: inv.id,
 				organizationId: inv.organizationId,
-				amount: input.amount,
+				amountMinor: input.amountMinor,
 				currency: inv.currency,
 				method: input.method,
-				chapaReference: input.chapaReference,
+				stripePaymentIntentId: input.stripePaymentIntentId,
+				chapaTxRef: input.chapaTxRef,
+				chapaRefId: input.chapaRefId,
 				bankReference: input.bankReference,
 				receiptNumber: input.receiptNumber,
 				paidAt: input.paidAt ?? new Date(),
@@ -175,12 +183,12 @@ export class InvoiceLifecycleService {
 			},
 		});
 
-		const newAmountPaid = inv.amountPaid + input.amount;
-		const fullyPaid = newAmountPaid >= inv.total;
+		const newAmountPaid = inv.amountPaidMinor + input.amountMinor;
+		const fullyPaid = newAmountPaid >= inv.totalMinor;
 		const updatedInv = await this.prisma.subscriptionInvoice.update({
 			where: { id: inv.id },
 			data: {
-				amountPaid: newAmountPaid,
+				amountPaidMinor: newAmountPaid,
 				status: fullyPaid ? "paid" : "sent",
 				paidAt: fullyPaid ? new Date() : inv.paidAt,
 			},
@@ -201,12 +209,12 @@ export class InvoiceLifecycleService {
 			where: { id: paymentId },
 			data: { note: `REFUNDED${reason ? `: ${reason}` : ""}` },
 		});
-		const newAmountPaid = Math.max(0, inv.amountPaid - pay.amount);
+		const newAmountPaid = Math.max(0, inv.amountPaidMinor - pay.amountMinor);
 		return this.prisma.subscriptionInvoice.update({
 			where: { id: inv.id },
 			data: {
-				amountPaid: newAmountPaid,
-				status: newAmountPaid >= inv.total ? "paid" : "refunded",
+				amountPaidMinor: newAmountPaid,
+				status: newAmountPaid >= inv.totalMinor ? "paid" : "refunded",
 			},
 		});
 	}

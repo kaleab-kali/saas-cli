@@ -43,7 +43,7 @@ import {
 	ListSubscriptionInvoicesHandler,
 } from "../../application/queries/billing.queries";
 import { SubscriptionLifecycleService } from "../../application/services/subscription-lifecycle.service";
-import { VatInvoiceService } from "../../application/services/vat-invoice.service";
+import { InvoicePdfService } from "../../application/services/invoice-pdf.service";
 import { SubscriptionInvoiceRepository } from "../../domain/repositories/subscription-invoice.repository";
 
 interface AuthedReq {
@@ -72,7 +72,7 @@ export class BillingController {
 		private readonly recordPayment: RecordManualPaymentHandler,
 		private readonly verifyPayment: VerifyPaymentHandler,
 		private readonly initiateChapa: InitiateChapaPaymentHandler,
-		private readonly vatInvoice: VatInvoiceService,
+		private readonly invoicePdf: InvoicePdfService,
 		private readonly invoiceRepo: SubscriptionInvoiceRepository,
 		private readonly subLifecycle: SubscriptionLifecycleService,
 	) {}
@@ -152,12 +152,12 @@ export class BillingController {
 
 	@Get("invoices/:id/pdf")
 	@RequirePermissions("billing:view-invoices")
-	async invoicePdf(@Param("id") id: string, @Req() req: AuthedReq, @Res() res: Response) {
+	async getInvoicePdf(@Param("id") id: string, @Req() req: AuthedReq, @Res() res: Response) {
 		const invoice = await this.invoiceRepo.findById(id);
 		if (!invoice || invoice.toPrimitives().organizationId !== req.organizationId) {
 			throw new NotFoundException("invoice");
 		}
-		const buf = await this.vatInvoice.generate(invoice, { organizationName: "Customer Org" });
+		const buf = await this.invoicePdf.generate(invoice, { organizationName: "Customer Org" });
 		res.setHeader("Content-Type", "application/pdf");
 		res.setHeader("Content-Disposition", `inline; filename="${invoice.toPrimitives().number}.pdf"`);
 		res.send(buf);

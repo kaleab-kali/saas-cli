@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "#shared/database/prisma.service";
 import { DomainEventBus } from "#shared/events/domain-event.bus";
 import { Subscription } from "../../domain/entities/subscription.entity";
 import { SubscriptionInvoice } from "../../domain/entities/subscription-invoice.entity";
@@ -16,6 +17,7 @@ export class StartSubscriptionHandler {
 		private readonly planRepo: PlanRepository,
 		private readonly invoiceRepo: SubscriptionInvoiceRepository,
 		private readonly events: DomainEventBus,
+		private readonly prisma: PrismaService,
 	) {}
 
 	async execute(organizationId: string, dto: StartSubscriptionDto) {
@@ -40,22 +42,33 @@ export class StartSubscriptionHandler {
 			planSlug: p.slug as PlanSlug,
 			status: "active",
 			billingInterval: dto.billingInterval as BillingInterval,
-			currency: "ETB",
-			chapaCustomerId: null,
-			chapaSubscriptionId: null,
+			currency: p.currency,
+			gateway: "manual",
+			stripeCustomerId: null,
+			stripeSubscriptionId: null,
+			chapaCustomerEmail: null,
+			lastChapaTxRef: null,
 			currentPeriodStart: now,
 			currentPeriodEnd: end,
 			canceledAt: null,
 			cancelAtPeriodEnd: false,
-			campaignActiveUntil: null,
+			trialEndsAt: null,
+			creditBalanceMinor: 0,
 			createdAt: now,
 			updatedAt: now,
 		});
 		const saved = await this.subRepo.save(sub);
 
-		// First invoice — subtotal = plan price (monthly or annual)
-		const subtotal = dto.billingInterval === "annual" ? p.priceAnnualEtb : p.priceMonthlyEtb;
-		if (subtotal <= 0) throw new BadRequestException("invalid plan price");
+		const subtotalMinor = dto.billingInterval === "annual" ? p.priceAnnualMinor : p.priceMonthlyMinor;
+		if (subtotalMinor <= 0) throw new BadRequestException("invalid plan price");
+
+		// Org-level tax rate
+		const orgSettings = await this.prisma.organizationSettings.findUnique({
+			where: { organizationId },
+			select: { taxRatePct: true },
+		});
+		const taxRatePct = orgSettings?.taxRatePct ?? 0;
+
 		const number = await this.invoiceRepo.nextInvoiceNumber(organizationId);
 		const dueDate = new Date(now);
 		dueDate.setDate(dueDate.getDate() + 7);
@@ -70,16 +83,20 @@ export class StartSubscriptionHandler {
 			dueDate,
 			periodStart: now,
 			periodEnd: end,
-			currency: "ETB",
-			subtotal,
-			amountPaid: 0,
+			currency: p.currency,
+			subtotalMinor,
+			amountPaidMinor: 0,
 			lineType: "subscription",
 			description: `${p.nameEn} — ${dto.billingInterval} (${now.toLocaleDateString("en-GB")} — ${end.toLocaleDateString("en-GB")})`,
+			stripeInvoiceId: null,
+			chapaTxRef: null,
+			checkoutUrl: null,
 			pdfUrl: null,
 			sentAt: null,
 			paidAt: null,
 			createdAt: now,
 			updatedAt: now,
+			taxRatePct,
 		});
 		const savedInvoice = await this.invoiceRepo.save(invoice);
 
@@ -91,7 +108,7 @@ export class StartSubscriptionHandler {
 		this.events.emit({
 			eventName: BILLING_EVENTS.INVOICE_ISSUED,
 			organizationId,
-			payload: { invoiceId: savedInvoice.id, total: savedInvoice.toPrimitives().total },
+			payload: { invoiceId: savedInvoice.id, totalMinor: savedInvoice.toPrimitives().totalMinor },
 		});
 
 		return { subscription: saved.toPrimitives(), invoice: savedInvoice.toPrimitives() };

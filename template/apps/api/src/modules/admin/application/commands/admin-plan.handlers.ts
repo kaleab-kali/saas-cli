@@ -6,13 +6,17 @@ export interface CreatePlanInput {
 	slug: string;
 	nameEn: string;
 	nameAm: string;
-	priceMonthlyEtb: number;
-	priceAnnualEtb: number;
-	priceCampaignDailyEtb?: number | null;
-	buildingCap?: number | null;
-	unitCap?: number | null;
+	description?: string | null;
+	priceMonthlyMinor: number;
+	priceAnnualMinor: number;
+	currency?: string;
 	userCap?: number | null;
 	supportSlaHours: number;
+	stripeSupported?: boolean;
+	stripePriceIdMonthly?: string | null;
+	stripePriceIdAnnual?: string | null;
+	chapaSupported?: boolean;
+	manualSupported?: boolean;
 	sortOrder?: number;
 	active?: boolean;
 }
@@ -40,13 +44,17 @@ export class CreatePlanHandler {
 				slug: input.slug,
 				nameEn: input.nameEn,
 				nameAm: input.nameAm,
-				priceMonthlyEtb: input.priceMonthlyEtb,
-				priceAnnualEtb: input.priceAnnualEtb,
-				priceCampaignDailyEtb: input.priceCampaignDailyEtb ?? null,
-				buildingCap: input.buildingCap ?? null,
-				unitCap: input.unitCap ?? null,
+				description: input.description ?? null,
+				priceMonthlyMinor: input.priceMonthlyMinor,
+				priceAnnualMinor: input.priceAnnualMinor,
+				currency: input.currency ?? "USD",
 				userCap: input.userCap ?? null,
 				supportSlaHours: input.supportSlaHours,
+				stripeSupported: input.stripeSupported ?? true,
+				stripePriceIdMonthly: input.stripePriceIdMonthly ?? null,
+				stripePriceIdAnnual: input.stripePriceIdAnnual ?? null,
+				chapaSupported: input.chapaSupported ?? false,
+				manualSupported: input.manualSupported ?? true,
 				sortOrder: input.sortOrder ?? 0,
 				active: input.active ?? true,
 			},

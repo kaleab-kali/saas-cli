@@ -19,13 +19,13 @@ export class ChapaWebhookService {
 
 	// Chapa callback — verify transaction, then record payment.
 	async handle(txRef: string) {
-		// Extract invoice number from txRef: pf-inv-<INV-NUMBER>-<uuid>
+		// txRef shape: inv-<INV-NUMBER>-<uuid>  (created by InitiateChapaPaymentHandler)
 		const parts = txRef.split("-");
-		if (parts.length < 4 || parts[0] !== "pf" || parts[1] !== "inv") {
+		if (parts.length < 3 || parts[0] !== "inv") {
 			this.logger.warn(`unrecognized txRef: ${txRef}`);
 			return { handled: false };
 		}
-		const invoiceNumber = parts.slice(2, -1).join("-");
+		const invoiceNumber = parts.slice(1, -1).join("-");
 
 		const invoice = await this.invoiceRepo.findByNumber(invoiceNumber);
 		if (!invoice) {
@@ -34,15 +34,18 @@ export class ChapaWebhookService {
 		}
 
 		// Idempotency — payment already recorded for this txRef?
-		const existing = await this.paymentRepo.findByChapaReference(txRef);
+		const existing = await this.paymentRepo.findByChapaTxRef(txRef);
 		if (existing) return { handled: true, already: true };
 
-		// Verify w/ Chapa
+		// Verify w/ Chapa per their docs (https://developer.chapa.co/docs/verify-payments/)
 		const verified = await this.chapa.verify(txRef);
 		if (verified.status !== "success") {
 			this.logger.warn(`chapa status: ${verified.status} for ${txRef}`);
 			return { handled: false, chapaStatus: verified.status };
 		}
+
+		// Chapa returns amount in major units; we store in minor.
+		const amountMinor = Math.round(verified.amount * 100);
 
 		const p = invoice.toPrimitives();
 		const now = new Date();
@@ -50,10 +53,13 @@ export class ChapaWebhookService {
 			id: "",
 			invoiceId: p.id,
 			organizationId: p.organizationId,
-			amount: verified.amount,
+			amountMinor,
 			currency: verified.currency,
-			method: "chapa_online",
-			chapaReference: txRef,
+			method: "chapa_card",
+			stripePaymentIntentId: null,
+			stripeChargeId: null,
+			chapaTxRef: txRef,
+			chapaRefId: verified.reference ?? null,
 			bankReference: null,
 			receiptNumber: null,
 			paidAt: now,
@@ -61,24 +67,24 @@ export class ChapaWebhookService {
 			verified: true,
 			verifiedByUserId: null,
 			verifiedAt: now,
-			note: `Chapa reference: ${verified.reference}`,
+			note: `Chapa ref_id: ${verified.reference}`,
 			createdAt: now,
 			updatedAt: now,
 		});
 		const saved = await this.paymentRepo.save(payment);
-		invoice.applyPayment(verified.amount);
+		invoice.applyPayment(amountMinor);
 		await this.invoiceRepo.update(invoice);
 
 		this.events.emit({
 			eventName: BILLING_EVENTS.PAYMENT_RECORDED,
 			organizationId: p.organizationId,
-			payload: { paymentId: saved.id, invoiceId: p.id, amount: verified.amount, method: "chapa_online" },
+			payload: { paymentId: saved.id, invoiceId: p.id, amountMinor, method: "chapa_card" },
 		});
 		if (invoice.status === "paid") {
 			this.events.emit({
 				eventName: BILLING_EVENTS.INVOICE_PAID,
 				organizationId: p.organizationId,
-				payload: { invoiceId: p.id, total: p.total },
+				payload: { invoiceId: p.id, totalMinor: p.totalMinor },
 			});
 		}
 

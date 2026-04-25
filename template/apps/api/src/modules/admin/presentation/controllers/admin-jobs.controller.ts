@@ -10,7 +10,7 @@ interface AdminReq {
 	adminUser?: { id: string };
 }
 
-const KNOWN_JOBS = ["billing.daily", "billing.campaigns", "billing.usage"] as const;
+const KNOWN_JOBS = ["billing.daily", "billing.usage"] as const;
 type JobName = (typeof KNOWN_JOBS)[number];
 
 @ApiTags("Admin")
@@ -61,8 +61,6 @@ export class AdminJobsController {
 		const j = name as JobName;
 		if (j === "billing.daily") {
 			await this.billingCron.runDailyLifecycle(adminUserId);
-		} else if (j === "billing.campaigns") {
-			await this.billingCron.runCampaigns(adminUserId);
 		} else if (j === "billing.usage") {
 			await this.billingCron.runUsageSnapshot(adminUserId);
 		}

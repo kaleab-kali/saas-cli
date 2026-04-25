@@ -29,10 +29,13 @@ export class RecordManualPaymentHandler {
 			id: "",
 			invoiceId: dto.invoiceId,
 			organizationId,
-			amount: dto.amount,
+			amountMinor: dto.amountMinor,
 			currency: invoice.toPrimitives().currency,
 			method: dto.method as PaymentMethod,
-			chapaReference: null,
+			stripePaymentIntentId: null,
+			stripeChargeId: null,
+			chapaTxRef: null,
+			chapaRefId: null,
 			bankReference: dto.bankReference ?? null,
 			receiptNumber: dto.receiptNumber ?? null,
 			paidAt: now,
@@ -47,7 +50,7 @@ export class RecordManualPaymentHandler {
 		const saved = await this.paymentRepo.save(payment);
 
 		// Apply payment to invoice (optimistic — verification still pending, but balance reflects)
-		invoice.applyPayment(dto.amount);
+		invoice.applyPayment(dto.amountMinor);
 		await this.invoiceRepo.update(invoice);
 
 		this.events.emit({
@@ -56,7 +59,7 @@ export class RecordManualPaymentHandler {
 			payload: {
 				paymentId: saved.id,
 				invoiceId: dto.invoiceId,
-				amount: dto.amount,
+				amountMinor: dto.amountMinor,
 				method: dto.method,
 				requiresVerification: true,
 			},

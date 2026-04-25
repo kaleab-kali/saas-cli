@@ -24,7 +24,7 @@ import { EntitlementService } from "./application/services/entitlement.service";
 import { InvoiceLifecycleService } from "./application/services/invoice-lifecycle.service";
 import { SubscriptionLifecycleService } from "./application/services/subscription-lifecycle.service";
 import { UsageTrackerService } from "./application/services/usage-tracker.service";
-import { VatInvoiceService } from "./application/services/vat-invoice.service";
+import { InvoicePdfService } from "./application/services/invoice-pdf.service";
 import { PlanRepository } from "./domain/repositories/plan.repository";
 import { SubscriptionRepository } from "./domain/repositories/subscription.repository";
 import { SubscriptionInvoiceRepository } from "./domain/repositories/subscription-invoice.repository";
@@ -54,7 +54,7 @@ import { EntitlementGuard } from "./presentation/guards/entitlement.guard";
 		ChapaClient,
 		EntitlementService,
 		UsageTrackerService,
-		VatInvoiceService,
+		InvoicePdfService,
 		ChapaWebhookService,
 		EntitlementGuard,
 		ListPlansHandler,

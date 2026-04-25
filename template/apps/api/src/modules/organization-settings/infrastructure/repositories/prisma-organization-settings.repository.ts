@@ -23,7 +23,6 @@ export class PrismaOrganizationSettingsRepository extends OrganizationSettingsRe
 				organizationId: p.organizationId,
 				timezone: p.timezone,
 				currency: p.currency,
-				areaUnit: p.areaUnit,
 				dateFormat: p.dateFormat,
 				fiscalYearStartMonth: p.fiscalYearStartMonth,
 				invoiceNumberPrefix: p.invoiceNumberPrefix,
@@ -35,13 +34,11 @@ export class PrismaOrganizationSettingsRepository extends OrganizationSettingsRe
 				companyPhone: p.companyPhone,
 				companyEmail: p.companyEmail,
 				taxId: p.taxId,
-				allowGmViewAgentContacts: p.allowGmViewAgentContacts,
-				allowGmExportAgentContacts: p.allowGmExportAgentContacts,
+				taxRatePct: p.taxRatePct,
 			},
 			update: {
 				timezone: p.timezone,
 				currency: p.currency,
-				areaUnit: p.areaUnit,
 				dateFormat: p.dateFormat,
 				fiscalYearStartMonth: p.fiscalYearStartMonth,
 				invoiceNumberPrefix: p.invoiceNumberPrefix,
@@ -53,8 +50,7 @@ export class PrismaOrganizationSettingsRepository extends OrganizationSettingsRe
 				companyPhone: p.companyPhone,
 				companyEmail: p.companyEmail,
 				taxId: p.taxId,
-				allowGmViewAgentContacts: p.allowGmViewAgentContacts,
-				allowGmExportAgentContacts: p.allowGmExportAgentContacts,
+				taxRatePct: p.taxRatePct,
 			},
 		});
 		return OrganizationSettingsMapper.toDomain(row);

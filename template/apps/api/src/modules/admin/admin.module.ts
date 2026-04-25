@@ -5,7 +5,7 @@ import {
 	CreditAccountHandler,
 	ExtendTrialHandler,
 	ForceSubscriptionStatusHandler,
-	SetManualPaymentModeHandler,
+	SetSubscriptionGatewayHandler,
 } from "./application/commands/admin-billing.handlers";
 import {
 	ArchivePlanHandler,
@@ -73,7 +73,7 @@ import { AdminUsersController } from "./presentation/controllers/admin-users.con
 		UpsertEntitlementHandler,
 		ListAdminPlansHandler,
 		ExtendTrialHandler,
-		SetManualPaymentModeHandler,
+		SetSubscriptionGatewayHandler,
 		CreditAccountHandler,
 		ChangeSubscriptionPlanHandler,
 		ForceSubscriptionStatusHandler,

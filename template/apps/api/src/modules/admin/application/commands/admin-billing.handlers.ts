@@ -39,24 +39,24 @@ export class ExtendTrialHandler {
 }
 
 @Injectable()
-export class SetManualPaymentModeHandler {
+export class SetSubscriptionGatewayHandler {
 	constructor(
 		private readonly prisma: PrismaService,
 		private readonly audit: LogPlatformActionHandler,
 	) {}
 
-	async execute(subscriptionId: string, manualMode: boolean, performedBy?: string) {
+	async execute(subscriptionId: string, gateway: "stripe" | "chapa" | "manual", performedBy?: string) {
 		const updated = await this.prisma.subscription.update({
 			where: { id: subscriptionId },
-			data: { manualPaymentMode: manualMode },
+			data: { gateway },
 		});
 		if (performedBy) {
 			await this.audit.execute({
 				performedBy,
-				action: "subscription.set-manual-mode",
+				action: "subscription.set-gateway",
 				targetType: "subscription",
 				targetId: subscriptionId,
-				details: { manualMode },
+				details: { gateway },
 			});
 		}
 		return updated;
@@ -70,15 +70,15 @@ export class CreditAccountHandler {
 		private readonly audit: LogPlatformActionHandler,
 	) {}
 
-	async execute(subscriptionId: string, amountEtb: number, performedBy?: string, note?: string) {
-		if (amountEtb === 0) throw new BadRequestException("amount must be non-zero");
+	async execute(subscriptionId: string, amountMinor: number, performedBy?: string, note?: string) {
+		if (amountMinor === 0) throw new BadRequestException("amount must be non-zero");
 		const sub = await this.prisma.subscription.findUnique({ where: { id: subscriptionId } });
 		if (!sub) throw new NotFoundException("subscription not found");
-		const next = (sub.creditBalanceEtb ?? 0) + amountEtb;
+		const next = (sub.creditBalanceMinor ?? 0) + amountMinor;
 		if (next < 0) throw new BadRequestException("credit balance cannot go negative");
 		const updated = await this.prisma.subscription.update({
 			where: { id: subscriptionId },
-			data: { creditBalanceEtb: next },
+			data: { creditBalanceMinor: next },
 		});
 		if (performedBy) {
 			await this.audit.execute({
@@ -86,7 +86,7 @@ export class CreditAccountHandler {
 				action: "subscription.credit-account",
 				targetType: "subscription",
 				targetId: subscriptionId,
-				details: { amountEtb, newBalance: next, note },
+				details: { amountMinor, newBalance: next, note },
 			});
 		}
 		return updated;
