@@ -16,10 +16,13 @@ export class PrismaSubscriptionPaymentRepository extends SubscriptionPaymentRepo
 			data: {
 				invoiceId: x.invoiceId,
 				organizationId: x.organizationId,
-				amount: x.amount,
+				amountMinor: x.amountMinor,
 				currency: x.currency,
 				method: x.method,
-				chapaReference: x.chapaReference,
+				stripePaymentIntentId: x.stripePaymentIntentId,
+				stripeChargeId: x.stripeChargeId,
+				chapaTxRef: x.chapaTxRef,
+				chapaRefId: x.chapaRefId,
 				bankReference: x.bankReference,
 				receiptNumber: x.receiptNumber,
 				paidAt: x.paidAt,
@@ -52,8 +55,13 @@ export class PrismaSubscriptionPaymentRepository extends SubscriptionPaymentRepo
 		return row ? SubscriptionPaymentMapper.toDomain(row) : null;
 	}
 
-	async findByChapaReference(ref: string) {
-		const row = await this.prisma.subscriptionPayment.findFirst({ where: { chapaReference: ref } });
+	async findByChapaTxRef(txRef: string) {
+		const row = await this.prisma.subscriptionPayment.findFirst({ where: { chapaTxRef: txRef } });
+		return row ? SubscriptionPaymentMapper.toDomain(row) : null;
+	}
+
+	async findByStripePaymentIntentId(piId: string) {
+		const row = await this.prisma.subscriptionPayment.findFirst({ where: { stripePaymentIntentId: piId } });
 		return row ? SubscriptionPaymentMapper.toDomain(row) : null;
 	}
 

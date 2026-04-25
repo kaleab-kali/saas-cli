@@ -16,7 +16,6 @@ import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import type { Response } from "express";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
-import { ActivateCampaignHandler } from "../../application/commands/activate-campaign.handler";
 import {
 	CancelSubscriptionHandler,
 	ResumeSubscriptionHandler,
@@ -29,7 +28,6 @@ import {
 } from "../../application/commands/record-manual-payment.handler";
 import { StartSubscriptionHandler } from "../../application/commands/start-subscription.handler";
 import {
-	ActivateCampaignDto,
 	CancelSubscriptionDto,
 	ChangePlanDto,
 	InitiateChapaPaymentDto,
@@ -41,7 +39,6 @@ import {
 	GetInvoicePaymentsHandler,
 	GetSubscriptionHandler,
 	GetUsageHandler,
-	ListCampaignsHandler,
 	ListPlansHandler,
 	ListSubscriptionInvoicesHandler,
 } from "../../application/queries/billing.queries";
@@ -67,13 +64,11 @@ export class BillingController {
 		private readonly getUsage: GetUsageHandler,
 		private readonly getEntitlements: GetEntitlementsHandler,
 		private readonly listInvoices: ListSubscriptionInvoicesHandler,
-		private readonly listCampaigns: ListCampaignsHandler,
 		private readonly getPayments: GetInvoicePaymentsHandler,
 		private readonly startSub: StartSubscriptionHandler,
 		private readonly changePlan: ChangePlanHandler,
 		private readonly cancelSub: CancelSubscriptionHandler,
 		private readonly resumeSub: ResumeSubscriptionHandler,
-		private readonly activateCampaign: ActivateCampaignHandler,
 		private readonly recordPayment: RecordManualPaymentHandler,
 		private readonly verifyPayment: VerifyPaymentHandler,
 		private readonly initiateChapa: InitiateChapaPaymentHandler,
@@ -168,12 +163,6 @@ export class BillingController {
 		res.send(buf);
 	}
 
-	@Get("campaigns")
-	@RequirePermissions("billing:read")
-	async campaigns(@Req() req: AuthedReq) {
-		return { data: await this.listCampaigns.execute(req.organizationId) };
-	}
-
 	@Post("subscription")
 	@RequirePermissions("billing:manage-subscription")
 	async start(@Body() dto: StartSubscriptionDto, @Req() req: AuthedReq) {
@@ -196,13 +185,6 @@ export class BillingController {
 	@RequirePermissions("billing:manage-subscription")
 	async resume(@Req() req: AuthedReq) {
 		return { data: await this.resumeSub.execute(req.organizationId) };
-	}
-
-	@Post("campaigns")
-	@RequirePermissions("billing:manage-subscription")
-	async campaign(@Body() dto: ActivateCampaignDto, @Req() req: AuthedReq) {
-		const u = pickUser(req);
-		return { data: await this.activateCampaign.execute(req.organizationId, u?.id ?? "system", dto) };
 	}
 
 	@Post("payments/manual")

@@ -1,5 +1,4 @@
 import { Injectable } from "@nestjs/common";
-import { CampaignActivationRepository } from "../../domain/repositories/campaign-activation.repository";
 import { PlanRepository } from "../../domain/repositories/plan.repository";
 import { SubscriptionRepository } from "../../domain/repositories/subscription.repository";
 import {
@@ -24,17 +23,14 @@ export class GetSubscriptionHandler {
 	constructor(
 		private readonly subRepo: SubscriptionRepository,
 		private readonly planRepo: PlanRepository,
-		private readonly campaignRepo: CampaignActivationRepository,
 	) {}
 	async execute(organizationId: string) {
 		const sub = await this.subRepo.findByOrg(organizationId);
-		if (!sub) return { subscription: null, plan: null, campaign: null };
+		if (!sub) return { subscription: null, plan: null };
 		const plan = await this.planRepo.findById(sub.toPrimitives().planId);
-		const campaign = await this.campaignRepo.findActiveByOrg(organizationId);
 		return {
 			subscription: sub.toPrimitives(),
 			plan: plan?.toPrimitives() ?? null,
-			campaign: campaign?.toPrimitives() ?? null,
 		};
 	}
 }
@@ -70,14 +66,5 @@ export class GetEntitlementsHandler {
 	constructor(private readonly svc: EntitlementService) {}
 	async execute(organizationId: string) {
 		return this.svc.getEntitlementMap(organizationId);
-	}
-}
-
-@Injectable()
-export class ListCampaignsHandler {
-	constructor(private readonly repo: CampaignActivationRepository) {}
-	async execute(organizationId: string) {
-		const rows = await this.repo.listByOrg(organizationId);
-		return rows.map((r) => r.toPrimitives());
 	}
 }

@@ -54,12 +54,15 @@ export class PrismaSubscriptionInvoiceRepository extends SubscriptionInvoiceRepo
 				periodStart: p.periodStart,
 				periodEnd: p.periodEnd,
 				currency: p.currency,
-				subtotal: p.subtotal,
-				vatAmount: p.vatAmount,
-				total: p.total,
-				amountPaid: p.amountPaid,
+				subtotalMinor: p.subtotalMinor,
+				taxMinor: p.taxMinor,
+				totalMinor: p.totalMinor,
+				amountPaidMinor: p.amountPaidMinor,
 				lineType: p.lineType,
 				description: p.description,
+				stripeInvoiceId: p.stripeInvoiceId,
+				chapaTxRef: p.chapaTxRef,
+				checkoutUrl: p.checkoutUrl,
 				pdfUrl: p.pdfUrl,
 				sentAt: p.sentAt,
 				paidAt: p.paidAt,
@@ -74,7 +77,10 @@ export class PrismaSubscriptionInvoiceRepository extends SubscriptionInvoiceRepo
 			where: { id: p.id },
 			data: {
 				status: p.status,
-				amountPaid: p.amountPaid,
+				amountPaidMinor: p.amountPaidMinor,
+				stripeInvoiceId: p.stripeInvoiceId,
+				chapaTxRef: p.chapaTxRef,
+				checkoutUrl: p.checkoutUrl,
 				pdfUrl: p.pdfUrl,
 				sentAt: p.sentAt,
 				paidAt: p.paidAt,
@@ -89,6 +95,6 @@ export class PrismaSubscriptionInvoiceRepository extends SubscriptionInvoiceRepo
 			where: { organizationId, issueDate: { gte: new Date(year, 0, 1) } },
 		});
 		const seq = (count + 1).toString().padStart(5, "0");
-		return `PF-INV-${year}-${seq}`;
+		return `INV-${year}-${seq}`;
 	}
 }

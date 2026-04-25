@@ -1,5 +1,5 @@
 import type { Subscription as PrismaSubscription } from "../../../../generated/prisma/client";
-import { Subscription } from "../../domain/entities/subscription.entity";
+import { type Gateway, Subscription } from "../../domain/entities/subscription.entity";
 import type { BillingInterval, PlanSlug, SubscriptionStatus } from "../../domain/value-objects/feature-keys.vo";
 
 export class SubscriptionMapper {
@@ -12,13 +12,17 @@ export class SubscriptionMapper {
 			status: row.status as SubscriptionStatus,
 			billingInterval: row.billingInterval as BillingInterval,
 			currency: row.currency,
-			chapaCustomerId: row.chapaCustomerId,
-			chapaSubscriptionId: row.chapaSubscriptionId,
+			gateway: row.gateway as Gateway,
+			stripeCustomerId: row.stripeCustomerId,
+			stripeSubscriptionId: row.stripeSubscriptionId,
+			chapaCustomerEmail: row.chapaCustomerEmail,
+			lastChapaTxRef: row.lastChapaTxRef,
 			currentPeriodStart: row.currentPeriodStart,
 			currentPeriodEnd: row.currentPeriodEnd,
 			canceledAt: row.canceledAt,
 			cancelAtPeriodEnd: row.cancelAtPeriodEnd,
-			campaignActiveUntil: row.campaignActiveUntil,
+			trialEndsAt: row.trialEndsAt,
+			creditBalanceMinor: row.creditBalanceMinor,
 			createdAt: row.createdAt,
 			updatedAt: row.updatedAt,
 		});

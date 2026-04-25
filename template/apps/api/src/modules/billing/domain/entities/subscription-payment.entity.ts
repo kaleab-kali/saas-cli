@@ -5,10 +5,13 @@ export interface SubscriptionPaymentProps {
 	id: string;
 	invoiceId: string;
 	organizationId: string;
-	amount: number;
+	amountMinor: number;
 	currency: string;
 	method: PaymentMethod;
-	chapaReference: string | null;
+	stripePaymentIntentId: string | null;
+	stripeChargeId: string | null;
+	chapaTxRef: string | null;
+	chapaRefId: string | null;
 	bankReference: string | null;
 	receiptNumber: string | null;
 	paidAt: Date;
@@ -25,15 +28,17 @@ export class SubscriptionPayment {
 	private constructor(private props: SubscriptionPaymentProps) {}
 
 	static create(props: SubscriptionPaymentProps) {
-		if (props.amount <= 0) throw new BadRequestException("amount must be > 0");
+		if (props.amountMinor <= 0) throw new BadRequestException("amountMinor must be > 0");
 		if (!isPaymentMethod(props.method)) throw new BadRequestException(`invalid method: ${props.method}`);
-		// Manual methods require either receiptNumber or bankReference
 		const isManual = props.method.startsWith("manual_");
 		if (isManual && !props.receiptNumber && !props.bankReference) {
 			throw new BadRequestException("manual payment requires receiptNumber or bankReference");
 		}
-		if (props.method === "chapa_online" && !props.chapaReference) {
-			throw new BadRequestException("chapa_online requires chapaReference");
+		if (props.method.startsWith("chapa_") && !props.chapaTxRef && !props.chapaRefId) {
+			throw new BadRequestException("chapa payment requires chapaTxRef or chapaRefId");
+		}
+		if (props.method.startsWith("stripe_") && !props.stripePaymentIntentId) {
+			throw new BadRequestException("stripe payment requires stripePaymentIntentId");
 		}
 		return new SubscriptionPayment(props);
 	}
@@ -45,8 +50,8 @@ export class SubscriptionPayment {
 	get id() {
 		return this.props.id;
 	}
-	get amount() {
-		return this.props.amount;
+	get amountMinor() {
+		return this.props.amountMinor;
 	}
 	get invoiceId() {
 		return this.props.invoiceId;

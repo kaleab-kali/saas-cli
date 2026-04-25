@@ -57,10 +57,6 @@ export class BillingLifecycleCron {
 		return this.runTracked("billing.daily", () => this.dailyLifecycleInner(), triggeredByUserId);
 	}
 
-	async runCampaigns(triggeredByUserId?: string): Promise<string> {
-		return this.runTracked("billing.campaigns", () => this.expireCampaignsInner(), triggeredByUserId);
-	}
-
 	async runUsageSnapshot(triggeredByUserId?: string): Promise<string> {
 		return this.runTracked("billing.usage", () => this.usageSnapshotInner(), triggeredByUserId);
 	}
@@ -87,11 +83,13 @@ export class BillingLifecycleCron {
 		for (const sub of expiring) {
 			try {
 				if (autoRenewInvoice) {
-					const amountCents = sub.billingInterval === "annual" ? sub.plan.priceAnnualEtb : sub.plan.priceMonthlyEtb;
+					const amountMinor =
+						sub.billingInterval === "annual" ? sub.plan.priceAnnualMinor : sub.plan.priceMonthlyMinor;
 					await this.invoiceLifecycle.createRenewalInvoice({
 						subscriptionId: sub.id,
 						organizationId: sub.organizationId,
-						amountEtb: amountCents,
+						amountMinor,
+						currency: sub.currency,
 						periodStart: sub.currentPeriodEnd,
 						billingInterval: sub.billingInterval,
 					});
@@ -161,23 +159,6 @@ export class BillingLifecycleCron {
 
 		const summary = `expiring=${expiring.length} past_due→read_only=${pastDue.length} read_only→locked=${readOnly.length}`;
 		this.logger.log(`[billing.daily] ${summary}`);
-		return summary;
-	}
-
-	// Daily at 03:00 — expire campaigns
-	@Cron("0 3 * * *", { name: "billing.campaigns" })
-	async expireCampaigns() {
-		await this.runTracked("billing.campaigns", () => this.expireCampaignsInner());
-	}
-
-	private async expireCampaignsInner(): Promise<string> {
-		const now = new Date();
-		const result = await this.prisma.campaignActivation.updateMany({
-			where: { status: "active", endsAt: { lt: now } },
-			data: { status: "expired" },
-		});
-		const summary = `expired=${result.count}`;
-		this.logger.log(`[billing.campaigns] ${summary}`);
 		return summary;
 	}
 

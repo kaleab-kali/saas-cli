@@ -1,5 +1,5 @@
 import { BadRequestException } from "@nestjs/common";
-import { type InvoiceStatus, VAT_RATE } from "../value-objects/feature-keys.vo";
+import type { InvoiceStatus } from "../value-objects/feature-keys.vo";
 
 export interface SubscriptionInvoiceProps {
 	id: string;
@@ -12,12 +12,15 @@ export interface SubscriptionInvoiceProps {
 	periodStart: Date;
 	periodEnd: Date;
 	currency: string;
-	subtotal: number;
-	vatAmount: number;
-	total: number;
-	amountPaid: number;
+	subtotalMinor: number;
+	taxMinor: number;
+	totalMinor: number;
+	amountPaidMinor: number;
 	lineType: string;
 	description: string | null;
+	stripeInvoiceId: string | null;
+	chapaTxRef: string | null;
+	checkoutUrl: string | null;
 	pdfUrl: string | null;
 	sentAt: Date | null;
 	paidAt: Date | null;
@@ -28,12 +31,18 @@ export interface SubscriptionInvoiceProps {
 export class SubscriptionInvoice {
 	private constructor(private props: SubscriptionInvoiceProps) {}
 
-	static create(props: Omit<SubscriptionInvoiceProps, "vatAmount" | "total"> & { subtotal: number }) {
-		if (props.subtotal <= 0) throw new BadRequestException("subtotal must be > 0");
+	static create(
+		props: Omit<SubscriptionInvoiceProps, "taxMinor" | "totalMinor"> & {
+			subtotalMinor: number;
+			taxRatePct: number;
+		},
+	) {
+		if (props.subtotalMinor <= 0) throw new BadRequestException("subtotalMinor must be > 0");
 		if (props.dueDate < props.issueDate) throw new BadRequestException("dueDate before issueDate");
-		const vatAmount = Math.round(props.subtotal * VAT_RATE * 100) / 100;
-		const total = Math.round((props.subtotal + vatAmount) * 100) / 100;
-		return new SubscriptionInvoice({ ...props, vatAmount, total });
+		const taxMinor = Math.round(props.subtotalMinor * (props.taxRatePct / 100));
+		const totalMinor = props.subtotalMinor + taxMinor;
+		const { taxRatePct: _ignore, ...rest } = props;
+		return new SubscriptionInvoice({ ...rest, taxMinor, totalMinor });
 	}
 
 	static rehydrate(props: SubscriptionInvoiceProps) {
@@ -46,14 +55,14 @@ export class SubscriptionInvoice {
 	get status() {
 		return this.props.status;
 	}
-	get outstanding() {
-		return Math.round((this.props.total - this.props.amountPaid) * 100) / 100;
+	get outstandingMinor() {
+		return this.props.totalMinor - this.props.amountPaidMinor;
 	}
 	get isOverdue() {
 		return (
 			(this.props.status === "sent" || this.props.status === "overdue") &&
 			this.props.dueDate < new Date() &&
-			this.outstanding > 0
+			this.outstandingMinor > 0
 		);
 	}
 
@@ -65,12 +74,12 @@ export class SubscriptionInvoice {
 		this.props.updatedAt = new Date();
 	}
 
-	applyPayment(amount: number) {
-		if (amount <= 0) throw new BadRequestException("payment amount must be > 0");
-		const newPaid = Math.round((this.props.amountPaid + amount) * 100) / 100;
-		if (newPaid > this.props.total + 0.01) throw new BadRequestException("payment exceeds invoice total");
-		this.props.amountPaid = newPaid;
-		if (newPaid >= this.props.total - 0.01) {
+	applyPayment(amountMinor: number) {
+		if (amountMinor <= 0) throw new BadRequestException("payment amount must be > 0");
+		const newPaid = this.props.amountPaidMinor + amountMinor;
+		if (newPaid > this.props.totalMinor) throw new BadRequestException("payment exceeds invoice total");
+		this.props.amountPaidMinor = newPaid;
+		if (newPaid >= this.props.totalMinor) {
 			this.props.status = "paid";
 			this.props.paidAt = new Date();
 		}

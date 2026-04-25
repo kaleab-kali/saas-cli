@@ -1,6 +1,8 @@
 import { BadRequestException } from "@nestjs/common";
 import type { BillingInterval, PlanSlug, SubscriptionStatus } from "../value-objects/feature-keys.vo";
 
+export type Gateway = "stripe" | "chapa" | "manual";
+
 export interface SubscriptionProps {
 	id: string;
 	organizationId: string;
@@ -9,13 +11,17 @@ export interface SubscriptionProps {
 	status: SubscriptionStatus;
 	billingInterval: BillingInterval;
 	currency: string;
-	chapaCustomerId: string | null;
-	chapaSubscriptionId: string | null;
+	gateway: Gateway;
+	stripeCustomerId: string | null;
+	stripeSubscriptionId: string | null;
+	chapaCustomerEmail: string | null;
+	lastChapaTxRef: string | null;
 	currentPeriodStart: Date;
 	currentPeriodEnd: Date;
 	canceledAt: Date | null;
 	cancelAtPeriodEnd: boolean;
-	campaignActiveUntil: Date | null;
+	trialEndsAt: Date | null;
+	creditBalanceMinor: number;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -49,9 +55,6 @@ export class Subscription {
 	}
 	get isActive() {
 		return this.props.status === "active" || this.props.status === "trialing";
-	}
-	get campaignActive() {
-		return this.props.campaignActiveUntil !== null && this.props.campaignActiveUntil > new Date();
 	}
 
 	changePlan(newPlanId: string, newSlug: PlanSlug) {
@@ -87,14 +90,6 @@ export class Subscription {
 
 	suspend() {
 		this.props.status = "suspended";
-		this.props.updatedAt = new Date();
-	}
-
-	activateCampaign(until: Date) {
-		if (until <= new Date()) throw new BadRequestException("campaign end must be future");
-		// Extend existing campaign if already active
-		const existing = this.props.campaignActiveUntil;
-		this.props.campaignActiveUntil = existing && existing > until ? existing : until;
 		this.props.updatedAt = new Date();
 	}
 

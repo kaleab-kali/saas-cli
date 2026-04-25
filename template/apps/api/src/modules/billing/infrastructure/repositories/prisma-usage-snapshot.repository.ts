@@ -16,12 +16,10 @@ export class PrismaUsageSnapshotRepository extends UsageSnapshotRepository {
 				subscriptionId: p.subscriptionId,
 				organizationId: p.organizationId,
 				snapshotDate: p.snapshotDate,
-				buildingCount: p.buildingCount,
-				unitCount: p.unitCount,
 				userCount: p.userCount,
 				apiCallCount: p.apiCallCount,
-				smsCount: p.smsCount,
 				emailCount: p.emailCount,
+				metricsJson: p.metricsJson ?? undefined,
 			},
 		});
 		return UsageSnapshot.rehydrate(row);

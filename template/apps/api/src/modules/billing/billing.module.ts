@@ -1,7 +1,6 @@
 import { forwardRef, Global, Module } from "@nestjs/common";
 import { AdminModule } from "#modules/admin/admin.module";
 import { AuthModule } from "#modules/auth/auth.module";
-import { ActivateCampaignHandler } from "./application/commands/activate-campaign.handler";
 import {
 	CancelSubscriptionHandler,
 	ResumeSubscriptionHandler,
@@ -15,7 +14,6 @@ import {
 	GetInvoicePaymentsHandler,
 	GetSubscriptionHandler,
 	GetUsageHandler,
-	ListCampaignsHandler,
 	ListPlansHandler,
 	ListSubscriptionInvoicesHandler,
 } from "./application/queries/billing.queries";
@@ -27,7 +25,6 @@ import { InvoiceLifecycleService } from "./application/services/invoice-lifecycl
 import { SubscriptionLifecycleService } from "./application/services/subscription-lifecycle.service";
 import { UsageTrackerService } from "./application/services/usage-tracker.service";
 import { VatInvoiceService } from "./application/services/vat-invoice.service";
-import { CampaignActivationRepository } from "./domain/repositories/campaign-activation.repository";
 import { PlanRepository } from "./domain/repositories/plan.repository";
 import { SubscriptionRepository } from "./domain/repositories/subscription.repository";
 import { SubscriptionInvoiceRepository } from "./domain/repositories/subscription-invoice.repository";
@@ -35,7 +32,6 @@ import { SubscriptionPaymentRepository } from "./domain/repositories/subscriptio
 import { UsageSnapshotRepository } from "./domain/repositories/usage-snapshot.repository";
 import { SubscriptionStateGuard } from "./guards/subscription-state.guard";
 import { ChapaClient } from "./infrastructure/chapa/chapa.client";
-import { PrismaCampaignActivationRepository } from "./infrastructure/repositories/prisma-campaign-activation.repository";
 import { PrismaPlanRepository } from "./infrastructure/repositories/prisma-plan.repository";
 import { PrismaSubscriptionRepository } from "./infrastructure/repositories/prisma-subscription.repository";
 import { PrismaSubscriptionInvoiceRepository } from "./infrastructure/repositories/prisma-subscription-invoice.repository";
@@ -54,7 +50,6 @@ import { EntitlementGuard } from "./presentation/guards/entitlement.guard";
 		{ provide: SubscriptionRepository, useClass: PrismaSubscriptionRepository },
 		{ provide: SubscriptionInvoiceRepository, useClass: PrismaSubscriptionInvoiceRepository },
 		{ provide: SubscriptionPaymentRepository, useClass: PrismaSubscriptionPaymentRepository },
-		{ provide: CampaignActivationRepository, useClass: PrismaCampaignActivationRepository },
 		{ provide: UsageSnapshotRepository, useClass: PrismaUsageSnapshotRepository },
 		ChapaClient,
 		EntitlementService,
@@ -67,13 +62,11 @@ import { EntitlementGuard } from "./presentation/guards/entitlement.guard";
 		GetUsageHandler,
 		GetEntitlementsHandler,
 		ListSubscriptionInvoicesHandler,
-		ListCampaignsHandler,
 		GetInvoicePaymentsHandler,
 		StartSubscriptionHandler,
 		ChangePlanHandler,
 		CancelSubscriptionHandler,
 		ResumeSubscriptionHandler,
-		ActivateCampaignHandler,
 		RecordManualPaymentHandler,
 		VerifyPaymentHandler,
 		InitiateChapaPaymentHandler,
