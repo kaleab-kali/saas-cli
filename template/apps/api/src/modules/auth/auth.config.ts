@@ -3,19 +3,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { admin as adminPlugin, organization } from "better-auth/plugins";
 import { prisma } from "#shared/database/prisma-instance";
-import {
-	ac,
-	accountant,
-	admin as adminOrgRole,
-	generalManager,
-	leasingAgent,
-	maintenanceStaff,
-	owner,
-	propertyManager,
-	salesAgent,
-	salesSupervisor,
-	viewer,
-} from "./permissions";
+import { ac, admin as adminOrgRole, member, owner, viewer } from "./permissions";
 
 export const auth = betterAuth({
 	basePath: "/api/auth",
@@ -38,13 +26,7 @@ export const auth = betterAuth({
 			roles: {
 				owner,
 				admin: adminOrgRole,
-				generalManager,
-				propertyManager,
-				salesSupervisor,
-				salesAgent,
-				leasingAgent,
-				maintenanceStaff,
-				accountant,
+				member,
 				viewer,
 			},
 			allowUserToCreateOrganization: true,
@@ -53,12 +35,10 @@ export const auth = betterAuth({
 			dynamicAccessControl: { enabled: true },
 		}),
 		// Admin plugin — enables impersonation + ban/unban via /api/auth/admin/*.
-		// Requires a user with role in adminRoles to initiate impersonation.
-		// Super admin impersonation flow: first signs in as bridge user (seeded w/ role=admin),
-		// then calls impersonate-user. Wrapped by custom endpoint in admin-users.controller.ts.
+		// Super admin impersonation flow: bridge user (role=admin) impersonates target tenant user.
 		adminPlugin({
 			adminRoles: ["admin"],
-			defaultRole: "user",
+			defaultRole: "member",
 			impersonationSessionDuration: 60 * 15, // 15 minutes
 		}),
 	],

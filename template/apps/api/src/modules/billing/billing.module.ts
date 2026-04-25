@@ -7,6 +7,7 @@ import {
 } from "./application/commands/cancel-subscription.handler";
 import { ChangePlanHandler } from "./application/commands/change-plan.handler";
 import { InitiateChapaPaymentHandler } from "./application/commands/initiate-chapa-payment.handler";
+import { InitiateStripePaymentHandler } from "./application/commands/initiate-stripe-payment.handler";
 import { RecordManualPaymentHandler, VerifyPaymentHandler } from "./application/commands/record-manual-payment.handler";
 import { StartSubscriptionHandler } from "./application/commands/start-subscription.handler";
 import {
@@ -22,9 +23,10 @@ import { ChapaWebhookService } from "./application/services/chapa-webhook.servic
 import { DunningService } from "./application/services/dunning.service";
 import { EntitlementService } from "./application/services/entitlement.service";
 import { InvoiceLifecycleService } from "./application/services/invoice-lifecycle.service";
+import { InvoicePdfService } from "./application/services/invoice-pdf.service";
+import { StripeWebhookService } from "./application/services/stripe-webhook.service";
 import { SubscriptionLifecycleService } from "./application/services/subscription-lifecycle.service";
 import { UsageTrackerService } from "./application/services/usage-tracker.service";
-import { InvoicePdfService } from "./application/services/invoice-pdf.service";
 import { PlanRepository } from "./domain/repositories/plan.repository";
 import { SubscriptionRepository } from "./domain/repositories/subscription.repository";
 import { SubscriptionInvoiceRepository } from "./domain/repositories/subscription-invoice.repository";
@@ -37,14 +39,16 @@ import { PrismaSubscriptionRepository } from "./infrastructure/repositories/pris
 import { PrismaSubscriptionInvoiceRepository } from "./infrastructure/repositories/prisma-subscription-invoice.repository";
 import { PrismaSubscriptionPaymentRepository } from "./infrastructure/repositories/prisma-subscription-payment.repository";
 import { PrismaUsageSnapshotRepository } from "./infrastructure/repositories/prisma-usage-snapshot.repository";
+import { StripeClient } from "./infrastructure/stripe/stripe.client";
 import { BillingController } from "./presentation/controllers/billing.controller";
 import { ChapaWebhookController } from "./presentation/controllers/chapa-webhook.controller";
+import { StripeWebhookController } from "./presentation/controllers/stripe-webhook.controller";
 import { EntitlementGuard } from "./presentation/guards/entitlement.guard";
 
 @Global()
 @Module({
 	imports: [AuthModule, forwardRef(() => AdminModule)],
-	controllers: [BillingController, ChapaWebhookController],
+	controllers: [BillingController, ChapaWebhookController, StripeWebhookController],
 	providers: [
 		{ provide: PlanRepository, useClass: PrismaPlanRepository },
 		{ provide: SubscriptionRepository, useClass: PrismaSubscriptionRepository },
@@ -52,10 +56,12 @@ import { EntitlementGuard } from "./presentation/guards/entitlement.guard";
 		{ provide: SubscriptionPaymentRepository, useClass: PrismaSubscriptionPaymentRepository },
 		{ provide: UsageSnapshotRepository, useClass: PrismaUsageSnapshotRepository },
 		ChapaClient,
+		StripeClient,
 		EntitlementService,
 		UsageTrackerService,
 		InvoicePdfService,
 		ChapaWebhookService,
+		StripeWebhookService,
 		EntitlementGuard,
 		ListPlansHandler,
 		GetSubscriptionHandler,
@@ -70,6 +76,7 @@ import { EntitlementGuard } from "./presentation/guards/entitlement.guard";
 		RecordManualPaymentHandler,
 		VerifyPaymentHandler,
 		InitiateChapaPaymentHandler,
+		InitiateStripePaymentHandler,
 		SubscriptionLifecycleService,
 		InvoiceLifecycleService,
 		SubscriptionStateGuard,

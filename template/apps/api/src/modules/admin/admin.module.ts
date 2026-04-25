@@ -26,6 +26,7 @@ import { ListOrganizationsHandler } from "./application/queries/list-organizatio
 import { ListPlatformAuditLogsHandler } from "./application/queries/list-platform-audit-logs.handler";
 import { ListUsersHandler } from "./application/queries/list-users.handler";
 import { PlatformSettingsService } from "./application/services/platform-settings.service";
+import { AdminPermissionsGuard } from "./guards/admin-permissions.guard";
 import { SuperAdminGuard } from "./guards/super-admin.guard";
 import { AdminAuditController } from "./presentation/controllers/admin-audit.controller";
 import { AdminAuthController } from "./presentation/controllers/admin-auth.controller";
@@ -56,6 +57,7 @@ import { AdminUsersController } from "./presentation/controllers/admin-users.con
 	],
 	providers: [
 		SuperAdminGuard,
+		AdminPermissionsGuard,
 		ListOrganizationsHandler,
 		GetOrganizationDetailHandler,
 		GetPlatformStatsHandler,
@@ -80,6 +82,6 @@ import { AdminUsersController } from "./presentation/controllers/admin-users.con
 		ImpersonateUserHandler,
 		ForcePasswordResetHandler,
 	],
-	exports: [PlatformSettingsService, LogPlatformActionHandler],
+	exports: [PlatformSettingsService, LogPlatformActionHandler, AdminPermissionsGuard],
 })
 export class AdminModule {}

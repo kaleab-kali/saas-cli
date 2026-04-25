@@ -22,6 +22,7 @@ import {
 } from "../../application/commands/cancel-subscription.handler";
 import { ChangePlanHandler } from "../../application/commands/change-plan.handler";
 import { InitiateChapaPaymentHandler } from "../../application/commands/initiate-chapa-payment.handler";
+import { InitiateStripePaymentHandler } from "../../application/commands/initiate-stripe-payment.handler";
 import {
 	RecordManualPaymentHandler,
 	VerifyPaymentHandler,
@@ -72,6 +73,7 @@ export class BillingController {
 		private readonly recordPayment: RecordManualPaymentHandler,
 		private readonly verifyPayment: VerifyPaymentHandler,
 		private readonly initiateChapa: InitiateChapaPaymentHandler,
+		private readonly initiateStripe: InitiateStripePaymentHandler,
 		private readonly invoicePdf: InvoicePdfService,
 		private readonly invoiceRepo: SubscriptionInvoiceRepository,
 		private readonly subLifecycle: SubscriptionLifecycleService,
@@ -212,6 +214,19 @@ export class BillingController {
 				email,
 				firstName: name[0] ?? "User",
 				lastName: name.slice(1).join(" ") || "Org",
+			}),
+		};
+	}
+
+	@Post("stripe/initiate")
+	@RequirePermissions("billing:manage-payment-method")
+	async stripeInitiate(@Body() dto: InitiateChapaPaymentDto, @Req() req: AuthedReq) {
+		const u = pickUser(req);
+		const email = u?.email ?? "billing@example.com";
+		return {
+			data: await this.initiateStripe.execute(req.organizationId, dto.invoiceId, {
+				email,
+				name: u?.name,
 			}),
 		};
 	}

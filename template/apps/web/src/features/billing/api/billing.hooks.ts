@@ -9,19 +9,25 @@ export interface PlanEntitlement {
 
 export interface Plan {
 	id: string;
-	slug: "starter" | "growth" | "enterprise";
+	slug: "free" | "pro" | "enterprise";
 	nameEn: string;
 	nameAm: string;
-	priceMonthlyEtb: number;
-	priceAnnualEtb: number;
-	priceCampaignDailyEtb: number | null;
-	buildingCap: number | null;
-	unitCap: number | null;
+	description: string | null;
+	priceMonthlyMinor: number;
+	priceAnnualMinor: number;
+	currency: string;
 	userCap: number | null;
 	supportSlaHours: number;
+	stripeSupported: boolean;
+	stripePriceIdMonthly: string | null;
+	stripePriceIdAnnual: string | null;
+	chapaSupported: boolean;
+	manualSupported: boolean;
 	sortOrder: number;
 	entitlements: PlanEntitlement[];
 }
+
+export type Gateway = "stripe" | "chapa" | "manual";
 
 export interface Subscription {
 	id: string;
@@ -31,21 +37,13 @@ export interface Subscription {
 	status: string;
 	billingInterval: string;
 	currency: string;
+	gateway: Gateway;
 	currentPeriodStart: string;
 	currentPeriodEnd: string;
 	canceledAt: string | null;
 	cancelAtPeriodEnd: boolean;
-	campaignActiveUntil: string | null;
-}
-
-export interface CampaignActivation {
-	id: string;
-	days: number;
-	dailyRateEtb: number;
-	totalEtb: number;
-	startsAt: string;
-	endsAt: string;
-	status: string;
+	trialEndsAt: string | null;
+	creditBalanceMinor: number;
 }
 
 export interface SubscriptionInvoice {
@@ -57,22 +55,26 @@ export interface SubscriptionInvoice {
 	periodStart: string;
 	periodEnd: string;
 	currency: string;
-	subtotal: number;
-	vatAmount: number;
-	total: number;
-	amountPaid: number;
+	subtotalMinor: number;
+	taxMinor: number;
+	totalMinor: number;
+	amountPaidMinor: number;
 	lineType: string;
 	description: string | null;
+	stripeInvoiceId: string | null;
+	chapaTxRef: string | null;
+	checkoutUrl: string | null;
 	pdfUrl: string | null;
 	paidAt: string | null;
 }
 
 export interface UsageCurrent {
-	buildingCount: number;
-	unitCount: number;
 	userCount: number;
-	caps: { buildings: number | null; units: number | null; users: number | null };
-	usagePct: { buildings: number; units: number; users: number };
+	apiCallCount: number;
+	emailCount: number;
+	caps: { users: number | null };
+	usagePct: { users: number };
+	metrics: Record<string, number>;
 }
 
 const K = {
@@ -81,7 +83,6 @@ const K = {
 	usage: ["billing", "usage"] as const,
 	entitlements: ["billing", "entitlements"] as const,
 	invoices: (status?: string) => ["billing", "invoices", { status }] as const,
-	campaigns: ["billing", "campaigns"] as const,
 };
 
 export const usePlans = () =>
@@ -95,7 +96,7 @@ export const useSubscription = () =>
 	useQuery({
 		queryKey: K.subscription,
 		queryFn: () =>
-			api.get<{ data: { subscription: Subscription | null; plan: Plan | null; campaign: CampaignActivation | null } }>(
+			api.get<{ data: { subscription: Subscription | null; plan: Plan | null } }>(
 				"/billing/subscription",
 			),
 		select: (r) => r.data,
@@ -123,13 +124,6 @@ export const useSubscriptionInvoices = (status?: string) =>
 			api.get<{ data: SubscriptionInvoice[]; meta: { total: number } }>("/billing/invoices", {
 				params: status ? { status } : {},
 			}),
-	});
-
-export const useCampaigns = () =>
-	useQuery({
-		queryKey: K.campaigns,
-		queryFn: () => api.get<{ data: CampaignActivation[] }>("/billing/campaigns"),
-		select: (r) => r.data,
 	});
 
 export const useStartSubscription = () => {
@@ -170,21 +164,12 @@ export const useResumeSubscription = () => {
 	});
 };
 
-export const useActivateCampaign = () => {
-	const qc = useQueryClient();
-	return useMutation({
-		mutationFn: (days: number) => api.post("/billing/campaigns", { days }),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["billing"] }),
-		meta: { successMessage: "Campaign activated" },
-	});
-};
-
 export const useRecordManualPayment = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (dto: {
 			invoiceId: string;
-			amount: number;
+			amountMinor: number;
 			method: string;
 			receiptNumber?: string;
 			bankReference?: string;
@@ -209,6 +194,16 @@ export const useInitiateChapa = () => {
 	return useMutation({
 		mutationFn: (invoiceId: string) =>
 			api.post<{ data: { checkoutUrl: string; txRef: string } }>("/billing/chapa/initiate", { invoiceId }),
+		onSuccess: (res) => {
+			if (res.data.checkoutUrl) window.location.href = res.data.checkoutUrl;
+		},
+	});
+};
+
+export const useInitiateStripe = () => {
+	return useMutation({
+		mutationFn: (invoiceId: string) =>
+			api.post<{ data: { checkoutUrl: string } }>("/billing/stripe/initiate", { invoiceId }),
 		onSuccess: (res) => {
 			if (res.data.checkoutUrl) window.location.href = res.data.checkoutUrl;
 		},
