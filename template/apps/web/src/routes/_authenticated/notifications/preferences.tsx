@@ -7,27 +7,15 @@ import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/notifications/preferences")({ component: Page });
 
+// Generic skeleton events. Add per-app keys when you wire domain events into notifications.
 const EVENT_KEYS = [
-	"finance.invoice.created",
-	"finance.payment.recorded",
-	"finance.payment.reversed",
-	"lease.created",
-	"lease.activated",
-	"lease.terminated",
-	"maintenance.work_order.created",
-	"maintenance.work_order.assigned",
-	"maintenance.work_order.completed",
-	"procurement.pr.submitted",
-	"procurement.pr.approved",
-	"procurement.pr.rejected",
-	"procurement.po.sent",
-	"sales.lead.created",
-	"sales.lead.assigned",
-	"sales.deal.won",
-	"sales.deal.lost",
-	"sales.offer.accepted",
-	"sales.listing.sold",
-	"sales.viewing.scheduled",
+	"system.welcome",
+	"system.invitation_received",
+	"system.password_reset",
+	"billing.invoice.created",
+	"billing.invoice.paid",
+	"billing.payment.failed",
+	"billing.subscription.past_due",
 ] as const;
 
 function Page() {

@@ -12,7 +12,7 @@ export class ExecutionController {
 	constructor(private readonly listH: ListExecutionsHandler) {}
 
 	@Get()
-	@RequirePermissions("report:view-dashboard")
+	@RequirePermissions("report:read")
 	async list(
 		@Query("reportId") reportId: string | undefined,
 		@Query("limit") limit: string | undefined,

@@ -82,6 +82,26 @@ const seed = async () => {
 	});
 	console.log("  member created");
 
+	console.log("Seeding feature flags");
+	const flags = [
+		{ name: "notifications", description: "Notifications, bulk email, templates" },
+		{ name: "reports", description: "Reports and dashboards" },
+		{ name: "stripe_payments", description: "Allow Stripe online payments" },
+		{ name: "chapa_payments", description: "Allow Chapa online payments" },
+		{ name: "manual_payments", description: "Allow manual (bank transfer) payments" },
+		{ name: "custom_roles", description: "Per-org custom RBAC roles" },
+		{ name: "api_keys", description: "API key management" },
+		{ name: "audit_log_export", description: "Export audit log to CSV/JSON" },
+	];
+	for (const f of flags) {
+		await prisma.featureFlag.upsert({
+			where: { name: f.name },
+			update: { description: f.description },
+			create: { name: f.name, description: f.description, enabledGlobal: true },
+		});
+	}
+	console.log(`  ${flags.length} flags seeded`);
+
 	console.log("\n=== Seed Complete ===");
 	console.log("");
 	console.log("SUPER ADMIN (platform):");

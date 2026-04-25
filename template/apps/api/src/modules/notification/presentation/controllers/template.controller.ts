@@ -19,21 +19,21 @@ export class TemplateController {
 	) {}
 
 	@Get()
-	@RequirePermissions("organization:update")
+	@RequirePermissions("notification:manage")
 	async list(@Req() req: { organizationId: string }) {
 		const data = await this.listH.execute(req.organizationId);
 		return { data };
 	}
 
 	@Post()
-	@RequirePermissions("organization:update")
+	@RequirePermissions("notification:manage")
 	async upsert(@Body() dto: UpsertTemplateDto, @Req() req: { organizationId: string }) {
 		const data = await this.upsertH.execute(req.organizationId, dto);
 		return { data };
 	}
 
 	@Delete(":id")
-	@RequirePermissions("organization:update")
+	@RequirePermissions("notification:manage")
 	async remove(@Param("id") id: string, @Req() req: { organizationId: string }) {
 		await this.deleteH.execute(req.organizationId, id);
 		return { data: { deleted: true } };

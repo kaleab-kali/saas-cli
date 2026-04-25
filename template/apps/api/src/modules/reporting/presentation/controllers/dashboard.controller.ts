@@ -21,21 +21,21 @@ export class DashboardController {
 	) {}
 
 	@Get("main")
-	@RequirePermissions("report:view-dashboard")
+	@RequirePermissions("report:read")
 	async main(@Req() req: { organizationId: string }) {
 		const data = await this.svc.main(req.organizationId);
 		return { data };
 	}
 
 	@Get("property")
-	@RequirePermissions("report:view-dashboard")
+	@RequirePermissions("report:read")
 	async property(@Query("buildingId") buildingId: string | undefined, @Req() req: { organizationId: string }) {
 		const data = await this.svc.property(req.organizationId, buildingId);
 		return { data };
 	}
 
 	@Get("financial")
-	@RequirePermissions("report:view-financial")
+	@RequirePermissions("report:read")
 	async financial(
 		@Query("from") from: string | undefined,
 		@Query("to") to: string | undefined,
@@ -49,14 +49,14 @@ export class DashboardController {
 	}
 
 	@Get("crm")
-	@RequirePermissions("report:view-dashboard")
+	@RequirePermissions("report:read")
 	async crm(@Req() req: { organizationId: string }) {
 		const data = await this.svc.crm(req.organizationId);
 		return { data };
 	}
 
 	@Get("maintenance")
-	@RequirePermissions("report:view-dashboard")
+	@RequirePermissions("report:read")
 	async maintenance(
 		@Query("from") from: string | undefined,
 		@Query("to") to: string | undefined,
@@ -70,7 +70,7 @@ export class DashboardController {
 	}
 
 	@Get(":kind/export")
-	@RequirePermissions("report:view-dashboard")
+	@RequirePermissions("report:read")
 	async export(
 		@Param("kind") kind: string,
 		@Query("format") format: string,

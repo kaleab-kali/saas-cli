@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/settings/organization")({ component: Page });
 
@@ -24,7 +23,6 @@ const TIMEZONES = [
 	"Asia/Tokyo",
 ];
 const CURRENCIES = ["USD", "EUR", "GBP", "AED", "SAR", "KES", "ETB", "NGN", "ZAR", "INR", "CAD", "AUD"];
-const AREA_UNITS = ["sqm", "sqft"];
 const DATE_FORMATS = ["YYYY-MM-DD", "MM/DD/YYYY", "DD/MM/YYYY", "DD-MMM-YYYY"];
 const MONTH_KEYS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"] as const;
 
@@ -81,21 +79,6 @@ function Page() {
 								{CURRENCIES.map((c) => (
 									<SelectItem key={c} value={c}>
 										{c}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-					<div>
-						<Label>{t("settings.organization.areaUnit")}</Label>
-						<Select value={(form.areaUnit as string) ?? ""} onValueChange={(v) => setField("areaUnit", v)}>
-							<SelectTrigger>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{AREA_UNITS.map((a) => (
-									<SelectItem key={a} value={a}>
-										{a}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -213,29 +196,6 @@ function Page() {
 							className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
 							value={(form.emailFooter as string) ?? ""}
 							onChange={(e) => setField("emailFooter", e.target.value)}
-						/>
-					</div>
-				</CardContent>
-			</Card>
-
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-sm">{t("settings.organization.agentPrivacy")}</CardTitle>
-				</CardHeader>
-				<CardContent className="space-y-3">
-					<p className="text-xs text-muted-foreground">{t("settings.organization.agentPrivacyDesc")}</p>
-					<div className="flex items-center justify-between p-2 border rounded">
-						<Label>{t("settings.organization.allowGmView")}</Label>
-						<Switch
-							checked={(form.allowGmViewAgentContacts as boolean) ?? false}
-							onCheckedChange={(v) => setField("allowGmViewAgentContacts", v)}
-						/>
-					</div>
-					<div className="flex items-center justify-between p-2 border rounded">
-						<Label>{t("settings.organization.allowGmExport")}</Label>
-						<Switch
-							checked={(form.allowGmExportAgentContacts as boolean) ?? false}
-							onCheckedChange={(v) => setField("allowGmExportAgentContacts", v)}
 						/>
 					</div>
 				</CardContent>

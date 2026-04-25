@@ -17,19 +17,8 @@ import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/reports/new")({ component: Page });
 
-const DATA_SOURCES: DataSource[] = [
-	"property",
-	"unit",
-	"lease",
-	"invoice",
-	"payment",
-	"work_order",
-	"deal",
-	"listing",
-	"contact",
-	"purchase_order",
-	"journal",
-];
+// Generic data sources — extend per-app when domain modules are added.
+const DATA_SOURCES: DataSource[] = ["user", "member", "audit_log", "notification"];
 const CHART_TYPES: ChartType[] = ["table", "bar", "line", "pie", "stacked_bar"];
 const AGGS = ["sum", "avg", "count", "min", "max"] as const;
 
@@ -38,7 +27,7 @@ function Page() {
 	const nav = useNavigate();
 	const [name, setName] = React.useState("");
 	const [description, setDescription] = React.useState("");
-	const [dataSource, setDataSource] = React.useState<DataSource>("lease");
+	const [dataSource, setDataSource] = React.useState<DataSource>("user");
 	const [columns, setColumns] = React.useState<ReportColumn[]>([]);
 	const [chartType, setChartType] = React.useState<ChartType>("table");
 	const [groupBy, setGroupBy] = React.useState<string[]>([]);

@@ -25,7 +25,7 @@ export class NotificationController {
 	) {}
 
 	@Get()
-	@RequirePermissions("contact:read")
+	@RequirePermissions("notification:read")
 	@ApiOperation({ summary: "List notifications for current user" })
 	async list(
 		@Query("category") category: string | undefined,
@@ -47,14 +47,14 @@ export class NotificationController {
 	}
 
 	@Post(":id/read")
-	@RequirePermissions("contact:read")
+	@RequirePermissions("notification:read")
 	async markRead(@Param("id") id: string, @Req() req: { organizationId: string }) {
 		const data = await this.markReadH.execute(req.organizationId, id);
 		return { data };
 	}
 
 	@Post("mark-all-read")
-	@RequirePermissions("contact:read")
+	@RequirePermissions("notification:read")
 	async markAllRead(@Req() req: { organizationId: string; userId?: string }) {
 		if (!req.userId) return { data: { updated: 0 } };
 		const data = await this.markAllReadH.execute(req.organizationId, req.userId);
@@ -62,14 +62,14 @@ export class NotificationController {
 	}
 
 	@Delete(":id")
-	@RequirePermissions("contact:read")
+	@RequirePermissions("notification:read")
 	async archive(@Param("id") id: string, @Req() req: { organizationId: string }) {
 		const data = await this.archiveH.execute(req.organizationId, id);
 		return { data };
 	}
 
 	@Get("preferences/me")
-	@RequirePermissions("contact:read")
+	@RequirePermissions("notification:read")
 	async prefs(@Req() req: { organizationId: string; userId?: string }) {
 		if (!req.userId) return { data: [] };
 		const data = await this.listPrefs.execute(req.organizationId, req.userId);
@@ -77,7 +77,7 @@ export class NotificationController {
 	}
 
 	@Patch("preferences/me")
-	@RequirePermissions("contact:read")
+	@RequirePermissions("notification:read")
 	async updatePref(@Body() dto: UpsertPreferenceDto, @Req() req: { organizationId: string; userId?: string }) {
 		if (!req.userId) return { data: null };
 		const data = await this.updatePrefH.execute(req.organizationId, req.userId, dto);

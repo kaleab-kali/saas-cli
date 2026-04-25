@@ -4,7 +4,6 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import {
 	type LookupItem,
-	type LookupKind,
 	useCreateLookup,
 	useDeleteLookup,
 	useLookups,
@@ -21,48 +20,55 @@ export const Route = createFileRoute("/_authenticated/settings/lookups")({
 	component: LookupsPage,
 });
 
-interface ModuleGroup {
-	moduleKey: "CRM" | "Maintenance" | "Procurement" | "Sales";
-	kinds: LookupKind[];
-}
+const STORAGE_KEY = "vyllion.lookups.kinds";
 
-const MODULE_GROUPS: ModuleGroup[] = [
-	{
-		moduleKey: "CRM",
-		kinds: ["contact_type", "contact_source", "comm_channel", "activity_type", "relationship_type"],
-	},
-	{
-		moduleKey: "Maintenance",
-		kinds: ["work_order_category", "work_order_priority", "pm_category", "asset_type", "vendor_specialty"],
-	},
-	{
-		moduleKey: "Procurement",
-		kinds: ["pr_category", "pr_urgency", "budget_category", "approver_role"],
-	},
-	{
-		moduleKey: "Sales",
-		kinds: [
-			"listing_type",
-			"listing_feature",
-			"lead_source",
-			"lead_temperature",
-			"financing_status",
-			"agent_specialty",
-			"interest_level",
-		],
-	},
-];
+const loadKinds = (): string[] => {
+	if (typeof window === "undefined") return [];
+	try {
+		const raw = window.localStorage.getItem(STORAGE_KEY);
+		return raw ? (JSON.parse(raw) as string[]) : [];
+	} catch {
+		return [];
+	}
+};
+
+const saveKinds = (kinds: string[]) => {
+	if (typeof window === "undefined") return;
+	window.localStorage.setItem(STORAGE_KEY, JSON.stringify(kinds));
+};
 
 function LookupsPage() {
 	const { t } = useTranslation();
-	const [kind, setKind] = React.useState<LookupKind>("contact_type");
+	const [kinds, setKinds] = React.useState<string[]>(() => loadKinds());
+	const [kind, setKind] = React.useState<string>(() => loadKinds()[0] ?? "");
 	const [includeArchived, setIncludeArchived] = React.useState(false);
+	const [newKindInput, setNewKindInput] = React.useState("");
+	const [error, setError] = React.useState("");
+
 	const { data: items = [], isLoading } = useLookups(kind, includeArchived);
 	const createLookup = useCreateLookup(kind);
 	const updateLookup = useUpdateLookup(kind);
 	const deleteLookup = useDeleteLookup(kind);
 
-	const [error, setError] = React.useState("");
+	const addKind = React.useCallback(() => {
+		const trimmed = newKindInput.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_");
+		if (!trimmed) return;
+		const next = Array.from(new Set([...kinds, trimmed]));
+		setKinds(next);
+		saveKinds(next);
+		setKind(trimmed);
+		setNewKindInput("");
+	}, [newKindInput, kinds]);
+
+	const removeKind = React.useCallback(
+		(k: string) => {
+			const next = kinds.filter((x) => x !== k);
+			setKinds(next);
+			saveKinds(next);
+			if (kind === k) setKind(next[0] ?? "");
+		},
+		[kinds, kind],
+	);
 
 	const handleCreate = React.useCallback(
 		async (e: React.FormEvent<HTMLFormElement>) => {
@@ -76,14 +82,14 @@ function LookupsPage() {
 			const color = (fd.get("color") as string)?.trim() || undefined;
 			const sortOrder = fd.get("sortOrder") ? Number(fd.get("sortOrder")) : undefined;
 			if (!label) {
-				setError(t("settings.lookups.labelRequired"));
+				setError(t("settings.lookups.labelRequired", { defaultValue: "Label required" }));
 				return;
 			}
 			try {
 				await createLookup.mutateAsync({ label, value, description, color, sortOrder });
 				form.reset();
 			} catch (err) {
-				setError(err instanceof Error ? err.message : t("settings.lookups.createFailed"));
+				setError((err as Error).message);
 			}
 		},
 		[createLookup, t],
@@ -98,9 +104,9 @@ function LookupsPage() {
 
 	const handleDelete = React.useCallback(
 		(id: string) => {
-			if (!window.confirm(t("settings.lookups.deleteConfirm"))) return;
+			if (!window.confirm(t("settings.lookups.deleteConfirm", { defaultValue: "Delete this value?" }))) return;
 			deleteLookup.mutate(id, {
-				onError: (err) => window.alert(err.message || t("settings.lookups.deleteFailed")),
+				onError: (err) => window.alert(err.message),
 			});
 		},
 		[deleteLookup, t],
@@ -110,7 +116,7 @@ function LookupsPage() {
 		() => [
 			{
 				accessorKey: "label",
-				header: t("settings.lookups.labelHeader"),
+				header: t("settings.lookups.labelHeader", { defaultValue: "Label" }),
 				cell: ({ row }) => (
 					<div className="flex items-center gap-2">
 						{row.original.color && (
@@ -120,14 +126,9 @@ function LookupsPage() {
 							/>
 						)}
 						<span className="font-medium">{row.original.label}</span>
-						{row.original.isBuiltIn && (
-							<Badge variant="outline" className="text-xs">
-								{t("settings.lookups.defaultBadge")}
-							</Badge>
-						)}
 						{row.original.archived && (
 							<Badge variant="secondary" className="text-xs">
-								{t("settings.lookups.archivedBadge")}
+								archived
 							</Badge>
 						)}
 					</div>
@@ -135,22 +136,22 @@ function LookupsPage() {
 			},
 			{
 				accessorKey: "value",
-				header: t("settings.lookups.valueHeader"),
+				header: t("settings.lookups.valueHeader", { defaultValue: "Value" }),
 				cell: ({ row }) => <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{row.original.value}</code>,
 			},
 			{
 				accessorKey: "description",
-				header: t("settings.lookups.descriptionHeader"),
+				header: t("settings.lookups.descriptionHeader", { defaultValue: "Description" }),
 				cell: ({ row }) => row.original.description || "—",
 			},
 			{
 				accessorKey: "sortOrder",
-				header: () => <div className="text-right">{t("settings.lookups.orderHeader")}</div>,
+				header: () => <div className="text-right">Order</div>,
 				cell: ({ row }) => <div className="text-right">{row.original.sortOrder}</div>,
 			},
 			{
 				id: "actions",
-				header: () => <div className="text-right">{t("settings.lookups.actions")}</div>,
+				header: () => <div className="text-right">Actions</div>,
 				enableSorting: false,
 				cell: ({ row }) => (
 					<div className="text-right flex justify-end gap-1">
@@ -160,15 +161,10 @@ function LookupsPage() {
 							onClick={() => handleArchiveToggle(row.original)}
 							disabled={updateLookup.isPending}
 						>
-							{row.original.archived ? t("settings.lookups.unarchive") : t("settings.lookups.archive")}
+							{row.original.archived ? "Unarchive" : "Archive"}
 						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							className="text-destructive"
-							onClick={() => handleDelete(row.original.id)}
-						>
-							{t("common.delete")}
+						<Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(row.original.id)}>
+							{t("common.delete", { defaultValue: "Delete" })}
 						</Button>
 					</div>
 				),
@@ -181,109 +177,146 @@ function LookupsPage() {
 		<div className="space-y-6">
 			<div>
 				<Link to="/settings" className="text-sm text-muted-foreground hover:underline">
-					&larr; {t("settings.lookups.back")}
+					&larr; {t("settings.lookups.back", { defaultValue: "Back to Settings" })}
 				</Link>
-				<h1 className="text-2xl font-semibold mt-2">{t("settings.sections.lookups.title")}</h1>
-				<p className="text-muted-foreground mt-1">{t("settings.lookups.subtitle")}</p>
+				<h1 className="text-2xl font-semibold mt-2">
+					{t("settings.lookups.title", { defaultValue: "Lookup Catalogs" })}
+				</h1>
+				<p className="text-muted-foreground mt-1">
+					{t("settings.lookups.subtitle", {
+						defaultValue:
+							"Per-organization enum catalogs. Create a kind (e.g. 'project_status'), then add values your domain modules can reference.",
+					})}
+				</p>
 			</div>
 
 			<div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">{t("settings.lookups.catalogs")}</CardTitle>
+						<CardTitle className="text-base">
+							{t("settings.lookups.catalogs", { defaultValue: "Catalogs" })}
+						</CardTitle>
 					</CardHeader>
-					<CardContent className="space-y-4 p-4">
-						{MODULE_GROUPS.map((g) => (
-							<div key={g.moduleKey} className="space-y-1">
-								<div className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-									{t(`settings.lookups.modules.${g.moduleKey}.name`)}
-								</div>
-								<ul className="space-y-0.5">
-									{g.kinds.map((k) => (
-										<li key={k}>
-											<button
-												type="button"
-												onClick={() => setKind(k)}
-												className={`w-full text-left px-2 py-1.5 rounded text-sm ${
-													kind === k ? "bg-accent font-medium" : "hover:bg-accent/50"
-												}`}
-											>
-												{t(`settings.lookups.kinds.${k}.label`, { defaultValue: k })}
-											</button>
-										</li>
-									))}
-								</ul>
-							</div>
-						))}
+					<CardContent className="space-y-3 p-4">
+						{kinds.length === 0 && (
+							<p className="text-xs text-muted-foreground">
+								{t("settings.lookups.noKinds", {
+									defaultValue: "No catalogs yet. Add one below.",
+								})}
+							</p>
+						)}
+						<ul className="space-y-1">
+							{kinds.map((k) => (
+								<li key={k} className="flex items-center gap-1">
+									<button
+										type="button"
+										onClick={() => setKind(k)}
+										className={`flex-1 text-left px-2 py-1.5 rounded text-sm ${
+											kind === k ? "bg-accent font-medium" : "hover:bg-accent/50"
+										}`}
+									>
+										{k}
+									</button>
+									<Button variant="ghost" size="sm" onClick={() => removeKind(k)} className="text-destructive">
+										&times;
+									</Button>
+								</li>
+							))}
+						</ul>
+						<div className="flex gap-1 pt-2 border-t">
+							<Input
+								placeholder="new_kind_name"
+								value={newKindInput}
+								onChange={(e) => setNewKindInput(e.target.value)}
+								onKeyDown={(e) => e.key === "Enter" && addKind()}
+								className="text-xs"
+							/>
+							<Button size="sm" onClick={addKind} disabled={!newKindInput.trim()}>
+								Add
+							</Button>
+						</div>
 					</CardContent>
 				</Card>
 
 				<div className="space-y-4">
-					<div className="rounded-md border bg-muted/30 p-3">
-						<div className="font-medium">{t(`settings.lookups.kinds.${kind}.label`, { defaultValue: kind })}</div>
-						<p className="text-sm text-muted-foreground">
-							{t(`settings.lookups.kinds.${kind}.desc`, { defaultValue: "" })}
-						</p>
-					</div>
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-base">{t("settings.lookups.addValue")}</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<form onSubmit={handleCreate} className="space-y-3">
-								{error && <div className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">{error}</div>}
-								<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-									<div className="space-y-1">
-										<Label htmlFor="lk-label">{t("settings.lookups.labelStar")}</Label>
-										<Input id="lk-label" name="label" placeholder={t("settings.lookups.labelPlaceholder")} required />
-									</div>
-									<div className="space-y-1">
-										<Label htmlFor="lk-value">{t("settings.lookups.value")}</Label>
-										<Input id="lk-value" name="value" placeholder={t("settings.lookups.valuePlaceholder")} />
-									</div>
-									<div className="space-y-1">
-										<Label htmlFor="lk-sort">{t("settings.lookups.sortOrder")}</Label>
-										<Input id="lk-sort" name="sortOrder" type="number" defaultValue="100" />
-									</div>
-									<div className="space-y-1">
-										<Label htmlFor="lk-color">{t("settings.lookups.color")}</Label>
-										<Input id="lk-color" name="color" type="color" className="h-10 p-1" />
-									</div>
-								</div>
-								<div className="space-y-1">
-									<Label htmlFor="lk-desc">{t("common.description")}</Label>
-									<Input id="lk-desc" name="description" placeholder={t("settings.lookups.descriptionPlaceholder")} />
-								</div>
-								<Button type="submit" size="sm" disabled={createLookup.isPending}>
-									{createLookup.isPending ? t("settings.lookups.adding") : t("settings.lookups.addValue")}
-								</Button>
-							</form>
-						</CardContent>
-					</Card>
+					{!kind ? (
+						<Card>
+							<CardContent className="py-12 text-center text-muted-foreground">
+								{t("settings.lookups.pickOrAdd", {
+									defaultValue: "Add a catalog kind on the left to manage values.",
+								})}
+							</CardContent>
+						</Card>
+					) : (
+						<>
+							<div className="rounded-md border bg-muted/30 p-3">
+								<div className="font-mono font-medium">{kind}</div>
+							</div>
+							<Card>
+								<CardHeader>
+									<CardTitle className="text-base">
+										{t("settings.lookups.addValue", { defaultValue: "Add value" })}
+									</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<form onSubmit={handleCreate} className="space-y-3">
+										{error && <div className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">{error}</div>}
+										<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+											<div className="space-y-1">
+												<Label htmlFor="lk-label">Label *</Label>
+												<Input id="lk-label" name="label" required />
+											</div>
+											<div className="space-y-1">
+												<Label htmlFor="lk-value">Value (optional)</Label>
+												<Input id="lk-value" name="value" placeholder="auto-from-label" />
+											</div>
+											<div className="space-y-1">
+												<Label htmlFor="lk-sort">Sort order</Label>
+												<Input id="lk-sort" name="sortOrder" type="number" defaultValue="100" />
+											</div>
+											<div className="space-y-1">
+												<Label htmlFor="lk-color">Color</Label>
+												<Input id="lk-color" name="color" type="color" className="h-10 p-1" />
+											</div>
+										</div>
+										<div className="space-y-1">
+											<Label htmlFor="lk-desc">Description (optional)</Label>
+											<Input id="lk-desc" name="description" />
+										</div>
+										<Button type="submit" size="sm" disabled={createLookup.isPending}>
+											{createLookup.isPending ? "Adding..." : "Add value"}
+										</Button>
+									</form>
+								</CardContent>
+							</Card>
 
-					<div className="space-y-3">
-						<div className="flex items-center justify-between">
-							<h2 className="text-lg font-semibold">{t("settings.lookups.values")}</h2>
-							<label className="flex items-center gap-2 text-sm cursor-pointer">
-								<input
-									type="checkbox"
-									className="h-4 w-4"
-									checked={includeArchived}
-									onChange={(e) => setIncludeArchived(e.target.checked)}
+							<div className="space-y-3">
+								<div className="flex items-center justify-between">
+									<h2 className="text-lg font-semibold">
+										{t("settings.lookups.values", { defaultValue: "Values" })}
+									</h2>
+									<label className="flex items-center gap-2 text-sm cursor-pointer">
+										<input
+											type="checkbox"
+											className="h-4 w-4"
+											checked={includeArchived}
+											onChange={(e) => setIncludeArchived(e.target.checked)}
+										/>
+										Show archived
+									</label>
+								</div>
+
+								<DataTable
+									columns={columns}
+									data={items}
+									isLoading={isLoading}
+									searchPlaceholder="Search values..."
+									emptyMessage="No values yet"
+									pageSize={50}
 								/>
-								{t("settings.lookups.showArchived")}
-							</label>
-						</div>
-
-						<DataTable
-							columns={columns}
-							data={items}
-							isLoading={isLoading}
-							searchPlaceholder={t("settings.lookups.searchPlaceholder")}
-							emptyMessage={t("settings.lookups.emptyMessage")}
-							pageSize={50}
-						/>
-					</div>
+							</div>
+						</>
+					)}
 				</div>
 			</div>
 		</div>

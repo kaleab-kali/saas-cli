@@ -12,7 +12,7 @@ export class EmailDeliveryController {
 	constructor(private readonly listH: ListEmailDeliveriesHandler) {}
 
 	@Get()
-	@RequirePermissions("organization:update")
+	@RequirePermissions("notification:manage")
 	async list(
 		@Query("status") status: string | undefined,
 		@Query("source") source: string | undefined,

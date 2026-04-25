@@ -21,14 +21,14 @@ export class BulkCommunicationController {
 	) {}
 
 	@Get()
-	@RequirePermissions("contact:update")
+	@RequirePermissions("notification:manage")
 	async list(@Query("status") status: string | undefined, @Req() req: { organizationId: string }) {
 		const data = await this.listH.execute(req.organizationId, { status });
 		return { data };
 	}
 
 	@Post()
-	@RequirePermissions("contact:update")
+	@RequirePermissions("notification:manage")
 	@ApiOperation({ summary: "Create draft bulk communication" })
 	async create(@Body() dto: CreateBulkDto, @Req() req: { organizationId: string; userId?: string }) {
 		const data = await this.createH.execute(req.organizationId, dto, req.userId ?? null);
@@ -36,14 +36,14 @@ export class BulkCommunicationController {
 	}
 
 	@Post(":id/schedule")
-	@RequirePermissions("contact:update")
+	@RequirePermissions("notification:manage")
 	async schedule(@Param("id") id: string, @Body() dto: ScheduleBulkDto, @Req() req: { organizationId: string }) {
 		const data = await this.scheduleH.execute(req.organizationId, id, dto.scheduledAt);
 		return { data };
 	}
 
 	@Post(":id/send")
-	@RequirePermissions("contact:update")
+	@RequirePermissions("notification:manage")
 	@ApiOperation({ summary: "Send now" })
 	async send(@Param("id") id: string, @Req() req: { organizationId: string }) {
 		const data = await this.sendH.execute(req.organizationId, id);

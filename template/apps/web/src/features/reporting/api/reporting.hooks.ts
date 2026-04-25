@@ -1,18 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "#shared/lib/api-client";
 
-export type DataSource =
-	| "property"
-	| "unit"
-	| "lease"
-	| "invoice"
-	| "payment"
-	| "work_order"
-	| "deal"
-	| "listing"
-	| "contact"
-	| "purchase_order"
-	| "journal";
+export type DataSource = "user" | "member" | "audit_log" | "notification";
 
 export type ChartType = "table" | "bar" | "line" | "pie" | "stacked_bar";
 export type ExportFormat = "csv" | "xlsx" | "pdf";

@@ -72,8 +72,12 @@ export class LookupController {
 	}
 
 	private assertKind(kind: string): void {
-		if (!(KNOWN_LOOKUP_KINDS as string[]).includes(kind)) {
-			throw new BadRequestException(`Unknown lookup kind: ${kind}. Known: ${KNOWN_LOOKUP_KINDS.join(", ")}`);
+		// Allow any non-empty kind. If your app needs a closed set, populate
+		// `LOOKUP_DEFAULTS` in lookup-defaults.ts and add a check here.
+		if (!kind || typeof kind !== "string" || kind.length > 64) {
+			throw new BadRequestException(`Invalid lookup kind: ${kind}`);
 		}
+		// Built-in kinds reference (currently empty in skeleton):
+		void KNOWN_LOOKUP_KINDS;
 	}
 }

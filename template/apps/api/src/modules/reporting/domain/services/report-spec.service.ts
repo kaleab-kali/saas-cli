@@ -2,22 +2,15 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import type { SavedReport } from "../entities/saved-report.entity";
 
 /**
- * Validates that column fields + filter fields + groupBy fields are allowed
- * for the given dataSource. Data-model-neutral (no Prisma here).
+ * Validates that column / filter / groupBy fields are allowed for the given dataSource.
+ * Data-model-neutral (no Prisma here). Generic skeleton sources below — extend per-app
+ * when you add domain models.
  */
-
 const ALLOWED_FIELDS: Record<string, string[]> = {
-	property: ["id", "name", "address", "type", "status", "totalArea", "yearBuilt", "createdAt"],
-	unit: ["id", "identifier", "type", "status", "area", "bedrooms", "bathrooms", "askingRent", "buildingId"],
-	lease: ["id", "type", "status", "startDate", "endDate", "rentAmount", "currency", "unitId"],
-	invoice: ["id", "number", "status", "issueDate", "dueDate", "totalAmount", "paidAmount"],
-	payment: ["id", "amount", "method", "paymentDate", "reversed", "referenceNumber"],
-	work_order: ["id", "title", "category", "priority", "status", "totalCost", "createdAt", "completedAt"],
-	deal: ["id", "title", "value", "probability", "status", "stageId", "expectedCloseDate"],
-	listing: ["id", "title", "type", "status", "price", "views", "daysOnMarket"],
-	contact: ["id", "firstName", "lastName", "company", "source", "createdAt"],
-	purchase_order: ["id", "number", "status", "totalAmount", "deliveryDate"],
-	journal: ["id", "date", "description", "source", "status", "totalDebit", "totalCredit"],
+	user: ["id", "name", "email", "emailVerified", "createdAt"],
+	member: ["id", "userId", "organizationId", "role", "createdAt", "removedAt"],
+	audit_log: ["id", "action", "resource", "userId", "userEmail", "status", "ipAddress", "createdAt"],
+	notification: ["id", "category", "severity", "title", "read", "userId", "createdAt"],
 };
 
 @Injectable()

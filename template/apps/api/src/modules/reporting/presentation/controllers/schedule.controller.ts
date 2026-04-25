@@ -19,7 +19,7 @@ export class ScheduleController {
 	) {}
 
 	@Get()
-	@RequirePermissions("report:view-dashboard")
+	@RequirePermissions("report:read")
 	async list(
 		@Query("reportId") reportId: string | undefined,
 		@Query("enabled") enabled: string | undefined,
@@ -33,14 +33,14 @@ export class ScheduleController {
 	}
 
 	@Post()
-	@RequirePermissions("report:create-custom")
+	@RequirePermissions("report:create")
 	async create(@Body() dto: CreateScheduleDto, @Req() req: { organizationId: string }) {
 		const data = await this.scheduleH.execute(req.organizationId, dto);
 		return { data };
 	}
 
 	@Delete(":id")
-	@RequirePermissions("report:create-custom")
+	@RequirePermissions("report:create")
 	async cancel(@Param("id") id: string, @Req() req: { organizationId: string }) {
 		await this.cancelH.execute(req.organizationId, id);
 		return { data: { deleted: true } };

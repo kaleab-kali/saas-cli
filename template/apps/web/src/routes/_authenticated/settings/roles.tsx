@@ -23,13 +23,7 @@ export const Route = createFileRoute("/_authenticated/settings/roles")({ compone
 const SYSTEM_ROLE_AM: Record<string, string> = {
 	owner: "ባለቤት",
 	admin: "አስተዳዳሪ",
-	generalManager: "ዋና ሥራ አስኪያጅ",
-	propertyManager: "ንብረት አስተዳዳሪ",
-	leasingAgent: "የኪራይ ወኪል",
-	salesSupervisor: "የሽያጭ ተቆጣጣሪ",
-	salesAgent: "የሽያጭ ወኪል",
-	maintenanceStaff: "ቴክኒሻን",
-	accountant: "የሂሳብ ሰራተኛ",
+	member: "አባል",
 	viewer: "ተመልካች",
 };
 

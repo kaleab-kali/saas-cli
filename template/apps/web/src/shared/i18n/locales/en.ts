@@ -423,7 +423,7 @@ export const en = {
 		lookups: {
 			title: "Lookup Catalogs",
 			subtitle:
-				"Manage dropdown values used throughout the system. Defaults are seeded automatically — add, edit, archive, or delete to customize for your organization.",
+				"Per-organization enum catalogs. Create a kind (e.g. 'project_status'), then add values your domain modules can reference.",
 			back: "Back to Settings",
 			catalogs: "Catalogs",
 			addValue: "Add Value",

@@ -30,7 +30,7 @@ export class ReportController {
 	) {}
 
 	@Get()
-	@RequirePermissions("report:view-dashboard")
+	@RequirePermissions("report:read")
 	async list(
 		@Query("dataSource") dataSource: string | undefined,
 		@Query("isTemplate") isTemplate: string | undefined,
@@ -44,20 +44,20 @@ export class ReportController {
 	}
 
 	@Get("allowed-fields/:dataSource")
-	@RequirePermissions("report:view-dashboard")
+	@RequirePermissions("report:read")
 	allowed(@Param("dataSource") dataSource: string) {
 		return { data: this.allowedH.execute(dataSource) };
 	}
 
 	@Get(":id")
-	@RequirePermissions("report:view-dashboard")
+	@RequirePermissions("report:read")
 	async get(@Param("id") id: string, @Req() req: { organizationId: string }) {
 		const data = await this.getH.execute(req.organizationId, id);
 		return { data };
 	}
 
 	@Post()
-	@RequirePermissions("report:create-custom")
+	@RequirePermissions("report:create")
 	@ApiOperation({ summary: "Create saved report" })
 	async create(@Body() dto: CreateSavedReportDto, @Req() req: { organizationId: string; userId?: string }) {
 		const data = await this.createH.execute(req.organizationId, dto, req.userId ?? null);
@@ -65,21 +65,21 @@ export class ReportController {
 	}
 
 	@Patch(":id")
-	@RequirePermissions("report:create-custom")
+	@RequirePermissions("report:create")
 	async update(@Param("id") id: string, @Body() dto: UpdateSavedReportDto, @Req() req: { organizationId: string }) {
 		const data = await this.updateH.execute(req.organizationId, id, dto);
 		return { data };
 	}
 
 	@Delete(":id")
-	@RequirePermissions("report:create-custom")
+	@RequirePermissions("report:create")
 	async remove(@Param("id") id: string, @Req() req: { organizationId: string }) {
 		await this.deleteH.execute(req.organizationId, id);
 		return { data: { deleted: true } };
 	}
 
 	@Post(":id/execute")
-	@RequirePermissions("report:view-dashboard")
+	@RequirePermissions("report:read")
 	@ApiOperation({ summary: "Execute and return rows (optionally as CSV/XLSX/PDF)" })
 	async execute(
 		@Param("id") id: string,
