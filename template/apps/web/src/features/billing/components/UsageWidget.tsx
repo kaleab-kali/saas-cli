@@ -5,11 +5,12 @@ import { api } from "#shared/lib/api-client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface UsageCurrent {
-	buildingCount: number;
-	unitCount: number;
 	userCount: number;
-	caps: { buildings: number | null; units: number | null; users: number | null };
-	usagePct: { buildings: number; units: number; users: number };
+	apiCallCount: number;
+	emailCount: number;
+	caps: { users: number | null };
+	usagePct: { users: number };
+	metrics: Record<string, number>;
 }
 
 const useUsage = () =>
@@ -67,23 +68,14 @@ export const UsageWidget = React.memo(
 				</CardHeader>
 				<CardContent className="space-y-3">
 					<Bar
-						label={t("billing.usageBuildings", { defaultValue: "Buildings" })}
-						used={data.buildingCount}
-						cap={data.caps.buildings}
-						pct={data.usagePct.buildings}
-					/>
-					<Bar
-						label={t("billing.usageUnits", { defaultValue: "Units" })}
-						used={data.unitCount}
-						cap={data.caps.units}
-						pct={data.usagePct.units}
-					/>
-					<Bar
 						label={t("billing.usageUsers", { defaultValue: "Users" })}
 						used={data.userCount}
 						cap={data.caps.users}
 						pct={data.usagePct.users}
 					/>
+					{Object.entries(data.metrics ?? {}).map(([key, value]) => (
+						<Bar key={key} label={key} used={value} cap={null} pct={0} />
+					))}
 				</CardContent>
 			</Card>
 		);
