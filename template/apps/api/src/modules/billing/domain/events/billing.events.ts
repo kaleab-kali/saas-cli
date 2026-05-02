@@ -1,0 +1,18 @@
+export const BILLING_EVENTS = {
+	SUBSCRIPTION_CREATED: "billing.subscription.created",
+	SUBSCRIPTION_PLAN_CHANGED: "billing.subscription.plan_changed",
+	SUBSCRIPTION_CANCELED: "billing.subscription.canceled",
+	SUBSCRIPTION_RESUMED: "billing.subscription.resumed",
+	SUBSCRIPTION_RENEWED: "billing.subscription.renewed",
+	SUBSCRIPTION_PAST_DUE: "billing.subscription.past_due",
+	SUBSCRIPTION_SUSPENDED: "billing.subscription.suspended",
+	INVOICE_ISSUED: "billing.invoice.issued",
+	INVOICE_PAID: "billing.invoice.paid",
+	INVOICE_OVERDUE: "billing.invoice.overdue",
+	PAYMENT_RECORDED: "billing.payment.recorded",
+	PAYMENT_VERIFIED: "billing.payment.verified",
+	CAMPAIGN_ACTIVATED: "billing.campaign.activated",
+	CAMPAIGN_EXPIRED: "billing.campaign.expired",
+	USAGE_THRESHOLD_WARN: "billing.usage.threshold_warn",
+	USAGE_CAP_EXCEEDED: "billing.usage.cap_exceeded",
+} as const;

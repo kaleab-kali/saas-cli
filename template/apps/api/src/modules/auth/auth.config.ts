@@ -1,12 +1,9 @@
-import { PrismaPg } from "@prisma/adapter-pg";
+import "dotenv/config";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { organization } from "better-auth/plugins";
-import { PrismaClient } from "../../generated/prisma/client";
-import { ac, accountant, admin, leasingAgent, maintenanceStaff, owner, propertyManager, viewer } from "./permissions";
-
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL as string });
-const prisma = new PrismaClient({ adapter });
+import { admin as adminPlugin, organization } from "better-auth/plugins";
+import { prisma } from "#shared/database/prisma-instance";
+import { ac, admin as adminOrgRole, member, owner, viewer } from "./permissions";
 
 export const auth = betterAuth({
 	basePath: "/api/auth",
@@ -19,18 +16,30 @@ export const auth = betterAuth({
 	emailAndPassword: { enabled: true },
 
 	session: {
-		expiresIn: 60 * 60 * 24 * 7, // 7 days
-		updateAge: 60 * 60 * 24, // refresh every 24 hours
+		expiresIn: 60 * 60 * 24 * 7,
+		updateAge: 60 * 60 * 24,
 	},
 
 	plugins: [
 		organization({
 			ac,
-			roles: { owner, admin, propertyManager, leasingAgent, maintenanceStaff, accountant, viewer },
+			roles: {
+				owner,
+				admin: adminOrgRole,
+				member,
+				viewer,
+			},
 			allowUserToCreateOrganization: true,
 			organizationLimit: 5,
 			membershipLimit: 100,
 			dynamicAccessControl: { enabled: true },
+		}),
+		// Admin plugin — enables impersonation + ban/unban via /api/auth/admin/*.
+		// Super admin impersonation flow: bridge user (role=admin) impersonates target tenant user.
+		adminPlugin({
+			adminRoles: ["admin"],
+			defaultRole: "member",
+			impersonationSessionDuration: 60 * 15, // 15 minutes
 		}),
 	],
 });

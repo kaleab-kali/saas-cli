@@ -84,6 +84,9 @@
 			"includes": ["apps/web/src/**/*.tsx"],
 			"linter": {
 				"rules": {
+					"suspicious": {
+						"noArrayIndexKey": "off"
+					},
 					"style": {
 						"useFilenamingConvention": {
 							"options": {

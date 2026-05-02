@@ -6,7 +6,7 @@
 
     # Static frontend files
     handle {
-        root * /var/www/propflow/apps/web/dist
+        root * /var/www/{{projectSlug}}/apps/web/dist
         file_server
         try_files {path} /index.html
     }

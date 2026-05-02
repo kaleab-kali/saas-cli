@@ -1,43 +1,17 @@
 {
-	"name": "create-novek-saas",
+	"name": "create-vyllion-saas-monorepo",
+	"private": true,
 	"version": "0.1.0",
-	"description": "Scaffold a full-stack SaaS project: NestJS + React + Prisma + Better Auth + Pino + shadcn/ui",
-	"type": "module",
-	"bin": {
-		"create-novek-saas": "./dist/index.js"
-	},
-	"files": [
-		"dist",
-		"template"
+	"description": "Monorepo for the create-vyllion-saas CLI + template",
+	"workspaces": [
+		"packages/*"
 	],
 	"scripts": {
-		"build": "tsc",
-		"dev": "tsc --watch",
-		"start": "node dist/index.js",
-		"prepublishOnly": "pnpm build"
+		"cli": "node packages/cli/bin/index.js",
+		"link:cli": "cd packages/cli && pnpm link --global",
+		"unlink:cli": "cd packages/cli && pnpm unlink --global"
 	},
-	"keywords": [
-		"create",
-		"scaffold",
-		"nestjs",
-		"react",
-		"saas",
-		"prisma",
-		"better-auth",
-		"novektech"
-	],
-	"author": "NovekTech",
-	"license": "MIT",
-	"dependencies": {
-		"@clack/prompts": "^1.2.0",
-		"fs-extra": "^11.3.4",
-		"picocolors": "^1.1.1"
-	},
-	"devDependencies": {
-		"@types/fs-extra": "^11.0.4",
-		"@types/node": "^25.6.0",
-		"typescript": "^6.0.2"
-	},
+	"packageManager": "pnpm@9.15.0",
 	"engines": {
 		"node": ">=20.0.0"
 	}

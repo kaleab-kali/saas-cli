@@ -1,14 +1,29 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { authClient } from "#shared/lib/auth-client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/")({
-	component: DashboardPage,
+	component: RootIndex,
 });
 
-function DashboardPage() {
-	return (
-		<div className="p-8">
-			<h1 className="text-2xl font-semibold">Dashboard</h1>
-			<p className="text-muted-foreground mt-2">Welcome to PropFlow</p>
-		</div>
-	);
+function RootIndex() {
+	const { data: session, isPending } = authClient.useSession();
+
+	if (isPending) {
+		return (
+			<div className="flex min-h-screen items-center justify-center">
+				<Skeleton className="h-8 w-48" />
+			</div>
+		);
+	}
+
+	if (!session) {
+		return <Navigate to="/login" />;
+	}
+
+	if (!session.session.activeOrganizationId) {
+		return <Navigate to="/create-org" />;
+	}
+
+	return <Navigate to="/reports/dashboard/main" />;
 }

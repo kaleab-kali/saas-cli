@@ -1,15 +1,20 @@
-import { ValidationPipe } from "@nestjs/common";
+import * as path from "node:path";
+import { RequestMethod, ValidationPipe, VERSION_NEUTRAL, VersioningType } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { toNodeHandler } from "better-auth/node";
 import * as compression from "compression";
+import * as cookieParser from "cookie-parser";
 import helmet from "helmet";
 import { Logger } from "nestjs-pino";
+import { adminAuth } from "#modules/admin/auth/admin-auth.config";
 import { AppModule } from "./app.module";
 
-const MAX_BODY_SIZE = "10mb";
+const _MAX_BODY_SIZE = "10mb";
 
 const bootstrap = async () => {
-	const app = await NestFactory.create(AppModule, {
+	const app = await NestFactory.create<NestExpressApplication>(AppModule, {
 		bodyParser: false, // Required for Better Auth
 		bufferLogs: true, // Buffer logs until Pino is ready
 	});
@@ -20,6 +25,23 @@ const bootstrap = async () => {
 
 	// Graceful shutdown
 	app.enableShutdownHooks();
+
+	// Cookie parsing
+	app.use(cookieParser());
+
+	// Serve uploaded files statically
+	app.useStaticAssets(path.resolve(process.cwd(), "uploads"), {
+		prefix: "/uploads/",
+		index: false,
+	});
+
+	// Admin auth routes (separate Better Auth instance)
+	// Mounted here so Better Auth handles its own cookie/session lifecycle.
+	// Only /api/admin-auth/* routes are handled — all other routes pass through to NestJS.
+	const adminHandler = toNodeHandler(adminAuth);
+	app.use("/api/admin-auth", (req: any, res: any, next: () => void) => {
+		adminHandler(req, res).catch(next);
+	});
 
 	// Security
 	app.use(helmet());
@@ -36,7 +58,17 @@ const bootstrap = async () => {
 
 	// Global prefix for all routes except auth and health
 	app.setGlobalPrefix("api/v1", {
-		exclude: ["api/auth/*path", "health"],
+		exclude: [
+			{ path: "api/auth/*path", method: RequestMethod.ALL },
+			{ path: "health", method: RequestMethod.GET },
+		],
+	});
+	// URI versioning — controllers can @Controller({ version: "2", path: "..." }) for new versions.
+	// Existing controllers use the static "v1" path prefix above; versioning opt-in for future breaks.
+	app.enableVersioning({
+		type: VersioningType.URI,
+		prefix: false,
+		defaultVersion: VERSION_NEUTRAL,
 	});
 
 	// Validation pipe

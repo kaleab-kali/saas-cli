@@ -19,7 +19,13 @@ export class PermissionsGuard implements CanActivate {
 		}
 
 		const request = context.switchToHttp().getRequest();
-		const headers = request.headers;
+		// Better Auth expects Fetch-API style Headers, not express plain object.
+		const hdrs = new Headers();
+		for (const [k, v] of Object.entries(request.headers)) {
+			if (Array.isArray(v)) for (const x of v) hdrs.append(k, String(x));
+			else if (v != null) hdrs.set(k, String(v));
+		}
+		const headers = hdrs;
 
 		for (const permission of requiredPermissions) {
 			const [resource, action] = permission.split(":");
@@ -27,7 +33,6 @@ export class PermissionsGuard implements CanActivate {
 				headers,
 				body: { permissions: { [resource]: [action] } },
 			});
-
 			if (!result?.success) {
 				throw new ForbiddenException(`Missing permission: ${permission}`);
 			}

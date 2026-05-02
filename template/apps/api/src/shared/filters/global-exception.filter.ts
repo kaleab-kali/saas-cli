@@ -16,12 +16,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
 		const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
-		const message =
-			exception instanceof HttpException
-				? typeof exception.getResponse() === "string"
-					? exception.getResponse()
-					: ((exception.getResponse() as Record<string, unknown>).message as string) || "Internal server error"
-				: "Internal server error";
+		const getMessage = (): string => {
+			if (!(exception instanceof HttpException)) return "Internal server error";
+			const res = exception.getResponse();
+			if (typeof res === "string") return res;
+			const resObj = res as Record<string, unknown>;
+			const msg = resObj.message;
+			if (Array.isArray(msg)) return msg.join(", ");
+			if (typeof msg === "string") return msg;
+			return "Internal server error";
+		};
+
+		// Sanitize message to strip internal path/method info (security).
+		const sanitize = (raw: string): string => {
+			// NestJS default 404: "Cannot POST /api/v1/foo" — replace with generic.
+			if (/^Cannot\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+\//i.test(raw)) {
+				return "Resource not found";
+			}
+			// Strip any URL-like fragments from message.
+			return raw.replace(/\/api\/v\d+\/[^\s"]+/g, "").trim() || "Request failed";
+		};
+		const message = sanitize(getMessage());
 
 		const code = HttpStatus[status] || "INTERNAL_ERROR";
 
@@ -40,12 +55,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 			this.logger.warn(logPayload, `${code}: ${message}`);
 		}
 
+		// Never leak stack traces, endpoint paths, DB schema, or internal details to clients.
+		// Full details go to server logs only (logPayload above).
 		response.status(status).json({
-			error: {
-				code,
-				message,
-				...(process.env.NODE_ENV !== "production" && exception instanceof Error ? { stack: exception.stack } : {}),
-			},
+			error: { code, message },
 		});
 	}
 }

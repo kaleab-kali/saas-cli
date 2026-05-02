@@ -1,6 +1,10 @@
-node_modules/
-dist/
+node_modules
+.DS_Store
 *.log
-.turbo/
-template/apps/*/node_modules/
-template/apps/*/dist/
+.env
+.env.local
+.scaffold-credentials.txt
+dist
+build
+.turbo
+.cache

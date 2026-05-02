@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Global, Injectable, Module } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 
 export interface DomainEvent {
@@ -8,11 +8,21 @@ export interface DomainEvent {
 	payload: Record<string, unknown>;
 }
 
+type DomainEventInput = Omit<DomainEvent, "occurredAt"> & { occurredAt?: Date };
+
 @Injectable()
 export class DomainEventBus {
 	constructor(private readonly eventEmitter: EventEmitter2) {}
 
-	emit(event: DomainEvent): void {
-		this.eventEmitter.emit(event.eventName, event);
+	emit(event: DomainEventInput): void {
+		const fullEvent: DomainEvent = { ...event, occurredAt: event.occurredAt || new Date() };
+		this.eventEmitter.emit(fullEvent.eventName, fullEvent);
 	}
 }
+
+@Global()
+@Module({
+	providers: [DomainEventBus],
+	exports: [DomainEventBus],
+})
+export class DomainEventBusModule {}

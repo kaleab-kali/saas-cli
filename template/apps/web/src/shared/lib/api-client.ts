@@ -36,13 +36,13 @@ async function request<T>(url: string, config: RequestConfig = {}): Promise<T> {
 }
 
 export class ApiError extends Error {
-	constructor(
-		public status: number,
-		message: string,
-		public code?: string,
-	) {
+	readonly status: number;
+	readonly code?: string;
+	constructor(status: number, message: string, code?: string) {
 		super(message);
 		this.name = "ApiError";
+		this.status = status;
+		this.code = code;
 	}
 }
 
@@ -52,5 +52,7 @@ export const api = {
 		request<T>(url, { ...config, method: "POST", body: JSON.stringify(data) }),
 	put: <T>(url: string, data?: unknown, config?: RequestConfig) =>
 		request<T>(url, { ...config, method: "PUT", body: JSON.stringify(data) }),
+	patch: <T>(url: string, data?: unknown, config?: RequestConfig) =>
+		request<T>(url, { ...config, method: "PATCH", body: JSON.stringify(data) }),
 	delete: <T>(url: string, config?: RequestConfig) => request<T>(url, { ...config, method: "DELETE" }),
 };

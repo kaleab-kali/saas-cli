@@ -1,0 +1,38 @@
+{
+	"name": "create-vyllion-saas",
+	"version": "0.1.0",
+	"description": "Scaffold a production-ready multi-tenant SaaS (NestJS + React + Prisma + Better Auth + BullMQ + RBAC + billing)",
+	"bin": {
+		"create-vyllion-saas": "./bin/index.js"
+	},
+	"type": "module",
+	"files": [
+		"bin",
+		"src",
+		"../../template"
+	],
+	"scripts": {
+		"start": "node ./bin/index.js"
+	},
+	"engines": {
+		"node": ">=20.0.0"
+	},
+	"dependencies": {
+		"@clack/prompts": "^0.7.0",
+		"fs-extra": "^11.2.0",
+		"picocolors": "^1.0.0"
+	},
+	"keywords": [
+		"create",
+		"saas",
+		"scaffold",
+		"nestjs",
+		"react",
+		"prisma",
+		"better-auth",
+		"multi-tenant",
+		"rbac",
+		"vyllion"
+	],
+	"license": "MIT"
+}

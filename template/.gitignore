@@ -35,3 +35,15 @@ coverage/
 
 # Generated
 apps/web/src/routeTree.gen.ts
+.claude/settings.local.json
+apps/api/src/generated/
+
+# Playwright CLI
+.playwright-cli/
+
+# TanStack generated
+apps/web/.tanstack/
+
+# Claude local skills (symlinks)
+.claude/skills/
+.playwright-mcp/

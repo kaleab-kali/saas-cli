@@ -9,7 +9,7 @@ datasource db {
 }
 
 // ============================================================
-// BETTER AUTH TABLES
+// BETTER AUTH TABLES (tenant)
 // Run `pnpm dlx @better-auth/cli generate` to update these
 // after changing auth.config.ts plugins.
 // ============================================================
@@ -22,6 +22,12 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  // Better Auth admin plugin fields
+  role          String?
+  banned        Boolean   @default(false)
+  banReason     String?
+  banExpires    DateTime?
 
   sessions      Session[]
   accounts      Account[]
@@ -39,6 +45,7 @@ model Session {
   userId                String
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   activeOrganizationId  String?
+  impersonatedBy        String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -75,17 +82,23 @@ model Verification {
   @@map("verification")
 }
 
+// ============================================================
+// MULTI-TENANCY: Organization, Member, Invitation
+// ============================================================
+
 model Organization {
-  id        String    @id
-  name      String
-  slug      String?   @unique
-  logo      String?
-  metadata  String?
-  createdAt DateTime  @default(now())
+  id            String    @id
+  name          String
+  slug          String?   @unique
+  logo          String?
+  metadata      String?
+  createdAt     DateTime  @default(now())
+  suspendedAt   DateTime?
+  suspendReason String?
 
   members     Member[]
   invitations Invitation[]
-  buildings   Building[]
+  lookups     Lookup[]
 
   @@map("organization")
 }
@@ -99,7 +112,9 @@ model Member {
   role           String
   teamId         String?
   createdAt      DateTime     @default(now())
+  removedAt      DateTime?
 
+  @@index([organizationId, removedAt])
   @@map("member")
 }
 
@@ -117,32 +132,819 @@ model Invitation {
   @@map("invitation")
 }
 
+model OrganizationRole {
+  id             String   @id @default(cuid())
+  organizationId String
+  role           String
+  permission     Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@map("organization_role")
+}
+
 // ============================================================
-// BUSINESS TABLES
-// Every business table MUST have organizationId for multi-tenancy.
+// CUSTOM FIELDS (generic per-entity extension)
 // ============================================================
 
-model Building {
+model CustomFieldDefinition {
+  id             String   @id @default(cuid())
+  organizationId String
+  entityType     String
+  name           String
+  label          String
+  fieldType      String   // text, number, date, boolean, select, multiselect, email, url
+  options        Json?
+  required       Boolean  @default(false)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  values         CustomFieldValue[]
+
+  @@unique([organizationId, entityType, name])
+  @@index([organizationId, entityType])
+  @@map("custom_field_definition")
+}
+
+model CustomFieldValue {
+  id             String                @id @default(cuid())
+  organizationId String
+  definitionId   String
+  definition     CustomFieldDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  entityType     String
+  entityId       String
+  value          Json
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([definitionId, entityId])
+  @@index([entityType, entityId])
+  @@index([organizationId])
+  @@map("custom_field_value")
+}
+
+// ============================================================
+// PLATFORM ADMIN (separate Better Auth instance)
+// ============================================================
+
+model AdminUser {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  // Platform role: superAdmin | support | billingAdmin | readOnly
+  role          String    @default("superAdmin")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions      AdminSession[]
+  accounts      AdminAccount[]
+
+  @@map("admin_user")
+}
+
+model AdminSession {
+  id        String    @id
+  expiresAt DateTime
+  token     String    @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("admin_session")
+}
+
+model AdminAccount {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("admin_account")
+}
+
+model AdminVerification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("admin_verification")
+}
+
+// ============================================================
+// PLATFORM-LEVEL TABLES (super admin only)
+// ============================================================
+
+model PlatformAuditLog {
+  id          String   @id @default(cuid())
+  action      String
+  performedBy String
+  targetType  String
+  targetId    String
+  details     Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([action])
+  @@index([performedBy])
+  @@index([targetId])
+  @@index([createdAt])
+  @@map("platform_audit_log")
+}
+
+model PlatformSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_settings")
+}
+
+model CronJobRun {
+  id                String    @id @default(cuid())
+  jobName           String
+  status            String
+  startedAt         DateTime  @default(now())
+  finishedAt        DateTime?
+  durationMs        Int?
+  summary           String?
+  errorMessage      String?
+  triggeredByUserId String?
+
+  @@index([jobName, startedAt])
+  @@map("cron_job_run")
+}
+
+model OrgEntitlementOverride {
+  id              String    @id @default(cuid())
+  organizationId  String
+  featureKey      String
+  enabled         Boolean
+  limit           Int?
+  expiresAt       DateTime?
+  reason          String?
+  grantedByUserId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([organizationId, featureKey])
+  @@index([organizationId])
+  @@map("org_entitlement_override")
+}
+
+model SystemEmailTemplate {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  subject    String
+  bodyHtml   String
+  subjectAm  String?
+  bodyHtmlAm String?
+  variables  String?
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@map("system_email_template")
+}
+
+model FeatureFlag {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  description   String?
+  enabledGlobal Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  overrides FeatureFlagOverride[]
+
+  @@map("feature_flag")
+}
+
+model FeatureFlagOverride {
+  id             String      @id @default(cuid())
+  featureFlagId  String
+  featureFlag    FeatureFlag @relation(fields: [featureFlagId], references: [id], onDelete: Cascade)
+  organizationId String
+  enabled        Boolean
+
+  @@unique([featureFlagId, organizationId])
+  @@map("feature_flag_override")
+}
+
+// ============================================================
+// BROADCAST (super-admin announcements)
+// ============================================================
+
+model Broadcast {
+  id             String    @id @default(cuid())
+  title          String
+  bodyHtml       String
+  // info | warning | critical
+  severity       String    @default("info")
+  // all | plan:<slug> | org:<id>
+  audience       String    @default("all")
+  audienceRef    String?
+  startsAt       DateTime  @default(now())
+  endsAt         DateTime?
+  active         Boolean   @default(true)
+  dismissable    Boolean   @default(true)
+  createdByAdminId String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([active, startsAt, endsAt])
+  @@map("broadcast")
+}
+
+// ============================================================
+// LOOKUPS (per-org enum catalog)
+// ============================================================
+
+model Lookup {
   id             String       @id @default(cuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  name        String
-  type        String       // residential, commercial, mixed, industrial, retail
-  address     String
-  city        String?
-  country     String?
-  latitude    Float?
-  longitude   Float?
-  yearBuilt   Int?
-  totalArea   Float?
-  areaUnit    String       @default("sqm") // sqm or sqft
-  floors      Int?
+  kind        String
+  value       String
+  label       String
   description String?
+  color       String?
+  sortOrder   Int     @default(0)
+  isBuiltIn   Boolean @default(false)
+  archived    Boolean @default(false)
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, kind, value])
+  @@index([organizationId, kind])
+  @@index([organizationId, kind, archived])
+  @@map("lookup")
+}
+
+// ============================================================
+// SAVED VIEWS (per-entity filter/sort presets)
+// ============================================================
+
+model SavedView {
+  id             String   @id @default(cuid())
+  organizationId String
+  entity         String
+  name           String
+  filtersJson    Json
+  sortJson       Json?
+  columnsJson    Json?
+  viewMode       String   @default("table")
+  isShared       Boolean  @default(false)
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, entity, name])
+  @@index([organizationId, entity])
+  @@map("saved_view")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id             String    @id @default(cuid())
+  organizationId String
+  userId         String
+  category       String
+  severity       String    @default("info")
+  title          String
+  body           String?
+  linkUrl        String?
+  sourceEvent    String?
+  sourceRef      String?
+  read           Boolean   @default(false)
+  readAt         DateTime?
+  archivedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([organizationId])
-  @@map("building")
+  @@index([organizationId, userId])
+  @@index([userId, read])
+  @@index([organizationId, createdAt])
+  @@map("notification")
+}
+
+model NotificationPreference {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  eventKey       String
+  inApp          Boolean  @default(true)
+  email          String   @default("instant")
+  sms            Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, userId, eventKey])
+  @@index([organizationId, userId])
+  @@map("notification_preference")
+}
+
+model NotificationTemplate {
+  id             String   @id @default(cuid())
+  organizationId String
+  eventKey       String
+  subject        String
+  bodyHtml       String
+  bodyText       String?
+  active         Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, eventKey])
+  @@index([organizationId])
+  @@map("notification_template")
+}
+
+model BulkCommunication {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  subject        String
+  bodyHtml       String
+  status         String    @default("draft")
+  audienceType   String
+  audienceRef    String?
+  recipientCount Int       @default(0)
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  createdBy      String?
+  stats          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("bulk_communication")
+}
+
+model EmailDelivery {
+  id             String    @id @default(cuid())
+  organizationId String
+  toEmail        String
+  subject        String
+  source         String
+  sourceRef      String?
+  status         String    @default("queued")
+  messageId      String?
+  error          String?
+  attemptCount   Int       @default(1)
+  sentAt         DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([source, sourceRef])
+  @@map("email_delivery")
+}
+
+// ============================================================
+// REPORTING
+// ============================================================
+
+model SavedReport {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  dataSource     String
+  columnsJson    Json
+  filtersJson    Json?
+  groupByJson    Json?
+  sortJson       Json?
+  chartType      String?
+  isTemplate     Boolean  @default(false)
+  sharedWithTeam Boolean  @default(false)
+  createdBy      String?
+
+  executions ReportExecution[]
+  schedules  ReportSchedule[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, dataSource])
+  @@map("saved_report")
+}
+
+model ReportSchedule {
+  id             String      @id @default(cuid())
+  organizationId String
+  reportId       String
+  report         SavedReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  frequency      String
+  dayOfWeek      Int?
+  dayOfMonth     Int?
+  timeOfDay      String      @default("08:00")
+  recipients     String[]
+  format         String      @default("csv")
+  enabled        Boolean     @default(true)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([enabled, nextRunAt])
+  @@map("report_schedule")
+}
+
+model ReportExecution {
+  id              String      @id @default(cuid())
+  organizationId  String
+  reportId        String
+  report          SavedReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  triggeredBy     String      @default("manual")
+  triggeredUserId String?
+  status          String      @default("pending")
+  rowCount        Int         @default(0)
+  durationMs      Int?
+  error           String?
+  format          String?
+  emailedTo       String[]
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([organizationId])
+  @@index([reportId])
+  @@index([organizationId, createdAt])
+  @@map("report_execution")
+}
+
+// ============================================================
+// ORG / SECURITY SETTINGS
+// ============================================================
+
+model OrganizationSettings {
+  id                   String   @id @default(cuid())
+  organizationId       String   @unique
+  timezone             String   @default("UTC")
+  currency             String   @default("USD")
+  dateFormat           String   @default("YYYY-MM-DD")
+  fiscalYearStartMonth Int      @default(1)
+  invoiceNumberPrefix  String   @default("INV-")
+  invoiceNumberPadding Int      @default(5)
+  emailFooter          String?
+  logoUrl              String?
+  primaryColor         String?
+  companyAddress       String?
+  companyPhone         String?
+  companyEmail         String?
+  taxId                String?
+  taxRatePct           Float    @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("organization_settings")
+}
+
+model SecuritySettings {
+  id                    String   @id @default(cuid())
+  organizationId        String   @unique
+  passwordMinLength     Int      @default(8)
+  passwordRequireUpper  Boolean  @default(true)
+  passwordRequireLower  Boolean  @default(true)
+  passwordRequireDigit  Boolean  @default(true)
+  passwordRequireSymbol Boolean  @default(false)
+  passwordMaxAgeDays    Int?
+  sessionTimeoutMinutes Int      @default(10080)
+  force2fa              Boolean  @default(false)
+  ipAllowlist           String[]
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("security_settings")
+}
+
+// ============================================================
+// API KEYS + AUDIT LOG
+// ============================================================
+
+model ApiKey {
+  id              String    @id @default(cuid())
+  organizationId  String
+  name            String
+  keyHash         String    @unique
+  keyPrefix       String
+  scopes          String[]
+  createdByUserId String
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  lastUsedAt      DateTime?
+  usageCount      Int       @default(0)
+  rateLimit       Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, revokedAt])
+  @@map("api_key")
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  userEmail      String?
+  action         String
+  resource       String
+  resourceId     String?
+  correlationId  String?
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json?
+  status         String   @default("success")
+  errorMessage   String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, resource, createdAt])
+  @@index([organizationId, userId, createdAt])
+  @@index([organizationId, action, createdAt])
+  @@map("audit_log")
+}
+
+// ============================================================
+// BILLING / SUBSCRIPTIONS
+// ============================================================
+
+model Plan {
+  id                    String   @id @default(cuid())
+  slug                  String   @unique
+  nameEn                String
+  nameAm                String
+  description           String?
+  // Price stored as smallest currency unit (cents, santim, etc.)
+  priceMonthlyMinor     Int
+  priceAnnualMinor      Int
+  currency              String   @default("USD")
+  userCap               Int?
+  supportSlaHours       Int      @default(48)
+  // Gateway support flags
+  stripeSupported       Boolean  @default(true)
+  stripePriceIdMonthly  String?
+  stripePriceIdAnnual   String?
+  chapaSupported        Boolean  @default(false)
+  manualSupported       Boolean  @default(true)
+  active                Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  entitlements  FeatureEntitlement[]
+  subscriptions Subscription[]
+
+  @@map("plan")
+}
+
+model FeatureEntitlement {
+  id         String   @id @default(cuid())
+  planId     String
+  plan       Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  featureKey String
+  enabled    Boolean
+  limit      Int?
+  createdAt  DateTime @default(now())
+
+  @@unique([planId, featureKey])
+  @@index([planId])
+  @@map("feature_entitlement")
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  organizationId       String    @unique
+  planId               String
+  plan                 Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  // trialing | active | past_due | grace | read_only | locked | canceled
+  status               String    @default("trialing")
+  // monthly | annual
+  billingInterval      String    @default("monthly")
+  currency             String    @default("USD")
+  // stripe | chapa | manual
+  gateway              String    @default("stripe")
+  // Stripe refs
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  // Chapa refs (one-shot model: each renewal = new tx_ref)
+  chapaCustomerEmail   String?
+  lastChapaTxRef       String?
+  // Lifecycle
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  canceledAt           DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  trialEndsAt          DateTime?
+  gracePeriodEndsAt    DateTime?
+  readOnlyModeEndsAt   DateTime?
+  lockedAt             DateTime?
+  lastReminderSentAt   DateTime?
+  // Generic credit balance in smallest currency unit
+  creditBalanceMinor   Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  invoices       SubscriptionInvoice[]
+  usageSnapshots UsageSnapshot[]
+  dunningEmails  DunningEmail[]
+
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@index([gracePeriodEndsAt])
+  @@index([readOnlyModeEndsAt])
+  @@map("subscription")
+}
+
+model DunningEmail {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  organizationId String
+  invoiceId      String?
+  type           String
+  daysOffset     Int
+  templateKey    String
+  subject        String
+  sentTo         String
+  messageId      String?
+  status         String       @default("sent")
+  errorMessage   String?
+  sentAt         DateTime     @default(now())
+
+  @@index([subscriptionId])
+  @@index([organizationId])
+  @@index([sentAt])
+  @@map("dunning_email")
+}
+
+model SubscriptionInvoice {
+  id               String       @id @default(cuid())
+  subscriptionId   String
+  subscription     Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  organizationId   String
+  number           String       @unique
+  // draft | sent | pending_payment | paid | overdue | void | refunded
+  status           String       @default("draft")
+  issueDate        DateTime     @default(now())
+  dueDate          DateTime
+  periodStart      DateTime
+  periodEnd        DateTime
+  currency         String       @default("USD")
+  // Amounts as smallest currency unit (Int)
+  subtotalMinor    Int
+  taxMinor         Int          @default(0)
+  totalMinor       Int
+  amountPaidMinor  Int          @default(0)
+  // subscription | overage | one_time
+  lineType         String       @default("subscription")
+  description      String?
+  // Gateway refs
+  stripeInvoiceId  String?
+  chapaTxRef       String?
+  checkoutUrl      String?
+  pdfUrl           String?
+  sentAt           DateTime?
+  paidAt           DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  payments SubscriptionPayment[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, issueDate])
+  @@index([chapaTxRef])
+  @@index([stripeInvoiceId])
+  @@map("subscription_invoice")
+}
+
+model SubscriptionPayment {
+  id                    String              @id @default(cuid())
+  invoiceId             String
+  invoice               SubscriptionInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  organizationId        String
+  amountMinor           Int
+  currency              String              @default("USD")
+  // stripe_card | stripe_ach | chapa_telebirr | chapa_cbe | chapa_card | manual_bank | manual_other
+  method                String
+  // Stripe refs
+  stripePaymentIntentId String?
+  stripeChargeId        String?
+  // Chapa refs
+  chapaTxRef            String?
+  chapaRefId            String?
+  // Manual refs
+  bankReference         String?
+  receiptNumber         String?
+  paidAt                DateTime            @default(now())
+  recordedByUserId      String?
+  verified              Boolean             @default(false)
+  verifiedByUserId      String?
+  verifiedAt            DateTime?
+  note                  String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([organizationId])
+  @@index([chapaTxRef])
+  @@index([stripePaymentIntentId])
+  @@map("subscription_payment")
+}
+
+model UsageSnapshot {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  organizationId String
+  snapshotDate   DateTime     @default(now())
+  userCount      Int          @default(0)
+  apiCallCount   Int          @default(0)
+  emailCount     Int          @default(0)
+  // Free-form per-app metrics: { "buildings": 12, "leads": 240, ... }
+  metricsJson    Json?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, snapshotDate])
+  @@map("usage_snapshot")
+}
+
+// ============================================================
+// CUSTOM ROLES (RBAC extension)
+// ============================================================
+
+model CustomRole {
+  id               String   @id @default(cuid())
+  organizationId   String
+  slug             String
+  nameEn           String
+  nameAm           String?
+  description      String?
+  inheritsFromSlug String?
+  permissionsJson  Json
+  scopeJson        Json?
+  createdByUserId  String
+  isSystem         Boolean  @default(false)
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  assignments CustomRoleAssignment[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([organizationId, active])
+  @@map("custom_role")
+}
+
+model CustomRoleAssignment {
+  id               String     @id @default(cuid())
+  customRoleId     String
+  customRole       CustomRole @relation(fields: [customRoleId], references: [id], onDelete: Cascade)
+  organizationId   String
+  userId           String
+  assignedByUserId String
+  createdAt        DateTime   @default(now())
+
+  @@unique([customRoleId, userId])
+  @@index([organizationId, userId])
+  @@map("custom_role_assignment")
 }

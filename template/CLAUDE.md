@@ -266,7 +266,7 @@ Every endpoint MUST have:
 
 ## TESTING RULES
 
-- DEFAULT: Always test through the browser UI using Playwright MCP tools (click, type, snapshot, navigate).
+- DEFAULT: Always test through the browser UI using Playwright CLI tools (click, type, snapshot, navigate).
 - Do NOT use API fetch calls, curl, or `browser_evaluate` with HTTP requests unless explicitly instructed to.
 - To verify data, navigate to the relevant UI page and read it visually.
 - The API and Web dev servers are ALREADY running in separate terminals (with hot-reload). NEVER start, restart, or kill them. Code changes auto-reload.
@@ -292,3 +292,69 @@ Read these docs BEFORE making changes to the relevant area. They are the source 
 - `./docs/DATABASE_GUIDE.md` — Prisma schema rules, multi-tenancy
 - `./docs/PERMISSIONS_GUIDE.md` — RBAC system, roles, adding permissions
 - `./docs/ARCHITECTURE.md` — full feature map, flows, domain model
+
+---
+
+## GSTACK (Browser & Workflow Skills)
+
+ALWAYS use `/browse` for all web browsing. NEVER use `mcp__Claude_in_Chrome__*` tools.
+
+### Available Skills
+
+- `/office-hours` — YC-style office hours (startup or builder mode)
+- `/plan-ceo-review` — CEO/founder plan review
+- `/plan-eng-review` — Eng manager plan review
+- `/plan-design-review` — Designer plan review
+- `/plan-devex-review` — Developer experience plan review
+- `/design-consultation` — Design system creation
+- `/design-shotgun` — Generate multiple design variants
+- `/design-html` — Production HTML/CSS from designs
+- `/design-review` — Visual QA and fix
+- `/review` — Pre-landing PR review
+- `/ship` — Ship workflow (tests, review, PR)
+- `/land-and-deploy` — Merge PR and verify production
+- `/canary` — Post-deploy monitoring
+- `/benchmark` — Performance regression detection
+- `/browse` — Headless browser for QA and browsing
+- `/connect-chrome` — Launch AI-controlled Chromium
+- `/qa` — QA test and fix bugs
+- `/qa-only` — QA report without fixes
+- `/setup-browser-cookies` — Import browser cookies for auth
+- `/setup-deploy` — Configure deploy settings
+- `/retro` — Weekly engineering retrospective
+- `/investigate` — Systematic debugging
+- `/document-release` — Post-ship docs update
+- `/codex` — Codex CLI wrapper (review, challenge, consult)
+- `/cso` — Security audit
+- `/autoplan` — Auto-review pipeline (CEO + design + eng + DX)
+- `/devex-review` — Live DX audit
+- `/careful` — Destructive command warnings
+- `/freeze` — Restrict edits to directory
+- `/guard` — Combined careful + freeze
+- `/unfreeze` — Remove freeze boundary
+- `/gstack-upgrade` — Upgrade gstack
+- `/learn` — Manage project learnings
+
+## gstack (REQUIRED — global install)
+
+**Before doing ANY work, verify gstack is installed:**
+
+```bash
+test -d ~/.claude/skills/gstack/bin && echo "GSTACK_OK" || echo "GSTACK_MISSING"
+```
+
+If GSTACK_MISSING: STOP. Do not proceed. Tell the user:
+
+> gstack is required for all AI-assisted work in this repo.
+> Install it:
+> ```bash
+> git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
+> cd ~/.claude/skills/gstack && ./setup --team
+> ```
+> Then restart your AI coding tool.
+
+Do not skip skills, ignore gstack errors, or work around missing gstack.
+
+Using gstack skills: After install, skills like /qa, /ship, /review, /investigate,
+and /browse are available. Use /browse for all web browsing.
+Use ~/.claude/skills/gstack/... for gstack file paths (the global path).

@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'propflow-api',
+      name: '{{projectSlug}}-api',
       cwd: './apps/api',
       script: 'dist/main.js',
       instances: 1,
