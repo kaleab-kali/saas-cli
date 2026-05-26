@@ -8,3 +8,4 @@ dist
 build
 .turbo
 .cache
+testing/eims-v3-generated/
