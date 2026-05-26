@@ -6,7 +6,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "../..");
-const generatedRoot = path.join(repoRoot, "testing", "eims-v3-generated");
+const novekRoot = path.resolve(repoRoot, "..", "..", "..");
+const generatedRoot =
+	process.env.EIMS_GENERATED_PROJECT_ROOT ??
+	path.join(novekRoot, "testing", "vyllion-eims-v3-generated-final");
 const mockPort = Number(process.env.EIMS_SCAFFOLD_MOCK_PORT ?? 0);
 let baseUrl = "";
 

@@ -1,11 +1,11 @@
 # EIMS Scaffold Verification
 
 This folder is for generated-project verification. The generated SaaS project
-used for local proof is intentionally ignored by git:
+used for local proof lives in the shared Novek testing workspace:
 
 ```bash
-node packages/cli/bin/index.js testing/eims-v3-generated --yes
-cd testing/eims-v3-generated
+node packages/cli/bin/index.js C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-generated-final --yes
+cd C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-generated-final
 pnpm install
 pnpm test:eims:mock
 ```
@@ -24,3 +24,9 @@ That verifier checks the generated project, not only the template. It asserts:
 - Generated test scripts exist.
 - The backend mock API returns real V3-shaped data for tenant and admin flows.
 
+Override the generated project path when needed:
+
+```bash
+$env:EIMS_GENERATED_PROJECT_ROOT="C:\Users\kali\Desktop\novek\testing\your-project"
+pnpm test:eims:scaffold
+```

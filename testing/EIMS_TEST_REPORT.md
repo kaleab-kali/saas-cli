@@ -7,13 +7,13 @@ Date: 2026-05-26
 Generated project:
 
 ```text
-testing/eims-v3-generated
+C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-generated-final
 ```
 
 Generation command:
 
 ```bash
-node packages/cli/bin/index.js testing/eims-v3-generated --yes
+node packages/cli/bin/index.js C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-generated-final --yes
 ```
 
 Dependency install command:
@@ -59,6 +59,13 @@ Backend API EIMS mock contract tests: PASS, 6 tests
 Bruno EIMS Phase 0 mock collection: PASS, 6 EIMS requests / 7 tests
 Frontend EIMS browser tests via backend mock API: PASS, 4 tests
 ```
+
+Note: the first run from the correct `novek\testing` location exposed a
+desktop Chromium cold-start timeout in the EIMS Playwright config. The backend
+API tests had already passed; the timeout was in Vite/browser startup. The
+template EIMS Playwright timeout was increased from 180s to 300s, and the
+generated project was patched the same way for this verification run. After
+that, `pnpm test:eims:ui` and the full `pnpm test:eims:mock` gate passed.
 
 ## Scaffold Structure Verification
 
@@ -241,4 +248,3 @@ Real offline delayed-submission acceptance window
 Real withholding receipt validation rules
 Real Vault Transit signing against an issued certificate
 ```
-
