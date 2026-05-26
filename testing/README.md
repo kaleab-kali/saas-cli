@@ -10,6 +10,12 @@ pnpm install
 pnpm test:eims:mock
 ```
 
+Visible headed UI run:
+
+```bash
+pnpm --filter e2e exec playwright test -c playwright.eims.config.ts tests/eims-mock.spec.ts --headed --project=chromium
+```
+
 From the repository root, run:
 
 ```bash

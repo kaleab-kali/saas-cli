@@ -64,6 +64,14 @@ Frontend EIMS browser tests via backend mock API: PASS, 6 tests
   - mobile admin routes: PASS
 ```
 
+Visible headed UI command executed against the generated project:
+
+```bash
+pnpm --filter e2e exec playwright test -c playwright.eims.config.ts tests/eims-mock.spec.ts --headed --project=chromium
+```
+
+Result: PASS, 3 Chromium headed tests.
+
 ## Scaffold Structure Verification
 
 Command:
