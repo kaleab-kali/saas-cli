@@ -9,7 +9,7 @@ const repoRoot = path.resolve(__dirname, "../..");
 const novekRoot = path.resolve(repoRoot, "..", "..", "..");
 const generatedRoot =
 	process.env.EIMS_GENERATED_PROJECT_ROOT ??
-	path.join(novekRoot, "testing", "vyllion-eims-v3-generated-final");
+	path.join(novekRoot, "testing", "vyllion-eims-v3-api-ui-proof");
 const mockPort = Number(process.env.EIMS_SCAFFOLD_MOCK_PORT ?? 0);
 let baseUrl = "";
 
@@ -30,6 +30,7 @@ const requiredDirs = [
 	"apps/api/src/modules/eims/shared/constants",
 	"apps/api/src/modules/eims/shared/lookups",
 	"apps/api/src/modules/eims/shared/mock",
+	"apps/api/src/modules/eims/shared/presentation",
 	"apps/api/src/modules/eims/submission/application",
 	"apps/api/src/modules/eims/submission/domain",
 	"apps/api/src/modules/eims/submission/presentation",
@@ -53,6 +54,7 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/receipts/presentation/eims-receipts.controller.ts",
 	"apps/api/src/modules/eims/compliance/presentation/eims-compliance.controller.ts",
 	"apps/api/src/modules/eims/admin/presentation/eims-admin.controller.ts",
+	"apps/api/src/modules/eims/shared/presentation/eims-supporting-resources.controller.ts",
 	"apps/api/src/modules/invoicing/domain/canonical-invoice.ts",
 	"apps/api-tests/scripts/eims-mock-api-server.mjs",
 	"apps/api-tests/tests/eims-v3-mock.spec.ts",
@@ -85,6 +87,10 @@ const expectedLookups = {
 	"source-system-types": ["POS", "ERP", "CRM", "SYS", "MAN", "EFD"],
 	"cancellation-reasons": ["1", "2", "3", "4", "6"],
 	"tax-codes": ["VAT15", "VAT0", "VATEX", "TOT2", "TOT10", "EXC5", "EXC10"],
+	"payment-modes": ["CASH", "CHEQUE", "CPO", "Local Bank Transfer", "SWIFT", "Wire Transfer"],
+	units: ["PCS", "KG", "L", "SVC", "NT"],
+	"nature-of-supply": ["Goods", "Service"],
+	regions: ["14", "15", "4"],
 };
 
 const checks = [];
@@ -244,6 +250,51 @@ async function assertBackendMockData() {
 	const compliance = await getJson("/api/v1/eims/compliance/evidence");
 	assert(compliance.body.data.items.some((item) => item.key === "phase0-layer-a"), "compliance includes Phase 0 Layer A");
 	assert(compliance.body.data.items.some((item) => item.key === "rls"), "compliance includes targeted RLS item");
+
+	const credentials = await getJson("/api/v1/eims/credentials");
+	assert(credentials.body.data[0].status === "tested", "credentials expose tested lifecycle");
+	assert(credentials.body.data[0].apiKeyConfigured === true, "credentials expose api key configured flag");
+	assert(credentials.body.data[0].secretsReturned === false, "credentials do not return secrets");
+	assert(!("apiKey" in credentials.body.data[0]), "credentials response does not include raw apiKey");
+	assert(!("password" in credentials.body.data[0]), "credentials response does not include raw password");
+	assert(!("clientSecret" in credentials.body.data[0]), "credentials response does not include raw clientSecret");
+	assert(!("refreshToken" in credentials.body.data[0]), "credentials response does not include raw refreshToken");
+
+	const certificates = await getJson("/api/v1/eims/certificates");
+	assert(certificates.body.data[0].provider === "Vault Transit", "certificates expose Vault Transit provider");
+	assert(certificates.body.data[0].csrStrategy === "vault-generated", "certificates expose CSR strategy");
+	assert(certificates.body.data[0].status === "expires_soon", "certificates expose expiry status");
+
+	const branchHealth = await getJson("/api/v1/eims/branch-health");
+	assert(branchHealth.body.data[0].establishmentName === "Bole Branch", "branch health exposes Bole Branch");
+	assert(branchHealth.body.data[0].alerts.includes("Bar POS awaiting MoR approval"), "branch health exposes MoR approval alert");
+
+	const buyers = await getJson("/api/v1/eims/buyers");
+	assert(buyers.body.data.some((buyer) => buyer.isGovernment === true), "buyer directory includes government buyer");
+	assert(buyers.body.data.some((buyer) => /^\d{10}$/.test(buyer.buyerTin)), "buyer directory validates 10-digit buyer TIN");
+
+	const bulk = await getJson("/api/v1/eims/bulk");
+	const bulkRow = bulk.body.data[0];
+	assert(bulkRow.endpoint === "/api/v1/bulkInvoice", "bulk endpoint uses V3 spec endpoint candidate");
+	assert(bulkRow.submitted === bulkRow.accepted + bulkRow.failed + bulkRow.pending, "bulk item counts reconcile");
+	assert(bulkRow.reconciliationAfterMinutes === 15, "bulk reconciliation threshold is 15 minutes");
+
+	const cancellations = await getJson("/api/v1/eims/cancellations");
+	assert(cancellations.body.data[0].reasonCode === "4", "cancellation exposes reason code 4");
+	assert(cancellations.body.data[0].remark.length > 0, "cancellation reason 4 includes remark");
+	assert(cancellations.body.data[0].countToday < cancellations.body.data[0].knownLimitToday, "cancellation limit state is sane");
+
+	const printLayouts = await getJson("/api/v1/eims/print-layouts");
+	assert(printLayouts.body.data.some((layout) => layout.layout === "compact"), "print layouts include compact thermal");
+	assert(printLayouts.body.data.some((layout) => layout.layout === "a4"), "print layouts include A4");
+	assert(
+		printLayouts.body.data.every((layout) => layout.qrSource.includes("EIMS accepted")),
+		"print layouts never use pre-acceptance official QR",
+	);
+
+	const notifications = await getJson("/api/v1/eims/notifications");
+	assert(notifications.body.data.some((row) => row.provider === "Africa's Talking"), "notifications include SMS provider");
+	assert(notifications.body.data.some((row) => row.provider === "AWS SES"), "notifications include email provider");
 
 	const adminOverview = await getJson("/api/v1/admin/eims/overview");
 	assert(adminOverview.body.data.latestFailures[0].errorCode === "7015", "admin failure exposes counter rule 7015");

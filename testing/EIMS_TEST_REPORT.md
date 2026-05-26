@@ -7,19 +7,19 @@ Date: 2026-05-26
 Generated project:
 
 ```text
-C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-generated-final
+C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-api-ui-proof
 ```
 
 Generation command:
 
 ```bash
-node packages/cli/bin/index.js C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-generated-final --yes
+node packages/cli/bin/index.js C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-api-ui-proof --yes
 ```
 
 Dependency install command:
 
 ```bash
-cd testing/eims-v3-generated
+cd C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-api-ui-proof
 pnpm install
 ```
 
@@ -50,22 +50,19 @@ Detailed generated-project results:
 
 ```text
 Prisma generate: PASS
-Biome lint: PASS, 504 files checked
+Biome lint: PASS, 505 files checked
 API typecheck: PASS
 Web typecheck: PASS
 Backend EIMS unit tests: PASS, 5 suites / 13 tests
 Phase 0 Layer A local signing/canonicalization smoke: PASS
-Backend API EIMS mock contract tests: PASS, 6 tests
+Backend API EIMS mock contract tests: PASS, 8 tests
 Bruno EIMS Phase 0 mock collection: PASS, 6 EIMS requests / 7 tests
-Frontend EIMS browser tests via backend mock API: PASS, 4 tests
+Frontend EIMS browser tests via backend mock API: PASS, 6 tests
+  - desktop tenant routes: PASS
+  - desktop admin routes: PASS
+  - mobile tenant routes: PASS
+  - mobile admin routes: PASS
 ```
-
-Note: the first run from the correct `novek\testing` location exposed a
-desktop Chromium cold-start timeout in the EIMS Playwright config. The backend
-API tests had already passed; the timeout was in Vite/browser startup. The
-template EIMS Playwright timeout was increased from 180s to 300s, and the
-generated project was patched the same way for this verification run. After
-that, `pnpm test:eims:ui` and the full `pnpm test:eims:mock` gate passed.
 
 ## Scaffold Structure Verification
 
@@ -77,7 +74,7 @@ pnpm test:eims:scaffold
 
 Result: PASS
 
-The verifier performs 140 explicit checks against the generated project.
+The verifier performs 191 explicit checks against the generated project.
 
 It checks:
 
@@ -96,6 +93,7 @@ apps/api/src/modules/eims/shared/client
 apps/api/src/modules/eims/shared/constants
 apps/api/src/modules/eims/shared/lookups
 apps/api/src/modules/eims/shared/mock
+apps/api/src/modules/eims/shared/presentation
 apps/api/src/modules/eims/submission/application
 apps/api/src/modules/eims/submission/domain
 apps/api/src/modules/eims/submission/presentation
@@ -139,8 +137,8 @@ EimsNotificationLog
 
 ## Backend Mock API Data Verified
 
-The generated-project verifier starts the generated backend mock API and
-checks actual response data, not only status codes.
+The generated-project verifier starts the generated backend mock API and checks
+actual response data, not only status codes.
 
 Verified tenant-side API data:
 
@@ -154,25 +152,21 @@ GET /api/v1/eims/overview
   last accepted counter = 128
   sandbox blocker is explicit
 
-GET /api/v1/eims/lookups/document-types
-  INV, CRE, DEB, INT, RTN, FIN, MIX, INC, PRF, OVD
+GET /api/v1/eims/lookups/*
+  document types: INV, CRE, DEB, INT, RTN, FIN, MIX, INC, PRF, OVD
+  transaction types: B2B, B2C, B2G, G2B, G2C
+  source system types: POS, ERP, CRM, SYS, MAN, EFD
+  cancellation reasons: 1, 2, 3, 4, 6
+  tax codes: VAT15, VAT0, VATEX, TOT2, TOT10, EXC5, EXC10
+  payment modes: CASH, CHEQUE, CPO, Local Bank Transfer, SWIFT, Wire Transfer
+  units: PCS, KG, L, SVC, NT
+  nature of supply: Goods, Service
+  regions: 14, 15, 4
   CRE requires related document
-
-GET /api/v1/eims/lookups/transaction-types
-  B2B, B2C, B2G, G2B, G2C
   B2C buyer TIN is optional
-
-GET /api/v1/eims/lookups/source-system-types
-  POS, ERP, CRM, SYS, MAN, EFD
   MAN does not require item code
-
-GET /api/v1/eims/lookups/cancellation-reasons
-  1, 2, 3, 4, 6
   reason 4 requires remark
   reason 6 is marked mock-observed/unconfirmed
-
-GET /api/v1/eims/lookups/tax-codes
-  VAT15, VAT0, VATEX, TOT2, TOT10, EXC5, EXC10
 
 GET /api/v1/eims/submissions
   accepted
@@ -185,6 +179,46 @@ POST /api/v1/eims/submissions/mock-submit
   preserves document number
   returns accepted state
   returns backend mock IRN
+
+GET /api/v1/eims/credentials
+  tested lifecycle
+  api key/password/client secret/refresh token configured flags
+  raw secrets are not returned
+
+GET /api/v1/eims/certificates
+  Vault Transit provider
+  vault-generated CSR strategy
+  expiry status
+
+GET /api/v1/eims/branch-health
+  Bole Branch health
+  MoR approval alert
+
+GET /api/v1/eims/buyers
+  business buyer
+  government buyer
+  10-digit buyer TIN shape
+
+GET /api/v1/eims/bulk
+  /api/v1/bulkInvoice candidate endpoint
+  conversationId
+  callback state
+  item counts reconcile
+  15-minute reconciliation threshold
+
+GET /api/v1/eims/cancellations
+  reason code 4
+  required remark
+  cancellation limit state
+
+GET /api/v1/eims/print-layouts
+  compact thermal layout
+  A4 layout
+  QR source is EIMS accepted signedQR only
+
+GET /api/v1/eims/notifications
+  Africa's Talking SMS provider
+  AWS SES email provider
 
 GET /api/v1/eims/receipts
   sales receipt has RRN
@@ -207,6 +241,38 @@ GET /api/v1/admin/eims/resources
   exposes signing provider state
 ```
 
+## UI Routes Verified
+
+The Playwright EIMS UI tests run against the backend mock API and wait for the
+specific backend responses before checking page data.
+
+Tenant routes verified on desktop and mobile:
+
+```text
+/eims
+/eims/setup
+/eims/enterprises
+/eims/establishments
+/eims/sources
+/eims/credentials
+/eims/certificates
+/eims/submissions
+/eims/receipts
+/eims/bulk
+/eims/compliance
+```
+
+Super-admin routes verified on desktop and mobile:
+
+```text
+/admin/eims
+/admin/eims/tenants
+/admin/eims/failures
+/admin/eims/certificates
+/admin/eims/resources
+/admin/eims/compliance
+```
+
 ## Template Source Full Gate
 
 Command:
@@ -222,14 +288,14 @@ Template-source results:
 
 ```text
 Prisma generate: PASS
-Biome lint: PASS, 504 files checked
+Biome lint: PASS, 505 files checked
 API typecheck: PASS
 Web typecheck: PASS
 Backend EIMS unit tests: PASS, 5 suites / 13 tests
 Phase 0 Layer A local signing/canonicalization smoke: PASS
-Backend API EIMS mock contract tests: PASS, 6 tests
+Backend API EIMS mock contract tests: PASS, 8 tests
 Bruno EIMS Phase 0 mock collection: PASS, 6 EIMS requests / 7 tests
-Frontend EIMS browser tests via backend mock API: PASS, 4 tests
+Frontend EIMS browser tests via backend mock API: PASS, 6 tests
 ```
 
 ## Still Not Proven Until Sandbox Access
