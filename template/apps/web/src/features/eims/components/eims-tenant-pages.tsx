@@ -338,14 +338,15 @@ export function EimsCertificatesPage() {
 		<div className="space-y-5">
 			<PageHeader
 				title="EIMS Certificates"
-				description="Certificate metadata, CSR flow, expiry windows, and signing key version tracking."
+				description="Sandbox certificate metadata, CSR flow, validity windows, and signing key version tracking."
 			/>
 			<Card>
 				<CardContent className="p-0">
 					<DataTable
-						headers={["Source", "Provider", "CSR", "Key", "Algorithm", "Valid To", "Status"]}
+						headers={["Source", "Environment", "Provider", "CSR", "Key", "Algorithm", "Valid To", "Status"]}
 						rows={data.data.map((row) => [
 							row.sourceSystem,
+							row.environment,
 							row.provider,
 							row.csrStrategy,
 							`${row.keyProvider} ${row.keyVersion}`,
@@ -407,10 +408,11 @@ export function EimsReceiptsPage() {
 			<Card>
 				<CardContent className="p-0">
 					<DataTable
-						headers={["Receipt", "Type", "Status", "Payment", "Amount", "RRN"]}
+						headers={["Receipt", "Type", "Withholding", "Status", "Payment", "Amount", "RRN"]}
 						rows={data.data.map((row) => [
 							row.receiptNumber,
 							row.receiptType,
+							row.withholdingType ?? "none",
 							row.status,
 							row.paymentMode,
 							row.paidAmount,
@@ -440,13 +442,25 @@ export function EimsBulkPage() {
 				</CardHeader>
 				<CardContent className="p-0">
 					<DataTable
-						headers={["Conversation", "Endpoint", "Status", "Accepted", "Failed", "Callback", "Reconciliation"]}
+						headers={[
+							"Conversation",
+							"Endpoint",
+							"Status",
+							"Submitted",
+							"Accepted",
+							"Failed",
+							"Pending",
+							"Callback",
+							"Reconciliation",
+						]}
 						rows={bulk.data.data.map((row) => [
 							row.conversationId,
 							row.endpoint,
 							row.status,
+							String(row.submitted),
 							String(row.accepted),
 							String(row.failed),
+							String(row.pending),
 							row.callbackStatus,
 							`${row.reconciliationStatus} after ${row.reconciliationAfterMinutes}m`,
 						])}

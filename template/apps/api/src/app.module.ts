@@ -10,8 +10,10 @@ import { AuditLogModule } from "#modules/audit-log/audit-log.module";
 import { AuthModule } from "#modules/auth/auth.module";
 import { BillingModule } from "#modules/billing/billing.module";
 import { SubscriptionStateGuard } from "#modules/billing/guards/subscription-state.guard";
+import { EimsModule } from "#modules/eims/eims.module";
 import { ErrorReportingModule } from "#modules/error-reporting/error-reporting.module";
 import { HealthModule } from "#modules/health/health.module";
+import { InvoicingModule } from "#modules/invoicing/invoicing.module";
 import { NotificationModule } from "#modules/notification/notification.module";
 import { OrganizationSettingsModule } from "#modules/organization-settings/organization-settings.module";
 import { ReportingModule } from "#modules/reporting/reporting.module";
@@ -59,6 +61,8 @@ import { StorageModule } from "#shared/storage/storage.module";
 		ApiKeyModule,
 		AuditLogModule,
 		BillingModule,
+		InvoicingModule,
+		EimsModule,
 		RoleModule,
 		ErrorReportingModule,
 	],

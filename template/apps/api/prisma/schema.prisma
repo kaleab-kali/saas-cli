@@ -948,3 +948,403 @@ model CustomRoleAssignment {
   @@index([organizationId, userId])
   @@map("custom_role_assignment")
 }
+
+// ============================================================
+// EIMS / EIRMS ETHIOPIAN E-INVOICING
+// Optional starter pack. Keep this bounded context isolated.
+// ============================================================
+
+model EimsEnterprise {
+  id             String   @id @default(cuid())
+  organizationId String
+  tin            String
+  legalName      String
+  tradeName      String?
+  vatNumber      String?
+  email          String?
+  phone          String?
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, tin])
+  @@index([organizationId, status])
+  @@map("eims_enterprise")
+}
+
+model EimsEstablishment {
+  id              String    @id @default(cuid())
+  organizationId  String
+  enterpriseId    String
+  establishmentNo String?
+  name            String
+  code            String
+  subTin          String?
+  region          String?
+  zone            String?
+  city            String?
+  subCity         String?
+  wereda          String?
+  kebele          String?
+  locality        String?
+  houseNumber     String?
+  managerUserId   String?
+  status          String    @default("draft")
+  openedAt        DateTime?
+  closedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([organizationId, enterpriseId, code])
+  @@index([organizationId, enterpriseId])
+  @@index([organizationId, status])
+  @@map("eims_establishment")
+}
+
+model EimsSourceSystem {
+  id                    String    @id @default(cuid())
+  organizationId        String
+  enterpriseId          String
+  establishmentId       String
+  name                  String
+  systemNumber          String?
+  systemType            String
+  model                 String?
+  manufacturer          String?
+  softwareVersion       String?
+  serviceType           String?
+  serviceCenterTin      String?
+  serviceDate           DateTime?
+  lastUpgradeDate       DateTime?
+  permitNo              String?
+  machineRegNo          String?
+  simCardNo             String?
+  inHouseDeveloped      Boolean   @default(false)
+  approvalStatus        String    @default("draft")
+  active                Boolean   @default(false)
+  credentialId          String?
+  certificateId         String?
+  updateRequestedStatus String?
+  version               Int       @default(0)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([organizationId, establishmentId])
+  @@index([organizationId, approvalStatus, active])
+  @@map("eims_source_system")
+}
+
+model EimsCredential {
+  id                         String    @id @default(cuid())
+  organizationId             String
+  sourceSystemId             String
+  environment                String
+  clientId                   String?
+  username                   String?
+  clientSecretEncrypted      Bytes?
+  clientSecretKeyVersion     String?
+  apiKeyEncrypted            Bytes?
+  apiKeyKeyVersion           String?
+  passwordEncrypted          Bytes?
+  passwordKeyVersion         String?
+  refreshTokenEncrypted      Bytes?
+  refreshTokenKeyVersion     String?
+  tokenExpiresAt             DateTime?
+  lastTestedAt               DateTime?
+  lastTestStatus             String?
+  lastRotatedAt              DateTime?
+  status                     String    @default("initial_setup")
+  createdAt                  DateTime  @default(now())
+  updatedAt                  DateTime  @updatedAt
+
+  @@index([organizationId, sourceSystemId, environment])
+  @@map("eims_credential")
+}
+
+model EimsCertificate {
+  id             String    @id @default(cuid())
+  organizationId String
+  sourceSystemId String
+  environment    String
+  certificatePem String
+  serialNumber   String?
+  subjectCn      String?
+  issuer         String?
+  validFrom      DateTime?
+  validTo        DateTime?
+  fingerprintSha256 String?
+  status         String    @default("imported")
+  keyProvider    String?
+  keyRef         String?
+  keyVersion     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([organizationId, sourceSystemId, environment])
+  @@index([validTo, status])
+  @@map("eims_certificate")
+}
+
+model EimsSourceSystemCounter {
+  id                  String    @id @default(cuid())
+  organizationId      String
+  sourceSystemId      String    @unique
+  lastAcceptedCounter BigInt    @default(0)
+  lastAcceptedIrn     String?
+  lastIssuedAt        DateTime?
+  status              String    @default("healthy")
+  version             Int       @default(0)
+  updatedAt           DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@map("eims_source_system_counter")
+}
+
+model EimsCounterReservation {
+  id             String    @id @default(cuid())
+  organizationId String
+  sourceSystemId String
+  invoiceId      String
+  counter        BigInt
+  previousIrn    String?
+  payloadHash    String
+  status         String
+  eimsRequestId  String?
+  createdAt      DateTime  @default(now())
+  submittedAt    DateTime?
+  acceptedAt     DateTime?
+  failedAt       DateTime?
+  errorCode      String?
+  errorDetail    Json?
+
+  @@unique([sourceSystemId, counter])
+  @@index([organizationId, sourceSystemId, status])
+  @@map("eims_counter_reservation")
+}
+
+model UserEstablishmentAssignment {
+  id              String    @id @default(cuid())
+  organizationId  String
+  userId          String
+  establishmentId String
+  role            String
+  isPrimary       Boolean   @default(false)
+  assignedAt      DateTime  @default(now())
+  revokedAt       DateTime?
+
+  @@unique([userId, establishmentId])
+  @@index([organizationId])
+  @@map("user_establishment_assignment")
+}
+
+model UserSourceSystemAssignment {
+  id             String    @id @default(cuid())
+  organizationId String
+  userId         String
+  sourceSystemId String
+  assignedAt     DateTime  @default(now())
+  revokedAt      DateTime?
+
+  @@unique([userId, sourceSystemId])
+  @@index([organizationId])
+  @@map("user_source_system_assignment")
+}
+
+model TenantBuyer {
+  id             String   @id @default(cuid())
+  organizationId String
+  buyerTin       String?
+  buyerSubTin    String?
+  legalName      String
+  tradeName      String?
+  vatNumber      String?
+  buyerType      String   @default("business")
+  isGovernment   Boolean  @default(false)
+  email          String?
+  phone          String?
+  region         String?
+  zone           String?
+  city           String?
+  subCity        String?
+  wereda         String?
+  kebele         String?
+  locality       String?
+  houseNumber    String?
+  idType         String?
+  idNumberEncrypted Bytes?
+  idNumberKeyVersion String?
+  frequentBuyer Boolean  @default(false)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId, buyerTin])
+  @@index([organizationId, buyerType, active])
+  @@map("tenant_buyer")
+}
+
+model TaxInvoice {
+  id                  String    @id @default(cuid())
+  organizationId      String
+  enterpriseId        String
+  establishmentId     String
+  sourceSystemId      String
+  transactionType     String
+  documentType        String
+  documentNumber      String
+  manualInvoiceNumber String?
+  documentDate        DateTime
+  invoiceCurrency     String    @default("ETB")
+  exchangeRate        Decimal?  @db.Decimal(20, 6)
+  previousIrn         String?
+  relatedDocument     String?
+  sourceBusinessEvent String?
+  status              String    @default("draft")
+  historical          Boolean   @default(false)
+  totalValue          Decimal   @db.Decimal(20, 2)
+  taxValue            Decimal   @db.Decimal(20, 2)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([organizationId, documentNumber])
+  @@index([organizationId, sourceSystemId, status])
+  @@index([organizationId, documentDate])
+  @@map("tax_invoice")
+}
+
+model TaxInvoiceLine {
+  id                 String   @id @default(cuid())
+  organizationId     String
+  invoiceId          String
+  lineNumber         Int
+  natureOfSupplies   String
+  itemCode           String?
+  harmonizationCode  String?
+  productDescription String
+  unitPrice          Decimal  @db.Decimal(20, 2)
+  quantity           Decimal  @db.Decimal(20, 4)
+  unit               String
+  preTaxValue        Decimal  @db.Decimal(20, 2)
+  discount           Decimal? @db.Decimal(20, 2)
+  exciseTaxValue     Decimal? @db.Decimal(20, 2)
+  taxCode            String
+  taxAmount          Decimal  @db.Decimal(20, 2)
+  totalLineAmount    Decimal  @db.Decimal(20, 2)
+
+  @@unique([invoiceId, lineNumber])
+  @@index([organizationId, invoiceId])
+  @@map("tax_invoice_line")
+}
+
+model EimsSubmission {
+  id                       String    @id @default(cuid())
+  organizationId           String
+  enterpriseId             String
+  establishmentId          String
+  sourceSystemId           String
+  invoiceId                String
+  environment              String
+  counter                  BigInt?
+  irn                      String?
+  signedQr                 String?
+  signedInvoice            Json?
+  ackDate                  DateTime?
+  status                   String
+  keyProvider              String?
+  keyRef                   String?
+  keyVersion               String?
+  signatureAlgorithm       String?
+  canonicalizationVersion  String?
+  payloadHash              String?
+  errorCode                String?
+  errorDetail              Json?
+  createdAt                DateTime  @default(now())
+  submittedAt              DateTime?
+  acceptedAt               DateTime?
+
+  @@index([organizationId, sourceSystemId, status])
+  @@index([organizationId, irn])
+  @@map("eims_submission")
+}
+
+model EimsReceipt {
+  id               String    @id @default(cuid())
+  organizationId   String
+  enterpriseId     String
+  establishmentId  String
+  sourceSystemId   String
+  receiptType      String
+  receiptNumber    String
+  manualReceiptNumber String?
+  receiptCounter   BigInt?
+  invoiceIrn       String?
+  rrn              String?
+  signedQr         String?
+  signedReceipt    Json?
+  status           String    @default("draft")
+  totalAmount      Decimal   @db.Decimal(20, 2)
+  paidAmount       Decimal?  @db.Decimal(20, 2)
+  remainingAmount  Decimal?  @db.Decimal(20, 2)
+  paymentMode      String?
+  withholdingType  String?
+  withholdingRate  Decimal?  @db.Decimal(10, 4)
+  withholdingAmount Decimal? @db.Decimal(20, 2)
+  createdAt        DateTime  @default(now())
+  submittedAt      DateTime?
+  acceptedAt       DateTime?
+
+  @@index([organizationId, sourceSystemId, status])
+  @@map("eims_receipt")
+}
+
+model EimsCancellation {
+  id             String    @id @default(cuid())
+  organizationId String
+  sourceSystemId String
+  invoiceIrn     String
+  reasonCode     String
+  remark         String?
+  requestedBy    String?
+  requestedAt    DateTime  @default(now())
+  eimsResponse   Json?
+  status         String    @default("pending")
+
+  @@index([organizationId, sourceSystemId, status])
+  @@map("eims_cancellation")
+}
+
+model EimsAuditEvent {
+  id              String   @id @default(cuid())
+  organizationId  String
+  enterpriseId    String?
+  establishmentId String?
+  sourceSystemId  String?
+  actorId         String?
+  eventType       String
+  payloadJson     Json
+  prevHash        String?
+  hash            String
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@map("eims_audit_event")
+}
+
+model EimsNotificationLog {
+  id             String    @id @default(cuid())
+  organizationId String
+  invoiceId      String?
+  receiptId      String?
+  cancellationId String?
+  buyerEmail     String?
+  buyerPhone     String?
+  channel        String
+  status         String
+  providerResponse Json?
+  sentAt         DateTime?
+  retryCount     Int       @default(0)
+  createdAt      DateTime  @default(now())
+
+  @@index([organizationId, status])
+  @@map("eims_notification_log")
+}

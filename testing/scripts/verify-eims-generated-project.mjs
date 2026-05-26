@@ -9,16 +9,22 @@ const repoRoot = path.resolve(__dirname, "../..");
 const novekRoot = path.resolve(repoRoot, "..", "..", "..");
 const generatedRoot =
 	process.env.EIMS_GENERATED_PROJECT_ROOT ??
-	path.join(novekRoot, "testing", "vyllion-eims-v3-api-ui-proof");
+	path.join(novekRoot, "testing", "vyllion-eims-v3-data-ui-proof");
 const mockPort = Number(process.env.EIMS_SCAFFOLD_MOCK_PORT ?? 0);
 let baseUrl = "";
 
 const requiredDirs = [
 	"apps/api/src/modules/eims/admin/application",
+	"apps/api/src/modules/eims/admin/domain",
+	"apps/api/src/modules/eims/admin/infrastructure",
 	"apps/api/src/modules/eims/admin/presentation",
 	"apps/api/src/modules/eims/compliance/application",
+	"apps/api/src/modules/eims/compliance/domain",
+	"apps/api/src/modules/eims/compliance/infrastructure",
 	"apps/api/src/modules/eims/compliance/presentation",
 	"apps/api/src/modules/eims/receipts/application",
+	"apps/api/src/modules/eims/receipts/domain",
+	"apps/api/src/modules/eims/receipts/infrastructure",
 	"apps/api/src/modules/eims/receipts/presentation",
 	"apps/api/src/modules/eims/setup/application/commands",
 	"apps/api/src/modules/eims/setup/application/dto",
@@ -27,12 +33,21 @@ const requiredDirs = [
 	"apps/api/src/modules/eims/setup/infrastructure/repositories",
 	"apps/api/src/modules/eims/setup/presentation",
 	"apps/api/src/modules/eims/shared/client",
+	"apps/api/src/modules/eims/shared/canonicalization",
 	"apps/api/src/modules/eims/shared/constants",
+	"apps/api/src/modules/eims/shared/crypto",
+	"apps/api/src/modules/eims/shared/errors",
 	"apps/api/src/modules/eims/shared/lookups",
 	"apps/api/src/modules/eims/shared/mock",
+	"apps/api/src/modules/eims/shared/notifications",
 	"apps/api/src/modules/eims/shared/presentation",
+	"apps/api/src/modules/eims/shared/printing",
+	"apps/api/src/modules/eims/shared/queues",
+	"apps/api/src/modules/eims/shared/schemas",
+	"apps/api/src/modules/eims/shared/signing",
 	"apps/api/src/modules/eims/submission/application",
 	"apps/api/src/modules/eims/submission/domain",
+	"apps/api/src/modules/eims/submission/infrastructure",
 	"apps/api/src/modules/eims/submission/presentation",
 	"apps/api/src/modules/invoicing/domain",
 	"apps/web/src/features/eims/api",

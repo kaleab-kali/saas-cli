@@ -210,6 +210,7 @@ const receipts = {
 			id: "rec_mock_1",
 			receiptNumber: "RCPT-2026-00044",
 			receiptType: "sales",
+			withholdingType: null,
 			status: "accepted",
 			invoiceIrn: "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74",
 			rrn: "MOCK-RRN-00044",
@@ -220,6 +221,7 @@ const receipts = {
 			id: "rec_mock_2",
 			receiptNumber: "WHT-2026-00002",
 			receiptType: "withholding",
+			withholdingType: "TWHT",
 			status: "draft",
 			invoiceIrn: "MOCK-IRN-B2B-0002",
 			rrn: null,
@@ -238,7 +240,7 @@ const credentials = {
 			username: "TIN0074136947",
 			clientId: "client-front-pos",
 			status: "tested",
-			lifecycle: "tested",
+			lifecycle: "active",
 			apiKeyConfigured: true,
 			passwordConfigured: true,
 			clientSecretConfigured: true,
@@ -470,6 +472,10 @@ async function handleMockRequest(req, res) {
 
 function handleCoreRoutes(path, res) {
 	if (path === "/health") return sendJson(res, 200, { status: "ok" });
+	if (path === "/api/v1/notifications") {
+		return sendJson(res, 200, { data: [], meta: { total: 0, unread: 0, limit: 10, offset: 0 } });
+	}
+	if (path === "/api/v1/error-reports") return sendJson(res, 202, { data: { accepted: true } });
 	if (path === "/api/auth/get-session") {
 		return sendJson(res, 200, {
 			user: { id: "user_1", name: "Owner", email: "owner@example.com" },
@@ -633,7 +639,13 @@ function adminCompliance() {
 		data: {
 			readiness: 68,
 			missing: ["Phase 0 Layer B sandbox report", "Bank guarantee scanned copy", "Data residency legal opinion"],
-			ready: ["V3 architecture plan", "Layer A local test assets", "Tenant onboarding runbook"],
+			ready: [
+				"V3 architecture plan",
+				"Layer A local test assets",
+				"Tenant onboarding runbook",
+				"Targeted EIMS RLS policy export",
+				"Vault operational runbook",
+			],
 		},
 	};
 }

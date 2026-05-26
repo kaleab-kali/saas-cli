@@ -1,0 +1,19 @@
+meta {
+  name: Admin EIMS Overview
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/admin/eims/overview
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns super-admin EIMS operational view", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.data.tenantsTotal).to.equal(2);
+    expect(res.body.data.latestFailures[0].errorCode).to.equal("7015");
+  });
+}

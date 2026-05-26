@@ -1,0 +1,21 @@
+{
+	"name": "api-tests",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "pnpm test:http && pnpm test:bruno && pnpm test:contract",
+		"test:http": "playwright test -c playwright.config.ts",
+		"test:http:mock": "node scripts/with-mock-api.mjs http",
+		"test:bruno": "node scripts/run-bruno.mjs",
+		"test:bruno:mock": "node scripts/with-mock-api.mjs bruno",
+		"test:eims:mock": "node scripts/with-mock-api.mjs eims-http",
+		"test:contract": "node scripts/run-spectral.mjs",
+		"test:contract:smoke": "spectral lint openapi/openapi-smoke.yaml --ruleset .spectral.yaml"
+	},
+	"devDependencies": {
+		"@playwright/test": "1.60.0",
+		"@stoplight/spectral-cli": "6.16.0",
+		"@usebruno/cli": "3.4.0"
+	}
+}

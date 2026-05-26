@@ -1,11 +1,11 @@
 # EIMS V3 Self-Audit
 
-Date: 2026-05-26
+Date: 2026-05-27
 
 Scope:
 
 - Template source under `template/`
-- Clean generated scaffold at `C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-api-ui-proof`
+- Clean generated scaffold at `C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-full-structure-proof`
 - V3 controlling plan in `docs/EIMS_FINAL_AGREED_SAAS_ARCHITECTURE_PLAN_V3.md`
 
 ## Audit Position
@@ -40,7 +40,7 @@ What is not done yet:
 | V3 Area | Scaffold Status | Test Status | Notes |
 |---|---|---|---|
 | Workspace layout | Implemented | Scaffold verifier | `apps/api`, `web`, `api-tests`, `e2e`, `acceptance`, `performance`, `security` are present in generated project. |
-| EIMS bounded context | Partially implemented | Scaffold verifier | `setup`, `submission`, `receipts`, `compliance`, `shared`, and `admin` exist. Some V3 shared subfolders like signing/queues/printing are not production-built. |
+| EIMS bounded context | Structure implemented, behavior partial | Scaffold verifier | `setup`, `submission`, `receipts`, `compliance`, `shared`, and `admin` exist with V3 folder skeleton. Some subfolders are placeholders until production implementation. |
 | Enterprise -> Establishment -> SourceSystem | Scaffolded | API + scaffold verifier | Data model and mock overview expose hierarchy, TIN, sub-TIN, approval state, counter. |
 | Lookup/code registry | Implemented as seed/mock API | API tests | Document, transaction, source, cancellation, tax, payment, unit, nature, and region values verified. ETag/cache refresh is not implemented yet. |
 | Source approval guard | Partially implemented | Unit/API tests | Guard and mock approval states exist. Full MoR portal workflow is not production-built. |
@@ -75,7 +75,7 @@ pnpm lint
 Generated scaffold:
 
 ```bash
-cd C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-api-ui-proof
+cd C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-full-structure-proof
 pnpm test:eims:mock
 pnpm --filter e2e exec playwright test -c playwright.eims.config.ts tests/eims-mock.spec.ts --headed --project=chromium
 ```

@@ -1,0 +1,26 @@
+meta {
+  name: EIMS Overview
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/eims/overview
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns EIMS mock overview", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.data.mode).to.equal("mock");
+    expect(res.body.data.sourceSystems[0].approvalStatus).to.equal("approved");
+  });
+
+  test("includes V3 onboarding gates", function () {
+    const keys = res.body.data.setupProgress.map((step) => step.key);
+    expect(keys).to.include("twoFactor");
+    expect(keys).to.include("enterprise");
+    expect(keys).to.include("phase0");
+  });
+}

@@ -58,6 +58,7 @@ export interface EimsReceipt {
 	id: string;
 	receiptNumber: string;
 	receiptType: string;
+	withholdingType: string | null;
 	status: string;
 	invoiceIrn: string;
 	rrn: string | null;
