@@ -1,20 +1,29 @@
+import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { spinner } from "@clack/prompts";
 import fs from "fs-extra";
 import pc from "picocolors";
-import { spinner } from "@clack/prompts";
 
 const IGNORE_DIRS = new Set([
 	"node_modules",
 	".git",
 	".turbo",
+	".tanstack",
 	"dist",
 	"build",
 	".next",
+	"coverage",
 	"logs",
 	"uploads",
+	"playwright-report",
+	"test-results",
 	".playwright-cli",
 	".claude",
 	".agents",
+	".env",
+	".env.local",
+	".env.development",
+	".env.production",
 ]);
 
 const BINARY_EXTS = new Set([
@@ -38,29 +47,16 @@ const BINARY_EXTS = new Set([
 ]);
 
 const isBinary = (file) => BINARY_EXTS.has(path.extname(file).toLowerCase());
+const envQuote = (value) =>
+	`"${String(value).replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 
-const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/**
- * Build replacement rules.
- * Order matters: handlebars tokens first, then literal propflow → projectSlug.
- */
-const buildReplacements = (tokens) => {
-	const rules = [
-		// Handlebars tokens
-		[/\{\{\s*projectName\s*\}\}/g, tokens.projectName],
-		[/\{\{\s*projectSlug\s*\}\}/g, tokens.projectSlug],
-		[/\{\{\s*dbName\s*\}\}/g, tokens.dbName],
-		[/\{\{\s*authSecret\s*\}\}/g, tokens.authSecret],
-		[/\{\{\s*superAdminEmail\s*\}\}/g, tokens.superAdminEmail],
-		[/\{\{\s*superAdminPassword\s*\}\}/g, tokens.superAdminPassword],
-		[/\{\{\s*caddyDomain\s*\}\}/g, tokens.caddyDomain],
-		// Literal propflow refs left in source code / docs
-		[new RegExp(escapeRegex("PropFlow"), "g"), tokens.projectName],
-		[new RegExp(escapeRegex("propflow"), "g"), tokens.projectSlug],
-	];
-	return rules;
-};
+const buildReplacements = (tokens) => [
+	[/\{\{\s*projectName\s*\}\}/g, tokens.projectName],
+	[/\{\{\s*projectSlug\s*\}\}/g, tokens.projectSlug],
+	[/\{\{\s*dbName\s*\}\}/g, tokens.dbName],
+	[/\{\{\s*superAdminEmail\s*\}\}/g, tokens.superAdminEmail],
+	[/\{\{\s*caddyDomain\s*\}\}/g, tokens.caddyDomain],
+];
 
 const walk = async (dir, base, out) => {
 	const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -76,7 +72,12 @@ const walk = async (dir, base, out) => {
 	}
 };
 
-export const scaffold = async ({ templateDir, targetDir, tokens }) => {
+export const scaffold = async ({
+	templateDir,
+	targetDir,
+	tokens,
+	actions = {},
+}) => {
 	const s = spinner();
 
 	s.start("Copying template files");
@@ -100,7 +101,7 @@ export const scaffold = async ({ templateDir, targetDir, tokens }) => {
 		if (isBinary(full)) continue;
 		try {
 			const stat = await fs.stat(full);
-			if (stat.size > 5 * 1024 * 1024) continue; // skip huge files (>5MB)
+			if (stat.size > 5 * 1024 * 1024) continue;
 			let content = await fs.readFile(full, "utf8");
 			let changed = false;
 			for (const [re, val] of rules) {
@@ -111,7 +112,7 @@ export const scaffold = async ({ templateDir, targetDir, tokens }) => {
 			}
 			if (changed) await fs.writeFile(full, content, "utf8");
 		} catch {
-			// ignore unreadable / non-text
+			// Ignore unreadable or non-text files.
 		}
 	}
 	s.stop(pc.green(`Tokens applied to ${files.length} files`));
@@ -127,23 +128,52 @@ export const scaffold = async ({ templateDir, targetDir, tokens }) => {
 		"utf8",
 	);
 	s.stop(".scaffold-credentials.txt written (do not commit)");
+
+	if (actions.afterTemplate) await actions.afterTemplate(targetDir);
+
+	if (actions.install) runStep(targetDir, "pnpm", ["install"]);
+	if (actions.dbPush) runStep(targetDir, "pnpm", ["db:push"]);
+	if (actions.seed) runStep(targetDir, "pnpm", ["db:seed"]);
+};
+
+const runStep = (cwd, command, args) => {
+	console.log(pc.dim(`\nRunning: ${command} ${args.join(" ")}`));
+	const result = spawnSync(command, args, {
+		cwd,
+		stdio: "inherit",
+		shell: process.platform === "win32",
+	});
+	if (result.status !== 0) {
+		throw new Error(`Command failed: ${command} ${args.join(" ")}`);
+	}
 };
 
 const writeEnvFiles = async (targetDir, t) => {
 	const apiEnv = `NODE_ENV=development
+APP_NAME=${t.projectName}
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/${t.dbName}
 REDIS_URL=redis://localhost:6379
+BULLMQ_QUEUES=billing,notifications,reports
+BULLMQ_PREFIX=
 BETTER_AUTH_SECRET=${t.authSecret}
 BETTER_AUTH_URL=http://localhost:3000
 FRONTEND_URL=http://localhost:5173
 SUPER_ADMIN_EMAIL=${t.superAdminEmail}
-SUPER_ADMIN_PASSWORD=${t.superAdminPassword}
+SUPER_ADMIN_PASSWORD=${envQuote(t.superAdminPassword)}
 SUPER_ADMIN_NAME=Platform Admin
 SAMPLE_OWNER_EMAIL=${t.ownerEmail}
-SAMPLE_OWNER_PASSWORD=${t.ownerPassword}
+SAMPLE_OWNER_PASSWORD=${envQuote(t.ownerPassword)}
 SAMPLE_OWNER_NAME=Sample Owner
 API_PORT=3000
 API_HOST=0.0.0.0
+UPLOAD_MAX_BYTES=10485760
+STORAGE_DRIVER=local
+OBJECT_STORAGE_ENDPOINT=http://localhost:9000
+OBJECT_STORAGE_BUCKET=${t.projectSlug}
+OBJECT_STORAGE_REGION=us-east-1
+OBJECT_STORAGE_ACCESS_KEY=
+OBJECT_STORAGE_SECRET_KEY=
+OBJECT_STORAGE_PUBLIC_URL=
 LOG_LEVEL=debug
 SLOW_QUERY_THRESHOLD_MS=200
 STRIPE_SECRET_KEY=
@@ -162,7 +192,7 @@ VITE_APP_NAME=${t.projectName}
 	await fs.writeFile(path.join(targetDir, "apps/web/.env"), webEnv, "utf8");
 };
 
-const renderCredentials = (t) => `# ${t.projectName} — Scaffold Credentials
+const renderCredentials = (t) => `# ${t.projectName} - Scaffold Credentials
 
 THIS FILE IS LOCAL ONLY. DO NOT COMMIT.
 
