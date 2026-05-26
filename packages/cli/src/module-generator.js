@@ -824,6 +824,9 @@ const patchEimsPackageScripts = async (root) =>
 		json.scripts["test:eims:phase0"] ??=
 			"pnpm --filter api-tests test:bruno:mock";
 		json.scripts["test:eims:sandbox"] ??= "pnpm --filter api-tests test:bruno";
+		json.scripts["test:eims:ui"] ??= "pnpm --filter e2e test:eims";
+		json.scripts["test:eims:mock"] ??=
+			"pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:phase0 && pnpm test:eims:ui";
 		return json;
 	});
 
@@ -845,6 +848,7 @@ EIMS_BULK_URL_SANDBOX=
 EIMS_BULK_URL_PRODUCTION=
 EIMS_SIGNING_PROVIDER=local
 EIMS_CANONICALIZATION_VERSION=phase0-unlocked
+EIMS_MOCK_MODE=true
 EIMS_PHASE0_STRICT=false
 EIMS_CALLBACK_PUBLIC_URL=
 EIMS_LOOKUP_CACHE_TTL_SECONDS=300
@@ -1948,6 +1952,7 @@ describe("CanonicalInvoice contract", () => {
 	await writeNew(
 		path.join(root, "apps/api/src/modules/eims/eims.module.ts"),
 		`import { Module } from "@nestjs/common";
+import { EimsAdminModule } from "./admin/eims-admin.module";
 import { EimsComplianceModule } from "./compliance/eims-compliance.module";
 import { EimsReceiptsModule } from "./receipts/eims-receipts.module";
 import { EimsSetupModule } from "./setup/eims-setup.module";
@@ -1955,7 +1960,14 @@ import { EimsSharedModule } from "./shared/eims-shared.module";
 import { EimsSubmissionModule } from "./submission/eims-submission.module";
 
 @Module({
-\timports: [EimsSharedModule, EimsSetupModule, EimsSubmissionModule, EimsReceiptsModule, EimsComplianceModule],
+\timports: [
+\t\tEimsSharedModule,
+\t\tEimsSetupModule,
+\t\tEimsSubmissionModule,
+\t\tEimsReceiptsModule,
+\t\tEimsComplianceModule,
+\t\tEimsAdminModule,
+\t],
 })
 export class EimsModule {}
 `,
@@ -1965,11 +1977,12 @@ export class EimsModule {}
 		`import { Module } from "@nestjs/common";
 import { EimsLookupController } from "./lookups/eims-lookup.controller";
 import { EimsLookupService } from "./lookups/eims-lookup.service";
+import { EimsMockService } from "./mock/eims-mock.service";
 
 @Module({
 \tcontrollers: [EimsLookupController],
-\tproviders: [EimsLookupService],
-\texports: [EimsLookupService],
+\tproviders: [EimsLookupService, EimsMockService],
+\texports: [EimsLookupService, EimsMockService],
 })
 export class EimsSharedModule {}
 `,
@@ -2141,67 +2154,524 @@ export class EimsLookupController {
 }
 `,
 	);
+	await writeNew(
+		path.join(root, "apps/api/src/modules/eims/shared/mock/eims-mock.service.ts"),
+		`import { Injectable } from "@nestjs/common";
 
-	const submodules = [
-		[
-			"submission",
-			"EimsSubmission",
-			"eims/submissions",
-			"eims-submission:read",
-			"Invoice submission scaffold. Real EIMS calls are added after Phase 0.",
-		],
-		[
-			"receipts",
-			"EimsReceipts",
-			"eims/receipts",
-			"receipt:read",
-			"Receipt and withholding scaffold.",
-		],
-		[
-			"compliance",
-			"EimsCompliance",
-			"eims/compliance",
-			"eims-compliance:read",
-			"Compliance evidence scaffold.",
-		],
-	];
-	for (const [dir, className, route, permission, message] of submodules) {
-		await writeNew(
-			path.join(root, `apps/api/src/modules/eims/${dir}/eims-${dir}.module.ts`),
-			`import { Module } from "@nestjs/common";
-import { Eims${className.replace("Eims", "")}Controller } from "./presentation/eims-${dir}.controller";
+export interface EimsMockSubmission {
+\tid: string;
+\tdocumentNumber: string;
+\tdocumentType: string;
+\ttransactionType: string;
+\tstatus: "accepted" | "pending_offline" | "failed_retryable" | "unknown_submission";
+\tirn: string | null;
+\tsourceSystem: string;
+\testablishment: string;
+\ttotalValue: string;
+\ttaxValue: string;
+\tackDate: string | null;
+\terrorCode?: string;
+}
 
-@Module({
-\tcontrollers: [Eims${className.replace("Eims", "")}Controller],
-})
-export class ${className}Module {}
-`,
-		);
-		await writeNew(
-			path.join(
-				root,
-				`apps/api/src/modules/eims/${dir}/presentation/eims-${dir}.controller.ts`,
-			),
-			`import { Controller, Get, UseGuards } from "@nestjs/common";
-import { AuthGuard } from "@thallesp/nestjs-better-auth";
-import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
-import { RequirePermissions } from "#shared/decorators/permissions.decorator";
+@Injectable()
+export class EimsMockService {
+\tprivate readonly now = new Date("2026-05-26T10:30:00.000+03:00").toISOString();
 
-@Controller("${route}")
-@UseGuards(AuthGuard, PermissionsGuard)
-export class Eims${className.replace("Eims", "")}Controller {
-\t@Get()
-\t@RequirePermissions("${permission}")
-\tindex() {
+\ttenantOverview(organizationId: string) {
+\t\tconst submissions = this.submissions(organizationId).data;
 \t\treturn {
-\t\t\tstatus: "scaffolded",
-\t\t\tmessage: "${message}",
+\t\t\tdata: {
+\t\t\t\tmode: process.env.EIMS_MOCK_MODE === "false" ? "sandbox-ready" : "mock",
+\t\t\t\tenvironment: process.env.EIMS_ENV ?? "sandbox",
+\t\t\t\torganizationId,
+\t\t\t\tsetupProgress: [
+\t\t\t\t\t{ key: "twoFactor", label: "2FA enforced for EIMS users", status: "complete" },
+\t\t\t\t\t{ key: "enterprise", label: "Enterprise profile", status: "complete" },
+\t\t\t\t\t{ key: "establishment", label: "Primary establishment and sub-TIN", status: "complete" },
+\t\t\t\t\t{ key: "source", label: "Source system approval", status: "attention" },
+\t\t\t\t\t{ key: "certificate", label: "Sandbox certificate", status: "pending" },
+\t\t\t\t\t{ key: "phase0", label: "Phase 0 Layer B sandbox verification", status: "blocked" },
+\t\t\t\t],
+\t\t\t\tstats: {
+\t\t\t\t\tacceptedToday: submissions.filter((s) => s.status === "accepted").length,
+\t\t\t\t\tpendingOffline: submissions.filter((s) => s.status === "pending_offline").length,
+\t\t\t\t\tunknownSubmissions: submissions.filter((s) => s.status === "unknown_submission").length,
+\t\t\t\t\tcertificatesExpiring: 1,
+\t\t\t\t},
+\t\t\t\thealth: [
+\t\t\t\t\t{ label: "MoR sandbox", status: "mocked", detail: "Waiting for INSA sandbox credentials" },
+\t\t\t\t\t{ label: "Vault signing", status: "local", detail: "Layer A uses local signing until Vault is configured" },
+\t\t\t\t\t{ label: "Per-source queue", status: "ready", detail: "Mock flow serializes by source system" },
+\t\t\t\t\t{ label: "Lookup registry", status: "ready", detail: "Seeded from V3 plan and configurable later" },
+\t\t\t\t],
+\t\t\t\tenterprises: [
+\t\t\t\t\t{
+\t\t\t\t\t\tid: "ent_mock_1",
+\t\t\t\t\t\ttin: "0074136947",
+\t\t\t\t\t\tlegalName: "Habesha Restaurant PLC",
+\t\t\t\t\t\tvatNumber: "REGVAT123456789",
+\t\t\t\t\t\tstatus: "active",
+\t\t\t\t\t},
+\t\t\t\t],
+\t\t\t\testablishments: [
+\t\t\t\t\t{
+\t\t\t\t\t\tid: "est_mock_1",
+\t\t\t\t\t\tname: "Bole Branch",
+\t\t\t\t\t\tcode: "BOL",
+\t\t\t\t\t\tsubTin: "0074136947-01",
+\t\t\t\t\t\tstatus: "active",
+\t\t\t\t\t\tcity: "Addis Ababa",
+\t\t\t\t\t},
+\t\t\t\t],
+\t\t\t\tsourceSystems: [
+\t\t\t\t\t{
+\t\t\t\t\t\tid: "src_mock_1",
+\t\t\t\t\t\tname: "Front POS",
+\t\t\t\t\t\tsystemNumber: "329D03B6F0",
+\t\t\t\t\t\tsystemType: "POS",
+\t\t\t\t\t\tapprovalStatus: "approved",
+\t\t\t\t\t\tlastAcceptedCounter: 128,
+\t\t\t\t\t},
+\t\t\t\t\t{
+\t\t\t\t\t\tid: "src_mock_2",
+\t\t\t\t\t\tname: "Bar POS",
+\t\t\t\t\t\tsystemNumber: "PENDING",
+\t\t\t\t\t\tsystemType: "POS",
+\t\t\t\t\t\tapprovalStatus: "pending_mor_approval",
+\t\t\t\t\t\tlastAcceptedCounter: 0,
+\t\t\t\t\t},
+\t\t\t\t],
+\t\t\t\tblockers: [
+\t\t\t\t\t"INSA sandbox credentials not yet received",
+\t\t\t\t\t"Calculation Error cancellation reason code 6 still needs Phase 0 confirmation",
+\t\t\t\t\t"Exact datetime format remains unlocked until sandbox acceptance",
+\t\t\t\t],
+\t\t\t\trecentSubmissions: submissions,
+\t\t\t},
+\t\t};
+\t}
+
+\tsubmissions(organizationId: string) {
+\t\treturn {
+\t\t\tdata: [
+\t\t\t\t{
+\t\t\t\t\tid: "sub_mock_1",
+\t\t\t\t\tdocumentNumber: "INV-2026-000128",
+\t\t\t\t\tdocumentType: "INV",
+\t\t\t\t\ttransactionType: "B2C",
+\t\t\t\t\tstatus: "accepted",
+\t\t\t\t\tirn: "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74",
+\t\t\t\t\tsourceSystem: "Front POS",
+\t\t\t\t\testablishment: "Bole Branch",
+\t\t\t\t\ttotalValue: "517.50",
+\t\t\t\t\ttaxValue: "67.50",
+\t\t\t\t\tackDate: this.now,
+\t\t\t\t},
+\t\t\t\t{
+\t\t\t\t\tid: "sub_mock_2",
+\t\t\t\t\tdocumentNumber: "INV-2026-000129",
+\t\t\t\t\tdocumentType: "INV",
+\t\t\t\t\ttransactionType: "B2B",
+\t\t\t\t\tstatus: "pending_offline",
+\t\t\t\t\tirn: null,
+\t\t\t\t\tsourceSystem: "Front POS",
+\t\t\t\t\testablishment: "Bole Branch",
+\t\t\t\t\ttotalValue: "3200.00",
+\t\t\t\t\ttaxValue: "417.39",
+\t\t\t\t\tackDate: null,
+\t\t\t\t},
+\t\t\t\t{
+\t\t\t\t\tid: "sub_mock_3",
+\t\t\t\t\tdocumentNumber: "INV-2026-000130",
+\t\t\t\t\tdocumentType: "CRE",
+\t\t\t\t\ttransactionType: "B2C",
+\t\t\t\t\tstatus: "failed_retryable",
+\t\t\t\t\tirn: null,
+\t\t\t\t\tsourceSystem: "Front POS",
+\t\t\t\t\testablishment: "Bole Branch",
+\t\t\t\t\ttotalValue: "120.00",
+\t\t\t\t\ttaxValue: "15.65",
+\t\t\t\t\tackDate: null,
+\t\t\t\t\terrorCode: "67005",
+\t\t\t\t},
+\t\t\t\t{
+\t\t\t\t\tid: "sub_mock_4",
+\t\t\t\t\tdocumentNumber: "INV-2026-000131",
+\t\t\t\t\tdocumentType: "INV",
+\t\t\t\t\ttransactionType: "B2C",
+\t\t\t\t\tstatus: "unknown_submission",
+\t\t\t\t\tirn: null,
+\t\t\t\t\tsourceSystem: "Front POS",
+\t\t\t\t\testablishment: "Bole Branch",
+\t\t\t\t\ttotalValue: "780.00",
+\t\t\t\t\ttaxValue: "101.74",
+\t\t\t\t\tackDate: null,
+\t\t\t\t\terrorCode: "timeout",
+\t\t\t\t},
+\t\t\t] satisfies EimsMockSubmission[],
+\t\t\tmeta: { organizationId },
+\t\t};
+\t}
+
+\tcreateMockSubmission(organizationId: string, documentNumber = "INV-MOCK-NEW") {
+\t\tconst acceptedAt = new Date().toISOString();
+\t\treturn {
+\t\t\tdata: {
+\t\t\t\tid: "sub_mock_new",
+\t\t\t\tdocumentNumber,
+\t\t\t\tdocumentType: "INV",
+\t\t\t\ttransactionType: "B2C",
+\t\t\t\tstatus: "accepted",
+\t\t\t\tirn: \`MOCK-IRN-\${Date.now()}\`,
+\t\t\t\tsourceSystem: "Front POS",
+\t\t\t\testablishment: "Bole Branch",
+\t\t\t\ttotalValue: "517.50",
+\t\t\t\ttaxValue: "67.50",
+\t\t\t\tackDate: acceptedAt,
+\t\t\t\torganizationId,
+\t\t\t},
+\t\t};
+\t}
+
+\treceipts(organizationId: string) {
+\t\treturn {
+\t\t\tdata: [
+\t\t\t\t{
+\t\t\t\t\tid: "rec_mock_1",
+\t\t\t\t\treceiptNumber: "RCPT-2026-00044",
+\t\t\t\t\treceiptType: "sales",
+\t\t\t\t\tstatus: "accepted",
+\t\t\t\t\tinvoiceIrn: "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74",
+\t\t\t\t\trrn: "MOCK-RRN-00044",
+\t\t\t\t\tpaymentMode: "CASH",
+\t\t\t\t\tpaidAmount: "517.50",
+\t\t\t\t},
+\t\t\t\t{
+\t\t\t\t\tid: "rec_mock_2",
+\t\t\t\t\treceiptNumber: "WHT-2026-00002",
+\t\t\t\t\treceiptType: "withholding",
+\t\t\t\t\tstatus: "draft",
+\t\t\t\t\tinvoiceIrn: "MOCK-IRN-B2B-0002",
+\t\t\t\t\trrn: null,
+\t\t\t\t\tpaymentMode: "Local Bank Transfer",
+\t\t\t\t\tpaidAmount: "600.00",
+\t\t\t\t},
+\t\t\t],
+\t\t\tmeta: { organizationId },
+\t\t};
+\t}
+
+\tcomplianceEvidence(organizationId: string) {
+\t\treturn {
+\t\t\tdata: {
+\t\t\t\torganizationId,
+\t\t\t\tgeneratedAt: this.now,
+\t\t\t\treadiness: 72,
+\t\t\t\titems: [
+\t\t\t\t\t{ key: "phase0-layer-a", label: "Phase 0 Layer A local report", status: "ready" },
+\t\t\t\t\t{ key: "rls", label: "Targeted EIMS RLS policy export", status: "planned" },
+\t\t\t\t\t{ key: "print", label: "Thermal and A4 print evidence", status: "mocked" },
+\t\t\t\t\t{ key: "audit", label: "Tamper-evident audit hash-chain sample", status: "planned" },
+\t\t\t\t\t{ key: "dr", label: "Quarterly DR drill report", status: "planned" },
+\t\t\t\t],
+\t\t\t},
+\t\t};
+\t}
+
+\tadminOverview() {
+\t\tconst tenants = this.adminTenants().data;
+\t\treturn {
+\t\t\tdata: {
+\t\t\t\tmode: process.env.EIMS_MOCK_MODE === "false" ? "sandbox-ready" : "mock",
+\t\t\t\ttenantsTotal: tenants.length,
+\t\t\t\ttenantsBlocked: tenants.filter((tenant) => tenant.status !== "ready").length,
+\t\t\t\tacceptedToday: 184,
+\t\t\t\tpendingOffline: 7,
+\t\t\t\tunknownSubmissions: 1,
+\t\t\t\tcertificateAlerts: 2,
+\t\t\t\tlatestFailures: this.adminFailures().data,
+\t\t\t\ttenants,
+\t\t\t},
+\t\t};
+\t}
+
+\tadminTenants() {
+\t\treturn {
+\t\t\tdata: [
+\t\t\t\t{
+\t\t\t\t\tid: "org_mock_1",
+\t\t\t\t\tname: "Habesha Restaurants",
+\t\t\t\t\tstatus: "ready",
+\t\t\t\t\tbranches: 2,
+\t\t\t\t\tsources: 3,
+\t\t\t\t\tacceptedToday: 96,
+\t\t\t\t\tpendingOffline: 2,
+\t\t\t\t},
+\t\t\t\t{
+\t\t\t\t\tid: "org_mock_2",
+\t\t\t\t\tname: "Shoa Supermarket",
+\t\t\t\t\tstatus: "blocked_sandbox",
+\t\t\t\t\tbranches: 8,
+\t\t\t\t\tsources: 32,
+\t\t\t\t\tacceptedToday: 88,
+\t\t\t\t\tpendingOffline: 5,
+\t\t\t\t},
+\t\t\t],
+\t\t};
+\t}
+
+\tadminFailures() {
+\t\treturn {
+\t\t\tdata: [
+\t\t\t\t{
+\t\t\t\t\tid: "fail_mock_1",
+\t\t\t\t\ttenant: "Shoa Supermarket",
+\t\t\t\t\tsourceSystem: "Megenagna POS 04",
+\t\t\t\t\terrorCode: "7015",
+\t\t\t\t\tcategory: "rule_error",
+\t\t\t\t\trecommendedAction: "Verify counter sequence and PreviousIrn chain",
+\t\t\t\t},
+\t\t\t\t{
+\t\t\t\t\tid: "fail_mock_2",
+\t\t\t\t\ttenant: "Habesha Restaurants",
+\t\t\t\t\tsourceSystem: "Bar POS",
+\t\t\t\t\terrorCode: "67005",
+\t\t\t\t\tcategory: "retryable",
+\t\t\t\t\trecommendedAction: "Retry after OCSP service recovery",
+\t\t\t\t},
+\t\t\t],
+\t\t};
+\t}
+
+\tadminCertificates() {
+\t\treturn {
+\t\t\tdata: [
+\t\t\t\t{ tenant: "Habesha Restaurants", sourceSystem: "Front POS", validTo: "2026-07-10", status: "expires_soon" },
+\t\t\t\t{ tenant: "Shoa Supermarket", sourceSystem: "Piazza POS 01", validTo: "2027-02-01", status: "valid" },
+\t\t\t],
+\t\t};
+\t}
+
+\tadminResources() {
+\t\treturn {
+\t\t\tdata: {
+\t\t\t\tqueues: [
+\t\t\t\t\t{ name: "eims:submission:src_mock_1", depth: 0, status: "running" },
+\t\t\t\t\t{ name: "eims:submission:src_mock_2", depth: 4, status: "paused_pending_approval" },
+\t\t\t\t],
+\t\t\t\tvault: { status: "mocked", provider: "local" },
+\t\t\t\tmor: { sandbox: "mocked", production: "not_configured" },
+\t\t\t},
+\t\t};
+\t}
+
+\tadminCompliance() {
+\t\treturn {
+\t\t\tdata: {
+\t\t\t\treadiness: 68,
+\t\t\t\tmissing: ["Phase 0 Layer B sandbox report", "Bank guarantee scanned copy", "Data residency legal opinion"],
+\t\t\t\tready: ["V3 architecture plan", "Layer A local test assets", "Tenant onboarding runbook"],
+\t\t\t},
 \t\t};
 \t}
 }
 `,
-		);
-	}
+	);
+	await writeNew(
+		path.join(root, "apps/api/src/modules/eims/submission/eims-submission.module.ts"),
+		`import { Module } from "@nestjs/common";
+import { EimsSharedModule } from "../shared/eims-shared.module";
+import { EimsSubmissionController } from "./presentation/eims-submission.controller";
+
+@Module({
+\timports: [EimsSharedModule],
+\tcontrollers: [EimsSubmissionController],
+})
+export class EimsSubmissionModule {}
+`,
+	);
+	await writeNew(
+		path.join(
+			root,
+			"apps/api/src/modules/eims/submission/presentation/eims-submission.controller.ts",
+		),
+		`import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import { AuthGuard } from "@thallesp/nestjs-better-auth";
+import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
+import { RequirePermissions } from "#shared/decorators/permissions.decorator";
+import { EimsMockService } from "../../shared/mock/eims-mock.service";
+
+interface AuthedRequest {
+\torganizationId: string;
+}
+
+@Controller("eims")
+@UseGuards(AuthGuard, PermissionsGuard)
+export class EimsSubmissionController {
+\tconstructor(private readonly mock: EimsMockService) {}
+
+\t@Get("overview")
+\t@RequirePermissions("eims-submission:read")
+\toverview(@Req() req: AuthedRequest) {
+\t\treturn this.mock.tenantOverview(req.organizationId);
+\t}
+
+\t@Get("submissions")
+\t@RequirePermissions("eims-submission:read")
+\tsubmissions(@Req() req: AuthedRequest) {
+\t\treturn this.mock.submissions(req.organizationId);
+\t}
+
+\t@Post("submissions/mock-submit")
+\t@RequirePermissions("eims-submission:create")
+\tcreateMockSubmission(@Req() req: AuthedRequest, @Body() body: { documentNumber?: string }) {
+\t\treturn this.mock.createMockSubmission(req.organizationId, body.documentNumber);
+\t}
+}
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/api/src/modules/eims/receipts/eims-receipts.module.ts"),
+		`import { Module } from "@nestjs/common";
+import { EimsSharedModule } from "../shared/eims-shared.module";
+import { EimsReceiptsController } from "./presentation/eims-receipts.controller";
+
+@Module({
+\timports: [EimsSharedModule],
+\tcontrollers: [EimsReceiptsController],
+})
+export class EimsReceiptsModule {}
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/api/src/modules/eims/receipts/presentation/eims-receipts.controller.ts"),
+		`import { Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import { AuthGuard } from "@thallesp/nestjs-better-auth";
+import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
+import { RequirePermissions } from "#shared/decorators/permissions.decorator";
+import { EimsMockService } from "../../shared/mock/eims-mock.service";
+
+interface AuthedRequest {
+\torganizationId: string;
+}
+
+@Controller("eims/receipts")
+@UseGuards(AuthGuard, PermissionsGuard)
+export class EimsReceiptsController {
+\tconstructor(private readonly mock: EimsMockService) {}
+
+\t@Get()
+\t@RequirePermissions("receipt:read")
+\tlist(@Req() req: AuthedRequest) {
+\t\treturn this.mock.receipts(req.organizationId);
+\t}
+
+\t@Post("mock-submit")
+\t@RequirePermissions("receipt:submit")
+\tcreateMockReceipt(@Req() req: AuthedRequest) {
+\t\treturn this.mock.receipts(req.organizationId);
+\t}
+}
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/api/src/modules/eims/compliance/eims-compliance.module.ts"),
+		`import { Module } from "@nestjs/common";
+import { EimsSharedModule } from "../shared/eims-shared.module";
+import { EimsComplianceController } from "./presentation/eims-compliance.controller";
+
+@Module({
+\timports: [EimsSharedModule],
+\tcontrollers: [EimsComplianceController],
+})
+export class EimsComplianceModule {}
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/api/src/modules/eims/compliance/presentation/eims-compliance.controller.ts"),
+		`import { Controller, Get, Req, UseGuards } from "@nestjs/common";
+import { AuthGuard } from "@thallesp/nestjs-better-auth";
+import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
+import { RequirePermissions } from "#shared/decorators/permissions.decorator";
+import { EimsMockService } from "../../shared/mock/eims-mock.service";
+
+interface AuthedRequest {
+\torganizationId: string;
+}
+
+@Controller("eims/compliance")
+@UseGuards(AuthGuard, PermissionsGuard)
+export class EimsComplianceController {
+\tconstructor(private readonly mock: EimsMockService) {}
+
+\t@Get("evidence")
+\t@RequirePermissions("eims-compliance:read")
+\tevidence(@Req() req: AuthedRequest) {
+\t\treturn this.mock.complianceEvidence(req.organizationId);
+\t}
+}
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/api/src/modules/eims/admin/eims-admin.module.ts"),
+		`import { Module } from "@nestjs/common";
+import { SuperAdminGuard } from "#modules/admin/guards/super-admin.guard";
+import { EimsSharedModule } from "../shared/eims-shared.module";
+import { EimsAdminController } from "./presentation/eims-admin.controller";
+
+@Module({
+\timports: [EimsSharedModule],
+\tcontrollers: [EimsAdminController],
+\tproviders: [SuperAdminGuard],
+})
+export class EimsAdminModule {}
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/api/src/modules/eims/admin/presentation/eims-admin.controller.ts"),
+		`import { Controller, Get, UseGuards } from "@nestjs/common";
+import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
+import { SuperAdminGuard } from "#modules/admin/guards/super-admin.guard";
+import { EimsMockService } from "../../shared/mock/eims-mock.service";
+
+@Controller("admin/eims")
+@AllowAnonymous()
+@UseGuards(SuperAdminGuard)
+export class EimsAdminController {
+\tconstructor(private readonly mock: EimsMockService) {}
+
+\t@Get("overview")
+\toverview() {
+\t\treturn this.mock.adminOverview();
+\t}
+
+\t@Get("tenants")
+\ttenants() {
+\t\treturn this.mock.adminTenants();
+\t}
+
+\t@Get("failures")
+\tfailures() {
+\t\treturn this.mock.adminFailures();
+\t}
+
+\t@Get("certificates")
+\tcertificates() {
+\t\treturn this.mock.adminCertificates();
+\t}
+
+\t@Get("resources")
+\tresources() {
+\t\treturn this.mock.adminResources();
+\t}
+
+\t@Get("compliance")
+\tcompliance() {
+\t\treturn this.mock.adminCompliance();
+\t}
+}
+`,
+	);
 };
 
 const writeEimsWebSkeleton = async (root) => {
@@ -2212,7 +2682,7 @@ const writeEimsWebSkeleton = async (root) => {
 	);
 	await writeNew(
 		path.join(root, "apps/web/src/features/eims/api/eims.hooks.ts"),
-		`import { useQuery } from "@tanstack/react-query";
+		`import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "#shared/lib/api-client";
 
 export interface EimsLookupResponse<T = unknown> {
@@ -2221,17 +2691,1278 @@ export interface EimsLookupResponse<T = unknown> {
 \tdata: T[];
 }
 
+export interface SetupProgressItem {
+\tkey: string;
+\tlabel: string;
+\tstatus: "complete" | "attention" | "pending" | "blocked" | string;
+}
+
+export interface EimsSubmission {
+\tid: string;
+\tdocumentNumber: string;
+\tdocumentType: string;
+\ttransactionType: string;
+\tstatus: "accepted" | "pending_offline" | "failed_retryable" | "unknown_submission" | string;
+\tirn: string | null;
+\tsourceSystem: string;
+\testablishment: string;
+\ttotalValue: string;
+\ttaxValue: string;
+\tackDate: string | null;
+\terrorCode?: string;
+}
+
+export interface EimsOverview {
+\tmode: string;
+\tenvironment: string;
+\torganizationId: string;
+\tsetupProgress: SetupProgressItem[];
+\tstats: {
+\t\tacceptedToday: number;
+\t\tpendingOffline: number;
+\t\tunknownSubmissions: number;
+\t\tcertificatesExpiring: number;
+\t};
+\thealth: Array<{ label: string; status: string; detail: string }>;
+\tenterprises: Array<{ id: string; tin: string; legalName: string; vatNumber: string; status: string }>;
+\testablishments: Array<{ id: string; name: string; code: string; subTin: string; status: string; city: string }>;
+\tsourceSystems: Array<{
+\t\tid: string;
+\t\tname: string;
+\t\tsystemNumber: string;
+\t\tsystemType: string;
+\t\tapprovalStatus: string;
+\t\tlastAcceptedCounter: number;
+\t}>;
+\tblockers: string[];
+\trecentSubmissions: EimsSubmission[];
+}
+
+export interface EimsReceipt {
+\tid: string;
+\treceiptNumber: string;
+\treceiptType: string;
+\tstatus: string;
+\tinvoiceIrn: string;
+\trrn: string | null;
+\tpaymentMode: string;
+\tpaidAmount: string;
+}
+
+export interface EimsComplianceEvidence {
+\torganizationId: string;
+\tgeneratedAt: string;
+\treadiness: number;
+\titems: Array<{ key: string; label: string; status: string }>;
+}
+
+export interface AdminEimsOverview {
+\tmode: string;
+\ttenantsTotal: number;
+\ttenantsBlocked: number;
+\tacceptedToday: number;
+\tpendingOffline: number;
+\tunknownSubmissions: number;
+\tcertificateAlerts: number;
+\tlatestFailures: AdminEimsFailure[];
+\ttenants: AdminEimsTenant[];
+}
+
+export interface AdminEimsTenant {
+\tid: string;
+\tname: string;
+\tstatus: string;
+\tbranches: number;
+\tsources: number;
+\tacceptedToday: number;
+\tpendingOffline: number;
+}
+
+export interface AdminEimsFailure {
+\tid: string;
+\ttenant: string;
+\tsourceSystem: string;
+\terrorCode: string;
+\tcategory: string;
+\trecommendedAction: string;
+}
+
+export interface AdminEimsCertificate {
+\ttenant: string;
+\tsourceSystem: string;
+\tvalidTo: string;
+\tstatus: string;
+}
+
+export interface AdminEimsResources {
+\tqueues: Array<{ name: string; depth: number; status: string }>;
+\tvault: { status: string; provider: string };
+\tmor: { sandbox: string; production: string };
+}
+
+export interface AdminEimsCompliance {
+\treadiness: number;
+\tmissing: string[];
+\tready: string[];
+}
+
 export const useEimsLookup = <T = unknown>(name: string) =>
 \tuseQuery({
 \t\tqueryKey: ["eims", "lookup", name],
 \t\tqueryFn: () => api.get<EimsLookupResponse<T>>(\`/eims/lookups/\${name}\`),
 \t});
 
-export const useEimsSetupStatus = () =>
+export const useEimsOverview = () =>
 \tuseQuery({
-\t\tqueryKey: ["eims", "setup"],
-\t\tqueryFn: () => api.get<{ status: string; message: string }>("/eims/setup"),
+\t\tqueryKey: ["eims", "overview"],
+\t\tqueryFn: () => api.get<{ data: EimsOverview }>("/eims/overview"),
 \t});
+
+export const useEimsSubmissions = () =>
+\tuseQuery({
+\t\tqueryKey: ["eims", "submissions"],
+\t\tqueryFn: () => api.get<{ data: EimsSubmission[] }>("/eims/submissions"),
+\t});
+
+export const useCreateMockEimsSubmission = () => {
+\tconst queryClient = useQueryClient();
+\treturn useMutation({
+\t\tmutationFn: (documentNumber: string) =>
+\t\t\tapi.post<{ data: EimsSubmission }>("/eims/submissions/mock-submit", { documentNumber }),
+\t\tonSuccess: () => {
+\t\t\tvoid queryClient.invalidateQueries({ queryKey: ["eims"] });
+\t\t},
+\t});
+};
+
+export const useEimsReceipts = () =>
+\tuseQuery({
+\t\tqueryKey: ["eims", "receipts"],
+\t\tqueryFn: () => api.get<{ data: EimsReceipt[] }>("/eims/receipts"),
+\t});
+
+export const useEimsComplianceEvidence = () =>
+\tuseQuery({
+\t\tqueryKey: ["eims", "compliance", "evidence"],
+\t\tqueryFn: () => api.get<{ data: EimsComplianceEvidence }>("/eims/compliance/evidence"),
+\t});
+
+export const useAdminEimsOverview = () =>
+\tuseQuery({
+\t\tqueryKey: ["admin", "eims", "overview"],
+\t\tqueryFn: () => api.get<{ data: AdminEimsOverview }>("/admin/eims/overview"),
+\t});
+
+export const useAdminEimsTenants = () =>
+\tuseQuery({
+\t\tqueryKey: ["admin", "eims", "tenants"],
+\t\tqueryFn: () => api.get<{ data: AdminEimsTenant[] }>("/admin/eims/tenants"),
+\t});
+
+export const useAdminEimsFailures = () =>
+\tuseQuery({
+\t\tqueryKey: ["admin", "eims", "failures"],
+\t\tqueryFn: () => api.get<{ data: AdminEimsFailure[] }>("/admin/eims/failures"),
+\t});
+
+export const useAdminEimsCertificates = () =>
+\tuseQuery({
+\t\tqueryKey: ["admin", "eims", "certificates"],
+\t\tqueryFn: () => api.get<{ data: AdminEimsCertificate[] }>("/admin/eims/certificates"),
+\t});
+
+export const useAdminEimsResources = () =>
+\tuseQuery({
+\t\tqueryKey: ["admin", "eims", "resources"],
+\t\tqueryFn: () => api.get<{ data: AdminEimsResources }>("/admin/eims/resources"),
+\t});
+
+export const useAdminEimsCompliance = () =>
+\tuseQuery({
+\t\tqueryKey: ["admin", "eims", "compliance"],
+\t\tqueryFn: () => api.get<{ data: AdminEimsCompliance }>("/admin/eims/compliance"),
+\t});
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/web/src/features/eims/components/eims-tenant-pages.reference.txt"),
+		`import React from "react";
+import {
+\tuseCreateMockEimsSubmission,
+\tuseEimsComplianceEvidence,
+\tuseEimsOverview,
+\tuseEimsReceipts,
+\tuseEimsSubmissions,
+\ttype EimsOverview,
+} from "#features/eims/api/eims.hooks";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+type DirectoryKind = "enterprises" | "establishments" | "sources";
+
+const statusVariant = (status: string): BadgeVariant => {
+\tif (["accepted", "active", "approved", "complete", "ready"].includes(status)) return "default";
+\tif (["failed_retryable", "blocked", "blocked_sandbox", "unknown_submission"].includes(status)) return "destructive";
+\tif (["pending", "pending_offline", "attention", "mocked", "sandbox-ready"].includes(status)) return "secondary";
+\treturn "outline";
+};
+
+function StatusBadge({ status }: { readonly status: string }) {
+\treturn <Badge variant={statusVariant(status)}>{status.replace(/_/g, " ")}</Badge>;
+}
+
+function LoadingPanel() {
+\treturn (
+\t\t<div className="space-y-4">
+\t\t\t<Skeleton className="h-9 w-72" />
+\t\t\t<Skeleton className="h-32 w-full" />
+\t\t\t<Skeleton className="h-48 w-full" />
+\t\t</div>
+\t);
+}
+
+function PageHeader({
+\ttitle,
+\tdescription,
+\tmode,
+}: {
+\treadonly title: string;
+\treadonly description: string;
+\treadonly mode?: string;
+}) {
+\treturn (
+\t\t<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+\t\t\t<div>
+\t\t\t\t<h1 className="text-2xl font-semibold tracking-normal">{title}</h1>
+\t\t\t\t<p className="mt-1 max-w-3xl text-sm text-muted-foreground">{description}</p>
+\t\t\t</div>
+\t\t\t{mode ? <StatusBadge status={mode === "mock" ? "Mock Mode" : mode} /> : null}
+\t\t</div>
+\t);
+}
+
+function StatCards({ overview }: { readonly overview: EimsOverview }) {
+\tconst stats = [
+\t\t["Accepted Today", overview.stats.acceptedToday],
+\t\t["Pending Offline", overview.stats.pendingOffline],
+\t\t["Unknown", overview.stats.unknownSubmissions],
+\t\t["Cert Alerts", overview.stats.certificatesExpiring],
+\t] as const;
+\treturn (
+\t\t<div className="grid gap-3 md:grid-cols-4">
+\t\t\t{stats.map(([label, value]) => (
+\t\t\t\t<Card key={label}>
+\t\t\t\t\t<CardContent className="p-4">
+\t\t\t\t\t\t<p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+\t\t\t\t\t\t<p className="mt-2 text-2xl font-semibold">{value}</p>
+\t\t\t\t\t</CardContent>
+\t\t\t\t</Card>
+\t\t\t))}
+\t\t</div>
+\t);
+}
+
+function SetupProgress({ overview }: { readonly overview: EimsOverview }) {
+\treturn (
+\t\t<Card>
+\t\t\t<CardHeader>
+\t\t\t\t<CardTitle className="text-base">Setup Progress</CardTitle>
+\t\t\t</CardHeader>
+\t\t\t<CardContent>
+\t\t\t\t<div className="grid gap-2 md:grid-cols-2">
+\t\t\t\t\t{overview.setupProgress.map((step) => (
+\t\t\t\t\t\t<div key={step.key} className="flex items-center justify-between gap-3 rounded-md border p-3">
+\t\t\t\t\t\t\t<span className="text-sm font-medium">{step.label}</span>
+\t\t\t\t\t\t\t<StatusBadge status={step.status} />
+\t\t\t\t\t\t</div>
+\t\t\t\t\t))}
+\t\t\t\t</div>
+\t\t\t</CardContent>
+\t\t</Card>
+\t);
+}
+
+function SubmissionTable({ rows }: { readonly rows: EimsOverview["recentSubmissions"] }) {
+\treturn (
+\t\t<Table>
+\t\t\t<TableHeader>
+\t\t\t\t<TableRow>
+\t\t\t\t\t<TableHead>Document</TableHead>
+\t\t\t\t\t<TableHead>Type</TableHead>
+\t\t\t\t\t<TableHead>Status</TableHead>
+\t\t\t\t\t<TableHead>Source</TableHead>
+\t\t\t\t\t<TableHead>Total</TableHead>
+\t\t\t\t\t<TableHead>IRN</TableHead>
+\t\t\t\t</TableRow>
+\t\t\t</TableHeader>
+\t\t\t<TableBody>
+\t\t\t\t{rows.map((row) => (
+\t\t\t\t\t<TableRow key={row.id}>
+\t\t\t\t\t\t<TableCell className="font-medium">{row.documentNumber}</TableCell>
+\t\t\t\t\t\t<TableCell>{row.documentType} / {row.transactionType}</TableCell>
+\t\t\t\t\t\t<TableCell><StatusBadge status={row.status} /></TableCell>
+\t\t\t\t\t\t<TableCell>{row.sourceSystem}</TableCell>
+\t\t\t\t\t\t<TableCell>{row.totalValue} ETB</TableCell>
+\t\t\t\t\t\t<TableCell className="max-w-[260px] truncate">{row.irn ?? "Pending EIMS acceptance"}</TableCell>
+\t\t\t\t\t</TableRow>
+\t\t\t\t))}
+\t\t\t</TableBody>
+\t\t</Table>
+\t);
+}
+
+export function EimsOverviewPage() {
+\tconst { data, isLoading } = useEimsOverview();
+\tif (isLoading || !data) return <LoadingPanel />;
+\tconst overview = data.data;
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Control Center"
+\t\t\t\tdescription="Operational view for enterprise, branch, source, submission, receipt, and compliance readiness."
+\t\t\t\tmode={overview.mode}
+\t\t\t/>
+\t\t\t<StatCards overview={overview} />
+\t\t\t<div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+\t\t\t\t<SetupProgress overview={overview} />
+\t\t\t\t<Card>
+\t\t\t\t\t<CardHeader>
+\t\t\t\t\t\t<CardTitle className="text-base">Health</CardTitle>
+\t\t\t\t\t</CardHeader>
+\t\t\t\t\t<CardContent className="space-y-3">
+\t\t\t\t\t\t{overview.health.map((item) => (
+\t\t\t\t\t\t\t<div key={item.label} className="space-y-1 rounded-md border p-3">
+\t\t\t\t\t\t\t\t<div className="flex items-center justify-between gap-3">
+\t\t\t\t\t\t\t\t\t<span className="text-sm font-medium">{item.label}</span>
+\t\t\t\t\t\t\t\t\t<StatusBadge status={item.status} />
+\t\t\t\t\t\t\t\t</div>
+\t\t\t\t\t\t\t\t<p className="text-xs text-muted-foreground">{item.detail}</p>
+\t\t\t\t\t\t\t</div>
+\t\t\t\t\t\t))}
+\t\t\t\t\t</CardContent>
+\t\t\t\t</Card>
+\t\t\t</div>
+\t\t\t<Card>
+\t\t\t\t<CardHeader>
+\t\t\t\t\t<CardTitle className="text-base">Recent Submissions</CardTitle>
+\t\t\t\t</CardHeader>
+\t\t\t\t<CardContent>
+\t\t\t\t\t<SubmissionTable rows={overview.recentSubmissions} />
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function EimsSetupPage() {
+\tconst { data, isLoading } = useEimsOverview();
+\tif (isLoading || !data) return <LoadingPanel />;
+\tconst overview = data.data;
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Setup" description="Track onboarding gates before production invoice submission is enabled." mode={overview.mode} />
+\t\t\t<SetupProgress overview={overview} />
+\t\t\t<Card>
+\t\t\t\t<CardHeader>
+\t\t\t\t\t<CardTitle className="text-base">Current Blockers</CardTitle>
+\t\t\t\t</CardHeader>
+\t\t\t\t<CardContent className="space-y-2">
+\t\t\t\t\t{overview.blockers.map((blocker) => (
+\t\t\t\t\t\t<div key={blocker} className="rounded-md border border-border p-3 text-sm">{blocker}</div>
+\t\t\t\t\t))}
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function EimsDirectoryPage({ kind }: { readonly kind: DirectoryKind }) {
+\tconst { data, isLoading } = useEimsOverview();
+\tif (isLoading || !data) return <LoadingPanel />;
+\tconst overview = data.data;
+\tif (kind === "enterprises") {
+\t\treturn (
+\t\t\t<div className="space-y-5">
+\t\t\t\t<PageHeader title="EIMS Enterprises" description="Legal taxpayer identities linked to this SaaS tenant." />
+\t\t\t\t<Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Legal Name</TableHead><TableHead>TIN</TableHead><TableHead>VAT</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{overview.enterprises.map((row) => <TableRow key={row.id}><TableCell>{row.legalName}</TableCell><TableCell>{row.tin}</TableCell><TableCell>{row.vatNumber}</TableCell><TableCell><StatusBadge status={row.status} /></TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+\t\t\t</div>
+\t\t);
+\t}
+\tif (kind === "establishments") {
+\t\treturn (
+\t\t\t<div className="space-y-5">
+\t\t\t\t<PageHeader title="EIMS Establishments" description="Registered branch and sub-TIN context for invoice source resolution." />
+\t\t\t\t<Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Code</TableHead><TableHead>Sub-TIN</TableHead><TableHead>City</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{overview.establishments.map((row) => <TableRow key={row.id}><TableCell>{row.name}</TableCell><TableCell>{row.code}</TableCell><TableCell>{row.subTin}</TableCell><TableCell>{row.city}</TableCell><TableCell><StatusBadge status={row.status} /></TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+\t\t\t</div>
+\t\t);
+\t}
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Source Systems" description="POS, ERP, and source systems that own counters, certificates, credentials, and PreviousIrn chains." />
+\t\t\t<Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>System Number</TableHead><TableHead>Type</TableHead><TableHead>Approval</TableHead><TableHead>Counter</TableHead></TableRow></TableHeader><TableBody>{overview.sourceSystems.map((row) => <TableRow key={row.id}><TableCell>{row.name}</TableCell><TableCell>{row.systemNumber}</TableCell><TableCell>{row.systemType}</TableCell><TableCell><StatusBadge status={row.approvalStatus} /></TableCell><TableCell>{row.lastAcceptedCounter}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+\t\t</div>
+\t);
+}
+
+export function EimsCredentialsPage() {
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Credentials" description="Credential storage is backend-only and envelope-encrypted; this mock surface verifies lifecycle visibility." />
+\t\t\t<Card><CardContent className="grid gap-3 p-4 md:grid-cols-3"><div><p className="text-xs uppercase text-muted-foreground">Lifecycle</p><p className="mt-1 font-medium">initial_setup -> tested -> active -> rotated</p></div><div><p className="text-xs uppercase text-muted-foreground">Secrets</p><p className="mt-1 font-medium">API key, password, refresh token encrypted</p></div><div><p className="text-xs uppercase text-muted-foreground">Token cache</p><p className="mt-1 font-medium">Access token stays in Redis TTL</p></div></CardContent></Card>
+\t\t</div>
+\t);
+}
+
+export function EimsCertificatesPage() {
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Certificates" description="Certificate metadata, CSR flow, expiry windows, and signing key version tracking." />
+\t\t\t<Card><CardContent className="grid gap-3 p-4 md:grid-cols-4"><div><p className="text-xs uppercase text-muted-foreground">Provider</p><p className="mt-1 font-medium">Vault Transit</p></div><div><p className="text-xs uppercase text-muted-foreground">Expiry alert</p><p className="mt-1 font-medium">90 / 60 / 30 / 7 days</p></div><div><p className="text-xs uppercase text-muted-foreground">Historical verify</p><p className="mt-1 font-medium">Key version retained</p></div><div><p className="text-xs uppercase text-muted-foreground">Sandbox</p><p className="mt-1 font-medium">Waiting for INSA</p></div></CardContent></Card>
+\t\t</div>
+\t);
+}
+
+export function EimsSubmissionsPage() {
+\tconst { data, isLoading } = useEimsSubmissions();
+\tconst mutation = useCreateMockEimsSubmission();
+\tconst [lastIrn, setLastIrn] = React.useState<string | null>(null);
+\tconst createMock = React.useCallback(async () => {
+\t\tconst result = await mutation.mutateAsync("INV-MOCK-" + Date.now());
+\t\tsetLastIrn(result.data.irn);
+\t}, [mutation]);
+\tif (isLoading || !data) return <LoadingPanel />;
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Submissions" description="Mocked accepted, offline, retryable, and unknown states for source-counter flow testing." />
+\t\t\t<div className="flex flex-wrap items-center gap-3"><Button type="button" onClick={createMock} disabled={mutation.isPending}>Create mock accepted invoice</Button>{lastIrn ? <Badge variant="secondary">{lastIrn}</Badge> : null}</div>
+\t\t\t<Card><CardContent className="p-0"><SubmissionTable rows={data.data} /></CardContent></Card>
+\t\t</div>
+\t);
+}
+
+export function EimsReceiptsPage() {
+\tconst { data, isLoading } = useEimsReceipts();
+\tif (isLoading || !data) return <LoadingPanel />;
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Receipts" description="Sales and withholding receipt states linked to accepted invoice IRNs." />
+\t\t\t<Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Receipt</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead>Payment</TableHead><TableHead>Amount</TableHead><TableHead>RRN</TableHead></TableRow></TableHeader><TableBody>{data.data.map((row) => <TableRow key={row.id}><TableCell>{row.receiptNumber}</TableCell><TableCell>{row.receiptType}</TableCell><TableCell><StatusBadge status={row.status} /></TableCell><TableCell>{row.paymentMode}</TableCell><TableCell>{row.paidAmount}</TableCell><TableCell>{row.rrn ?? "Pending"}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+\t\t</div>
+\t);
+}
+
+export function EimsBulkPage() {
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Bulk" description="Bulk conversations, callback idempotency, and reconciliation polling are ready for sandbox wiring." />
+\t\t\t<Card><CardContent className="grid gap-3 p-4 md:grid-cols-3"><div><p className="text-xs uppercase text-muted-foreground">Endpoint</p><p className="mt-1 font-medium">Phase 0 confirms /bulkInvoice vs /bulk/register</p></div><div><p className="text-xs uppercase text-muted-foreground">Callback</p><p className="mt-1 font-medium">Idempotent by conversationId</p></div><div><p className="text-xs uppercase text-muted-foreground">Reconciliation</p><p className="mt-1 font-medium">15 minute default threshold</p></div></CardContent></Card>
+\t\t</div>
+\t);
+}
+
+export function EimsCompliancePage() {
+\tconst { data, isLoading } = useEimsComplianceEvidence();
+\tif (isLoading || !data) return <LoadingPanel />;
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Compliance" description="Continuously generated evidence package readiness against V3 controls." />
+\t\t\t<Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Readiness</p><p className="mt-1 text-3xl font-semibold">{data.data.readiness}%</p></CardContent></Card>
+\t\t\t<Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Evidence</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{data.data.items.map((item) => <TableRow key={item.key}><TableCell>{item.label}</TableCell><TableCell><StatusBadge status={item.status} /></TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+\t\t</div>
+\t);
+}
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/web/src/features/eims/components/eims-admin-pages.reference.txt"),
+		`import {
+\tuseAdminEimsCertificates,
+\tuseAdminEimsCompliance,
+\tuseAdminEimsFailures,
+\tuseAdminEimsOverview,
+\tuseAdminEimsResources,
+\tuseAdminEimsTenants,
+} from "#features/eims/api/eims.hooks";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline";
+
+const statusVariant = (status: string): BadgeVariant => {
+\tif (["ready", "valid", "running"].includes(status)) return "default";
+\tif (["blocked_sandbox", "expires_soon", "paused_pending_approval", "rule_error"].includes(status)) return "destructive";
+\tif (["mock", "mocked", "retryable"].includes(status)) return "secondary";
+\treturn "outline";
+};
+
+function StatusBadge({ status }: { readonly status: string }) {
+\treturn <Badge variant={statusVariant(status)}>{status.replace(/_/g, " ")}</Badge>;
+}
+
+function LoadingPanel() {
+\treturn (
+\t\t<div className="space-y-4">
+\t\t\t<Skeleton className="h-9 w-72" />
+\t\t\t<Skeleton className="h-40 w-full" />
+\t\t</div>
+\t);
+}
+
+function PageHeader({ title, description }: { readonly title: string; readonly description: string }) {
+\treturn (
+\t\t<div>
+\t\t\t<h1 className="text-2xl font-semibold tracking-normal">{title}</h1>
+\t\t\t<p className="mt-1 max-w-3xl text-sm text-muted-foreground">{description}</p>
+\t\t</div>
+\t);
+}
+
+export function AdminEimsOverviewPage() {
+\tconst { data, isLoading } = useAdminEimsOverview();
+\tif (isLoading || !data) return <LoadingPanel />;
+\tconst overview = data.data;
+\tconst stats = [
+\t\t["Tenants", overview.tenantsTotal],
+\t\t["Blocked", overview.tenantsBlocked],
+\t\t["Accepted Today", overview.acceptedToday],
+\t\t["Pending Offline", overview.pendingOffline],
+\t\t["Unknown", overview.unknownSubmissions],
+\t\t["Cert Alerts", overview.certificateAlerts],
+\t] as const;
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="Platform EIMS Operations" description="Super-admin view across tenants, source queues, certificate risks, and mock EIMS failures." />
+\t\t\t<div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">{stats.map(([label, value]) => <Card key={label}><CardContent className="p-4"><p className="text-xs uppercase text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-semibold">{value}</p></CardContent></Card>)}</div>
+\t\t\t<Card><CardHeader><CardTitle className="text-base">Latest Failures</CardTitle></CardHeader><CardContent className="p-0"><AdminFailuresTable rows={overview.latestFailures} /></CardContent></Card>
+\t\t</div>
+\t);
+}
+
+function AdminFailuresTable({ rows }: { readonly rows: Array<{ id: string; tenant: string; sourceSystem: string; errorCode: string; category: string; recommendedAction: string }> }) {
+\treturn (
+\t\t<Table><TableHeader><TableRow><TableHead>Tenant</TableHead><TableHead>Source</TableHead><TableHead>Error</TableHead><TableHead>Category</TableHead><TableHead>Action</TableHead></TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.id}><TableCell>{row.tenant}</TableCell><TableCell>{row.sourceSystem}</TableCell><TableCell>{row.errorCode}</TableCell><TableCell><StatusBadge status={row.category} /></TableCell><TableCell className="max-w-md whitespace-normal">{row.recommendedAction}</TableCell></TableRow>)}</TableBody></Table>
+\t);
+}
+
+export function AdminEimsTenantsPage() {
+\tconst { data, isLoading } = useAdminEimsTenants();
+\tif (isLoading || !data) return <LoadingPanel />;
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Tenants" description="Tenant readiness and throughput by branch/source footprint." />
+\t\t\t<Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Tenant</TableHead><TableHead>Status</TableHead><TableHead>Branches</TableHead><TableHead>Sources</TableHead><TableHead>Accepted</TableHead><TableHead>Pending</TableHead></TableRow></TableHeader><TableBody>{data.data.map((row) => <TableRow key={row.id}><TableCell>{row.name}</TableCell><TableCell><StatusBadge status={row.status} /></TableCell><TableCell>{row.branches}</TableCell><TableCell>{row.sources}</TableCell><TableCell>{row.acceptedToday}</TableCell><TableCell>{row.pendingOffline}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+\t\t</div>
+\t);
+}
+
+export function AdminEimsFailuresPage() {
+\tconst { data, isLoading } = useAdminEimsFailures();
+\tif (isLoading || !data) return <LoadingPanel />;
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Failures" description="Error classification and operator action list for retryable, rule, and manual-intervention failures." />
+\t\t\t<Card><CardContent className="p-0"><AdminFailuresTable rows={data.data} /></CardContent></Card>
+\t\t</div>
+\t);
+}
+
+export function AdminEimsCertificatesPage() {
+\tconst { data, isLoading } = useAdminEimsCertificates();
+\tif (isLoading || !data) return <LoadingPanel />;
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Certificates" description="Platform certificate expiry and revocation watchlist." />
+\t\t\t<Card><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Tenant</TableHead><TableHead>Source</TableHead><TableHead>Valid To</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{data.data.map((row) => <TableRow key={row.tenant + row.sourceSystem}><TableCell>{row.tenant}</TableCell><TableCell>{row.sourceSystem}</TableCell><TableCell>{row.validTo}</TableCell><TableCell><StatusBadge status={row.status} /></TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+\t\t</div>
+\t);
+}
+
+export function AdminEimsResourcesPage() {
+\tconst { data, isLoading } = useAdminEimsResources();
+\tif (isLoading || !data) return <LoadingPanel />;
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Resources" description="Queue, signing provider, Vault, and MoR endpoint status for operations." />
+\t\t\t<div className="grid gap-4 xl:grid-cols-[1fr_0.6fr]"><Card><CardHeader><CardTitle className="text-base">Queues</CardTitle></CardHeader><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Depth</TableHead><TableHead>Status</TableHead></TableRow></TableHeader><TableBody>{data.data.queues.map((row) => <TableRow key={row.name}><TableCell>{row.name}</TableCell><TableCell>{row.depth}</TableCell><TableCell><StatusBadge status={row.status} /></TableCell></TableRow>)}</TableBody></Table></CardContent></Card><Card><CardHeader><CardTitle className="text-base">Dependencies</CardTitle></CardHeader><CardContent className="space-y-3"><div className="flex items-center justify-between"><span>Vault</span><StatusBadge status={data.data.vault.status} /></div><div className="flex items-center justify-between"><span>MoR sandbox</span><StatusBadge status={data.data.mor.sandbox} /></div><div className="flex items-center justify-between"><span>MoR production</span><StatusBadge status={data.data.mor.production} /></div></CardContent></Card></div>
+\t\t</div>
+\t);
+}
+
+export function AdminEimsCompliancePage() {
+\tconst { data, isLoading } = useAdminEimsCompliance();
+\tif (isLoading || !data) return <LoadingPanel />;
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Compliance"
+\t\t\t\tdescription="Platform evidence readiness for INSA/MoR paperwork and audits."
+\t\t\t/>
+\t\t\t<Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">Readiness</p><p className="mt-1 text-3xl font-semibold">{data.data.readiness}%</p></CardContent></Card>
+\t\t\t<div className="grid gap-4 md:grid-cols-2"><Card><CardHeader><CardTitle className="text-base">Ready</CardTitle></CardHeader><CardContent className="space-y-2">{data.data.ready.map((item) => <div key={item} className="rounded-md border p-3 text-sm">{item}</div>)}</CardContent></Card><Card><CardHeader><CardTitle className="text-base">Missing</CardTitle></CardHeader><CardContent className="space-y-2">{data.data.missing.map((item) => <div key={item} className="rounded-md border p-3 text-sm">{item}</div>)}</CardContent></Card></div>
+\t\t</div>
+\t);
+}
+`,
+	);
+
+	await writeNew(
+		path.join(root, "apps/web/src/features/eims/components/eims-tenant-pages.tsx"),
+		`import React from "react";
+import {
+\ttype EimsOverview,
+\tuseCreateMockEimsSubmission,
+\tuseEimsComplianceEvidence,
+\tuseEimsOverview,
+\tuseEimsReceipts,
+\tuseEimsSubmissions,
+} from "#features/eims/api/eims.hooks";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+type DirectoryKind = "enterprises" | "establishments" | "sources";
+type TableRows = readonly (readonly string[])[];
+
+const badgeVariant = (status: string) => {
+\tif (["accepted", "active", "approved", "complete", "ready"].includes(status)) return "default";
+\tif (["failed_retryable", "blocked", "unknown_submission"].includes(status)) return "destructive";
+\tif (["pending", "pending_offline", "attention", "mocked"].includes(status)) return "secondary";
+\treturn "outline";
+};
+
+function StatusBadge({ status }: { readonly status: string }) {
+\treturn <Badge variant={badgeVariant(status)}>{status.replace(/_/g, " ")}</Badge>;
+}
+
+function LoadingPanel() {
+\treturn (
+\t\t<div className="space-y-4">
+\t\t\t<Skeleton className="h-9 w-72" />
+\t\t\t<Skeleton className="h-36 w-full" />
+\t\t\t<Skeleton className="h-48 w-full" />
+\t\t</div>
+\t);
+}
+
+function PageHeader({
+\ttitle,
+\tdescription,
+\tmode,
+}: {
+\treadonly title: string;
+\treadonly description: string;
+\treadonly mode?: string;
+}) {
+\treturn (
+\t\t<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+\t\t\t<div>
+\t\t\t\t<h1 className="text-2xl font-semibold tracking-normal">{title}</h1>
+\t\t\t\t<p className="mt-1 max-w-3xl text-sm text-muted-foreground">{description}</p>
+\t\t\t</div>
+\t\t\t{mode ? <StatusBadge status={mode === "mock" ? "Mock Mode" : mode} /> : null}
+\t\t</div>
+\t);
+}
+
+function DataTable({ headers, rows }: { readonly headers: readonly string[]; readonly rows: TableRows }) {
+\treturn (
+\t\t<Table>
+\t\t\t<TableHeader>
+\t\t\t\t<TableRow>
+\t\t\t\t\t{headers.map((header) => (
+\t\t\t\t\t\t<TableHead key={header}>{header}</TableHead>
+\t\t\t\t\t))}
+\t\t\t\t</TableRow>
+\t\t\t</TableHeader>
+\t\t\t<TableBody>
+\t\t\t\t{rows.map((row) => (
+\t\t\t\t\t<TableRow key={row.join("|")}>
+\t\t\t\t\t\t{row.map((cell, index) => (
+\t\t\t\t\t\t\t<TableCell key={String(index)} className={index === row.length - 1 ? "max-w-md truncate" : undefined}>
+\t\t\t\t\t\t\t\t{cell}
+\t\t\t\t\t\t\t</TableCell>
+\t\t\t\t\t\t))}
+\t\t\t\t\t</TableRow>
+\t\t\t\t))}
+\t\t\t</TableBody>
+\t\t</Table>
+\t);
+}
+
+function StatCards({ overview }: { readonly overview: EimsOverview }) {
+\tconst stats = [
+\t\t["Accepted Today", String(overview.stats.acceptedToday)],
+\t\t["Pending Offline", String(overview.stats.pendingOffline)],
+\t\t["Unknown", String(overview.stats.unknownSubmissions)],
+\t\t["Cert Alerts", String(overview.stats.certificatesExpiring)],
+\t] as const;
+
+\treturn (
+\t\t<div className="grid gap-3 md:grid-cols-4">
+\t\t\t{stats.map(([label, value]) => (
+\t\t\t\t<Card key={label}>
+\t\t\t\t\t<CardContent className="p-4">
+\t\t\t\t\t\t<p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+\t\t\t\t\t\t<p className="mt-2 text-2xl font-semibold">{value}</p>
+\t\t\t\t\t</CardContent>
+\t\t\t\t</Card>
+\t\t\t))}
+\t\t</div>
+\t);
+}
+
+function SetupProgress({ overview }: { readonly overview: EimsOverview }) {
+\treturn (
+\t\t<Card>
+\t\t\t<CardHeader>
+\t\t\t\t<CardTitle className="text-base">Setup Progress</CardTitle>
+\t\t\t</CardHeader>
+\t\t\t<CardContent className="grid gap-2 md:grid-cols-2">
+\t\t\t\t{overview.setupProgress.map((step) => (
+\t\t\t\t\t<div key={step.key} className="flex items-center justify-between gap-3 rounded-md border p-3">
+\t\t\t\t\t\t<span className="text-sm font-medium">{step.label}</span>
+\t\t\t\t\t\t<StatusBadge status={step.status} />
+\t\t\t\t\t</div>
+\t\t\t\t))}
+\t\t\t</CardContent>
+\t\t</Card>
+\t);
+}
+
+const submissionRows = (rows: EimsOverview["recentSubmissions"]) =>
+\trows.map((row) => [
+\t\trow.documentNumber,
+\t\t\`\${row.documentType} / \${row.transactionType}\`,
+\t\trow.status,
+\t\trow.sourceSystem,
+\t\t\`\${row.totalValue} ETB\`,
+\t\trow.irn ?? "Pending EIMS acceptance",
+\t]);
+
+export function EimsOverviewPage() {
+\tconst { data, isLoading } = useEimsOverview();
+\tif (isLoading || !data) return <LoadingPanel />;
+\tconst overview = data.data;
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Control Center"
+\t\t\t\tdescription="Operational view for enterprise, branch, source, submission, receipt, and compliance readiness."
+\t\t\t\tmode={overview.mode}
+\t\t\t/>
+\t\t\t<StatCards overview={overview} />
+\t\t\t<SetupProgress overview={overview} />
+\t\t\t<Card>
+\t\t\t\t<CardHeader>
+\t\t\t\t\t<CardTitle className="text-base">Recent Submissions</CardTitle>
+\t\t\t\t</CardHeader>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable
+\t\t\t\t\t\theaders={["Document", "Type", "Status", "Source", "Total", "IRN"]}
+\t\t\t\t\t\trows={submissionRows(overview.recentSubmissions)}
+\t\t\t\t\t/>
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function EimsSetupPage() {
+\tconst { data, isLoading } = useEimsOverview();
+\tif (isLoading || !data) return <LoadingPanel />;
+\tconst overview = data.data;
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Setup"
+\t\t\t\tdescription="Track onboarding gates before production invoice submission is enabled."
+\t\t\t\tmode={overview.mode}
+\t\t\t/>
+\t\t\t<SetupProgress overview={overview} />
+\t\t\t<Card>
+\t\t\t\t<CardHeader>
+\t\t\t\t\t<CardTitle className="text-base">Current Blockers</CardTitle>
+\t\t\t\t</CardHeader>
+\t\t\t\t<CardContent className="space-y-2">
+\t\t\t\t\t{overview.blockers.map((blocker) => (
+\t\t\t\t\t\t<div key={blocker} className="rounded-md border border-border p-3 text-sm">
+\t\t\t\t\t\t\t{blocker}
+\t\t\t\t\t\t</div>
+\t\t\t\t\t))}
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function EimsDirectoryPage({ kind }: { readonly kind: DirectoryKind }) {
+\tconst { data, isLoading } = useEimsOverview();
+\tif (isLoading || !data) return <LoadingPanel />;
+\tconst overview = data.data;
+
+\tif (kind === "enterprises") {
+\t\treturn (
+\t\t\t<div className="space-y-5">
+\t\t\t\t<PageHeader title="EIMS Enterprises" description="Legal taxpayer identities linked to this SaaS tenant." />
+\t\t\t\t<Card>
+\t\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t\t<DataTable
+\t\t\t\t\t\t\theaders={["Legal Name", "TIN", "VAT", "Status"]}
+\t\t\t\t\t\t\trows={overview.enterprises.map((row) => [row.legalName, row.tin, row.vatNumber, row.status])}
+\t\t\t\t\t\t/>
+\t\t\t\t\t</CardContent>
+\t\t\t\t</Card>
+\t\t\t</div>
+\t\t);
+\t}
+
+\tif (kind === "establishments") {
+\t\treturn (
+\t\t\t<div className="space-y-5">
+\t\t\t\t<PageHeader
+\t\t\t\t\ttitle="EIMS Establishments"
+\t\t\t\t\tdescription="Registered branch and sub-TIN context for invoice source resolution."
+\t\t\t\t/>
+\t\t\t\t<Card>
+\t\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t\t<DataTable
+\t\t\t\t\t\t\theaders={["Name", "Code", "Sub-TIN", "City", "Status"]}
+\t\t\t\t\t\t\trows={overview.establishments.map((row) => [row.name, row.code, row.subTin, row.city, row.status])}
+\t\t\t\t\t\t/>
+\t\t\t\t\t</CardContent>
+\t\t\t\t</Card>
+\t\t\t</div>
+\t\t);
+\t}
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Source Systems"
+\t\t\t\tdescription="POS, ERP, and source systems that own counters, certificates, credentials, and PreviousIrn chains."
+\t\t\t/>
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable
+\t\t\t\t\t\theaders={["Name", "System Number", "Type", "Approval", "Counter"]}
+\t\t\t\t\t\trows={overview.sourceSystems.map((row) => [
+\t\t\t\t\t\t\trow.name,
+\t\t\t\t\t\t\trow.systemNumber,
+\t\t\t\t\t\t\trow.systemType,
+\t\t\t\t\t\t\trow.approvalStatus,
+\t\t\t\t\t\t\tString(row.lastAcceptedCounter),
+\t\t\t\t\t\t])}
+\t\t\t\t\t/>
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function EimsCredentialsPage() {
+\tconst rows = [
+\t\t["Lifecycle", "initial_setup to tested to active to rotated"],
+\t\t["Secrets", "API key, password, client secret, and refresh token are encrypted"],
+\t\t["Token cache", "Access tokens stay in Redis with TTL"],
+\t];
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Credentials"
+\t\t\t\tdescription="Credential storage is backend-only and envelope-encrypted; this mock surface verifies lifecycle visibility."
+\t\t\t/>
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable headers={["Control", "Mock state"]} rows={rows} />
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function EimsCertificatesPage() {
+\tconst rows = [
+\t\t["Provider", "Vault Transit"],
+\t\t["Expiry alert", "90 / 60 / 30 / 7 days"],
+\t\t["Historical verify", "Key version retained"],
+\t\t["Sandbox", "Waiting for INSA"],
+\t];
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Certificates"
+\t\t\t\tdescription="Certificate metadata, CSR flow, expiry windows, and signing key version tracking."
+\t\t\t/>
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable headers={["Control", "Mock state"]} rows={rows} />
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function EimsSubmissionsPage() {
+\tconst { data, isLoading } = useEimsSubmissions();
+\tconst mutation = useCreateMockEimsSubmission();
+\tconst [lastIrn, setLastIrn] = React.useState<string | null>(null);
+\tconst createMock = React.useCallback(async () => {
+\t\tconst result = await mutation.mutateAsync(\`INV-MOCK-\${Date.now()}\`);
+\t\tsetLastIrn(result.data.irn);
+\t}, [mutation]);
+\tif (isLoading || !data) return <LoadingPanel />;
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Submissions"
+\t\t\t\tdescription="Mocked accepted, offline, retryable, and unknown states for source-counter flow testing."
+\t\t\t/>
+\t\t\t<div className="flex flex-wrap items-center gap-3">
+\t\t\t\t<Button type="button" onClick={createMock} disabled={mutation.isPending}>
+\t\t\t\t\tCreate mock accepted invoice
+\t\t\t\t</Button>
+\t\t\t\t{lastIrn ? <Badge variant="secondary">{lastIrn}</Badge> : null}
+\t\t\t</div>
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable
+\t\t\t\t\t\theaders={["Document", "Type", "Status", "Source", "Total", "IRN"]}
+\t\t\t\t\t\trows={submissionRows(data.data)}
+\t\t\t\t\t/>
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function EimsReceiptsPage() {
+\tconst { data, isLoading } = useEimsReceipts();
+\tif (isLoading || !data) return <LoadingPanel />;
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Receipts"
+\t\t\t\tdescription="Sales and withholding receipt states linked to accepted invoice IRNs."
+\t\t\t/>
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable
+\t\t\t\t\t\theaders={["Receipt", "Type", "Status", "Payment", "Amount", "RRN"]}
+\t\t\t\t\t\trows={data.data.map((row) => [
+\t\t\t\t\t\t\trow.receiptNumber,
+\t\t\t\t\t\t\trow.receiptType,
+\t\t\t\t\t\t\trow.status,
+\t\t\t\t\t\t\trow.paymentMode,
+\t\t\t\t\t\t\trow.paidAmount,
+\t\t\t\t\t\t\trow.rrn ?? "Pending",
+\t\t\t\t\t\t])}
+\t\t\t\t\t/>
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function EimsBulkPage() {
+\tconst rows = [
+\t\t["Endpoint", "Phase 0 confirms /bulkInvoice vs /bulk/register"],
+\t\t["Callback", "Idempotent by conversationId"],
+\t\t["Reconciliation", "15 minute default threshold"],
+\t];
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Bulk"
+\t\t\t\tdescription="Bulk conversations, callback idempotency, and reconciliation polling are ready for sandbox wiring."
+\t\t\t/>
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable headers={["Control", "Mock state"]} rows={rows} />
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function EimsCompliancePage() {
+\tconst { data, isLoading } = useEimsComplianceEvidence();
+\tif (isLoading || !data) return <LoadingPanel />;
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Compliance"
+\t\t\t\tdescription="Continuously generated evidence package readiness against V3 controls."
+\t\t\t/>
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-4">
+\t\t\t\t\t<p className="text-sm text-muted-foreground">Readiness</p>
+\t\t\t\t\t<p className="mt-1 text-3xl font-semibold">{data.data.readiness}%</p>
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable headers={["Evidence", "Status"]} rows={data.data.items.map((item) => [item.label, item.status])} />
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/web/src/features/eims/components/eims-admin-pages.tsx"),
+		`import {
+\tuseAdminEimsCertificates,
+\tuseAdminEimsCompliance,
+\tuseAdminEimsFailures,
+\tuseAdminEimsOverview,
+\tuseAdminEimsResources,
+\tuseAdminEimsTenants,
+} from "#features/eims/api/eims.hooks";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+type TableRows = readonly (readonly string[])[];
+
+function LoadingPanel() {
+\treturn (
+\t\t<div className="space-y-4">
+\t\t\t<Skeleton className="h-9 w-72" />
+\t\t\t<Skeleton className="h-40 w-full" />
+\t\t</div>
+\t);
+}
+
+function PageHeader({ title, description }: { readonly title: string; readonly description: string }) {
+\treturn (
+\t\t<div>
+\t\t\t<h1 className="text-2xl font-semibold tracking-normal">{title}</h1>
+\t\t\t<p className="mt-1 max-w-3xl text-sm text-muted-foreground">{description}</p>
+\t\t</div>
+\t);
+}
+
+function DataTable({ headers, rows }: { readonly headers: readonly string[]; readonly rows: TableRows }) {
+\treturn (
+\t\t<Table>
+\t\t\t<TableHeader>
+\t\t\t\t<TableRow>
+\t\t\t\t\t{headers.map((header) => (
+\t\t\t\t\t\t<TableHead key={header}>{header}</TableHead>
+\t\t\t\t\t))}
+\t\t\t\t</TableRow>
+\t\t\t</TableHeader>
+\t\t\t<TableBody>
+\t\t\t\t{rows.map((row) => (
+\t\t\t\t\t<TableRow key={row.join("|")}>
+\t\t\t\t\t\t{row.map((cell, index) => (
+\t\t\t\t\t\t\t<TableCell
+\t\t\t\t\t\t\t\tkey={String(index)}
+\t\t\t\t\t\t\t\tclassName={index === row.length - 1 ? "max-w-md whitespace-normal" : undefined}
+\t\t\t\t\t\t\t>
+\t\t\t\t\t\t\t\t{cell}
+\t\t\t\t\t\t\t</TableCell>
+\t\t\t\t\t\t))}
+\t\t\t\t\t</TableRow>
+\t\t\t\t))}
+\t\t\t</TableBody>
+\t\t</Table>
+\t);
+}
+
+export function AdminEimsOverviewPage() {
+\tconst { data, isLoading } = useAdminEimsOverview();
+\tif (isLoading || !data) return <LoadingPanel />;
+\tconst overview = data.data;
+\tconst stats = [
+\t\t["Tenants", String(overview.tenantsTotal)],
+\t\t["Blocked", String(overview.tenantsBlocked)],
+\t\t["Accepted Today", String(overview.acceptedToday)],
+\t\t["Pending Offline", String(overview.pendingOffline)],
+\t\t["Unknown", String(overview.unknownSubmissions)],
+\t\t["Cert Alerts", String(overview.certificateAlerts)],
+\t] as const;
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="Platform EIMS Operations"
+\t\t\t\tdescription="Super-admin view across tenants, source queues, certificate risks, and mock EIMS failures."
+\t\t\t/>
+\t\t\t<div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+\t\t\t\t{stats.map(([label, value]) => (
+\t\t\t\t\t<Card key={label}>
+\t\t\t\t\t\t<CardContent className="p-4">
+\t\t\t\t\t\t\t<p className="text-xs uppercase text-muted-foreground">{label}</p>
+\t\t\t\t\t\t\t<p className="mt-2 text-2xl font-semibold">{value}</p>
+\t\t\t\t\t\t</CardContent>
+\t\t\t\t\t</Card>
+\t\t\t\t))}
+\t\t\t</div>
+\t\t\t<Card>
+\t\t\t\t<CardHeader>
+\t\t\t\t\t<CardTitle className="text-base">Latest Failures</CardTitle>
+\t\t\t\t</CardHeader>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable
+\t\t\t\t\t\theaders={["Tenant", "Source", "Error", "Category", "Action"]}
+\t\t\t\t\t\trows={overview.latestFailures.map((row) => [
+\t\t\t\t\t\t\trow.tenant,
+\t\t\t\t\t\t\trow.sourceSystem,
+\t\t\t\t\t\t\trow.errorCode,
+\t\t\t\t\t\t\trow.category,
+\t\t\t\t\t\t\trow.recommendedAction,
+\t\t\t\t\t\t])}
+\t\t\t\t\t/>
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function AdminEimsTenantsPage() {
+\tconst { data, isLoading } = useAdminEimsTenants();
+\tif (isLoading || !data) return <LoadingPanel />;
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Tenants" description="Tenant readiness and throughput by branch/source footprint." />
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable
+\t\t\t\t\t\theaders={["Tenant", "Status", "Branches", "Sources", "Accepted", "Pending"]}
+\t\t\t\t\t\trows={data.data.map((row) => [
+\t\t\t\t\t\t\trow.name,
+\t\t\t\t\t\t\trow.status,
+\t\t\t\t\t\t\tString(row.branches),
+\t\t\t\t\t\t\tString(row.sources),
+\t\t\t\t\t\t\tString(row.acceptedToday),
+\t\t\t\t\t\t\tString(row.pendingOffline),
+\t\t\t\t\t\t])}
+\t\t\t\t\t/>
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function AdminEimsFailuresPage() {
+\tconst { data, isLoading } = useAdminEimsFailures();
+\tif (isLoading || !data) return <LoadingPanel />;
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Failures"
+\t\t\t\tdescription="Error classification and operator action list for retryable, rule, and manual-intervention failures."
+\t\t\t/>
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable
+\t\t\t\t\t\theaders={["Tenant", "Source", "Error", "Category", "Action"]}
+\t\t\t\t\t\trows={data.data.map((row) => [
+\t\t\t\t\t\t\trow.tenant,
+\t\t\t\t\t\t\trow.sourceSystem,
+\t\t\t\t\t\t\trow.errorCode,
+\t\t\t\t\t\t\trow.category,
+\t\t\t\t\t\t\trow.recommendedAction,
+\t\t\t\t\t\t])}
+\t\t\t\t\t/>
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function AdminEimsCertificatesPage() {
+\tconst { data, isLoading } = useAdminEimsCertificates();
+\tif (isLoading || !data) return <LoadingPanel />;
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader title="EIMS Certificates" description="Platform certificate expiry and revocation watchlist." />
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable
+\t\t\t\t\t\theaders={["Tenant", "Source", "Valid To", "Status"]}
+\t\t\t\t\t\trows={data.data.map((row) => [row.tenant, row.sourceSystem, row.validTo, row.status])}
+\t\t\t\t\t/>
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function AdminEimsResourcesPage() {
+\tconst { data, isLoading } = useAdminEimsResources();
+\tif (isLoading || !data) return <LoadingPanel />;
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Resources"
+\t\t\t\tdescription="Queue, signing provider, Vault, and MoR endpoint status for operations."
+\t\t\t/>
+\t\t\t<Card>
+\t\t\t\t<CardHeader>
+\t\t\t\t\t<CardTitle className="text-base">Queues</CardTitle>
+\t\t\t\t</CardHeader>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable
+\t\t\t\t\t\theaders={["Name", "Depth", "Status"]}
+\t\t\t\t\t\trows={data.data.queues.map((row) => [row.name, String(row.depth), row.status])}
+\t\t\t\t\t/>
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
+
+export function AdminEimsCompliancePage() {
+\tconst { data, isLoading } = useAdminEimsCompliance();
+\tif (isLoading || !data) return <LoadingPanel />;
+\tconst rows = [
+\t\t...data.data.ready.map((item) => [item, "ready"]),
+\t\t...data.data.missing.map((item) => [item, "missing"]),
+\t];
+
+\treturn (
+\t\t<div className="space-y-5">
+\t\t\t<PageHeader
+\t\t\t\ttitle="EIMS Compliance"
+\t\t\t\tdescription="Platform evidence readiness for INSA/MoR paperwork and audits."
+\t\t\t/>
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-4">
+\t\t\t\t\t<p className="text-sm text-muted-foreground">Readiness</p>
+\t\t\t\t\t<p className="mt-1 text-3xl font-semibold">{data.data.readiness}%</p>
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t\t<Card>
+\t\t\t\t<CardContent className="p-0">
+\t\t\t\t\t<DataTable headers={["Evidence", "Status"]} rows={rows} />
+\t\t\t\t</CardContent>
+\t\t\t</Card>
+\t\t</div>
+\t);
+}
 `,
 	);
 
@@ -2239,128 +3970,547 @@ export const useEimsSetupStatus = () =>
 		[
 			"index",
 			"/_authenticated/eims/",
-			"EIMS",
-			"Ethiopian e-invoicing setup, submissions, receipts, and compliance.",
+			"import { EimsOverviewPage } from \"#features/eims/components/eims-tenant-pages\";",
+			"EimsOverviewPage",
 		],
 		[
 			"setup",
 			"/_authenticated/eims/setup",
-			"EIMS Setup",
-			"Configure enterprise, establishment, source system, credentials, and certificates.",
+			"import { EimsSetupPage } from \"#features/eims/components/eims-tenant-pages\";",
+			"EimsSetupPage",
 		],
 		[
 			"enterprises",
 			"/_authenticated/eims/enterprises",
-			"EIMS Enterprises",
-			"Manage legal taxpayer enterprise records.",
+			"import { EimsDirectoryPage } from \"#features/eims/components/eims-tenant-pages\";",
+			`() => <EimsDirectoryPage kind="enterprises" />`,
 		],
 		[
 			"establishments",
 			"/_authenticated/eims/establishments",
-			"EIMS Establishments",
-			"Manage registered branches and sub-TIN context.",
+			"import { EimsDirectoryPage } from \"#features/eims/components/eims-tenant-pages\";",
+			`() => <EimsDirectoryPage kind="establishments" />`,
 		],
 		[
 			"sources",
 			"/_authenticated/eims/sources",
-			"EIMS Source Systems",
-			"Manage POS/ERP source systems and MoR approval state.",
+			"import { EimsDirectoryPage } from \"#features/eims/components/eims-tenant-pages\";",
+			`() => <EimsDirectoryPage kind="sources" />`,
 		],
 		[
 			"credentials",
 			"/_authenticated/eims/credentials",
-			"EIMS Credentials",
-			"Store and rotate EIMS credentials through encrypted backend services.",
+			"import { EimsCredentialsPage } from \"#features/eims/components/eims-tenant-pages\";",
+			"EimsCredentialsPage",
 		],
 		[
 			"certificates",
 			"/_authenticated/eims/certificates",
-			"EIMS Certificates",
-			"Track certificate import, expiry, and rotation.",
+			"import { EimsCertificatesPage } from \"#features/eims/components/eims-tenant-pages\";",
+			"EimsCertificatesPage",
 		],
 		[
 			"submissions",
 			"/_authenticated/eims/submissions",
-			"EIMS Submissions",
-			"Monitor invoice submission state and reconciliation.",
+			"import { EimsSubmissionsPage } from \"#features/eims/components/eims-tenant-pages\";",
+			"EimsSubmissionsPage",
+		],
+		[
+			"receipts",
+			"/_authenticated/eims/receipts",
+			"import { EimsReceiptsPage } from \"#features/eims/components/eims-tenant-pages\";",
+			"EimsReceiptsPage",
 		],
 		[
 			"bulk",
 			"/_authenticated/eims/bulk",
-			"EIMS Bulk",
-			"Track bulk registration conversations and callbacks.",
+			"import { EimsBulkPage } from \"#features/eims/components/eims-tenant-pages\";",
+			"EimsBulkPage",
 		],
 		[
 			"compliance",
 			"/_authenticated/eims/compliance",
-			"EIMS Compliance",
-			"Generate audit and compliance evidence packages.",
+			"import { EimsCompliancePage } from \"#features/eims/components/eims-tenant-pages\";",
+			"EimsCompliancePage",
 		],
 	];
-	for (const [fileName, routePath, title, description] of routePages) {
-		const descriptionNode =
-			description.length <= 64
-				? `<p className="mt-1 text-sm text-muted-foreground">${description}</p>`
-				: `<p className="mt-1 text-sm text-muted-foreground">
-\t\t\t\t\t${description}
-\t\t\t\t</p>`;
+	for (const [fileName, routePath, importLine, component] of routePages) {
 		await writeNew(
 			path.join(
 				root,
 				`apps/web/src/routes/_authenticated/eims/${fileName}.tsx`,
 			),
 			`import { createFileRoute } from "@tanstack/react-router";
+${importLine}
 
 export const Route = createFileRoute("${routePath}")({
-\tcomponent: Page,
+\tcomponent: ${component},
 });
-
-function Page() {
-\treturn (
-\t\t<div className="space-y-6 p-6">
-\t\t\t<div>
-\t\t\t\t<h1 className="text-2xl font-semibold">${title}</h1>
-\t\t\t\t${descriptionNode}
-\t\t\t</div>
-\t\t\t<div className="rounded-md border p-4 text-sm text-muted-foreground">
-\t\t\t\tThis is the EIMS starter scaffold. Implement this page according to
-\t\t\t\tdocs/EIMS_FINAL_AGREED_SAAS_ARCHITECTURE_PLAN_V3.md.
-\t\t\t</div>
-\t\t</div>
-\t);
-}
 `,
 		);
 	}
 
 	const adminPages = [
-		["index", "/admin/eims/", "Admin EIMS"],
-		["tenants", "/admin/eims/tenants", "EIMS Tenants"],
-		["failures", "/admin/eims/failures", "EIMS Failures"],
-		["certificates", "/admin/eims/certificates", "EIMS Certificates"],
-		["resources", "/admin/eims/resources", "EIMS Resources"],
-		["compliance", "/admin/eims/compliance", "EIMS Compliance"],
+		["index", "/admin/eims/", "AdminEimsOverviewPage"],
+		["tenants", "/admin/eims/tenants", "AdminEimsTenantsPage"],
+		["failures", "/admin/eims/failures", "AdminEimsFailuresPage"],
+		["certificates", "/admin/eims/certificates", "AdminEimsCertificatesPage"],
+		["resources", "/admin/eims/resources", "AdminEimsResourcesPage"],
+		["compliance", "/admin/eims/compliance", "AdminEimsCompliancePage"],
 	];
-	for (const [fileName, routePath, title] of adminPages) {
+	for (const [fileName, routePath, component] of adminPages) {
 		await writeNew(
 			path.join(root, `apps/web/src/routes/admin/eims/${fileName}.tsx`),
 			`import { createFileRoute } from "@tanstack/react-router";
+import { ${component} } from "#features/eims/components/eims-admin-pages";
 
 export const Route = createFileRoute("${routePath}")({
-\tcomponent: Page,
+\tcomponent: ${component},
 });
-
-function Page() {
-\treturn (
-\t\t<div className="space-y-6 p-6">
-\t\t\t<h1 className="text-2xl font-semibold">${title}</h1>
-\t\t\t<p className="text-sm text-muted-foreground">Platform-level EIMS operations scaffold.</p>
-\t\t</div>
-\t);
-}
 `,
 		);
 	}
+	await writeNew(
+		path.join(root, "apps/e2e/tests/eims-mock.reference.txt"),
+		`import { expect, test, type Page } from "@playwright/test";
+
+const tenantOverview = {
+\tdata: {
+\t\tmode: "mock",
+\t\tenvironment: "sandbox",
+\t\torganizationId: "org_1",
+\t\tsetupProgress: [
+\t\t\t{ key: "twoFactor", label: "2FA enforced for EIMS users", status: "complete" },
+\t\t\t{ key: "source", label: "Source system approval", status: "attention" },
+\t\t],
+\t\tstats: { acceptedToday: 1, pendingOffline: 1, unknownSubmissions: 0, certificatesExpiring: 1 },
+\t\thealth: [{ label: "MoR sandbox", status: "mocked", detail: "Waiting for INSA sandbox credentials" }],
+\t\tenterprises: [{ id: "ent_1", tin: "0074136947", legalName: "Habesha Restaurant PLC", vatNumber: "REGVAT123456789", status: "active" }],
+\t\testablishments: [{ id: "est_1", name: "Bole Branch", code: "BOL", subTin: "0074136947-01", status: "active", city: "Addis Ababa" }],
+\t\tsourceSystems: [{ id: "src_1", name: "Front POS", systemNumber: "329D03B6F0", systemType: "POS", approvalStatus: "approved", lastAcceptedCounter: 128 }],
+\t\tblockers: ["INSA sandbox credentials not yet received"],
+\t\trecentSubmissions: [
+\t\t\t{
+\t\t\t\tid: "sub_1",
+\t\t\t\tdocumentNumber: "INV-2026-000128",
+\t\t\t\tdocumentType: "INV",
+\t\t\t\ttransactionType: "B2C",
+\t\t\t\tstatus: "accepted",
+\t\t\t\tirn: "MOCK-IRN-51fa3144",
+\t\t\t\tsourceSystem: "Front POS",
+\t\t\t\testablishment: "Bole Branch",
+\t\t\t\ttotalValue: "517.50",
+\t\t\t\ttaxValue: "67.50",
+\t\t\t\tackDate: "2026-05-26T10:30:00.000Z",
+\t\t\t},
+\t\t],
+\t},
+};
+
+const submissions = { data: tenantOverview.data.recentSubmissions };
+const receipts = {
+\tdata: [{ id: "rec_1", receiptNumber: "RCPT-2026-00044", receiptType: "sales", status: "accepted", invoiceIrn: "MOCK-IRN-51fa3144", rrn: "MOCK-RRN-00044", paymentMode: "CASH", paidAmount: "517.50" }],
+};
+const evidence = { data: { organizationId: "org_1", generatedAt: "2026-05-26T10:30:00.000Z", readiness: 72, items: [{ key: "phase0", label: "Phase 0 Layer A local report", status: "ready" }] } };
+
+async function mockTenantSession(page: Page) {
+\tawait page.route("**/api/auth/**", async (route) => {
+\t\tconst url = new URL(route.request().url());
+\t\tif (url.pathname.endsWith("/get-session")) {
+\t\t\tawait route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user: { id: "user_1", name: "Owner", email: "owner@example.com" }, session: { id: "sess_1", activeOrganizationId: "org_1" } }) });
+\t\t\treturn;
+\t\t}
+\t\tawait route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([]) });
+\t});
+\tawait page.route("**/api/v1/billing/**", async (route) => {
+\t\tawait route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: { lifecycle: null, entitlements: {} } }) });
+\t});
+\tawait page.route("**/api/v1/eims/overview", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(tenantOverview) }));
+\tawait page.route("**/api/v1/eims/submissions", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(submissions) }));
+\tawait page.route("**/api/v1/eims/submissions/mock-submit", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: { ...submissions.data[0], id: "sub_new", documentNumber: "INV-MOCK-NEW", irn: "MOCK-IRN-NEW" } }) }));
+\tawait page.route("**/api/v1/eims/receipts", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(receipts) }));
+\tawait page.route("**/api/v1/eims/compliance/evidence", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(evidence) }));
+}
+
+async function mockAdminSession(page: Page) {
+\tawait page.route("**/api/v1/admin/auth/me", async (route) => {
+\t\tawait route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: { user: { id: "admin_1", email: "admin@example.com", name: "Super Admin" }, session: { id: "admin_sess", expiresAt: "2027-01-01T00:00:00.000Z" } } }) });
+\t});
+\tawait page.route("**/api/v1/admin/eims/overview", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: { mode: "mock", tenantsTotal: 2, tenantsBlocked: 1, acceptedToday: 184, pendingOffline: 7, unknownSubmissions: 1, certificateAlerts: 2, latestFailures: [{ id: "fail_1", tenant: "Shoa Supermarket", sourceSystem: "Megenagna POS 04", errorCode: "7015", category: "rule_error", recommendedAction: "Verify counter sequence" }], tenants: [] } }) }));
+\tawait page.route("**/api/v1/admin/eims/tenants", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: [{ id: "org_1", name: "Habesha Restaurants", status: "ready", branches: 2, sources: 3, acceptedToday: 96, pendingOffline: 2 }] }) }));
+\tawait page.route("**/api/v1/admin/eims/failures", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: [{ id: "fail_1", tenant: "Shoa Supermarket", sourceSystem: "Megenagna POS 04", errorCode: "7015", category: "rule_error", recommendedAction: "Verify counter sequence" }] }) }));
+\tawait page.route("**/api/v1/admin/eims/certificates", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: [{ tenant: "Habesha Restaurants", sourceSystem: "Front POS", validTo: "2026-07-10", status: "expires_soon" }] }) }));
+\tawait page.route("**/api/v1/admin/eims/resources", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: { queues: [{ name: "eims:submission:src_1", depth: 0, status: "running" }], vault: { status: "mocked", provider: "local" }, mor: { sandbox: "mocked", production: "not_configured" } } }) }));
+\tawait page.route("**/api/v1/admin/eims/compliance", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: { readiness: 68, missing: ["Phase 0 Layer B sandbox report"], ready: ["V3 architecture plan"] } }) }));
+}
+
+test("tenant EIMS mock flow is usable before sandbox access", async ({ page }) => {
+\tawait mockTenantSession(page);
+\tawait page.goto("/eims", { waitUntil: "domcontentloaded" });
+\tawait expect(page.getByRole("heading", { name: "EIMS Control Center" })).toBeVisible();
+\tawait expect(page.getByText("Mock Mode")).toBeVisible();
+\tawait expect(page.getByText("Setup Progress")).toBeVisible();
+\tawait expect(page.getByText("INV-2026-000128")).toBeVisible();
+
+\tawait page.goto("/eims/submissions", { waitUntil: "domcontentloaded" });
+\tawait page.getByRole("button", { name: "Create mock accepted invoice" }).click();
+\tawait expect(page.getByText("MOCK-IRN-NEW")).toBeVisible();
+});
+
+test("super-admin EIMS mock flow is usable before sandbox access", async ({ page }) => {
+\tawait mockAdminSession(page);
+\tawait page.goto("/admin/eims", { waitUntil: "domcontentloaded" });
+\tawait expect(page.getByRole("heading", { name: "Platform EIMS Operations" })).toBeVisible();
+\tawait expect(page.getByText("Latest Failures")).toBeVisible();
+\tawait expect(page.getByText("Shoa Supermarket")).toBeVisible();
+
+\tawait page.goto("/admin/eims/resources", { waitUntil: "domcontentloaded" });
+\tawait expect(page.getByRole("heading", { name: "EIMS Resources" })).toBeVisible();
+\tawait expect(page.getByText("eims:submission:src_1")).toBeVisible();
+});
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/e2e/tests/eims-mock.spec.ts"),
+		`import { expect, type Page, type Route, test } from "@playwright/test";
+
+const fulfillJson = async (route: Route, body: unknown) => {
+\tawait route.fulfill({
+\t\tstatus: 200,
+\t\tcontentType: "application/json",
+\t\tbody: JSON.stringify(body),
+\t});
+};
+
+const acceptedSubmission = {
+\tid: "sub_1",
+\tdocumentNumber: "INV-2026-000128",
+\tdocumentType: "INV",
+\ttransactionType: "B2C",
+\tstatus: "accepted",
+\tirn: "MOCK-IRN-51fa3144",
+\tsourceSystem: "Front POS",
+\testablishment: "Bole Branch",
+\ttotalValue: "517.50",
+\ttaxValue: "67.50",
+\tackDate: "2026-05-26T10:30:00.000Z",
+};
+
+const tenantOverview = {
+\tdata: {
+\t\tmode: "mock",
+\t\tenvironment: "sandbox",
+\t\torganizationId: "org_1",
+\t\tsetupProgress: [
+\t\t\t{ key: "twoFactor", label: "2FA enforced for EIMS users", status: "complete" },
+\t\t\t{ key: "source", label: "Source system approval", status: "attention" },
+\t\t],
+\t\tstats: {
+\t\t\tacceptedToday: 1,
+\t\t\tpendingOffline: 1,
+\t\t\tunknownSubmissions: 0,
+\t\t\tcertificatesExpiring: 1,
+\t\t},
+\t\thealth: [{ label: "MoR sandbox", status: "mocked", detail: "Waiting for INSA sandbox credentials" }],
+\t\tenterprises: [
+\t\t\t{
+\t\t\t\tid: "ent_1",
+\t\t\t\ttin: "0074136947",
+\t\t\t\tlegalName: "Habesha Restaurant PLC",
+\t\t\t\tvatNumber: "REGVAT123456789",
+\t\t\t\tstatus: "active",
+\t\t\t},
+\t\t],
+\t\testablishments: [
+\t\t\t{ id: "est_1", name: "Bole Branch", code: "BOL", subTin: "0074136947-01", status: "active", city: "Addis Ababa" },
+\t\t],
+\t\tsourceSystems: [
+\t\t\t{
+\t\t\t\tid: "src_1",
+\t\t\t\tname: "Front POS",
+\t\t\t\tsystemNumber: "329D03B6F0",
+\t\t\t\tsystemType: "POS",
+\t\t\t\tapprovalStatus: "approved",
+\t\t\t\tlastAcceptedCounter: 128,
+\t\t\t},
+\t\t],
+\t\tblockers: ["INSA sandbox credentials not yet received"],
+\t\trecentSubmissions: [acceptedSubmission],
+\t},
+};
+
+async function mockTenantSession(page: Page) {
+\tawait page.route("**/api/auth/**", async (route) => {
+\t\tconst url = new URL(route.request().url());
+\t\tif (url.pathname.endsWith("/get-session")) {
+\t\t\tawait fulfillJson(route, {
+\t\t\t\tuser: { id: "user_1", name: "Owner", email: "owner@example.com" },
+\t\t\t\tsession: { id: "sess_1", activeOrganizationId: "org_1" },
+\t\t\t});
+\t\t\treturn;
+\t\t}
+\t\tawait fulfillJson(route, []);
+\t});
+\tawait page.route("**/api/v1/billing/**", async (route) => {
+\t\tawait fulfillJson(route, { data: { lifecycle: null, entitlements: {} } });
+\t});
+\tawait page.route("**/api/v1/eims/overview", async (route) => fulfillJson(route, tenantOverview));
+\tawait page.route("**/api/v1/eims/submissions", async (route) => fulfillJson(route, { data: [acceptedSubmission] }));
+\tawait page.route("**/api/v1/eims/submissions/mock-submit", async (route) => {
+\t\tawait fulfillJson(route, { data: { ...acceptedSubmission, id: "sub_new", irn: "MOCK-IRN-NEW" } });
+\t});
+\tawait page.route("**/api/v1/eims/receipts", async (route) => {
+\t\tawait fulfillJson(route, {
+\t\t\tdata: [
+\t\t\t\t{
+\t\t\t\t\tid: "rec_1",
+\t\t\t\t\treceiptNumber: "RCPT-2026-00044",
+\t\t\t\t\treceiptType: "sales",
+\t\t\t\t\tstatus: "accepted",
+\t\t\t\t\tinvoiceIrn: "MOCK-IRN-51fa3144",
+\t\t\t\t\trrn: "MOCK-RRN-00044",
+\t\t\t\t\tpaymentMode: "CASH",
+\t\t\t\t\tpaidAmount: "517.50",
+\t\t\t\t},
+\t\t\t],
+\t\t});
+\t});
+\tawait page.route("**/api/v1/eims/compliance/evidence", async (route) => {
+\t\tawait fulfillJson(route, {
+\t\t\tdata: {
+\t\t\t\torganizationId: "org_1",
+\t\t\t\tgeneratedAt: "2026-05-26T10:30:00.000Z",
+\t\t\t\treadiness: 72,
+\t\t\t\titems: [{ key: "phase0", label: "Phase 0 Layer A local report", status: "ready" }],
+\t\t\t},
+\t\t});
+\t});
+}
+
+async function mockAdminSession(page: Page) {
+\tawait page.route("**/api/v1/admin/auth/me", async (route) => {
+\t\tawait fulfillJson(route, {
+\t\t\tdata: {
+\t\t\t\tuser: { id: "admin_1", email: "admin@example.com", name: "Super Admin" },
+\t\t\t\tsession: { id: "admin_sess", expiresAt: "2027-01-01T00:00:00.000Z" },
+\t\t\t},
+\t\t});
+\t});
+\tawait page.route("**/api/v1/admin/eims/overview", async (route) => {
+\t\tawait fulfillJson(route, {
+\t\t\tdata: {
+\t\t\t\tmode: "mock",
+\t\t\t\ttenantsTotal: 2,
+\t\t\t\ttenantsBlocked: 1,
+\t\t\t\tacceptedToday: 184,
+\t\t\t\tpendingOffline: 7,
+\t\t\t\tunknownSubmissions: 1,
+\t\t\t\tcertificateAlerts: 2,
+\t\t\t\tlatestFailures: [
+\t\t\t\t\t{
+\t\t\t\t\t\tid: "fail_1",
+\t\t\t\t\t\ttenant: "Shoa Supermarket",
+\t\t\t\t\t\tsourceSystem: "Megenagna POS 04",
+\t\t\t\t\t\terrorCode: "7015",
+\t\t\t\t\t\tcategory: "rule_error",
+\t\t\t\t\t\trecommendedAction: "Verify counter sequence",
+\t\t\t\t\t},
+\t\t\t\t],
+\t\t\t\ttenants: [],
+\t\t\t},
+\t\t});
+\t});
+\tawait page.route("**/api/v1/admin/eims/resources", async (route) => {
+\t\tawait fulfillJson(route, {
+\t\t\tdata: {
+\t\t\t\tqueues: [{ name: "eims:submission:src_1", depth: 0, status: "running" }],
+\t\t\t\tvault: { status: "mocked", provider: "local" },
+\t\t\t\tmor: { sandbox: "mocked", production: "not_configured" },
+\t\t\t},
+\t\t});
+\t});
+}
+
+test("tenant EIMS mock flow is usable before sandbox access", async ({ page }) => {
+\tawait mockTenantSession(page);
+\tawait page.goto("/eims", { waitUntil: "domcontentloaded" });
+\tawait expect(page.getByRole("heading", { name: "EIMS Control Center" })).toBeVisible();
+\tawait expect(page.getByText("Mock Mode")).toBeVisible();
+\tawait expect(page.getByText("Setup Progress")).toBeVisible();
+\tawait expect(page.getByText("INV-2026-000128")).toBeVisible();
+
+\tawait page.goto("/eims/submissions", { waitUntil: "domcontentloaded" });
+\tawait page.getByRole("button", { name: "Create mock accepted invoice" }).click();
+\tawait expect(page.getByText("MOCK-IRN-NEW")).toBeVisible();
+});
+
+test("super-admin EIMS mock flow is usable before sandbox access", async ({ page }) => {
+\tawait mockAdminSession(page);
+\tawait page.goto("/admin/eims", { waitUntil: "domcontentloaded" });
+\tawait expect(page.getByRole("heading", { name: "Platform EIMS Operations" })).toBeVisible();
+\tawait expect(page.getByText("Latest Failures")).toBeVisible();
+\tawait expect(page.getByText("Shoa Supermarket")).toBeVisible();
+
+\tawait page.goto("/admin/eims/resources", { waitUntil: "domcontentloaded" });
+\tawait expect(page.getByRole("heading", { name: "EIMS Resources" })).toBeVisible();
+\tawait expect(page.getByText("eims:submission:src_1")).toBeVisible();
+});
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/e2e/playwright.eims.config.ts"),
+		`import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "@playwright/test";
+import baseConfig from "./playwright.config";
+
+const eimsBaseUrl = "http://localhost:5179";
+const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+
+export default defineConfig({
+\t...baseConfig,
+\ttimeout: 90_000,
+\texpect: {
+\t\t...(baseConfig.expect ?? {}),
+\t\ttimeout: 10_000,
+\t},
+\tuse: {
+\t\t...(baseConfig.use ?? {}),
+\t\tbaseURL: eimsBaseUrl,
+\t},
+\twebServer: {
+\t\tcommand:
+\t\t\t"node apps/web/node_modules/vite/bin/vite.js apps/web --host 127.0.0.1 --port 5179 --strictPort --config apps/web/vite.config.ts",
+\t\tcwd: workspaceRoot,
+\t\turl: eimsBaseUrl,
+\t\treuseExistingServer: false,
+\t\ttimeout: 120_000,
+\t},
+});
+`,
+	);
+	await patchJsonFile(path.join(root, "apps/e2e/package.json"), (json) => {
+		json.scripts ??= {};
+		json.scripts["test:eims"] ??=
+			"playwright test -c playwright.eims.config.ts tests/eims-mock.spec.ts";
+		return json;
+	});
+};
+
+const patchEimsRouteTree = async (root) => {
+	const file = path.join(root, "apps/web/src/routeTree.gen.ts");
+	if (!(await fs.pathExists(file))) return false;
+	let text = await fs.readFile(file, "utf8");
+
+	const tenantRoutes = [
+		["AuthenticatedEimsIndexRoute", "AuthenticatedEimsIndexRouteImport", "./routes/_authenticated/eims/index", "/eims/", "/eims/"],
+		["AuthenticatedEimsSetupRoute", "AuthenticatedEimsSetupRouteImport", "./routes/_authenticated/eims/setup", "/eims/setup", "/eims/setup"],
+		[
+			"AuthenticatedEimsEnterprisesRoute",
+			"AuthenticatedEimsEnterprisesRouteImport",
+			"./routes/_authenticated/eims/enterprises",
+			"/eims/enterprises",
+			"/eims/enterprises",
+		],
+		[
+			"AuthenticatedEimsEstablishmentsRoute",
+			"AuthenticatedEimsEstablishmentsRouteImport",
+			"./routes/_authenticated/eims/establishments",
+			"/eims/establishments",
+			"/eims/establishments",
+		],
+		["AuthenticatedEimsSourcesRoute", "AuthenticatedEimsSourcesRouteImport", "./routes/_authenticated/eims/sources", "/eims/sources", "/eims/sources"],
+		[
+			"AuthenticatedEimsCredentialsRoute",
+			"AuthenticatedEimsCredentialsRouteImport",
+			"./routes/_authenticated/eims/credentials",
+			"/eims/credentials",
+			"/eims/credentials",
+		],
+		[
+			"AuthenticatedEimsCertificatesRoute",
+			"AuthenticatedEimsCertificatesRouteImport",
+			"./routes/_authenticated/eims/certificates",
+			"/eims/certificates",
+			"/eims/certificates",
+		],
+		[
+			"AuthenticatedEimsSubmissionsRoute",
+			"AuthenticatedEimsSubmissionsRouteImport",
+			"./routes/_authenticated/eims/submissions",
+			"/eims/submissions",
+			"/eims/submissions",
+		],
+		["AuthenticatedEimsReceiptsRoute", "AuthenticatedEimsReceiptsRouteImport", "./routes/_authenticated/eims/receipts", "/eims/receipts", "/eims/receipts"],
+		["AuthenticatedEimsBulkRoute", "AuthenticatedEimsBulkRouteImport", "./routes/_authenticated/eims/bulk", "/eims/bulk", "/eims/bulk"],
+		[
+			"AuthenticatedEimsComplianceRoute",
+			"AuthenticatedEimsComplianceRouteImport",
+			"./routes/_authenticated/eims/compliance",
+			"/eims/compliance",
+			"/eims/compliance",
+		],
+	];
+	const adminRoutes = [
+		["AdminEimsIndexRoute", "AdminEimsIndexRouteImport", "./routes/admin/eims/index", "/eims/", "/eims/"],
+		["AdminEimsTenantsRoute", "AdminEimsTenantsRouteImport", "./routes/admin/eims/tenants", "/eims/tenants", "/eims/tenants"],
+		["AdminEimsFailuresRoute", "AdminEimsFailuresRouteImport", "./routes/admin/eims/failures", "/eims/failures", "/eims/failures"],
+		[
+			"AdminEimsCertificatesRoute",
+			"AdminEimsCertificatesRouteImport",
+			"./routes/admin/eims/certificates",
+			"/eims/certificates",
+			"/eims/certificates",
+		],
+		["AdminEimsResourcesRoute", "AdminEimsResourcesRouteImport", "./routes/admin/eims/resources", "/eims/resources", "/eims/resources"],
+		["AdminEimsComplianceRoute", "AdminEimsComplianceRouteImport", "./routes/admin/eims/compliance", "/eims/compliance", "/eims/compliance"],
+	];
+	const routes = [...tenantRoutes, ...adminRoutes];
+
+	if (!text.includes("AuthenticatedEimsIndexRouteImport")) {
+		const imports = routes
+			.map(([, importName, importPath]) => `import { Route as ${importName} } from '${importPath}'`)
+			.join("\n");
+		text = text.replace(
+			"import { Route as AuthenticatedReportsDashboardMainRouteImport } from './routes/_authenticated/reports/dashboard.main'",
+			`import { Route as AuthenticatedReportsDashboardMainRouteImport } from './routes/_authenticated/reports/dashboard.main'\n${imports}`,
+		);
+	}
+
+	if (!text.includes("const AuthenticatedEimsIndexRoute =")) {
+		const routeConstants = [
+			...tenantRoutes.map(
+				([routeName, importName, , id, routePath]) =>
+					`const ${routeName} = ${importName}.update({\n  id: '${id}',\n  path: '${routePath}',\n  getParentRoute: () => AuthenticatedRoute,\n} as any)`,
+			),
+			...adminRoutes.map(
+				([routeName, importName, , id, routePath]) =>
+					`const ${routeName} = ${importName}.update({\n  id: '${id}',\n  path: '${routePath}',\n  getParentRoute: () => AdminRoute,\n} as any)`,
+			),
+		].join("\n");
+		text = text.replace("\nexport interface FileRoutesByFullPath {", `\n${routeConstants}\n\nexport interface FileRoutesByFullPath {`);
+	}
+
+	const tenantInterface = tenantRoutes.map(([routeName]) => `  ${routeName}: typeof ${routeName}`).join("\n");
+	const tenantChildren = tenantRoutes.map(([routeName]) => `  ${routeName}: ${routeName},`).join("\n");
+	const adminInterface = adminRoutes.map(([routeName]) => `  ${routeName}: typeof ${routeName}`).join("\n");
+	const adminChildren = adminRoutes.map(([routeName]) => `  ${routeName}: ${routeName},`).join("\n");
+
+	if (!text.includes("AuthenticatedEimsIndexRoute: typeof AuthenticatedEimsIndexRoute")) {
+		text = text.replace("interface AuthenticatedRouteChildren {\n", `interface AuthenticatedRouteChildren {\n${tenantInterface}\n`);
+		text = text.replace(
+			"const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {\n",
+			`const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {\n${tenantChildren}\n`,
+		);
+	}
+
+	if (!text.includes("AdminEimsIndexRoute: typeof AdminEimsIndexRoute")) {
+		text = text.replace("interface AdminRouteChildren {\n", `interface AdminRouteChildren {\n${adminInterface}\n`);
+		text = text.replace("const AdminRouteChildren: AdminRouteChildren = {\n", `const AdminRouteChildren: AdminRouteChildren = {\n${adminChildren}\n`);
+	}
+
+	await fs.writeFile(file, text, "utf8");
+	return true;
 };
 
 const writeEimsPhase0Assets = async (root) => {
@@ -2568,6 +4718,7 @@ const addEimsStarterPack = async ({ cwd }) => {
 	await writeEimsApiSkeleton(cwd);
 	await writeEimsSetupFoundation(cwd);
 	await writeEimsWebSkeleton(cwd);
+	await patchEimsRouteTree(cwd);
 	await writeEimsPhase0Assets(cwd);
 	await writeEimsDocs(cwd);
 	await patchAppModule(cwd, "invoicing", "Invoicing");
