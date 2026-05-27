@@ -2,7 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { useSecuritySettings, useUpdateSecuritySettings } from "#features/platform/api/platform.hooks";
+import {
+	type SecuritySettings,
+	useSecuritySettings,
+	useUpdateSecuritySettings,
+} from "#features/platform/api/platform.hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,21 +15,48 @@ import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_authenticated/settings/security")({ component: Page });
 
+type SecuritySettingsForm = Pick<
+	SecuritySettings,
+	| "passwordMinLength"
+	| "passwordRequireUpper"
+	| "passwordRequireLower"
+	| "passwordRequireDigit"
+	| "passwordRequireSymbol"
+	| "passwordMaxAgeDays"
+	| "sessionTimeoutMinutes"
+	| "force2fa"
+>;
+
+const toSecuritySettingsForm = (settings: SecuritySettings): SecuritySettingsForm => ({
+	passwordMinLength: settings.passwordMinLength,
+	passwordRequireUpper: settings.passwordRequireUpper,
+	passwordRequireLower: settings.passwordRequireLower,
+	passwordRequireDigit: settings.passwordRequireDigit,
+	passwordRequireSymbol: settings.passwordRequireSymbol,
+	passwordMaxAgeDays: settings.passwordMaxAgeDays,
+	sessionTimeoutMinutes: settings.sessionTimeoutMinutes,
+	force2fa: settings.force2fa,
+});
+
 function Page() {
 	const { t } = useTranslation();
 	const { data } = useSecuritySettings();
 	const update = useUpdateSecuritySettings();
-	const [form, setForm] = React.useState<Record<string, unknown>>({});
+	const [form, setForm] = React.useState<Partial<SecuritySettingsForm>>({});
 	const [ipStr, setIpStr] = React.useState("");
 
 	React.useEffect(() => {
 		if (data) {
-			setForm(data);
+			setForm(toSecuritySettingsForm(data));
 			setIpStr((data.ipAllowlist ?? []).join("\n"));
 		}
 	}, [data]);
 
-	const setField = React.useCallback((key: string, value: unknown) => setForm((f) => ({ ...f, [key]: value })), []);
+	const setField = React.useCallback(
+		<K extends keyof SecuritySettingsForm>(key: K, value: SecuritySettingsForm[K]) =>
+			setForm((f) => ({ ...f, [key]: value })),
+		[],
+	);
 
 	const onSave = React.useCallback(async () => {
 		try {

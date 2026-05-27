@@ -12,6 +12,7 @@ const run = (command, args, baseUrl) =>
 			env: {
 				...process.env,
 				API_BASE_URL: baseUrl,
+				API_TEST_USES_MOCK_SERVER: "1",
 				BRUNO_BASE_URL: baseUrl,
 				OPENAPI_SPEC: "openapi/openapi-smoke.yaml",
 			},

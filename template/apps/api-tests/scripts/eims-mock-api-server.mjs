@@ -3,6 +3,123 @@ import { fileURLToPath } from "node:url";
 
 const fixedNow = "2026-05-26T10:30:00.000Z";
 
+const teamMembers = [
+	{
+		id: "mem_owner",
+		role: "owner",
+		createdAt: "2026-01-10T08:00:00.000Z",
+		user: { id: "user_owner", name: "Owner User", email: "owner@example.com" },
+	},
+	{
+		id: "mem_admin",
+		role: "admin",
+		createdAt: "2026-02-12T08:00:00.000Z",
+		user: { id: "user_admin", name: "Operations Admin", email: "ops@example.com" },
+	},
+];
+const teamInvitations = [
+	{
+		id: "inv_seed",
+		email: "pending@example.com",
+		role: "member",
+		status: "pending",
+		expiresAt: "2026-06-26T10:30:00.000Z",
+		acceptUrl: "http://localhost:5173/settings/members?invitationId=inv_seed",
+	},
+];
+let organizationSettings = {
+	id: "org_settings_mock",
+	organizationId: "org_mock",
+	timezone: "Africa/Addis_Ababa",
+	currency: "ETB",
+	dateFormat: "yyyy-MM-dd",
+	fiscalYearStartMonth: 7,
+	invoiceNumberPrefix: "INV",
+	invoiceNumberPadding: 5,
+	companyEmail: "finance@example.com",
+	companyPhone: "+251911000000",
+	companyAddress: "Bole, Addis Ababa",
+	taxId: "0074136947",
+	logoUrl: "",
+	primaryColor: "#2563eb",
+	emailFooter: "Thank you for your business.",
+	createdAt: fixedNow,
+	updatedAt: fixedNow,
+};
+let securitySettings = {
+	id: "security_settings_mock",
+	organizationId: "org_mock",
+	passwordMinLength: 10,
+	passwordRequireUpper: true,
+	passwordRequireLower: true,
+	passwordRequireDigit: true,
+	passwordRequireSymbol: true,
+	passwordMaxAgeDays: 90,
+	sessionTimeoutMinutes: 60,
+	force2fa: false,
+	ipAllowlist: "",
+	createdAt: fixedNow,
+	updatedAt: fixedNow,
+};
+const adminUsers = [
+	{
+		id: "admin_user_1",
+		name: "Owner User",
+		email: "owner@example.com",
+		emailVerified: true,
+		createdAt: "2026-01-10T08:00:00.000Z",
+		organizations: [{ id: "org_mock", name: "Acme Restaurant", role: "owner" }],
+	},
+	{
+		id: "admin_user_2",
+		name: "Branch Manager",
+		email: "manager@example.com",
+		emailVerified: false,
+		createdAt: "2026-02-15T08:00:00.000Z",
+		organizations: [{ id: "org_mock", name: "Acme Restaurant", role: "admin" }],
+	},
+	{
+		id: "admin_user_3",
+		name: "Unassigned User",
+		email: "unassigned@example.com",
+		emailVerified: true,
+		createdAt: "2026-03-20T08:00:00.000Z",
+		organizations: [],
+	},
+];
+const platformSettings = [
+	{ key: "billing.vatRate", value: "15" },
+	{ key: "billing.vatEnabled", value: "true" },
+	{ key: "billing.currencyDefault", value: "ETB" },
+	{ key: "billing.invoicePrefix", value: "PF-INV" },
+	{ key: "billing.invoiceYearReset", value: "true" },
+	{ key: "billing.paymentDueDays", value: "7" },
+	{ key: "billing.gracePeriodDays", value: "7" },
+	{ key: "billing.readOnlyPeriodDays", value: "14" },
+	{ key: "billing.lockoutAfterDays", value: "30" },
+	{ key: "billing.reminderSchedule", value: "[-7,-3,0,7]" },
+	{ key: "billing.autoSendInvoice", value: "true" },
+	{ key: "billing.autoGenerateRenewalInvoice", value: "true" },
+	{ key: "billing.chapaEnabled", value: "false" },
+	{ key: "billing.manualPaymentMethods", value: "[\"bank_transfer\",\"telebirr\",\"cash\"]" },
+	{ key: "platform.companyName", value: "Vyllion SaaS" },
+	{ key: "platform.companyAddress", value: "Addis Ababa" },
+	{ key: "platform.companyTin", value: "0074136947" },
+	{ key: "platform.supportEmail", value: "support@example.com" },
+	{ key: "platform.supportPhone", value: "+251911000000" },
+	{ key: "platform.dunningFromEmail", value: "billing@example.com" },
+	{ key: "dunning.templateKey.reminder", value: "billing.reminder" },
+	{ key: "dunning.templateKey.overdue", value: "billing.overdue" },
+	{ key: "dunning.templateKey.grace", value: "billing.grace" },
+	{ key: "dunning.templateKey.readOnly", value: "billing.read_only" },
+	{ key: "dunning.templateKey.locked", value: "billing.locked" },
+	{ key: "dunning.templateKey.renewal", value: "billing.renewal" },
+].map((setting, index) => ({ id: `platform_setting_${index + 1}`, updatedAt: fixedNow, ...setting }));
+const featureFlags = [
+	{ id: "ff_1", name: "eims.enabled", description: "Enable EIMS tax tools", enabledGlobal: true },
+	{ id: "ff_2", name: "billing.chapa", description: "Enable Chapa payments", enabledGlobal: false },
+];
+
 const eimsSubmissions = [
 	{
 		id: "sub_mock_1",
@@ -10,7 +127,7 @@ const eimsSubmissions = [
 		documentType: "INV",
 		transactionType: "B2C",
 		status: "accepted",
-		irn: "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74",
+		irn: "TEST-IRN-51fa3144ae45d2a06873a1e81c59ab74",
 		sourceSystem: "Front POS",
 		establishment: "Bole Branch",
 		totalValue: "517.50",
@@ -136,16 +253,15 @@ const lookupSeed = {
 
 const overview = {
 	data: {
-		mode: "mock",
-		environment: "sandbox",
+		mode: "setup_in_progress",
+		environment: "not_configured",
 		organizationId: "org_mock",
 		setupProgress: [
-			{ key: "twoFactor", label: "2FA enforced for EIMS users", status: "complete" },
-			{ key: "enterprise", label: "Enterprise profile", status: "complete" },
-			{ key: "establishment", label: "Primary establishment and sub-TIN", status: "complete" },
-			{ key: "source", label: "Source system approval", status: "attention" },
-			{ key: "certificate", label: "Sandbox certificate", status: "pending" },
-			{ key: "phase0", label: "Phase 0 Layer B sandbox verification", status: "blocked" },
+			{ key: "twoFactor", label: "Account security enabled", status: "complete" },
+			{ key: "enterprise", label: "Business tax profile", status: "complete" },
+			{ key: "establishment", label: "Branch details", status: "complete" },
+			{ key: "source", label: "MoR-approved register/POS reference", status: "attention" },
+			{ key: "certificate", label: "EIMS certificate and credentials", status: "pending" },
 		],
 		stats: {
 			acceptedToday: 1,
@@ -154,9 +270,9 @@ const overview = {
 			certificatesExpiring: 1,
 		},
 		health: [
-			{ label: "MoR sandbox", status: "mocked", detail: "Waiting for INSA sandbox credentials" },
-			{ label: "Vault signing", status: "local", detail: "Layer A uses local signing until Vault is configured" },
-			{ label: "Lookup registry", status: "ready", detail: "Seeded from V3 plan and configurable later" },
+			{ label: "MoR connection", status: "pending", detail: "Waiting for credentials and certificate" },
+			{ label: "Certificate", status: "pending", detail: "INSA-issued certificate required" },
+			{ label: "Invoice queue", status: "ready", detail: "Serialized per MoR-approved register/POS" },
 		],
 		enterprises: [
 			{
@@ -196,11 +312,71 @@ const overview = {
 			},
 		],
 		blockers: [
-			"INSA sandbox credentials not yet received",
-			"Calculation Error cancellation reason code 6 still needs Phase 0 confirmation",
-			"Exact datetime format remains unlocked until sandbox acceptance",
+			"MoR-approved register/POS number is missing for one register",
+			"EIMS certificate and API credentials still need to be added",
 		],
 		recentSubmissions: eimsSubmissions,
+	},
+};
+
+const tenantWorkspace = {
+	data: {
+		organizationId: "org_mock",
+		operationModeLabel: "Setup in progress",
+		plainLanguageSummary:
+			"Complete the business tax setup once. After that, your normal sales, receipts, cancellations, prints, and exports can use EIMS automatically.",
+		readiness: {
+			readyForLive: false,
+			blockers: overview.data.blockers,
+			steps: [
+				{
+					key: "business-profile",
+					label: "Business tax profile",
+					status: "complete",
+					tenantProvides: ["TIN", "Legal business name", "VAT number if VAT registered", "Business contact phone/email"],
+					actionLabel: "Save business profile",
+				},
+				{
+					key: "branch-profile",
+					label: "Branch and address",
+					status: "complete",
+					tenantProvides: ["Branch name", "Region/city/woreda/kebele", "Sub-TIN when MoR issues one"],
+					actionLabel: "Save branch details",
+				},
+				{
+					key: "mor-source",
+					label: "MoR-approved register/POS",
+					status: "attention",
+					tenantProvides: ["MoR portal-approved system number", "Source type such as POS or ERP"],
+					actionLabel: "Save register/POS reference",
+				},
+				{
+					key: "secure-connection",
+					label: "EIMS certificate and credentials",
+					status: "pending",
+					tenantProvides: ["MoR API credentials", "INSA-issued certificate or CSR result"],
+					actionLabel: "Save connection details",
+				},
+			],
+		},
+		requiredInputs: [
+			"TIN, legal name, VAT number, and contact information",
+			"Branch address and Sub-TIN when MoR issues one",
+			"MoR portal-approved source/register number",
+			"MoR API credentials and INSA-issued certificate",
+		],
+		supportNote: "If the tenant does not have these yet, onboarding staff can guide them through the MoR portal and INSA certificate request.",
+		primaryActions: [
+			{ label: "Continue guided setup", href: "/eims/setup" },
+			{ label: "Review tax invoices", href: "/eims/submissions" },
+			{ label: "Record receipt", href: "/eims/receipts" },
+			{ label: "Cancel an invoice", href: "/eims/bulk" },
+			{ label: "Export records", href: "/eims/compliance" },
+		],
+		alerts: [
+			{ level: "warning", message: "One register is waiting for its MoR-approved system number." },
+			{ level: "info", message: "Invoices waiting for sync do not show an official IRN or QR until EIMS accepts them." },
+		],
 	},
 };
 
@@ -371,8 +547,8 @@ const receipts = {
 			receiptType: "sales",
 			withholdingType: null,
 			status: "accepted",
-			invoiceIrn: "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74",
-			rrn: "MOCK-RRN-00044",
+			invoiceIrn: "TEST-IRN-51fa3144ae45d2a06873a1e81c59ab74",
+			rrn: "TEST-RRN-00044",
 			paymentMode: "CASH",
 			paidAmount: "517.50",
 		},
@@ -382,7 +558,7 @@ const receipts = {
 			receiptType: "withholding",
 			withholdingType: "TWHT",
 			status: "draft",
-			invoiceIrn: "MOCK-IRN-B2B-0002",
+			invoiceIrn: "TEST-IRN-B2B-0002",
 			rrn: null,
 			paymentMode: "Local Bank Transfer",
 			paidAmount: "600.00",
@@ -395,7 +571,6 @@ const credentials = {
 		{
 			id: "cred_mock_1",
 			sourceSystem: "Front POS",
-			environment: "sandbox",
 			username: "TIN0074136947",
 			clientId: "client-front-pos",
 			status: "tested",
@@ -417,7 +592,6 @@ const tenantCertificates = {
 		{
 			id: "cert_mock_1",
 			sourceSystem: "Front POS",
-			environment: "sandbox",
 			provider: "Vault Transit",
 			csrStrategy: "vault-generated",
 			keyProvider: "local",
@@ -435,7 +609,7 @@ const bulkBatches = {
 	data: [
 		{
 			id: "bulk_mock_1",
-			conversationId: "MOCK-CONV-20260526-001",
+			conversationId: "TEST-CONV-20260526-001",
 			endpoint: "/api/v1/bulkInvoice",
 			status: "processing",
 			submitted: 12,
@@ -453,7 +627,7 @@ const cancellations = {
 	data: [
 		{
 			id: "cancel_mock_1",
-			invoiceIrn: "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74",
+			invoiceIrn: "TEST-IRN-51fa3144ae45d2a06873a1e81c59ab74",
 			reasonCode: "4",
 			reasonLabel: "Others",
 			remark: "Customer returned the order",
@@ -497,7 +671,7 @@ const printLayouts = {
 			id: "print_compact",
 			layout: "compact",
 			paper: "80mm thermal",
-			status: "mocked",
+			status: "test_ready",
 			requiredFields: ["IRN", "QR", "seller TIN", "document number", "total value"],
 			qrSource: "EIMS accepted signedQR only",
 		},
@@ -505,7 +679,7 @@ const printLayouts = {
 			id: "print_a4",
 			layout: "a4",
 			paper: "A4 office printer",
-			status: "mocked",
+			status: "test_ready",
 			requiredFields: ["IRN", "QR", "buyer details", "seller details", "item lines"],
 			qrSource: "EIMS accepted signedQR only",
 		},
@@ -519,7 +693,7 @@ const notifications = {
 			channel: "sms",
 			provider: "Africa's Talking",
 			status: "sent",
-			invoiceIrn: "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74",
+			invoiceIrn: "TEST-IRN-51fa3144ae45d2a06873a1e81c59ab74",
 			retryCount: 0,
 			sentAt: fixedNow,
 		},
@@ -528,7 +702,7 @@ const notifications = {
 			channel: "email",
 			provider: "AWS SES",
 			status: "queued",
-			invoiceIrn: "MOCK-IRN-B2B-0002",
+			invoiceIrn: "TEST-IRN-B2B-0002",
 			retryCount: 1,
 			sentAt: null,
 		},
@@ -545,14 +719,14 @@ const branchHealth = {
 			pendingOffline: 1,
 			activeSources: 1,
 			pendingSources: 1,
-			alerts: ["Bar POS awaiting MoR approval", "Sandbox certificate expires within 60 days"],
+			alerts: ["Bar POS awaiting MoR approval", "Certificate expires within 60 days"],
 		},
 	],
 };
 
 const adminOverview = {
 	data: {
-		mode: "mock",
+		mode: "backend-test-connector",
 		tenantsTotal: 2,
 		tenantsBlocked: 1,
 		acceptedToday: 184,
@@ -582,7 +756,7 @@ const adminOverview = {
 			{
 				id: "org_mock_2",
 				name: "Shoa Supermarket",
-				status: "blocked_sandbox",
+				status: "blocked_credentials",
 				branches: 8,
 				sources: 32,
 				acceptedToday: 88,
@@ -623,6 +797,7 @@ async function handleMockRequest(req, res) {
 
 	if (handleCoreRoutes(path, res)) return;
 	if (handleBillingRoutes(path, res)) return;
+	if (await handleScaffoldManagementRoutes(req, res, url, path)) return;
 	if (await handleTenantEimsRoutes(req, res, path)) return;
 	if (await handleAdminEimsRoutes(req, res, path)) return;
 
@@ -671,8 +846,108 @@ function handleBillingRoutes(path, res) {
 	return false;
 }
 
+async function handleScaffoldManagementRoutes(req, res, url, path) {
+	if (path === "/api/v1/team/members" && req.method === "GET") {
+		return sendJson(res, 200, { data: teamMembers });
+	}
+	if (path === "/api/v1/team/invitations" && req.method === "GET") {
+		return sendJson(res, 200, { data: teamInvitations });
+	}
+	if (path === "/api/v1/team/invitations" && req.method === "POST") {
+		const body = await readJson(req);
+		const invitation = {
+			id: `inv_${teamInvitations.length + 1}`,
+			email: body.email,
+			role: body.role ?? "member",
+			status: "pending",
+			expiresAt: "2026-06-26T10:30:00.000Z",
+			acceptUrl: `http://localhost:5173/settings/members?invitationId=inv_${teamInvitations.length + 1}`,
+		};
+		teamInvitations.push(invitation);
+		return sendJson(res, 201, { data: invitation });
+	}
+	if (path.startsWith("/api/v1/team/invitations/") && req.method === "DELETE") {
+		const id = path.split("/").pop();
+		const index = teamInvitations.findIndex((invitation) => invitation.id === id);
+		if (index === -1) return sendJson(res, 404, { error: { message: "Invitation not found" } });
+		const [deleted] = teamInvitations.splice(index, 1);
+		return sendJson(res, 200, { data: deleted });
+	}
+	if (path.startsWith("/api/v1/team/members/") && req.method === "PATCH") {
+		const id = path.split("/").pop();
+		const body = await readJson(req);
+		const member = teamMembers.find((item) => item.id === id);
+		if (!member) return sendJson(res, 404, { error: { message: "Member not found" } });
+		if (member.role === "owner" && body.role !== "owner") {
+			return sendJson(res, 400, { error: { message: "Cannot demote the last owner" } });
+		}
+		member.role = body.role;
+		return sendJson(res, 200, { data: member });
+	}
+	if (path.startsWith("/api/v1/team/members/") && req.method === "DELETE") {
+		const id = path.split("/").pop();
+		const member = teamMembers.find((item) => item.id === id);
+		if (!member) return sendJson(res, 404, { error: { message: "Member not found" } });
+		if (member.role === "owner") return sendJson(res, 400, { error: { message: "Cannot remove the last owner" } });
+		return sendJson(res, 200, { data: member });
+	}
+	if (path === "/api/v1/organization-settings" && req.method === "GET") {
+		return sendJson(res, 200, { data: organizationSettings });
+	}
+	if (path === "/api/v1/organization-settings" && req.method === "PATCH") {
+		const body = await readJson(req);
+		organizationSettings = { ...organizationSettings, ...body, updatedAt: fixedNow };
+		return sendJson(res, 200, { data: organizationSettings });
+	}
+	if (path === "/api/v1/security-settings" && req.method === "GET") {
+		return sendJson(res, 200, { data: securitySettings });
+	}
+	if (path === "/api/v1/security-settings" && req.method === "PATCH") {
+		const body = await readJson(req);
+		securitySettings = { ...securitySettings, ...body, updatedAt: fixedNow };
+		return sendJson(res, 200, { data: securitySettings });
+	}
+	if (path === "/api/v1/admin/users" && req.method === "GET") {
+		const search = url.searchParams.get("search")?.toLowerCase().trim();
+		const data = search
+			? adminUsers.filter(
+					(user) => user.name.toLowerCase().includes(search) || user.email.toLowerCase().includes(search),
+				)
+			: adminUsers;
+		return sendJson(res, 200, { data });
+	}
+	if (path.endsWith("/force-password-reset") && path.startsWith("/api/v1/admin/users/") && req.method === "POST") {
+		const id = path.split("/").at(-2);
+		const user = adminUsers.find((item) => item.id === id);
+		if (!user) return sendJson(res, 404, { error: { message: "User not found" } });
+		return sendJson(res, 200, { data: { userId: id, sessionsRevoked: 2, resetEmailQueued: true } });
+	}
+	if (path.endsWith("/impersonate") && path.startsWith("/api/v1/admin/users/") && req.method === "GET") {
+		res.writeHead(302, { location: "/dashboard" });
+		res.end();
+		return true;
+	}
+	if (path === "/api/v1/admin/settings" && req.method === "GET") {
+		return sendJson(res, 200, { data: platformSettings });
+	}
+	if (path === "/api/v1/admin/settings/feature-flags" && req.method === "GET") {
+		return sendJson(res, 200, { data: featureFlags });
+	}
+	if (path.startsWith("/api/v1/admin/settings/") && req.method === "PUT") {
+		const key = decodeURIComponent(path.slice("/api/v1/admin/settings/".length));
+		const body = await readJson(req);
+		const setting = platformSettings.find((item) => item.key === key);
+		if (!setting) return sendJson(res, 404, { error: { message: "Setting not found" } });
+		setting.value = body.value;
+		setting.updatedAt = fixedNow;
+		return sendJson(res, 200, { data: setting });
+	}
+	return false;
+}
+
 async function handleTenantEimsRoutes(req, res, path) {
 	if (path === "/api/v1/eims/overview") return sendJson(res, 200, overview);
+	if (path === "/api/v1/eims/workspace") return sendJson(res, 200, tenantWorkspace);
 	if (path === "/api/v1/eims/setup/enterprises" && req.method === "POST") {
 		const body = await readJson(req);
 		return sendJson(res, 201, {
@@ -706,92 +981,123 @@ async function handleTenantEimsRoutes(req, res, path) {
 			},
 		});
 	}
-	if (path === "/api/v1/eims/submissions") return sendJson(res, 200, { data: eimsSubmissions });
-	if (path === "/api/v1/eims/submissions/mock-submit" && req.method === "POST") {
+	if (path === "/api/v1/eims/submissions" && req.method === "GET") return sendJson(res, 200, { data: eimsSubmissions });
+	if (
+		(path === "/api/v1/eims/submissions" || path === "/api/v1/eims/submissions/mock-submit") &&
+		req.method === "POST"
+	) {
 		const body = await readJson(req);
 		return sendJson(res, 201, acceptedMockSubmission(body.documentNumber));
 	}
-	if (path === "/api/v1/eims/receipts") return sendJson(res, 200, receipts);
-	if (path === "/api/v1/eims/receipts/mock-submit" && req.method === "POST") {
+	if (path === "/api/v1/eims/receipts" && req.method === "GET") return sendJson(res, 200, receipts);
+	if ((path === "/api/v1/eims/receipts" || path === "/api/v1/eims/receipts/mock-submit") && req.method === "POST") {
 		const body = await readJson(req);
 		return sendJson(res, 201, {
 			data: {
-				message: `${body.receiptType ?? "sales"} receipt queued for mock EIMS submission`,
+				message: `${body.receiptType ?? "sales"} receipt queued for EIMS test submission`,
 				status: "queued",
-				reference: "MOCK-RRN-NEW",
+				reference: "TEST-RRN-NEW",
+				receiptType: body.receiptType,
+				invoiceIrn: body.invoiceIrn,
+				paymentMode: body.paymentMode,
+				paidAmount: body.paidAmount,
+				handledBy: "backend-repository",
 			},
 		});
 	}
-	if (path === "/api/v1/eims/credentials") return sendJson(res, 200, credentials);
-	if (path === "/api/v1/eims/credentials/mock-save" && req.method === "POST") {
+	if (path === "/api/v1/eims/credentials" && req.method === "GET") return sendJson(res, 200, credentials);
+	if ((path === "/api/v1/eims/credentials" || path === "/api/v1/eims/credentials/mock-save") && req.method === "POST") {
 		const body = await readJson(req);
 		return sendJson(res, 201, {
 			data: {
-				message: `Credential stored for ${body.sourceSystemId ?? "source"} in ${body.environment ?? "sandbox"}`,
+				message: `Connection details saved for ${body.sourceSystemId ?? "source"}`,
 				status: "tested",
-				reference: "cred-mock-created",
+				reference: "cred-test-created",
+				sourceSystemId: body.sourceSystemId,
+				clientId: body.clientId,
+				username: body.username,
+				secretsReturned: false,
+				handledBy: "backend-repository",
 			},
 		});
 	}
-	if (path === "/api/v1/eims/credentials/mock-test" && req.method === "POST") {
+	if (
+		(path === "/api/v1/eims/credentials/test" || path === "/api/v1/eims/credentials/mock-test") &&
+		req.method === "POST"
+	) {
 		return sendJson(res, 200, {
 			data: {
-				message: "Mock EIMS authentication succeeded and token was cached with Redis TTL",
+				message: "EIMS connection test succeeded",
 				status: "success",
-				reference: "redis:eims:token:sandbox:src_mock_1",
+				reference: "eims:token:src_test_1",
+				handledBy: "backend-repository",
 			},
 		});
 	}
 	if (path === "/api/v1/eims/certificates") return sendJson(res, 200, tenantCertificates);
-	if (path === "/api/v1/eims/certificates/mock-generate-csr" && req.method === "POST") {
+	if (
+		(path === "/api/v1/eims/certificates/generate-csr" || path === "/api/v1/eims/certificates/mock-generate-csr") &&
+		req.method === "POST"
+	) {
 		return sendJson(res, 201, {
 			data: {
 				message: "Vault CSR generated for INSA submission",
 				status: "ready",
-				reference: "csr-org_mock-src_mock_1-v1.pem",
+				reference: "csr-org-test-src-test-1-v1.pem",
+				handledBy: "backend-repository",
 			},
 		});
 	}
-	if (path === "/api/v1/eims/certificates/mock-import" && req.method === "POST") {
+	if (
+		(path === "/api/v1/eims/certificates/import" || path === "/api/v1/eims/certificates/mock-import") &&
+		req.method === "POST"
+	) {
+		const body = await readJson(req);
 		return sendJson(res, 201, {
 			data: {
-				message: "Certificate imported and linked to sandbox source",
+				message: "Certificate imported for source",
 				status: "valid",
-				reference: "cert-org_mock-src_mock_1",
+				reference: "cert-org-test-src-test-1",
+				sourceSystemId: body.sourceSystemId,
+				certificateReceived: typeof body.certificatePem === "string" && body.certificatePem.length > 0,
+				handledBy: "backend-repository",
 			},
 		});
 	}
-	if (path === "/api/v1/eims/bulk") return sendJson(res, 200, bulkBatches);
-	if (path === "/api/v1/eims/bulk/mock-submit" && req.method === "POST") {
+	if (path === "/api/v1/eims/bulk" && req.method === "GET") return sendJson(res, 200, bulkBatches);
+	if ((path === "/api/v1/eims/bulk" || path === "/api/v1/eims/bulk/mock-submit") && req.method === "POST") {
 		return sendJson(res, 202, {
 			data: {
-				message: "Mock bulk batch submitted and conversation ID stored",
+				message: "Batch sync started and batch ID stored",
 				status: "processing",
-				reference: "MOCK-CONV-NEW",
+				reference: "TEST-CONV-NEW",
 			},
 		});
 	}
-	if (path === "/api/v1/eims/bulk/mock-reconcile" && req.method === "POST") {
+	if ((path === "/api/v1/eims/bulk/reconcile" || path === "/api/v1/eims/bulk/mock-reconcile") && req.method === "POST") {
 		const body = await readJson(req);
 		return sendJson(res, 202, {
 			data: {
-				message: "Mock reconciliation worker scheduled after callback timeout",
+				message: "Batch status refresh scheduled",
 				status: "scheduled",
-				reference: body.conversationId ?? "MOCK-CONV-UNKNOWN",
+				reference: body.conversationId ?? "TEST-CONV-UNKNOWN",
 			},
 		});
 	}
-	if (path === "/api/v1/eims/cancellations") return sendJson(res, 200, cancellations);
-	if (path === "/api/v1/eims/cancellations/mock-submit" && req.method === "POST") {
+	if (path === "/api/v1/eims/cancellations" && req.method === "GET") return sendJson(res, 200, cancellations);
+	if (
+		(path === "/api/v1/eims/cancellations" || path === "/api/v1/eims/cancellations/mock-submit") &&
+		req.method === "POST"
+	) {
 		const body = await readJson(req);
 		const missingRemark = body.reasonCode === "4" && !body.remark;
 		return sendJson(res, missingRemark ? 422 : 202, {
 			data: {
 				message: missingRemark
 					? "Reason code 4 requires a remark before submission"
-					: "Mock cancellation submitted with reason and audit event",
+					: "Cancellation submitted with reason and audit event",
 				status: missingRemark ? "blocked" : "accepted",
-				reference: body.invoiceIrn ?? "MOCK-IRN",
+				reference: body.invoiceIrn ?? "TEST-IRN",
 			},
 		});
 	}
@@ -799,7 +1105,25 @@ async function handleTenantEimsRoutes(req, res, path) {
 	if (path === "/api/v1/eims/print-layouts") return sendJson(res, 200, printLayouts);
 	if (path === "/api/v1/eims/notifications") return sendJson(res, 200, notifications);
 	if (path === "/api/v1/eims/branch-health") return sendJson(res, 200, branchHealth);
-	if (path === "/api/v1/eims/acceptance/cases") {
+	if (path === "/api/v1/eims/compliance/evidence" && req.method === "GET") return sendJson(res, 200, complianceEvidence());
+	if (
+		(path === "/api/v1/eims/compliance/evidence" || path === "/api/v1/eims/compliance/evidence/mock-generate") &&
+		req.method === "POST"
+	) {
+		return sendJson(res, 201, {
+			data: {
+				message: "Encrypted tenant export package manifest generated",
+				status: "ready",
+				reference: "eims-export-org-test-20260527.zip",
+			},
+		});
+	}
+	if (path.startsWith("/api/v1/eims/lookups/")) return sendLookup(path, res);
+	return false;
+}
+
+async function handleAdminEimsRoutes(req, res, path) {
+	if (path === "/api/v1/admin/eims/acceptance/cases") {
 		return sendJson(res, 200, {
 			data: acceptanceCases.map((testCase) => ({
 				...testCase,
@@ -808,11 +1132,11 @@ async function handleTenantEimsRoutes(req, res, path) {
 			})),
 		});
 	}
-	if (path === "/api/v1/eims/acceptance/run-all" && req.method === "POST") {
+	if (path === "/api/v1/admin/eims/acceptance/run-all" && req.method === "POST") {
 		const results = acceptanceCases.map((testCase) => acceptanceRun(testCase.caseId));
 		return sendJson(res, 201, {
 			data: {
-				organizationId: "org_mock",
+				organizationId: "platform",
 				executionMode: "mock_until_sandbox",
 				total: results.length,
 				passed: results.filter((result) => result.passed).length,
@@ -821,7 +1145,7 @@ async function handleTenantEimsRoutes(req, res, path) {
 			},
 		});
 	}
-	const acceptanceMatch = path.match(/^\/api\/v1\/eims\/acceptance\/cases\/([^/]+)(?:\/run)?$/);
+	const acceptanceMatch = path.match(/^\/api\/v1\/admin\/eims\/acceptance\/cases\/([^/]+)(?:\/run)?$/);
 	if (acceptanceMatch && req.method === "GET") {
 		const testCase = acceptanceCases.find((candidate) => candidate.caseId === acceptanceMatch[1]);
 		return testCase
@@ -831,21 +1155,7 @@ async function handleTenantEimsRoutes(req, res, path) {
 	if (acceptanceMatch && req.method === "POST") {
 		return sendJson(res, 201, { data: acceptanceRun(acceptanceMatch[1]) });
 	}
-	if (path === "/api/v1/eims/compliance/evidence") return sendJson(res, 200, complianceEvidence());
-	if (path === "/api/v1/eims/compliance/evidence/mock-generate" && req.method === "POST") {
-		return sendJson(res, 201, {
-			data: {
-				message: "Encrypted mock compliance evidence ZIP manifest generated",
-				status: "ready",
-				reference: "eims-evidence-org_mock-20260527.zip",
-			},
-		});
-	}
-	if (path.startsWith("/api/v1/eims/lookups/")) return sendLookup(path, res);
-	return false;
-}
 
-async function handleAdminEimsRoutes(req, res, path) {
 	const adminRoutes = {
 		"/api/v1/admin/eims/overview": adminOverview,
 		"/api/v1/admin/eims/tenants": { data: adminOverview.data.tenants },
@@ -854,11 +1164,14 @@ async function handleAdminEimsRoutes(req, res, path) {
 		"/api/v1/admin/eims/resources": adminResources(),
 		"/api/v1/admin/eims/compliance": adminCompliance(),
 	};
-	if (path === "/api/v1/admin/eims/actions/mock-run" && req.method === "POST") {
+	if (
+		(path === "/api/v1/admin/eims/actions/run" || path === "/api/v1/admin/eims/actions/mock-run") &&
+		req.method === "POST"
+	) {
 		const body = await readJson(req);
 		return sendJson(res, 202, {
 			data: {
-				message: `Mock admin action completed: ${body.action ?? "unknown"}`,
+				message: `Backend EIMS test action completed: ${body.action ?? "unknown"}`,
 				status: "accepted",
 				reference: body.targetId ?? "platform",
 			},
@@ -905,11 +1218,11 @@ function acceptedMockSubmission(documentNumber) {
 	return {
 		data: {
 			id: "sub_mock_new",
-			documentNumber: documentNumber ?? "INV-MOCK-NEW",
+			documentNumber: documentNumber ?? "INV-TEST-NEW",
 			documentType: "INV",
 			transactionType: "B2C",
 			status: "accepted",
-			irn: "MOCK-IRN-NEW",
+			irn: "TEST-IRN-NEW",
 			sourceSystem: "Front POS",
 			establishment: "Bole Branch",
 			totalValue: "517.50",
@@ -926,9 +1239,11 @@ function complianceEvidence() {
 			generatedAt: fixedNow,
 			readiness: 72,
 			items: [
-				{ key: "phase0-layer-a", label: "Phase 0 Layer A local report", status: "ready" },
-				{ key: "rls", label: "Targeted EIMS RLS policy export", status: "planned" },
-				{ key: "print", label: "Thermal and A4 print evidence", status: "mocked" },
+				{ key: "invoices", label: "Tax invoice records", status: "ready" },
+				{ key: "receipts", label: "Receipt records", status: "ready" },
+				{ key: "cancellations", label: "Cancellation records", status: "ready" },
+				{ key: "print", label: "Printable receipt layouts", status: "test_ready" },
+				{ key: "notifications", label: "Buyer notification history", status: "ready" },
 			],
 		},
 	};
@@ -1186,8 +1501,8 @@ function adminResources() {
 				{ name: "eims:submission:src_mock_1", depth: 0, status: "running" },
 				{ name: "eims:submission:src_mock_2", depth: 4, status: "paused_pending_approval" },
 			],
-			vault: { status: "mocked", provider: "local" },
-			mor: { sandbox: "mocked", production: "not_configured" },
+			vault: { status: "test_connector", provider: "local" },
+			mor: { sandbox: "pending_credentials", production: "not_configured" },
 		},
 	};
 }

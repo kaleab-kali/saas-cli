@@ -15,23 +15,29 @@ export const Route = createFileRoute("/admin/users/")({
 
 const UserActions = React.memo(
 	({ userId, email }: { readonly userId: string; readonly email: string }) => {
+		const { t } = useTranslation();
 		const forceReset = useForcePasswordReset();
 
 		const handleReset = React.useCallback(async () => {
-			if (!window.confirm(`Force password reset for ${email}? All sessions will be killed.`)) return;
+			if (!window.confirm(t("admin.usersPage.resetConfirm", { email }))) return;
 			await forceReset.mutateAsync(userId);
-			window.alert("All sessions killed. Reset email sent (if SMTP configured).");
-		}, [forceReset, userId, email]);
+			window.alert(t("admin.usersPage.resetDone"));
+		}, [forceReset, userId, email, t]);
 
 		const handleImpersonate = React.useCallback(() => {
-			if (!window.confirm(`Impersonate ${email}? 15-min session. This is logged.`)) return;
+			if (!window.confirm(t("admin.usersPage.impersonateConfirm", { email }))) return;
 			window.location.href = impersonateUrl(userId);
-		}, [userId, email]);
+		}, [userId, email, t]);
 
 		return (
 			<div className="flex gap-1 justify-end">
-				<Button size="sm" variant="outline" onClick={handleImpersonate} title="Impersonate (15 min)">
-					Impersonate
+				<Button
+					size="sm"
+					variant="outline"
+					onClick={handleImpersonate}
+					title={t("admin.usersPage.impersonateTitle")}
+				>
+					{t("admin.usersPage.impersonate")}
 				</Button>
 				<Button
 					size="sm"
@@ -40,7 +46,7 @@ const UserActions = React.memo(
 					onClick={handleReset}
 					disabled={forceReset.isPending}
 				>
-					Reset PW
+					{t("admin.usersPage.resetPasswordShort")}
 				</Button>
 			</div>
 		);
@@ -89,7 +95,7 @@ function UsersPage() {
 							<TableHead>{t("admin.verifiedCol")}</TableHead>
 							<TableHead>{t("admin.orgsCol")}</TableHead>
 							<TableHead>{t("admin.joinedCol")}</TableHead>
-							<TableHead className="text-right">Actions</TableHead>
+							<TableHead className="text-right">{t("admin.usersPage.actions")}</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>

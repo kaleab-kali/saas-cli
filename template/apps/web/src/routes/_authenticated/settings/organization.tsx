@@ -2,7 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { useOrganizationSettings, useUpdateOrganizationSettings } from "#features/platform/api/platform.hooks";
+import {
+	type OrganizationSettings,
+	useOrganizationSettings,
+	useUpdateOrganizationSettings,
+} from "#features/platform/api/platform.hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,17 +30,54 @@ const CURRENCIES = ["USD", "EUR", "GBP", "AED", "SAR", "KES", "ETB", "NGN", "ZAR
 const DATE_FORMATS = ["YYYY-MM-DD", "MM/DD/YYYY", "DD/MM/YYYY", "DD-MMM-YYYY"];
 const MONTH_KEYS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"] as const;
 
+type OrganizationSettingsForm = Pick<
+	OrganizationSettings,
+	| "timezone"
+	| "currency"
+	| "dateFormat"
+	| "fiscalYearStartMonth"
+	| "invoiceNumberPrefix"
+	| "invoiceNumberPadding"
+	| "companyEmail"
+	| "companyPhone"
+	| "companyAddress"
+	| "taxId"
+	| "logoUrl"
+	| "primaryColor"
+	| "emailFooter"
+>;
+
+const toOrganizationSettingsForm = (settings: OrganizationSettings): OrganizationSettingsForm => ({
+	timezone: settings.timezone,
+	currency: settings.currency,
+	dateFormat: settings.dateFormat,
+	fiscalYearStartMonth: settings.fiscalYearStartMonth,
+	invoiceNumberPrefix: settings.invoiceNumberPrefix,
+	invoiceNumberPadding: settings.invoiceNumberPadding,
+	companyEmail: settings.companyEmail,
+	companyPhone: settings.companyPhone,
+	companyAddress: settings.companyAddress,
+	taxId: settings.taxId,
+	logoUrl: settings.logoUrl,
+	primaryColor: settings.primaryColor,
+	emailFooter: settings.emailFooter,
+});
+
 function Page() {
 	const { t } = useTranslation();
 	const { data } = useOrganizationSettings();
 	const update = useUpdateOrganizationSettings();
-	const [form, setForm] = React.useState<Record<string, unknown>>({});
+	const [form, setForm] = React.useState<Partial<OrganizationSettingsForm>>({});
 
 	React.useEffect(() => {
-		if (data) setForm(data);
+		if (data) setForm(toOrganizationSettingsForm(data));
 	}, [data]);
 
-	const setField = React.useCallback((key: string, value: unknown) => setForm((f) => ({ ...f, [key]: value })), []);
+	const setField = React.useCallback(
+		<K extends keyof OrganizationSettingsForm>(key: K, value: OrganizationSettingsForm[K]) =>
+			setForm((f) => ({ ...f, [key]: value })),
+		[],
+	);
 
 	const onSave = React.useCallback(async () => {
 		try {

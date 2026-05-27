@@ -271,17 +271,20 @@ const SPEC = (t: (k: string, o?: Record<string, unknown>) => string): Record<str
 });
 
 const BoolControl = React.memo(
-	({ value, onChange }: { readonly value: string; readonly onChange: (v: string) => void }) => (
-		<Select value={value === "true" ? "true" : "false"} onValueChange={onChange}>
-			<SelectTrigger className="w-32">
-				<SelectValue />
-			</SelectTrigger>
-			<SelectContent>
-				<SelectItem value="true">Enabled</SelectItem>
-				<SelectItem value="false">Disabled</SelectItem>
-			</SelectContent>
-		</Select>
-	),
+	({ value, onChange }: { readonly value: string; readonly onChange: (v: string) => void }) => {
+		const { t } = useTranslation();
+		return (
+			<Select value={value === "true" ? "true" : "false"} onValueChange={onChange}>
+				<SelectTrigger className="w-32">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="true">{t("admin.enabled")}</SelectItem>
+					<SelectItem value="false">{t("admin.disabled")}</SelectItem>
+				</SelectContent>
+			</Select>
+		);
+	},
 	(prev, next) => prev.value === next.value,
 );
 BoolControl.displayName = "BoolControl";

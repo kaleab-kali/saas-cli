@@ -19,6 +19,7 @@ import { OrganizationSettingsModule } from "#modules/organization-settings/organ
 import { ReportingModule } from "#modules/reporting/reporting.module";
 import { RoleModule } from "#modules/role/role.module";
 import { SecuritySettingsModule } from "#modules/security-settings/security-settings.module";
+import { TeamModule } from "#modules/team/team.module";
 import { PrismaModule } from "#shared/database/prisma.module";
 import { TenantContextModule } from "#shared/database/tenant-context";
 import { EmailModule } from "#shared/email/email.module";
@@ -64,6 +65,7 @@ import { StorageModule } from "#shared/storage/storage.module";
 		InvoicingModule,
 		EimsModule,
 		RoleModule,
+		TeamModule,
 		ErrorReportingModule,
 	],
 	providers: [

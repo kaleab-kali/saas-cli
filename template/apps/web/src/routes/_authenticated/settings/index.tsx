@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const SECTIONS = [
+	{ key: "members", to: "/settings/members" },
 	{ key: "roles", to: "/settings/roles" },
 	{ key: "billing", to: "/settings/billing" },
 	{ key: "organization", to: "/settings/organization" },
@@ -11,9 +12,6 @@ const SECTIONS = [
 	{ key: "apiKeys", to: "/settings/api-keys" },
 	{ key: "auditLog", to: "/settings/audit-log" },
 	{ key: "lookups", to: "/settings/lookups" },
-	{ key: "amenities", to: "/settings/amenities" },
-	{ key: "customFields", to: "/settings/custom-fields" },
-	{ key: "teamHierarchy", to: "/settings/team-hierarchy" },
 ] as const;
 
 const SettingsIndex = React.memo(
