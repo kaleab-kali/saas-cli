@@ -5,7 +5,7 @@ import { useAdminSession } from "#features/admin/api/admin-auth";
 import { AdminLanguageSwitcher } from "#shared/components/AdminLanguageSwitcher";
 import { i18nAdmin } from "#shared/i18n/config-admin";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/admin")({
@@ -46,11 +46,14 @@ const AdminTopBanner = React.memo(
 		const { t } = useTranslation();
 		return (
 			<div className="border-b border-border bg-destructive/5 px-6 py-2 flex items-center justify-between gap-3">
-				<p className="text-xs font-medium text-destructive">
+				<div className="flex min-w-0 items-center gap-2">
+					<SidebarTrigger />
+					<p className="min-w-0 text-xs font-medium text-destructive">
 					{t("admin.superAdminBanner", {
 						defaultValue: "SUPER ADMIN MODE — You are viewing platform-level data across all organizations",
 					})}
-				</p>
+					</p>
+				</div>
 				<AdminLanguageSwitcher />
 			</div>
 		);

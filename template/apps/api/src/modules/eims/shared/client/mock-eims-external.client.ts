@@ -1,24 +1,20 @@
-import { Injectable } from "@nestjs/common";
-import { EimsMockService } from "../mock/eims-mock.service";
+import { Inject, Injectable } from "@nestjs/common";
+import { EIMS_BACKEND_REPOSITORY, type EimsBackendRepository } from "../mock/eims-backend.repository";
 import type { EimsExternalClient, RegisterInvoiceInput, RegisterReceiptInput } from "./eims-external-client";
 
 @Injectable()
 export class MockEimsExternalClient implements EimsExternalClient {
-	constructor(private readonly fixtures: EimsMockService) {}
+	constructor(@Inject(EIMS_BACKEND_REPOSITORY) private readonly repository: EimsBackendRepository) {}
 
 	async registerInvoice(input: RegisterInvoiceInput) {
-		return this.fixtures.createMockSubmission(input.organizationId, input.documentNumber);
+		return this.repository.createAcceptedSubmission(input.organizationId, input.documentNumber);
 	}
 
 	async registerReceipt(input: RegisterReceiptInput) {
-		const response = this.fixtures.receipts(input.organizationId);
-		return {
-			data: {
-				...response.data[0],
-				receiptNumber: input.receiptNumber ?? response.data[0]?.receiptNumber,
-				status: "accepted",
-			},
-		};
+		return this.repository.createAcceptedReceipt(input.organizationId, {
+			receiptNumber: input.receiptNumber,
+			payload: input.payload,
+		});
 	}
 
 	async verifyIrn(input: { organizationId: string; irn: string }) {
@@ -26,7 +22,7 @@ export class MockEimsExternalClient implements EimsExternalClient {
 			data: {
 				organizationId: input.organizationId,
 				irn: input.irn,
-				status: input.irn.startsWith("MOCK-IRN") ? "active" : "not_found",
+				status: input.irn.startsWith("IRN-") ? "active" : "not_found",
 				verifiedAt: new Date().toISOString(),
 			},
 		};

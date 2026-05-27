@@ -27,6 +27,7 @@ export const NotificationBell = React.memo(
 		React.useEffect(() => {
 			if (!userId) return;
 			const s = connectNotificationSocket(userId);
+			if (!s) return;
 			const onNotif = (payload: {
 				severity?: string;
 				title?: string;

@@ -43,8 +43,12 @@ export class EimsSetupController {
 	@Post("enterprises")
 	@RequirePermissions("eims-enterprise:create")
 	async createEnterprise(@Body() dto: CreateEimsEnterpriseDto, @Req() req: AuthedRequest) {
+		const enterprise = await this.createEnterpriseHandler.execute(req.organizationId, dto);
 		return {
-			data: await this.createEnterpriseHandler.execute(req.organizationId, dto),
+			data: {
+				...enterprise,
+				message: `Enterprise saved for TIN ${enterprise.tin}`,
+			},
 		};
 	}
 
@@ -59,8 +63,12 @@ export class EimsSetupController {
 	@Post("establishments")
 	@RequirePermissions("eims-establishment:create")
 	async createEstablishment(@Body() dto: CreateEimsEstablishmentDto, @Req() req: AuthedRequest) {
+		const establishment = await this.createEstablishmentHandler.execute(req.organizationId, dto);
 		return {
-			data: await this.createEstablishmentHandler.execute(req.organizationId, dto),
+			data: {
+				...establishment,
+				message: `Branch saved: ${establishment.name}`,
+			},
 		};
 	}
 
@@ -75,8 +83,12 @@ export class EimsSetupController {
 	@Post("sources")
 	@RequirePermissions("eims-source:create")
 	async createSourceSystem(@Body() dto: CreateEimsSourceSystemDto, @Req() req: AuthedRequest) {
+		const source = await this.createSourceSystemHandler.execute(req.organizationId, dto);
 		return {
-			data: await this.createSourceSystemHandler.execute(req.organizationId, dto),
+			data: {
+				...source,
+				message: "Register/POS details saved. Final tax sync remains blocked until connection details and certificate are valid.",
+			},
 		};
 	}
 }

@@ -89,6 +89,18 @@ type ComplianceEvidence = {
 	items: Array<{ label: string; status: string }>;
 };
 
+type AcceptanceRunAll = {
+	total: number;
+	passed: number;
+	failed: number;
+	results: Array<{
+		caseId: string;
+		passed: boolean;
+		assertions: Array<{ name: string; passed: boolean; expected: string; actual: string }>;
+		evidence: { checklistEvidence: string[] };
+	}>;
+};
+
 type PrintLayout = {
 	layout: string;
 	paper: string;
@@ -181,7 +193,131 @@ async function expectRowContains(page: Page, rowAnchor: string, values: Array<st
 	}
 }
 
+async function openSidebarIfNeeded(page: Page, navButtonName: string | RegExp) {
+	const navItem = page.getByRole("button", { name: navButtonName }).first();
+	if (await navItem.isVisible().catch(() => false)) return;
+	await page.getByRole("button", { name: "Toggle Sidebar" }).click();
+	await expect(navItem).toBeVisible();
+}
+
+async function clickNavLink(page: Page, name: string) {
+	const link = page.getByRole("link", { name });
+	if (!(await link.first().isVisible().catch(() => false))) {
+		await page.getByRole("button", { name: "Toggle Sidebar" }).click();
+		await expect(link.first()).toBeVisible();
+	}
+	await link.first().click();
+}
+
 test.describe("tenant EIMS UI binds exact backend mock data", () => {
+	test("tenant reaches EIMS through sidebar and submits onboarding/action forms", async ({ page }) => {
+		await page.goto("/settings", { waitUntil: "domcontentloaded" });
+		await openSidebarIfNeeded(page, /EIMS/i);
+		await page.getByRole("button", { name: /EIMS/i }).click();
+		await clickNavLink(page, "Enterprises");
+		await expect(page.getByRole("heading", { name: "EIMS Enterprises" })).toBeVisible();
+
+		await page.getByLabel("TIN").fill("0074136947");
+		await page.getByLabel("Legal name").fill("Habesha Restaurant PLC");
+		const enterpriseSave = waitForJson<ApiEnvelope<{ message: string }>>(page, "/api/v1/eims/setup/enterprises", 201);
+		await page.getByRole("button", { name: "Save enterprise profile" }).click();
+		await expectVisibleTexts(page, [(await enterpriseSave).data.message]);
+
+		await clickNavLink(page, "Branches");
+		await expect(page.getByRole("heading", { name: "EIMS Establishments" })).toBeVisible();
+		await page.getByLabel("Branch name").fill("Bole Branch");
+		await page.getByLabel("Branch code").fill("BOL");
+		const branchSave = waitForJson<ApiEnvelope<{ message: string }>>(page, "/api/v1/eims/setup/establishments", 201);
+		await page.getByRole("button", { name: "Save branch" }).click();
+		await expectVisibleTexts(page, [(await branchSave).data.message]);
+
+		await clickNavLink(page, "MoR Sources");
+		await expect(page.getByRole("heading", { name: "EIMS MoR Sources" })).toBeVisible();
+		await page.getByLabel("Source name").fill("Front POS");
+		await page.getByLabel("MoR system number").fill("329D03B6F0");
+		const sourceSave = waitForJson<ApiEnvelope<{ message: string }>>(page, "/api/v1/eims/setup/sources", 201);
+		await page.getByRole("button", { name: "Save MoR source reference" }).click();
+		await expectVisibleTexts(page, [(await sourceSave).data.message]);
+
+		await clickNavLink(page, "Credentials");
+		await expect(page.getByRole("heading", { name: "EIMS Credentials" })).toBeVisible();
+		const credentialSave = waitForJson<ApiEnvelope<{ message: string }>>(
+			page,
+			"/api/v1/eims/credentials/mock-save",
+			201,
+		);
+		await page.getByRole("button", { name: "Save encrypted credential" }).click();
+		await expectVisibleTexts(page, [(await credentialSave).data.message]);
+		const credentialTest = waitForJson<ApiEnvelope<{ message: string }>>(
+			page,
+			"/api/v1/eims/credentials/mock-test",
+		);
+		await page.getByRole("button", { name: "Test credential" }).click();
+		await expectVisibleTexts(page, [(await credentialTest).data.message]);
+
+		await clickNavLink(page, "Certificates");
+		await expect(page.getByRole("heading", { name: "EIMS Certificates" })).toBeVisible();
+		const csr = waitForJson<ApiEnvelope<{ message: string; reference: string }>>(
+			page,
+			"/api/v1/eims/certificates/mock-generate-csr",
+			201,
+		);
+		await page.getByRole("button", { name: "Generate Vault CSR" }).click();
+		const csrPayload = await csr;
+		await expectVisibleTexts(page, [csrPayload.data.message, csrPayload.data.reference]);
+		const certImport = waitForJson<ApiEnvelope<{ message: string }>>(
+			page,
+			"/api/v1/eims/certificates/mock-import",
+			201,
+		);
+		await page.getByRole("button", { name: "Import certificate" }).click();
+		await expectVisibleTexts(page, [(await certImport).data.message]);
+
+		await clickNavLink(page, "Receipts");
+		await expect(page.getByRole("heading", { name: "EIMS Receipts" })).toBeVisible();
+		const receipt = waitForJson<ApiEnvelope<{ message: string }>>(page, "/api/v1/eims/receipts/mock-submit", 201);
+		await page.getByRole("button", { name: "Submit mock receipt" }).click();
+		await expectVisibleTexts(page, [(await receipt).data.message]);
+
+		await clickNavLink(page, "Bulk");
+		await expect(page.getByRole("heading", { name: "EIMS Bulk" })).toBeVisible();
+		const bulkSubmit = waitForJson<ApiEnvelope<{ message: string }>>(page, "/api/v1/eims/bulk/mock-submit", 202);
+		await page.getByRole("button", { name: "Submit mock bulk batch" }).click();
+		await expectVisibleTexts(page, [(await bulkSubmit).data.message]);
+		const bulkReconcile = waitForJson<ApiEnvelope<{ message: string }>>(
+			page,
+			"/api/v1/eims/bulk/mock-reconcile",
+			202,
+		);
+		await page.getByRole("button", { name: "Reconcile first conversation" }).click();
+		await expectVisibleTexts(page, [(await bulkReconcile).data.message]);
+		const cancellation = waitForJson<ApiEnvelope<{ message: string }>>(
+			page,
+			"/api/v1/eims/cancellations/mock-submit",
+			202,
+		);
+		await page.getByRole("button", { name: "Submit cancellation" }).click();
+		await expectVisibleTexts(page, [(await cancellation).data.message]);
+
+		await clickNavLink(page, "Compliance");
+		await expect(page.getByRole("heading", { name: "EIMS Compliance" })).toBeVisible();
+		const runAll = waitForJson<ApiEnvelope<AcceptanceRunAll>>(page, "/api/v1/eims/acceptance/run-all", 201);
+		await page.getByRole("button", { name: "Run all BSP cases" }).click();
+		const runAllPayload = await runAll;
+		expect(runAllPayload.data.total).toBe(13);
+		expect(runAllPayload.data.failed).toBe(0);
+		await expectVisibleTexts(page, [`MoR BSP mock suite: ${runAllPayload.data.passed}/${runAllPayload.data.total} passed`]);
+		await expectVisibleTexts(page, ["IRC-P01", "IRC-N08", "ADD-P001"]);
+		const evidence = waitForJson<ApiEnvelope<{ message: string; reference: string }>>(
+			page,
+			"/api/v1/eims/compliance/evidence/mock-generate",
+			201,
+		);
+		await page.getByRole("button", { name: "Generate mock evidence package" }).click();
+		const evidencePayload = await evidence;
+		await expectVisibleTexts(page, [evidencePayload.data.message, evidencePayload.data.reference]);
+	});
+
 	test("overview, setup, and directories render V3 hierarchy, counters, blockers, and buyer data", async ({ page }) => {
 		const overview = await gotoAndWait<ApiEnvelope<Overview>>(
 			page,
@@ -257,7 +393,7 @@ test.describe("tenant EIMS UI binds exact backend mock data", () => {
 			},
 			{
 				path: "/eims/sources",
-				heading: "EIMS Source Systems",
+				heading: "EIMS MoR Sources",
 				rows: overviewData.sourceSystems.map((row) => ({
 					anchor: row.name,
 					values: [row.systemNumber, row.systemType, row.approvalStatus, row.lastAcceptedCounter],
@@ -358,11 +494,20 @@ test.describe("tenant EIMS UI binds exact backend mock data", () => {
 		const evidencePromise = waitForJson<ApiEnvelope<ComplianceEvidence>>(page, "/api/v1/eims/compliance/evidence");
 		const printPromise = waitForJson<ApiEnvelope<PrintLayout[]>>(page, "/api/v1/eims/print-layouts");
 		const notificationPromise = waitForJson<ApiEnvelope<NotificationLog[]>>(page, "/api/v1/eims/notifications");
+		const acceptanceCasesPromise = waitForJson<ApiEnvelope<Array<{ caseId: string; endpoint: string }>>>(
+			page,
+			"/api/v1/eims/acceptance/cases",
+		);
 		await page.goto("/eims/compliance", { waitUntil: "domcontentloaded" });
 		await expect(page.getByRole("heading", { name: "EIMS Compliance" })).toBeVisible();
 		const evidence = (await evidencePromise).data;
 		const printLayouts = (await printPromise).data;
 		const notifications = (await notificationPromise).data;
+		const acceptanceCases = (await acceptanceCasesPromise).data;
+		for (const caseId of ["IRC-P01", "IRC-P02", "IRC-P03", "IRC-P04", "IRC-P05", "IRC-P06", "IRC-P07", "IRC-N08", "IRC-N09", "IRC-N010", "ADD-N001", "ADD-C001", "ADD-P001"]) {
+			await expectVisibleTexts(page, [caseId]);
+		}
+		expect(acceptanceCases.map((testCase) => testCase.caseId)).toContain("IRC-P01");
 		await expectVisibleTexts(page, [`${evidence.readiness}%`]);
 		for (const item of evidence.items) await expectRowContains(page, item.label, [item.status]);
 		for (const layout of printLayouts) {
@@ -370,7 +515,8 @@ test.describe("tenant EIMS UI binds exact backend mock data", () => {
 			expect(layout.qrSource).toBe("EIMS accepted signedQR only");
 		}
 		for (const notification of notifications) {
-			await expectRowContains(page, notification.channel, [
+			await expectRowContains(page, notification.provider, [
+				notification.channel,
 				notification.provider,
 				notification.status,
 				notification.invoiceIrn,
@@ -381,6 +527,63 @@ test.describe("tenant EIMS UI binds exact backend mock data", () => {
 });
 
 test.describe("super-admin EIMS UI binds exact backend mock data", () => {
+	test("super admin reaches every EIMS operations page through sidebar and runs visible actions", async ({ page }) => {
+		await page.goto("/admin", { waitUntil: "domcontentloaded" });
+		await clickNavLink(page, "EIMS Tenants");
+		await expect(page.getByRole("heading", { name: "EIMS Tenants" })).toBeVisible();
+		await expectVisibleTexts(page, ["Habesha Restaurants", "Shoa Supermarket", "EIMS add-on"]);
+		const tenantAction = waitForJson<ApiEnvelope<{ message: string }>>(
+			page,
+			"/api/v1/admin/eims/actions/mock-run",
+			202,
+		);
+		await page.getByRole("button", { name: "Review Habesha onboarding" }).click();
+		await expectVisibleTexts(page, [(await tenantAction).data.message]);
+
+		await clickNavLink(page, "EIMS Failures");
+		await expect(page.getByRole("heading", { name: "EIMS Failures" })).toBeVisible();
+		await expectVisibleTexts(page, ["7015", "rule_error"]);
+		const failureAction = waitForJson<ApiEnvelope<{ message: string }>>(
+			page,
+			"/api/v1/admin/eims/actions/mock-run",
+			202,
+		);
+		await page.getByRole("button", { name: "Mark 7015 manual review" }).click();
+		await expectVisibleTexts(page, [(await failureAction).data.message]);
+
+		await clickNavLink(page, "EIMS Certificates");
+		await expect(page.getByRole("heading", { name: "EIMS Certificates" })).toBeVisible();
+		const certificateAction = waitForJson<ApiEnvelope<{ message: string }>>(
+			page,
+			"/api/v1/admin/eims/actions/mock-run",
+			202,
+		);
+		await page.getByRole("button", { name: "Send Habesha renewal reminder" }).click();
+		await expectVisibleTexts(page, [(await certificateAction).data.message]);
+
+		await clickNavLink(page, "EIMS Resources");
+		await expect(page.getByRole("heading", { name: "EIMS Resources" })).toBeVisible();
+		await expectVisibleTexts(page, ["eims:submission:src_mock_1", "Vault", "MoR sandbox"]);
+		const resourceAction = waitForJson<ApiEnvelope<{ message: string }>>(
+			page,
+			"/api/v1/admin/eims/actions/mock-run",
+			202,
+		);
+		await page.getByRole("button", { name: "Test Vault signer" }).click();
+		await expectVisibleTexts(page, [(await resourceAction).data.message]);
+
+		await clickNavLink(page, "EIMS Compliance");
+		await expect(page.getByRole("heading", { name: "EIMS Compliance" })).toBeVisible();
+		await expectVisibleTexts(page, ["Bank guarantee scanned copy", "Data residency legal opinion"]);
+		const complianceAction = waitForJson<ApiEnvelope<{ message: string }>>(
+			page,
+			"/api/v1/admin/eims/actions/mock-run",
+			202,
+		);
+		await page.getByRole("button", { name: "Generate platform evidence" }).click();
+		await expectVisibleTexts(page, [(await complianceAction).data.message]);
+	});
+
 	test("admin operations pages render tenant readiness, failures, resources, certificates, and evidence state", async ({
 		page,
 	}) => {

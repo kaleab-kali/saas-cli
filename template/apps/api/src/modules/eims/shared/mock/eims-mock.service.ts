@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { EimsBackendRepository } from "./eims-backend.repository";
 
 export interface EimsMockSubmission {
 	id: string;
@@ -16,23 +17,26 @@ export interface EimsMockSubmission {
 }
 
 @Injectable()
-export class EimsMockService {
+export class EimsMockService implements EimsBackendRepository {
 	private readonly now = new Date("2026-05-26T10:30:00.000+03:00").toISOString();
+	private readonly createdSubmissionsByOrg = new Map<string, EimsMockSubmission[]>();
+	private readonly createdReceiptsByOrg = new Map<string, Array<Record<string, unknown>>>();
+	private readonly createdBulkBatchesByOrg = new Map<string, Array<Record<string, unknown>>>();
+	private readonly createdCancellationsByOrg = new Map<string, Array<Record<string, unknown>>>();
 
 	tenantOverview(organizationId: string) {
 		const submissions = this.submissions(organizationId).data;
 		return {
 			data: {
-				mode: process.env.EIMS_MOCK_MODE === "false" ? "sandbox-ready" : "mock",
-				environment: process.env.EIMS_ENV ?? "sandbox",
+				mode: process.env.EIMS_MOCK_MODE === "false" ? "connection_ready" : "setup_in_progress",
+				environment: process.env.EIMS_ENV ?? "not_configured",
 				organizationId,
 				setupProgress: [
-					{ key: "twoFactor", label: "2FA enforced for EIMS users", status: "complete" },
-					{ key: "enterprise", label: "Enterprise profile", status: "complete" },
-					{ key: "establishment", label: "Primary establishment and sub-TIN", status: "complete" },
-					{ key: "source", label: "Source system approval", status: "attention" },
-					{ key: "certificate", label: "Sandbox certificate", status: "pending" },
-					{ key: "phase0", label: "Phase 0 Layer B sandbox verification", status: "blocked" },
+					{ key: "twoFactor", label: "Account security enabled", status: "complete" },
+					{ key: "enterprise", label: "Business tax profile", status: "complete" },
+					{ key: "establishment", label: "Branch details", status: "complete" },
+					{ key: "source", label: "Register/POS details", status: "attention" },
+					{ key: "certificate", label: "Secure tax connection", status: "pending" },
 				],
 				stats: {
 					acceptedToday: submissions.filter((s) => s.status === "accepted").length,
@@ -41,10 +45,9 @@ export class EimsMockService {
 					certificatesExpiring: 1,
 				},
 				health: [
-					{ label: "MoR sandbox", status: "mocked", detail: "Waiting for INSA sandbox credentials" },
-					{ label: "Vault signing", status: "local", detail: "Layer A uses local signing until Vault is configured" },
-					{ label: "Per-source queue", status: "ready", detail: "Mock flow serializes by source system" },
-					{ label: "Lookup registry", status: "ready", detail: "Seeded from V3 plan and configurable later" },
+					{ label: "Tax connection", status: "pending", detail: "Waiting for credentials and certificate" },
+					{ label: "Certificate", status: "pending", detail: "Issued certificate required" },
+					{ label: "Invoice queue", status: "ready", detail: "Ready to sync accepted sales" },
 				],
 				enterprises: [
 					{
@@ -79,30 +82,95 @@ export class EimsMockService {
 						name: "Bar POS",
 						systemNumber: "PENDING",
 						systemType: "POS",
-						approvalStatus: "pending_mor_approval",
+						approvalStatus: "pending_approval",
 						lastAcceptedCounter: 0,
 					},
 				],
 				blockers: [
-					"INSA sandbox credentials not yet received",
-					"Calculation Error cancellation reason code 6 still needs Phase 0 confirmation",
-					"Exact datetime format remains unlocked until sandbox acceptance",
+					"Register/POS reference is missing for one register",
+					"API credentials and certificate still need to be added",
 				],
 				recentSubmissions: submissions,
 			},
 		};
 	}
 
+	tenantWorkspace(organizationId: string) {
+		const overview = this.tenantOverview(organizationId).data;
+		return {
+			data: {
+				organizationId,
+				operationModeLabel: overview.mode === "connection_ready" ? "Connection ready" : "Setup in progress",
+				plainLanguageSummary:
+					"Complete tax setup once. After that, normal sales, receipts, cancellations, prints, and exports can sync automatically.",
+				readiness: {
+					readyForLive: false,
+					blockers: overview.blockers,
+					steps: [
+						{
+							key: "business-profile",
+							label: "Business tax profile",
+							status: "complete",
+							tenantProvides: ["TIN", "Legal business name", "VAT number if VAT registered", "Business contact phone/email"],
+							actionLabel: "Save business profile",
+						},
+						{
+							key: "branch-profile",
+							label: "Branch and address",
+							status: "complete",
+							tenantProvides: ["Branch name", "Region/city/woreda/kebele", "Branch Sub-TIN when available"],
+							actionLabel: "Save branch details",
+						},
+						{
+							key: "register-pos",
+							label: "Register/POS details",
+							status: "attention",
+							tenantProvides: ["Register number", "Register type such as POS or ERP"],
+							actionLabel: "Save register/POS details",
+						},
+						{
+							key: "secure-connection",
+							label: "Secure tax connection",
+							status: "pending",
+							tenantProvides: ["API credentials", "Issued certificate or certificate request file"],
+							actionLabel: "Save connection details",
+						},
+					],
+				},
+				requiredInputs: [
+					"TIN, legal name, VAT number, and contact information",
+					"Branch address and branch Sub-TIN when available",
+					"Register/POS number",
+					"API credentials and issued certificate",
+				],
+				supportNote: "If the tenant does not have these yet, onboarding staff can help collect the details during setup.",
+				primaryActions: [
+					{ label: "Continue guided setup", href: "/eims/setup" },
+					{ label: "Review tax invoices", href: "/eims/submissions" },
+					{ label: "Record receipt", href: "/eims/receipts" },
+					{ label: "Cancel an invoice", href: "/eims/bulk" },
+					{ label: "Export records", href: "/eims/compliance" },
+				],
+				alerts: [
+					{ level: "next step", message: "Add the register/POS number for one register." },
+					{ level: "note", message: "Pending invoices receive a final tax reference after acceptance." },
+				],
+			},
+		};
+	}
+
 	submissions(organizationId: string) {
+		const created = this.createdSubmissionsByOrg.get(organizationId) ?? [];
 		return {
 			data: [
+				...created,
 				{
 					id: "sub_mock_1",
 					documentNumber: "INV-2026-000128",
 					documentType: "INV",
 					transactionType: "B2C",
 					status: "accepted",
-					irn: "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74",
+					irn: "IRN-51fa3144ae45d2a06873a1e81c59ab74",
 					sourceSystem: "Front POS",
 					establishment: "Bole Branch",
 					totalValue: "517.50",
@@ -155,37 +223,38 @@ export class EimsMockService {
 		};
 	}
 
-	createMockSubmission(organizationId: string, documentNumber = "INV-MOCK-NEW") {
+	createAcceptedSubmission(organizationId: string, documentNumber = "INV-SAMPLE-NEW") {
 		const acceptedAt = new Date().toISOString();
-		return {
-			data: {
-				id: "sub_mock_new",
-				documentNumber,
-				documentType: "INV",
-				transactionType: "B2C",
-				status: "accepted",
-				irn: `MOCK-IRN-${Date.now()}`,
-				sourceSystem: "Front POS",
-				establishment: "Bole Branch",
-				totalValue: "517.50",
-				taxValue: "67.50",
-				ackDate: acceptedAt,
-				organizationId,
-			},
+		const created: EimsMockSubmission = {
+			id: `sub_${Date.now()}`,
+			documentNumber,
+			documentType: "INV",
+			transactionType: "B2C",
+			status: "accepted",
+			irn: `IRN-${Date.now()}`,
+			sourceSystem: "Front POS",
+			establishment: "Bole Branch",
+			totalValue: "517.50",
+			taxValue: "67.50",
+			ackDate: acceptedAt,
 		};
+		this.createdSubmissionsByOrg.set(organizationId, [created, ...(this.createdSubmissionsByOrg.get(organizationId) ?? [])]);
+		return { data: { ...created, organizationId } };
 	}
 
 	receipts(organizationId: string) {
+		const created = this.createdReceiptsByOrg.get(organizationId) ?? [];
 		return {
 			data: [
+				...created,
 				{
 					id: "rec_mock_1",
 					receiptNumber: "RCPT-2026-00044",
 					receiptType: "sales",
 					withholdingType: null,
 					status: "accepted",
-					invoiceIrn: "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74",
-					rrn: "MOCK-RRN-00044",
+					invoiceIrn: "IRN-51fa3144ae45d2a06873a1e81c59ab74",
+					rrn: "RRN-00044",
 					paymentMode: "CASH",
 					paidAmount: "517.50",
 				},
@@ -195,7 +264,7 @@ export class EimsMockService {
 					receiptType: "withholding",
 					withholdingType: "TWHT",
 					status: "draft",
-					invoiceIrn: "MOCK-IRN-B2B-0002",
+					invoiceIrn: "IRN-B2B-0002",
 					rrn: null,
 					paymentMode: "Local Bank Transfer",
 					paidAmount: "600.00",
@@ -205,13 +274,30 @@ export class EimsMockService {
 		};
 	}
 
+	createAcceptedReceipt(organizationId: string, input: Record<string, unknown>) {
+		const payload = (input.payload ?? {}) as Record<string, unknown>;
+		const created = {
+			id: `rec_${Date.now()}`,
+			receiptNumber: String(input.receiptNumber ?? `RCPT-${Date.now()}`),
+			receiptType: String(payload.receiptType ?? "sales"),
+			withholdingType: payload.withholdingType ?? null,
+			status: "accepted",
+			invoiceIrn: String(payload.invoiceIrn ?? "IRN-51fa3144ae45d2a06873a1e81c59ab74"),
+			rrn: `RRN-${Date.now()}`,
+			paymentMode: String(payload.paymentMode ?? "CASH"),
+			paidAmount: String(payload.paidAmount ?? "0.00"),
+			handledBy: "backend-external-client",
+		};
+		this.createdReceiptsByOrg.set(organizationId, [created, ...(this.createdReceiptsByOrg.get(organizationId) ?? [])]);
+		return { data: created };
+	}
+
 	credentials(organizationId: string) {
 		return {
 			data: [
 				{
 					id: "cred_mock_1",
 					sourceSystem: "Front POS",
-					environment: "sandbox",
 					username: "TIN0074136947",
 					clientId: "client-front-pos",
 					status: "tested",
@@ -230,13 +316,39 @@ export class EimsMockService {
 		};
 	}
 
+	saveCredential(organizationId: string, body: Record<string, unknown>) {
+		return {
+			data: {
+				message: "Connection details saved",
+				status: "tested",
+				reference: `cred-${organizationId}-test`,
+				sourceSystemId: body.sourceSystemId,
+				clientId: body.clientId,
+				username: body.username,
+				secretsReturned: false,
+				handledBy: "backend-repository",
+			},
+		};
+	}
+
+	testCredential(organizationId: string, sourceSystemId?: string) {
+		return {
+			data: {
+				message: "Connection test succeeded",
+				status: "success",
+				reference: `${organizationId}:${sourceSystemId ?? "register"}:token`,
+				sourceSystemId,
+				handledBy: "backend-repository",
+			},
+		};
+	}
+
 	certificates(organizationId: string) {
 		return {
 			data: [
 				{
 					id: "cert_mock_1",
 					sourceSystem: "Front POS",
-					environment: "sandbox",
 					provider: "Vault Transit",
 					csrStrategy: "vault-generated",
 					keyProvider: "local",
@@ -252,12 +364,39 @@ export class EimsMockService {
 		};
 	}
 
+	generateCsr(organizationId: string, sourceSystemId?: string) {
+		return {
+			data: {
+				message: "Certificate request file generated",
+				status: "ready",
+				reference: `certificate-request-${organizationId}-${sourceSystemId ?? "register"}-v1.pem`,
+				sourceSystemId,
+				handledBy: "backend-repository",
+			},
+		};
+	}
+
+	importCertificate(organizationId: string, body: Record<string, unknown>) {
+		return {
+			data: {
+				message: "Certificate saved",
+				status: "valid",
+				reference: `cert-${organizationId}-test`,
+				sourceSystemId: body.sourceSystemId,
+				certificateReceived: typeof body.certificatePem === "string" && body.certificatePem.length > 0,
+				handledBy: "backend-repository",
+			},
+		};
+	}
+
 	bulkBatches(organizationId: string) {
+		const created = this.createdBulkBatchesByOrg.get(organizationId) ?? [];
 		return {
 			data: [
+				...created,
 				{
 					id: "bulk_mock_1",
-					conversationId: "MOCK-CONV-20260526-001",
+					conversationId: "BATCH-20260526-001",
 					endpoint: "/api/v1/bulkInvoice",
 					status: "processing",
 					submitted: 12,
@@ -273,12 +412,48 @@ export class EimsMockService {
 		};
 	}
 
+	submitBulk(organizationId: string) {
+		const created = {
+			id: `bulk_${Date.now()}`,
+			conversationId: `BATCH-${Date.now()}`,
+			endpoint: "/api/v1/bulkInvoice",
+			status: "processing",
+			submitted: 1,
+			accepted: 0,
+			failed: 0,
+			pending: 1,
+			callbackStatus: "awaiting_processing",
+			reconciliationStatus: "scheduled",
+			reconciliationAfterMinutes: 15,
+		};
+		this.createdBulkBatchesByOrg.set(organizationId, [created, ...(this.createdBulkBatchesByOrg.get(organizationId) ?? [])]);
+		return {
+			data: {
+				...created,
+				message: "Batch sync started and batch ID stored",
+				reference: created.conversationId,
+			},
+		};
+	}
+
+	reconcileBulk(organizationId: string, conversationId?: string) {
+		return {
+			data: {
+				message: "Batch status refresh scheduled",
+				status: "scheduled",
+				reference: conversationId ?? `BATCH-${organizationId}`,
+			},
+		};
+	}
+
 	cancellations(organizationId: string) {
+		const created = this.createdCancellationsByOrg.get(organizationId) ?? [];
 		return {
 			data: [
+				...created,
 				{
 					id: "cancel_mock_1",
-					invoiceIrn: "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74",
+					invoiceIrn: "IRN-51fa3144ae45d2a06873a1e81c59ab74",
 					reasonCode: "4",
 					reasonLabel: "Others",
 					remark: "Customer returned the order",
@@ -290,6 +465,37 @@ export class EimsMockService {
 				},
 			],
 			meta: { organizationId },
+		};
+	}
+
+	cancelInvoice(organizationId: string, body: Record<string, unknown>) {
+		const blocked = body.reasonCode === "4" && !body.remark;
+		if (!blocked) {
+			const created = {
+				id: `cancel_${Date.now()}`,
+				invoiceIrn: String(body.invoiceIrn ?? "IRN-UNKNOWN"),
+				reasonCode: String(body.reasonCode ?? "4"),
+				reasonLabel: body.reasonCode === "4" ? "Others" : "Configured reason",
+				remark: String(body.remark ?? ""),
+				status: "accepted",
+				limitWindow: "daily",
+				countToday: 4,
+				knownLimitToday: 10,
+				warningThreshold: "75%",
+			};
+			this.createdCancellationsByOrg.set(organizationId, [
+				created,
+				...(this.createdCancellationsByOrg.get(organizationId) ?? []),
+			]);
+		}
+		return {
+			data: {
+				message: blocked
+					? "Reason code 4 requires a remark before submission"
+					: "Cancellation submitted with reason and audit event",
+				status: blocked ? "blocked" : "accepted",
+				reference: `${organizationId}:${String(body.invoiceIrn ?? "irn")}`,
+			},
 		};
 	}
 
@@ -328,17 +534,17 @@ export class EimsMockService {
 					id: "print_compact",
 					layout: "compact",
 					paper: "80mm thermal",
-					status: "mocked",
-					requiredFields: ["IRN", "QR", "seller TIN", "document number", "total value"],
-					qrSource: "EIMS accepted signedQR only",
+					status: "test_ready",
+					requiredFields: ["Tax reference", "QR", "seller TIN", "document number", "total value"],
+					qrSource: "Accepted invoice response only",
 				},
 				{
 					id: "print_a4",
 					layout: "a4",
 					paper: "A4 office printer",
-					status: "mocked",
-					requiredFields: ["IRN", "QR", "buyer details", "seller details", "item lines"],
-					qrSource: "EIMS accepted signedQR only",
+					status: "test_ready",
+					requiredFields: ["Tax reference", "QR", "buyer details", "seller details", "item lines"],
+					qrSource: "Accepted invoice response only",
 				},
 			],
 			meta: { organizationId },
@@ -353,7 +559,7 @@ export class EimsMockService {
 					channel: "sms",
 					provider: "Africa's Talking",
 					status: "sent",
-					invoiceIrn: "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74",
+					invoiceIrn: "IRN-51fa3144ae45d2a06873a1e81c59ab74",
 					retryCount: 0,
 					sentAt: this.now,
 				},
@@ -362,7 +568,7 @@ export class EimsMockService {
 					channel: "email",
 					provider: "AWS SES",
 					status: "queued",
-					invoiceIrn: "MOCK-IRN-B2B-0002",
+					invoiceIrn: "IRN-B2B-0002",
 					retryCount: 1,
 					sentAt: null,
 				},
@@ -382,7 +588,7 @@ export class EimsMockService {
 					pendingOffline: 1,
 					activeSources: 1,
 					pendingSources: 1,
-					alerts: ["Bar POS awaiting MoR approval", "Sandbox certificate expires within 60 days"],
+					alerts: ["Bar POS waiting for its register number", "Certificate expires within 60 days"],
 				},
 			],
 			meta: { organizationId },
@@ -396,12 +602,22 @@ export class EimsMockService {
 				generatedAt: this.now,
 				readiness: 72,
 				items: [
-					{ key: "phase0-layer-a", label: "Phase 0 Layer A local report", status: "ready" },
-					{ key: "rls", label: "Targeted EIMS RLS policy export", status: "planned" },
-					{ key: "print", label: "Thermal and A4 print evidence", status: "mocked" },
-					{ key: "audit", label: "Tamper-evident audit hash-chain sample", status: "planned" },
-					{ key: "dr", label: "Quarterly DR drill report", status: "planned" },
+					{ key: "invoices", label: "Tax invoice records", status: "ready" },
+					{ key: "receipts", label: "Receipt records", status: "ready" },
+					{ key: "cancellations", label: "Cancellation records", status: "ready" },
+					{ key: "print", label: "Printable receipt layouts", status: "test_ready" },
+					{ key: "notifications", label: "Buyer notification history", status: "ready" },
 				],
+			},
+		};
+	}
+
+	generateEvidence(organizationId: string) {
+		return {
+			data: {
+				message: "Encrypted tenant export package manifest generated",
+				status: "ready",
+				reference: `eims-export-${organizationId}-20260527.zip`,
 			},
 		};
 	}
@@ -410,7 +626,7 @@ export class EimsMockService {
 		const tenants = this.adminTenants().data;
 		return {
 			data: {
-				mode: process.env.EIMS_MOCK_MODE === "false" ? "sandbox-ready" : "mock",
+				mode: process.env.EIMS_MOCK_MODE === "false" ? "sandbox-ready" : "backend-test-connector",
 				tenantsTotal: tenants.length,
 				tenantsBlocked: tenants.filter((tenant) => tenant.status !== "ready").length,
 				acceptedToday: 184,
@@ -438,7 +654,7 @@ export class EimsMockService {
 				{
 					id: "org_mock_2",
 					name: "Shoa Supermarket",
-					status: "blocked_sandbox",
+					status: "blocked_credentials",
 					branches: 8,
 					sources: 32,
 					acceptedToday: 88,
@@ -487,8 +703,8 @@ export class EimsMockService {
 					{ name: "eims:submission:src_mock_1", depth: 0, status: "running" },
 					{ name: "eims:submission:src_mock_2", depth: 4, status: "paused_pending_approval" },
 				],
-				vault: { status: "mocked", provider: "local" },
-				mor: { sandbox: "mocked", production: "not_configured" },
+				vault: { status: "test_connector", provider: "local" },
+				mor: { sandbox: "pending_credentials", production: "not_configured" },
 			},
 		};
 	}
@@ -505,6 +721,16 @@ export class EimsMockService {
 					"Targeted EIMS RLS policy export",
 					"Vault operational runbook",
 				],
+			},
+		};
+	}
+
+	adminRunAction(action: string, targetId?: string) {
+		return {
+			data: {
+				message: `Backend EIMS test action completed: ${action}`,
+				status: "accepted",
+				reference: targetId ?? "platform",
 			},
 		};
 	}

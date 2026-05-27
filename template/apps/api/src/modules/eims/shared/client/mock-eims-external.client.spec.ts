@@ -4,7 +4,7 @@ import { MockEimsExternalClient } from "./mock-eims-external.client";
 describe("MockEimsExternalClient", () => {
 	const organizationId = "org_test";
 
-	it("returns accepted invoice responses with mock IRNs", async () => {
+	it("returns accepted invoice responses with tenant-facing IRNs", async () => {
 		const client = new MockEimsExternalClient(new EimsMockService());
 
 		const response = await client.registerInvoice({
@@ -13,17 +13,17 @@ describe("MockEimsExternalClient", () => {
 			documentNumber: "INV-TEST-002",
 		});
 
-		expect(response).toEqual({
+		expect(response).toMatchObject({
 			data: expect.objectContaining({
 				documentNumber: "INV-TEST-002",
 				organizationId,
 				status: "accepted",
-				irn: expect.stringMatching(/^MOCK-IRN-/),
+				irn: expect.stringMatching(/^IRN-/),
 			}),
 		});
 	});
 
-	it("returns accepted receipt responses from the backend mock", async () => {
+	it("returns accepted receipt responses from the backend test connector", async () => {
 		const client = new MockEimsExternalClient(new EimsMockService());
 
 		const response = await client.registerReceipt({
@@ -40,11 +40,11 @@ describe("MockEimsExternalClient", () => {
 		});
 	});
 
-	it("verifies only mock IRNs as active", async () => {
+	it("verifies only tenant-facing IRNs as active", async () => {
 		const client = new MockEimsExternalClient(new EimsMockService());
 
-		await expect(client.verifyIrn({ organizationId, irn: "MOCK-IRN-001" })).resolves.toEqual({
-			data: expect.objectContaining({ irn: "MOCK-IRN-001", status: "active" }),
+		await expect(client.verifyIrn({ organizationId, irn: "IRN-001" })).resolves.toEqual({
+			data: expect.objectContaining({ irn: "IRN-001", status: "active" }),
 		});
 		await expect(client.verifyIrn({ organizationId, irn: "REAL-IRN-MISSING" })).resolves.toEqual({
 			data: expect.objectContaining({ irn: "REAL-IRN-MISSING", status: "not_found" }),

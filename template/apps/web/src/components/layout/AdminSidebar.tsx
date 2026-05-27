@@ -37,6 +37,7 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	useSidebar,
 } from "@/components/ui/sidebar";
 
 const ADMIN_NAV = [
@@ -48,9 +49,19 @@ const ADMIN_NAV = [
 	{ label: "Feature Flags", to: "/admin/feature-flags", icon: FlagIcon },
 	{ label: "Email Templates", to: "/admin/system-templates", icon: Mail01Icon },
 	{ label: "Jobs", to: "/admin/jobs", icon: Timer02Icon },
+	{ label: "Server", to: "/admin/server", icon: Settings02Icon },
 	{ label: "Audit Logs", to: "/admin/audit-logs", icon: FileValidationIcon },
 	{ label: "Settings", to: "/admin/settings", icon: Settings02Icon },
 ] as const;
+const ADMIN_EIMS_NAV = [
+	{ label: "EIMS Overview", to: "/admin/eims", icon: FileValidationIcon },
+	{ label: "EIMS Tenants", to: "/admin/eims/tenants", icon: Building06Icon },
+	{ label: "EIMS Failures", to: "/admin/eims/failures", icon: FileValidationIcon },
+	{ label: "EIMS Certificates", to: "/admin/eims/certificates", icon: AiSecurity01Icon },
+	{ label: "EIMS Resources", to: "/admin/eims/resources", icon: Timer02Icon },
+	{ label: "EIMS Compliance", to: "/admin/eims/compliance", icon: FileValidationIcon },
+] as const;
+const APP_NAME = import.meta.env.VITE_APP_NAME ?? "SaaS";
 
 const AdminNavItem = React.memo(
 	({
@@ -63,16 +74,22 @@ const AdminNavItem = React.memo(
 		readonly to: string;
 		readonly icon: typeof DashboardSquare01Icon;
 		readonly isActive: boolean;
-	}) => (
-		<SidebarMenuItem>
-			<SidebarMenuButton asChild isActive={isActive} tooltip={label}>
-				<Link to={to}>
-					<HugeiconsIcon icon={icon} size={18} />
-					<span>{label}</span>
-				</Link>
-			</SidebarMenuButton>
-		</SidebarMenuItem>
-	),
+	}) => {
+		const { isMobile, setOpenMobile } = useSidebar();
+		const closeMobileSidebar = React.useCallback(() => {
+			if (isMobile) setOpenMobile(false);
+		}, [isMobile, setOpenMobile]);
+		return (
+			<SidebarMenuItem>
+				<SidebarMenuButton asChild isActive={isActive} tooltip={label}>
+					<Link to={to} onClick={closeMobileSidebar}>
+						<HugeiconsIcon icon={icon} size={18} />
+						<span>{label}</span>
+					</Link>
+				</SidebarMenuButton>
+			</SidebarMenuItem>
+		);
+	},
 	(prev, next) => prev.isActive === next.isActive && prev.to === next.to,
 );
 AdminNavItem.displayName = "AdminNavItem";
@@ -127,7 +144,7 @@ export const AdminSidebar = React.memo(
 							<HugeiconsIcon icon={AiSecurity01Icon} size={16} />
 						</div>
 						<div className="grid flex-1 text-left text-sm leading-tight">
-							<span className="truncate font-semibold">PropFlow Admin</span>
+							<span className="truncate font-semibold">{APP_NAME} Admin</span>
 							<span className="truncate text-xs text-muted-foreground">Platform Management</span>
 						</div>
 					</SidebarMenuButton>
@@ -145,6 +162,26 @@ export const AdminSidebar = React.memo(
 										icon={item.icon}
 										isActive={
 											item.to === "/admin" ? !!matchRoute({ to: "/admin" }) : !!matchRoute({ to: item.to, fuzzy: true })
+										}
+									/>
+								))}
+							</SidebarMenu>
+						</SidebarGroupContent>
+					</SidebarGroup>
+					<SidebarGroup>
+						<SidebarGroupLabel>EIMS Operations</SidebarGroupLabel>
+						<SidebarGroupContent>
+							<SidebarMenu>
+								{ADMIN_EIMS_NAV.map((item) => (
+									<AdminNavItem
+										key={item.to}
+										label={item.label}
+										to={item.to}
+										icon={item.icon}
+										isActive={
+											item.to === "/admin/eims"
+												? !!matchRoute({ to: "/admin/eims" })
+												: !!matchRoute({ to: item.to, fuzzy: true })
 										}
 									/>
 								))}

@@ -204,6 +204,165 @@ const overview = {
 	},
 };
 
+const acceptanceCases = [
+	{
+		caseId: "IRC-P01",
+		type: "positive",
+		title: "Register B2C Sales Invoice Without Buyer TIN and With VAT",
+		operation: "invoice.register",
+		method: "POST",
+		endpoint: "/v1/register",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "Table 2, IRC-P01",
+		requiredEvidence: ["accepted IRN", "signed QR", "thermal print", "A4 print", "mobile QR scan"],
+		requiredAssertions: ["B2C", "BuyerDetails.Tin null", "VAT0/VAT15/VATEX", "IRN", "QR"],
+	},
+	{
+		caseId: "IRC-P02",
+		type: "positive",
+		title: "Register B2B Sales Invoice With Buyer TIN and Legal Name",
+		operation: "invoice.register",
+		method: "POST",
+		endpoint: "/v1/register",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "Table 3, IRC-P02",
+		requiredEvidence: ["accepted IRN", "signed QR", "A4 print", "withholding values", "buyer TIN validation"],
+		requiredAssertions: ["B2B", "buyer TIN 10 digits", "withholding", "IRN", "buyer print details"],
+	},
+	{
+		caseId: "IRC-P03",
+		type: "positive",
+		title: "Register Sales Receipt From Registered Invoice",
+		operation: "receipt.sales",
+		method: "POST",
+		endpoint: "/v1/receipt/sales",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "IRC-P03",
+		requiredEvidence: ["invoice IRN", "RRN", "signed receipt QR", "payment mode"],
+		requiredAssertions: ["accepted invoice", "RRN exists", "payment coverage full"],
+	},
+	{
+		caseId: "IRC-P04",
+		type: "positive",
+		title: "Register Withhold Receipt From Registered Invoice",
+		operation: "receipt.withholding",
+		method: "POST",
+		endpoint: "/v1/receipt/withholding",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "IRC-P04",
+		requiredEvidence: ["invoice IRN", "withholding type", "rate", "withholding amount", "RRN"],
+		requiredAssertions: ["TWHT", "amount > 0", "RRN exists"],
+	},
+	{
+		caseId: "IRC-P05",
+		type: "positive",
+		title: "Cancel Registered Invoice",
+		operation: "invoice.cancel",
+		method: "POST",
+		endpoint: "/v1/cancel",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "IRC-P05",
+		requiredEvidence: ["invoice IRN", "reason code", "remark", "audit event"],
+		requiredAssertions: ["valid reason", "remark for reason 4", "cancelled"],
+	},
+	{
+		caseId: "IRC-P06",
+		type: "positive",
+		title: "Register Credit Memo From Registered Invoice",
+		operation: "invoice.register",
+		method: "POST",
+		endpoint: "/v1/register",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "IRC-P06",
+		requiredEvidence: ["original IRN", "related document", "reason", "credit note IRN"],
+		requiredAssertions: ["CRE", "RelatedDocument", "Reason", "IRN"],
+	},
+	{
+		caseId: "IRC-P07",
+		type: "positive",
+		title: "Register Debit Memo From Registered Invoice",
+		operation: "invoice.register",
+		method: "POST",
+		endpoint: "/v1/register",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "IRC-P07",
+		requiredEvidence: ["original IRN", "related document", "reason", "debit note IRN"],
+		requiredAssertions: ["DEB", "RelatedDocument", "Reason", "IRN"],
+	},
+	{
+		caseId: "IRC-N08",
+		type: "negative",
+		title: "Reject B2B Sales Invoice With Invalid Buyer TIN or Legal Name",
+		operation: "invoice.register",
+		method: "POST",
+		endpoint: "/v1/register",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "IRC-N08",
+		requiredEvidence: ["invalid buyer payload", "validation error", "no IRN issued"],
+		requiredAssertions: ["B2B", "invalid buyer", "error", "no IRN"],
+	},
+	{
+		caseId: "IRC-N09",
+		type: "negative",
+		title: "Reject Receipt From Non-existent or Cancelled Invoice",
+		operation: "receipt.sales",
+		method: "POST",
+		endpoint: "/v1/receipt/sales",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "IRC-N09",
+		requiredEvidence: ["bad invoice IRN", "receipt rejection", "no RRN issued"],
+		requiredAssertions: ["inactive IRN", "error", "no RRN"],
+	},
+	{
+		caseId: "IRC-N010",
+		type: "negative",
+		title: "Reject Cancellation of Non-existent or Already Cancelled Invoice",
+		operation: "invoice.cancel",
+		method: "POST",
+		endpoint: "/v1/cancel",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "IRC-N010",
+		requiredEvidence: ["bad/cancelled IRN", "rejection response", "audit event"],
+		requiredAssertions: ["inactive IRN", "error", "status unchanged"],
+	},
+	{
+		caseId: "ADD-N001",
+		type: "additional",
+		title: "Notification Service Evidence",
+		operation: "notification.send",
+		method: "POST",
+		endpoint: "/internal/notifications",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "ADD-N001",
+		requiredEvidence: ["SMS log", "email log", "provider response", "retry policy"],
+		requiredAssertions: ["SMS", "email", "non-blocking"],
+	},
+	{
+		caseId: "ADD-C001",
+		type: "additional",
+		title: "Setup and Configuration Evidence",
+		operation: "setup.validate",
+		method: "GET",
+		endpoint: "/api/v1/eims/overview",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "ADD-C001",
+		requiredEvidence: ["enterprise profile", "establishment profile", "MoR source number", "credential test", "certificate status"],
+		requiredAssertions: ["TIN", "Sub-TIN", "source number", "credential test"],
+	},
+	{
+		caseId: "ADD-P001",
+		type: "additional",
+		title: "Printing Layout and Content Evidence",
+		operation: "print.validate",
+		method: "GET",
+		endpoint: "/api/v1/eims/print-layouts",
+		sourceDocument: "MoR_BSP_Master.docx",
+		sourceSection: "ADD-P001",
+		requiredEvidence: ["thermal print sample", "A4 print sample", "QR scan result", "mandatory field checklist"],
+		requiredAssertions: ["compact", "a4", "official QR only"],
+	},
+];
+
 const receipts = {
 	data: [
 		{
@@ -465,7 +624,7 @@ async function handleMockRequest(req, res) {
 	if (handleCoreRoutes(path, res)) return;
 	if (handleBillingRoutes(path, res)) return;
 	if (await handleTenantEimsRoutes(req, res, path)) return;
-	if (handleAdminEimsRoutes(path, res)) return;
+	if (await handleAdminEimsRoutes(req, res, path)) return;
 
 	return sendJson(res, 404, { error: { code: "NOT_FOUND", message: "Not found" } });
 }
@@ -514,26 +673,179 @@ function handleBillingRoutes(path, res) {
 
 async function handleTenantEimsRoutes(req, res, path) {
 	if (path === "/api/v1/eims/overview") return sendJson(res, 200, overview);
+	if (path === "/api/v1/eims/setup/enterprises" && req.method === "POST") {
+		const body = await readJson(req);
+		return sendJson(res, 201, {
+			data: {
+				...body,
+				id: "ent_mock_created",
+				message: `Enterprise saved for TIN ${body.tin ?? "unknown"}`,
+				status: "draft",
+			},
+		});
+	}
+	if (path === "/api/v1/eims/setup/establishments" && req.method === "POST") {
+		const body = await readJson(req);
+		return sendJson(res, 201, {
+			data: {
+				...body,
+				id: "est_mock_created",
+				message: `Branch saved: ${body.name ?? "branch"}`,
+				status: "draft",
+			},
+		});
+	}
+	if (path === "/api/v1/eims/setup/sources" && req.method === "POST") {
+		const body = await readJson(req);
+		return sendJson(res, 201, {
+			data: {
+				...body,
+				id: "src_mock_created",
+				message: `Source system saved: ${body.name ?? "source"}. Submissions remain blocked until MoR approval.`,
+				status: "draft",
+			},
+		});
+	}
 	if (path === "/api/v1/eims/submissions") return sendJson(res, 200, { data: eimsSubmissions });
 	if (path === "/api/v1/eims/submissions/mock-submit" && req.method === "POST") {
 		const body = await readJson(req);
 		return sendJson(res, 201, acceptedMockSubmission(body.documentNumber));
 	}
 	if (path === "/api/v1/eims/receipts") return sendJson(res, 200, receipts);
+	if (path === "/api/v1/eims/receipts/mock-submit" && req.method === "POST") {
+		const body = await readJson(req);
+		return sendJson(res, 201, {
+			data: {
+				message: `${body.receiptType ?? "sales"} receipt queued for mock EIMS submission`,
+				status: "queued",
+				reference: "MOCK-RRN-NEW",
+			},
+		});
+	}
 	if (path === "/api/v1/eims/credentials") return sendJson(res, 200, credentials);
+	if (path === "/api/v1/eims/credentials/mock-save" && req.method === "POST") {
+		const body = await readJson(req);
+		return sendJson(res, 201, {
+			data: {
+				message: `Credential stored for ${body.sourceSystemId ?? "source"} in ${body.environment ?? "sandbox"}`,
+				status: "tested",
+				reference: "cred-mock-created",
+			},
+		});
+	}
+	if (path === "/api/v1/eims/credentials/mock-test" && req.method === "POST") {
+		return sendJson(res, 200, {
+			data: {
+				message: "Mock EIMS authentication succeeded and token was cached with Redis TTL",
+				status: "success",
+				reference: "redis:eims:token:sandbox:src_mock_1",
+			},
+		});
+	}
 	if (path === "/api/v1/eims/certificates") return sendJson(res, 200, tenantCertificates);
+	if (path === "/api/v1/eims/certificates/mock-generate-csr" && req.method === "POST") {
+		return sendJson(res, 201, {
+			data: {
+				message: "Vault CSR generated for INSA submission",
+				status: "ready",
+				reference: "csr-org_mock-src_mock_1-v1.pem",
+			},
+		});
+	}
+	if (path === "/api/v1/eims/certificates/mock-import" && req.method === "POST") {
+		return sendJson(res, 201, {
+			data: {
+				message: "Certificate imported and linked to sandbox source",
+				status: "valid",
+				reference: "cert-org_mock-src_mock_1",
+			},
+		});
+	}
 	if (path === "/api/v1/eims/bulk") return sendJson(res, 200, bulkBatches);
+	if (path === "/api/v1/eims/bulk/mock-submit" && req.method === "POST") {
+		return sendJson(res, 202, {
+			data: {
+				message: "Mock bulk batch submitted and conversation ID stored",
+				status: "processing",
+				reference: "MOCK-CONV-NEW",
+			},
+		});
+	}
+	if (path === "/api/v1/eims/bulk/mock-reconcile" && req.method === "POST") {
+		const body = await readJson(req);
+		return sendJson(res, 202, {
+			data: {
+				message: "Mock reconciliation worker scheduled after callback timeout",
+				status: "scheduled",
+				reference: body.conversationId ?? "MOCK-CONV-UNKNOWN",
+			},
+		});
+	}
 	if (path === "/api/v1/eims/cancellations") return sendJson(res, 200, cancellations);
+	if (path === "/api/v1/eims/cancellations/mock-submit" && req.method === "POST") {
+		const body = await readJson(req);
+		const missingRemark = body.reasonCode === "4" && !body.remark;
+		return sendJson(res, missingRemark ? 422 : 202, {
+			data: {
+				message: missingRemark
+					? "Reason code 4 requires a remark before submission"
+					: "Mock cancellation submitted with reason and audit event",
+				status: missingRemark ? "blocked" : "accepted",
+				reference: body.invoiceIrn ?? "MOCK-IRN",
+			},
+		});
+	}
 	if (path === "/api/v1/eims/buyers") return sendJson(res, 200, buyers);
 	if (path === "/api/v1/eims/print-layouts") return sendJson(res, 200, printLayouts);
 	if (path === "/api/v1/eims/notifications") return sendJson(res, 200, notifications);
 	if (path === "/api/v1/eims/branch-health") return sendJson(res, 200, branchHealth);
+	if (path === "/api/v1/eims/acceptance/cases") {
+		return sendJson(res, 200, {
+			data: acceptanceCases.map((testCase) => ({
+				...testCase,
+				status: "ready_for_mock",
+				sandboxStatus: "blocked_until_credential",
+			})),
+		});
+	}
+	if (path === "/api/v1/eims/acceptance/run-all" && req.method === "POST") {
+		const results = acceptanceCases.map((testCase) => acceptanceRun(testCase.caseId));
+		return sendJson(res, 201, {
+			data: {
+				organizationId: "org_mock",
+				executionMode: "mock_until_sandbox",
+				total: results.length,
+				passed: results.filter((result) => result.passed).length,
+				failed: results.filter((result) => !result.passed).length,
+				results,
+			},
+		});
+	}
+	const acceptanceMatch = path.match(/^\/api\/v1\/eims\/acceptance\/cases\/([^/]+)(?:\/run)?$/);
+	if (acceptanceMatch && req.method === "GET") {
+		const testCase = acceptanceCases.find((candidate) => candidate.caseId === acceptanceMatch[1]);
+		return testCase
+			? sendJson(res, 200, { data: testCase })
+			: sendJson(res, 404, { error: { code: "CASE_NOT_FOUND", message: "Unknown acceptance case" } });
+	}
+	if (acceptanceMatch && req.method === "POST") {
+		return sendJson(res, 201, { data: acceptanceRun(acceptanceMatch[1]) });
+	}
 	if (path === "/api/v1/eims/compliance/evidence") return sendJson(res, 200, complianceEvidence());
+	if (path === "/api/v1/eims/compliance/evidence/mock-generate" && req.method === "POST") {
+		return sendJson(res, 201, {
+			data: {
+				message: "Encrypted mock compliance evidence ZIP manifest generated",
+				status: "ready",
+				reference: "eims-evidence-org_mock-20260527.zip",
+			},
+		});
+	}
 	if (path.startsWith("/api/v1/eims/lookups/")) return sendLookup(path, res);
 	return false;
 }
 
-function handleAdminEimsRoutes(path, res) {
+async function handleAdminEimsRoutes(req, res, path) {
 	const adminRoutes = {
 		"/api/v1/admin/eims/overview": adminOverview,
 		"/api/v1/admin/eims/tenants": { data: adminOverview.data.tenants },
@@ -542,6 +854,16 @@ function handleAdminEimsRoutes(path, res) {
 		"/api/v1/admin/eims/resources": adminResources(),
 		"/api/v1/admin/eims/compliance": adminCompliance(),
 	};
+	if (path === "/api/v1/admin/eims/actions/mock-run" && req.method === "POST") {
+		const body = await readJson(req);
+		return sendJson(res, 202, {
+			data: {
+				message: `Mock admin action completed: ${body.action ?? "unknown"}`,
+				status: "accepted",
+				reference: body.targetId ?? "platform",
+			},
+		});
+	}
 	if (!adminRoutes[path]) return false;
 	return sendJson(res, 200, adminRoutes[path]);
 }
@@ -610,6 +932,242 @@ function complianceEvidence() {
 			],
 		},
 	};
+}
+
+function acceptanceRun(caseId) {
+	const testCase = acceptanceCases.find((candidate) => candidate.caseId === caseId);
+	if (!testCase) {
+		return {
+			caseId,
+			passed: false,
+			assertions: [{ name: "case exists", passed: false, expected: "known case", actual: "unknown" }],
+		};
+	}
+
+	const fixture = acceptanceFixture(caseId);
+	const assertions = acceptanceAssertions(caseId, fixture.request, fixture.response);
+	return {
+		...testCase,
+		organizationId: "org_mock",
+		executionMode: "mock_until_sandbox",
+		passed: assertions.every((assertion) => assertion.passed),
+		runId: `org_mock-${caseId}-mock-20260526`,
+		request: fixture.request,
+		response: fixture.response,
+		assertions,
+		evidence: {
+			sourceDocuments: ["MoR_BSP_Master.docx", "EimsCoreApiMockCollection2.postman_collection.json"],
+			morBspCaseId: caseId,
+			checklistEvidence: testCase.requiredEvidence,
+			printEvidence:
+				caseId === "IRC-P01" || caseId === "IRC-P02" || caseId === "ADD-P001"
+					? {
+							layouts: ["compact", "a4"],
+							mandatoryFields: ["IRN", "QR", "seller TIN", "document number", "tax value", "total value"],
+							qrSource: "EIMS accepted signedQR only",
+						}
+					: undefined,
+			complianceArtifacts: [
+				`request-payload-${caseId}.json`,
+				`response-${caseId}.json`,
+				`audit-event-${caseId}.json`,
+			],
+		},
+		notes: ["Mock until INSA sandbox credentials arrive", "Replay same case ID against real sandbox in Phase 0 Layer B"],
+	};
+}
+
+function acceptanceFixture(caseId) {
+	const invoice = ({
+		transactionType = "B2C",
+		documentType = "INV",
+		buyer = { Tin: null, LegalName: "Walk-in Customer", VatNumber: null },
+		taxCodes = ["VAT15"],
+		documentNumber = "MOCK-DOC",
+		irn = "MOCK-IRN-ACCEPTED",
+		relatedDocument,
+		reason,
+		withhold = "0.00",
+	} = {}) => ({
+		request: {
+			request: {
+				TransactionType: transactionType,
+				DocumentDetails: {
+					Type: documentType,
+					DocumentNumber: documentNumber,
+					Date: "2026-05-26T10:30:00.000+03:00",
+					Reason: reason,
+					RelatedDocument: relatedDocument,
+				},
+				SellerDetails: {
+					Tin: "0074136947",
+					LegalName: "Habesha Restaurant PLC",
+					VatNumber: "REGVAT123456789",
+				},
+				BuyerDetails: buyer,
+				SourceSystem: {
+					SystemType: "POS",
+					SystemNumber: "329D03B6F0",
+					InvoiceCounter: 129,
+					PreviousIrn: relatedDocument ?? null,
+				},
+				ItemList: taxCodes.map((taxCode, index) => ({
+					LineNumber: index + 1,
+					ItemCode: `ITEM-${index + 1}`,
+					ProductDescription: `${taxCode} item`,
+					Quantity: "1.0000",
+					Unit: "PCS",
+					UnitPrice: "100.00",
+					TaxCode: taxCode,
+					TaxAmount: taxCode === "VAT15" ? "15.00" : "0.00",
+					TotalLineAmount: taxCode === "VAT15" ? "115.00" : "100.00",
+				})),
+				ValueDetails: {
+					InvoiceCurrency: "ETB",
+					TaxValue: taxCodes.includes("VAT15") ? "15.00" : "0.00",
+					TransactionWithholdValue: withhold,
+					TotalValue: "115.00",
+				},
+				PaymentDetails: { PaymentTerm: "IMMIDIATE", Mode: "CASH" },
+			},
+			signature: "MOCK-SHA512WITHRSA-SIGNATURE-PENDING-PHASE0",
+			certificate: "MOCK-INSA-SANDBOX-CERTIFICATE-PENDING",
+		},
+		response: { StatusCode: 200, Message: "Accepted by EIMS mock", Irn: irn, SignedQR: `MOCK-SIGNED-QR-${caseId}` },
+	});
+
+	switch (caseId) {
+		case "IRC-P01":
+			return invoice({ documentNumber: "B2C-VAT-000001", taxCodes: ["VAT15", "VAT0", "VATEX"], irn: eimsSubmissions[0].irn });
+		case "IRC-P02":
+			return invoice({
+				transactionType: "B2B",
+				documentNumber: "B2B-VAT-000002",
+				buyer: { Tin: "0089238373", LegalName: "Taxpayer A Trading PLC", VatNumber: "VAT0089238373" },
+				taxCodes: ["VAT15", "EXC5"],
+				irn: "MOCK-IRN-B2B-0002",
+				withhold: "600.00",
+			});
+		case "IRC-P03":
+			return {
+				request: {
+					ReceiptNumber: "RCPT-2026-00044",
+					ReceiptType: "sales",
+					Invoices: [{ InvoiceIRN: eimsSubmissions[0].irn, PaymentCoverage: "full", InvoicePaidAmount: "115.00" }],
+					TransactionDetails: { ModeOfPayment: "CASH" },
+				},
+				response: { StatusCode: 200, Rrn: "MOCK-RRN-00044", SignedQR: "MOCK-SIGNED-RECEIPT-QR" },
+			};
+		case "IRC-P04":
+			return {
+				request: {
+					InvoiceDetail: { InvoiceIRN: "MOCK-IRN-B2B-0002" },
+					WithholdDetail: { Type: "TWHT", Rate: "2.00", PreTaxAmount: "30000.00", WithholdingAmount: "600.00" },
+				},
+				response: { StatusCode: 200, Rrn: "MOCK-WHT-RRN-00002", SignedQR: "MOCK-SIGNED-WHT-QR" },
+			};
+		case "IRC-P05":
+			return { request: { Irn: eimsSubmissions[0].irn, ReasonCode: "4", Remark: "Customer returned the order" }, response: { StatusCode: 200, Status: "cancelled" } };
+		case "IRC-P06":
+			return invoice({ documentType: "CRE", documentNumber: "CRE-2026-00003", relatedDocument: eimsSubmissions[0].irn, reason: "Returned item", irn: "MOCK-IRN-CRE-00003" });
+		case "IRC-P07":
+			return invoice({ transactionType: "B2B", documentType: "DEB", documentNumber: "DEB-2026-00004", relatedDocument: "MOCK-IRN-B2B-0002", reason: "Price adjustment", irn: "MOCK-IRN-DEB-00004" });
+		case "IRC-N08":
+			return {
+				request: invoice({ transactionType: "B2B", buyer: { Tin: "123", LegalName: "", VatNumber: null } }).request,
+				response: { StatusCode: 406, ErrorCode: "7008", Message: "Invalid buyer TIN or legal name" },
+			};
+		case "IRC-N09":
+			return { request: { Invoices: [{ InvoiceIRN: "MOCK-IRN-CANCELLED-OR-MISSING" }] }, response: { StatusCode: 406, ErrorCode: "7019", Message: "Invoice IRN is not active" } };
+		case "IRC-N010":
+			return { request: { Irn: "MOCK-IRN-ALREADY-CANCELLED", ReasonCode: "1" }, response: { StatusCode: 406, ErrorCode: "7002", Message: "Invoice already cancelled" } };
+		case "ADD-N001":
+			return { request: { channels: ["sms", "email"] }, response: { Notifications: notifications.data } };
+		case "ADD-C001":
+			return { request: { environment: "sandbox" }, response: { Enterprise: overview.data.enterprises[0], Establishment: overview.data.establishments[0], SourceSystem: overview.data.sourceSystems[0], Credential: credentials.data[0] } };
+		case "ADD-P001":
+			return { request: { layouts: ["compact", "a4"] }, response: { PrintLayouts: printLayouts.data, MandatoryFields: ["IRN", "QR", "seller TIN", "tax value", "total value"] } };
+		default:
+			return { request: {}, response: {} };
+	}
+}
+
+function acceptanceAssertions(caseId, request, response) {
+	const req = request.request ?? request;
+	const assertionsByCase = {
+		"IRC-P01": [
+			assertion("B2C transaction type", req.TransactionType === "B2C", "B2C", req.TransactionType),
+			assertion("Buyer TIN is null", req.BuyerDetails?.Tin === null, "null", String(req.BuyerDetails?.Tin)),
+			assertion("VAT0 item exists", req.ItemList?.some((item) => item.TaxCode === "VAT0"), "VAT0", req.ItemList?.map((item) => item.TaxCode).join(",")),
+			assertion("VAT15 item exists", req.ItemList?.some((item) => item.TaxCode === "VAT15"), "VAT15", req.ItemList?.map((item) => item.TaxCode).join(",")),
+			assertion("VATEX item exists", req.ItemList?.some((item) => item.TaxCode === "VATEX"), "VATEX", req.ItemList?.map((item) => item.TaxCode).join(",")),
+			assertion("IRN returned", Boolean(response.Irn), "present", response.Irn),
+		],
+		"IRC-P02": [
+			assertion("B2B transaction type", req.TransactionType === "B2B", "B2B", req.TransactionType),
+			assertion("Buyer TIN is 10 digits", /^\d{10}$/.test(req.BuyerDetails?.Tin ?? ""), "10 digits", req.BuyerDetails?.Tin),
+			assertion("Withholding value exists", req.ValueDetails?.TransactionWithholdValue === "600.00", "600.00", req.ValueDetails?.TransactionWithholdValue),
+			assertion("IRN returned", Boolean(response.Irn), "present", response.Irn),
+		],
+		"IRC-P03": [
+			assertion("Receipt references accepted invoice", req.Invoices?.[0]?.InvoiceIRN === eimsSubmissions[0].irn, eimsSubmissions[0].irn, req.Invoices?.[0]?.InvoiceIRN),
+			assertion("RRN returned", Boolean(response.Rrn), "present", response.Rrn),
+		],
+		"IRC-P04": [
+			assertion("Withholding type is TWHT", req.WithholdDetail?.Type === "TWHT", "TWHT", req.WithholdDetail?.Type),
+			assertion("Withholding amount greater than zero", Number(req.WithholdDetail?.WithholdingAmount) > 0, "> 0", req.WithholdDetail?.WithholdingAmount),
+			assertion("RRN returned", Boolean(response.Rrn), "present", response.Rrn),
+		],
+		"IRC-P05": [
+			assertion("Reason code is 4", req.ReasonCode === "4", "4", req.ReasonCode),
+			assertion("Remark exists", Boolean(req.Remark), "present", req.Remark),
+			assertion("Cancellation accepted", response.Status === "cancelled", "cancelled", response.Status),
+		],
+		"IRC-P06": [
+			assertion("Document type is CRE", req.DocumentDetails?.Type === "CRE", "CRE", req.DocumentDetails?.Type),
+			assertion("Related document exists", Boolean(req.DocumentDetails?.RelatedDocument), "present", req.DocumentDetails?.RelatedDocument),
+			assertion("IRN returned", Boolean(response.Irn), "present", response.Irn),
+		],
+		"IRC-P07": [
+			assertion("Document type is DEB", req.DocumentDetails?.Type === "DEB", "DEB", req.DocumentDetails?.Type),
+			assertion("Related document exists", Boolean(req.DocumentDetails?.RelatedDocument), "present", req.DocumentDetails?.RelatedDocument),
+			assertion("IRN returned", Boolean(response.Irn), "present", response.Irn),
+		],
+		"IRC-N08": [
+			assertion("Invalid buyer TIN used", req.BuyerDetails?.Tin === "123", "123", req.BuyerDetails?.Tin),
+			assertion("Error returned", Boolean(response.ErrorCode), "present", response.ErrorCode),
+			assertion("No IRN issued", !response.Irn, "absent", response.Irn),
+		],
+		"IRC-N09": [
+			assertion("Inactive IRN used", req.Invoices?.[0]?.InvoiceIRN === "MOCK-IRN-CANCELLED-OR-MISSING", "inactive", req.Invoices?.[0]?.InvoiceIRN),
+			assertion("Error returned", Boolean(response.ErrorCode), "present", response.ErrorCode),
+			assertion("No RRN issued", !response.Rrn, "absent", response.Rrn),
+		],
+		"IRC-N010": [
+			assertion("Inactive cancellation IRN used", req.Irn === "MOCK-IRN-ALREADY-CANCELLED", "inactive", req.Irn),
+			assertion("Error returned", Boolean(response.ErrorCode), "present", response.ErrorCode),
+		],
+		"ADD-N001": [
+			assertion("SMS notification exists", response.Notifications?.some((item) => item.channel === "sms"), "sms", response.Notifications?.map((item) => item.channel).join(",")),
+			assertion("Email notification exists", response.Notifications?.some((item) => item.channel === "email"), "email", response.Notifications?.map((item) => item.channel).join(",")),
+		],
+		"ADD-C001": [
+			assertion("TIN is 10 digits", /^\d{10}$/.test(response.Enterprise?.tin ?? response.Enterprise?.Tin ?? ""), "10 digits", response.Enterprise?.tin ?? response.Enterprise?.Tin),
+			assertion("Sub-TIN is valid", /^\d{10}-\d{2}$/.test(response.Establishment?.subTin ?? ""), "TIN-NN", response.Establishment?.subTin),
+			assertion("Credential tested", response.Credential?.lastTestStatus === "success", "success", response.Credential?.lastTestStatus),
+		],
+		"ADD-P001": [
+			assertion("Compact layout exists", response.PrintLayouts?.some((item) => item.layout === "compact"), "compact", response.PrintLayouts?.map((item) => item.layout).join(",")),
+			assertion("A4 layout exists", response.PrintLayouts?.some((item) => item.layout === "a4"), "a4", response.PrintLayouts?.map((item) => item.layout).join(",")),
+			assertion("IRN mandatory", response.MandatoryFields?.includes("IRN"), "IRN", response.MandatoryFields?.join(",")),
+			assertion("QR mandatory", response.MandatoryFields?.includes("QR"), "QR", response.MandatoryFields?.join(",")),
+		],
+	};
+	return assertionsByCase[caseId] ?? [assertion("case implemented", false, "implemented", "missing")];
+}
+
+function assertion(name, passed, expected, actual) {
+	return { name, passed: Boolean(passed), expected: String(expected), actual: String(actual) };
 }
 
 function adminCertificates() {

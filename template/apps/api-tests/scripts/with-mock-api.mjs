@@ -30,7 +30,11 @@ server.listen(requestedPort, "127.0.0.1", async () => {
 		mode === "bruno"
 			? await run("node", ["scripts/run-bruno.mjs"], baseUrl)
 			: mode === "eims-http"
-				? await run("playwright", ["test", "-c", "playwright.config.ts", "tests/eims-v3-mock.spec.ts"], baseUrl)
+				? await run(
+						"playwright",
+						["test", "-c", "playwright.config.ts", "tests/eims-v3-mock.spec.ts", "tests/eims-acceptance.spec.ts"],
+						baseUrl,
+					)
 				: await run("playwright", ["test", "-c", "playwright.config.ts"], baseUrl);
 	server.close(() => process.exit(code));
 });

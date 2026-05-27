@@ -14,8 +14,9 @@ export class PrismaEimsSetupRepository extends EimsSetupRepository {
 	}
 
 	createEnterprise(organizationId: string, input: CreateEimsEnterpriseInput) {
-		return this.prisma.eimsEnterprise.create({
-			data: {
+		return this.prisma.eimsEnterprise.upsert({
+			where: { organizationId_tin: { organizationId, tin: input.tin } },
+			create: {
 				organizationId,
 				tin: input.tin,
 				legalName: input.legalName,
@@ -24,6 +25,13 @@ export class PrismaEimsSetupRepository extends EimsSetupRepository {
 				email: input.email ?? null,
 				phone: input.phone ?? null,
 				status: "draft",
+			},
+			update: {
+				legalName: input.legalName,
+				tradeName: input.tradeName ?? null,
+				vatNumber: input.vatNumber ?? null,
+				email: input.email ?? null,
+				phone: input.phone ?? null,
 			},
 		});
 	}
@@ -35,7 +43,22 @@ export class PrismaEimsSetupRepository extends EimsSetupRepository {
 		});
 	}
 
-	createEstablishment(organizationId: string, input: CreateEimsEstablishmentInput) {
+	async createEstablishment(organizationId: string, input: CreateEimsEstablishmentInput) {
+		const existing = await this.prisma.eimsEstablishment.findFirst({
+			where: { organizationId, code: input.code },
+		});
+		if (existing) {
+			return this.prisma.eimsEstablishment.update({
+				where: { id: existing.id },
+				data: {
+					enterpriseId: input.enterpriseId,
+					name: input.name,
+					subTin: input.subTin ?? null,
+					region: input.region ?? null,
+					city: input.city ?? null,
+				},
+			});
+		}
 		return this.prisma.eimsEstablishment.create({
 			data: {
 				organizationId,
@@ -58,27 +81,52 @@ export class PrismaEimsSetupRepository extends EimsSetupRepository {
 	}
 
 	async createSourceSystem(organizationId: string, input: CreateEimsSourceSystemInput) {
-		const source = await this.prisma.eimsSourceSystem.create({
-			data: {
+		const existing = await this.prisma.eimsSourceSystem.findFirst({
+			where: {
 				organizationId,
-				enterpriseId: input.enterpriseId,
-				establishmentId: input.establishmentId,
-				name: input.name,
-				systemType: input.systemType,
-				systemNumber: input.systemNumber ?? null,
-				softwareVersion: input.softwareVersion ?? null,
-				inHouseDeveloped: input.inHouseDeveloped ?? false,
-				approvalStatus: "draft",
-				active: false,
+				OR: [
+					{ name: input.name },
+					...(input.systemNumber ? [{ systemNumber: input.systemNumber }] : []),
+				],
 			},
 		});
-		await this.prisma.eimsSourceSystemCounter.create({
-			data: {
+		const source = existing
+			? await this.prisma.eimsSourceSystem.update({
+					where: { id: existing.id },
+					data: {
+						enterpriseId: input.enterpriseId,
+						establishmentId: input.establishmentId,
+						name: input.name,
+						systemType: input.systemType,
+						systemNumber: input.systemNumber ?? null,
+						softwareVersion: input.softwareVersion ?? null,
+						inHouseDeveloped: input.inHouseDeveloped ?? false,
+						version: { increment: 1 },
+					},
+				})
+			: await this.prisma.eimsSourceSystem.create({
+					data: {
+						organizationId,
+						enterpriseId: input.enterpriseId,
+						establishmentId: input.establishmentId,
+						name: input.name,
+						systemType: input.systemType,
+						systemNumber: input.systemNumber ?? null,
+						softwareVersion: input.softwareVersion ?? null,
+						inHouseDeveloped: input.inHouseDeveloped ?? false,
+						approvalStatus: "draft",
+						active: false,
+					},
+				});
+		await this.prisma.eimsSourceSystemCounter.upsert({
+			where: { sourceSystemId: source.id },
+			create: {
 				organizationId,
 				sourceSystemId: source.id,
 				lastAcceptedCounter: BigInt(0),
 				status: "healthy",
 			},
+			update: {},
 		});
 		return source;
 	}

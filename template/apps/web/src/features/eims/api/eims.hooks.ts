@@ -48,10 +48,105 @@ export interface EimsOverview {
 		systemNumber: string;
 		systemType: string;
 		approvalStatus: string;
-		lastAcceptedCounter: number;
+		lastAcceptedCounter?: number;
 	}>;
 	blockers: string[];
 	recentSubmissions: EimsSubmission[];
+}
+
+export interface EimsTenantWorkspace {
+	organizationId: string;
+	operationModeLabel: string;
+	plainLanguageSummary: string;
+	readiness: {
+		readyForLive: boolean;
+		blockers: string[];
+		steps: Array<{
+			key: string;
+			label: string;
+			status: string;
+			tenantProvides: string[];
+			actionLabel?: string;
+		}>;
+	};
+	requiredInputs: string[];
+	supportNote: string;
+	primaryActions: Array<{ label: string; href: string }>;
+	alerts: Array<{ level: "info" | "warning" | "error" | string; message: string }>;
+}
+
+export interface EimsSetupState {
+	status: string;
+	counts: {
+		enterprises: number;
+		establishments: number;
+		sourceSystems: number;
+	};
+	enterprises: EimsOverview["enterprises"];
+	establishments: EimsOverview["establishments"];
+	sourceSystems: EimsOverview["sourceSystems"];
+}
+
+export interface EimsActionResult {
+	message: string;
+	reference?: string;
+	status?: string;
+}
+
+export interface CreateEimsEnterpriseInput {
+	tin: string;
+	legalName: string;
+	tradeName?: string;
+	vatNumber?: string;
+	email?: string;
+	phone?: string;
+}
+
+export interface CreateEimsEstablishmentInput {
+	enterpriseId: string;
+	name: string;
+	code: string;
+	subTin?: string;
+	region?: string;
+	city?: string;
+}
+
+export interface CreateEimsSourceInput {
+	enterpriseId: string;
+	establishmentId: string;
+	name: string;
+	systemType: string;
+	systemNumber?: string;
+	softwareVersion?: string;
+	inHouseDeveloped?: boolean;
+}
+
+export interface SaveEimsCredentialInput {
+	sourceSystemId: string;
+	clientId: string;
+	username: string;
+	apiKey: string;
+	password: string;
+	clientSecret: string;
+}
+
+export interface ImportEimsCertificateInput {
+	sourceSystemId: string;
+	certificatePem: string;
+}
+
+export interface CreateEimsReceiptInput {
+	receiptType: "sales" | "withholding";
+	invoiceIrn: string;
+	paymentMode: string;
+	paidAmount: string;
+	withholdingType?: string;
+}
+
+export interface CancelEimsInvoiceInput {
+	invoiceIrn: string;
+	reasonCode: string;
+	remark?: string;
 }
 
 export interface EimsReceipt {
@@ -69,7 +164,6 @@ export interface EimsReceipt {
 export interface EimsCredential {
 	id: string;
 	sourceSystem: string;
-	environment: string;
 	username: string;
 	clientId: string;
 	status: string;
@@ -87,7 +181,6 @@ export interface EimsCredential {
 export interface EimsCertificate {
 	id: string;
 	sourceSystem: string;
-	environment: string;
 	provider: string;
 	csrStrategy: string;
 	keyProvider: string;
@@ -174,6 +267,62 @@ export interface EimsComplianceEvidence {
 	items: Array<{ key: string; label: string; status: string }>;
 }
 
+export interface EimsAcceptanceCase {
+	caseId: string;
+	type: "positive" | "negative" | "additional";
+	title: string;
+	sourceDocument: string;
+	sourceSection: string;
+	operation: string;
+	method: string;
+	endpoint: string;
+	requirement: string;
+	expectedOutcome: string;
+	requiredEvidence: string[];
+	requiredAssertions: string[];
+	status?: string;
+	sandboxStatus?: string;
+}
+
+export interface EimsAcceptanceRun {
+	caseId: string;
+	title: string;
+	type: string;
+	operation: string;
+	endpoint: string;
+	executionMode: string;
+	passed: boolean;
+	runId: string;
+	request: unknown;
+	response: unknown;
+	assertions: Array<{ name: string; passed: boolean; expected: string; actual: string }>;
+	evidence: {
+		sourceDocuments: string[];
+		morBspCaseId: string;
+		checklistEvidence: string[];
+		printEvidence?: {
+			layouts: string[];
+			mandatoryFields: string[];
+			qrSource: string;
+		};
+		notificationEvidence?: {
+			channels: string[];
+			providers: string[];
+			retryPolicy: string;
+		};
+		complianceArtifacts?: string[];
+	};
+}
+
+export interface EimsAcceptanceRunAll {
+	organizationId: string;
+	executionMode: string;
+	total: number;
+	passed: number;
+	failed: number;
+	results: EimsAcceptanceRun[];
+}
+
 export interface AdminEimsOverview {
 	mode: string;
 	tenantsTotal: number;
@@ -236,20 +385,97 @@ export const useEimsOverview = () =>
 		queryFn: () => api.get<{ data: EimsOverview }>("/eims/overview"),
 	});
 
+export const useEimsTenantWorkspace = () =>
+	useQuery({
+		queryKey: ["eims", "workspace"],
+		queryFn: () => api.get<{ data: EimsTenantWorkspace }>("/eims/workspace"),
+	});
+
+export const useEimsSetup = () =>
+	useQuery({
+		queryKey: ["eims", "setup"],
+		queryFn: () => api.get<{ data: EimsSetupState }>("/eims/setup"),
+	});
+
+const invalidateEims = (queryClient: ReturnType<typeof useQueryClient>) => {
+	void queryClient.invalidateQueries({ queryKey: ["eims"] });
+	void queryClient.invalidateQueries({ queryKey: ["admin", "eims"] });
+};
+
+export const useCreateEimsEnterprise = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (input: CreateEimsEnterpriseInput) =>
+			api.post<{ data: EimsActionResult & CreateEimsEnterpriseInput }>("/eims/setup/enterprises", input),
+		onSuccess: () => invalidateEims(queryClient),
+	});
+};
+
+export const useCreateEimsEstablishment = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (input: CreateEimsEstablishmentInput) =>
+			api.post<{ data: EimsActionResult & CreateEimsEstablishmentInput }>("/eims/setup/establishments", input),
+		onSuccess: () => invalidateEims(queryClient),
+	});
+};
+
+export const useCreateEimsSourceSystem = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (input: CreateEimsSourceInput) =>
+			api.post<{ data: EimsActionResult & CreateEimsSourceInput }>("/eims/setup/sources", input),
+		onSuccess: () => invalidateEims(queryClient),
+	});
+};
+
 export const useEimsSubmissions = () =>
 	useQuery({
 		queryKey: ["eims", "submissions"],
 		queryFn: () => api.get<{ data: EimsSubmission[] }>("/eims/submissions"),
 	});
 
-export const useCreateMockEimsSubmission = () => {
+export const useCreateEimsSubmission = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: (documentNumber: string) =>
-			api.post<{ data: EimsSubmission }>("/eims/submissions/mock-submit", { documentNumber }),
+			api.post<{ data: EimsSubmission }>("/eims/submissions", { documentNumber }),
 		onSuccess: () => {
 			void queryClient.invalidateQueries({ queryKey: ["eims"] });
 		},
+	});
+};
+
+export const useSaveEimsCredential = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (input: SaveEimsCredentialInput) =>
+			api.post<{ data: EimsActionResult }>("/eims/credentials", input),
+		onSuccess: () => invalidateEims(queryClient),
+	});
+};
+
+export const useTestEimsCredential = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (sourceSystemId: string) =>
+			api.post<{ data: EimsActionResult }>("/eims/credentials/test", { sourceSystemId }),
+		onSuccess: () => invalidateEims(queryClient),
+	});
+};
+
+export const useGenerateEimsCsr = () =>
+	useMutation({
+		mutationFn: (sourceSystemId: string) =>
+			api.post<{ data: EimsActionResult }>("/eims/certificates/generate-csr", { sourceSystemId }),
+	});
+
+export const useImportEimsCertificate = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (input: ImportEimsCertificateInput) =>
+			api.post<{ data: EimsActionResult }>("/eims/certificates/import", input),
+		onSuccess: () => invalidateEims(queryClient),
 	});
 };
 
@@ -258,6 +484,15 @@ export const useEimsReceipts = () =>
 		queryKey: ["eims", "receipts"],
 		queryFn: () => api.get<{ data: EimsReceipt[] }>("/eims/receipts"),
 	});
+
+export const useCreateEimsReceipt = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (input: CreateEimsReceiptInput) =>
+			api.post<{ data: EimsActionResult }>("/eims/receipts", input),
+		onSuccess: () => invalidateEims(queryClient),
+	});
+};
 
 export const useEimsCredentials = () =>
 	useQuery({
@@ -277,11 +512,37 @@ export const useEimsBulkBatches = () =>
 		queryFn: () => api.get<{ data: EimsBulkBatch[] }>("/eims/bulk"),
 	});
 
+export const useCreateEimsBulkBatch = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: () => api.post<{ data: EimsActionResult }>("/eims/bulk", {}),
+		onSuccess: () => invalidateEims(queryClient),
+	});
+};
+
+export const useReconcileEimsBulkBatch = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (conversationId: string) =>
+			api.post<{ data: EimsActionResult }>("/eims/bulk/reconcile", { conversationId }),
+		onSuccess: () => invalidateEims(queryClient),
+	});
+};
+
 export const useEimsCancellations = () =>
 	useQuery({
 		queryKey: ["eims", "cancellations"],
 		queryFn: () => api.get<{ data: EimsCancellation[] }>("/eims/cancellations"),
 	});
+
+export const useCancelEimsInvoice = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (input: CancelEimsInvoiceInput) =>
+			api.post<{ data: EimsActionResult }>("/eims/cancellations", input),
+		onSuccess: () => invalidateEims(queryClient),
+	});
+};
 
 export const useEimsBuyers = () =>
 	useQuery({
@@ -312,6 +573,33 @@ export const useEimsComplianceEvidence = () =>
 		queryKey: ["eims", "compliance", "evidence"],
 		queryFn: () => api.get<{ data: EimsComplianceEvidence }>("/eims/compliance/evidence"),
 	});
+
+export const useGenerateEimsEvidence = () =>
+	useMutation({
+		mutationFn: () => api.post<{ data: EimsActionResult }>("/eims/compliance/evidence", {}),
+	});
+
+export const useEimsAcceptanceCases = () =>
+	useQuery({
+		queryKey: ["admin", "eims", "acceptance", "cases"],
+		queryFn: () => api.get<{ data: EimsAcceptanceCase[] }>("/admin/eims/acceptance/cases"),
+	});
+
+export const useRunEimsAcceptanceCase = () =>
+	useMutation({
+		mutationFn: (caseId: string) =>
+			api.post<{ data: EimsAcceptanceRun }>(`/admin/eims/acceptance/cases/${caseId}/run`, {}),
+	});
+
+export const useRunAllEimsAcceptanceCases = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: () => api.post<{ data: EimsAcceptanceRunAll }>("/admin/eims/acceptance/run-all", {}),
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: ["admin", "eims", "acceptance"] });
+		},
+	});
+};
 
 export const useAdminEimsOverview = () =>
 	useQuery({
@@ -348,3 +636,12 @@ export const useAdminEimsCompliance = () =>
 		queryKey: ["admin", "eims", "compliance"],
 		queryFn: () => api.get<{ data: AdminEimsCompliance }>("/admin/eims/compliance"),
 	});
+
+export const useAdminEimsAction = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (input: { action: string; targetId?: string; note?: string }) =>
+			api.post<{ data: EimsActionResult }>("/admin/eims/actions/run", input),
+		onSuccess: () => invalidateEims(queryClient),
+	});
+};
