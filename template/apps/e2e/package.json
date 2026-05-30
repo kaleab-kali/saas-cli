@@ -6,8 +6,6 @@
 	"scripts": {
 		"test": "playwright test -c playwright.config.ts",
 		"test:smoke": "playwright test -c playwright.config.ts tests/smoke.spec.ts",
-		"test:eims": "playwright test -c playwright.eims.config.ts tests/eims-mock.spec.ts",
-		"test:eims:headed": "playwright test -c playwright.eims.config.ts tests/eims-mock.spec.ts --headed --project=chromium",
 		"test:headed": "playwright test -c playwright.config.ts --headed",
 		"test:ui": "playwright test -c playwright.config.ts --ui",
 		"report": "playwright show-report"

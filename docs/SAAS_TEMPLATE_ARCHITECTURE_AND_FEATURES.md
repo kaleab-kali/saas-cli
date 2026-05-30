@@ -9,9 +9,9 @@ The repository has two main responsibilities:
 
 The generated SaaS project is a pnpm workspace with a NestJS API, React/Vite web app, PostgreSQL/Prisma database layer, Better Auth authentication, RBAC, billing, notifications, reporting, operations tooling, and several test harnesses.
 
-## Starter Pack Cleanup Note
+## Starter Pack Boundary
 
-The base scaffold is domain-neutral. EIMS/EIRMS files still live in `template/` as source material for the optional starter pack, but new generated projects strip those files unless `create-vyllion-saas add starter eims` is run.
+The base scaffold is domain-neutral. EIMS/EIRMS source files live under `packages/cli/starters/eims/artifacts` and are copied into a generated project only when `create-vyllion-saas add starter eims` is run.
 
 ## Top-Level Repository Structure
 
@@ -41,6 +41,10 @@ create-vyllion-saas/
 |           |-- module-generator.js      # add module and add starter commands
 |           |-- doctor.js                # Generated-project environment checks
 |           `-- ui.js                    # CLI output helpers
+|       `-- starters/
+|           `-- eims/
+|               |-- pack.json            # Optional starter metadata
+|               `-- artifacts/           # EIMS files installed by the starter pack
 |-- template/                            # Source copied into generated projects
 |   |-- package.json                     # Generated app workspace scripts
 |   |-- pnpm-workspace.yaml              # Includes apps/*

@@ -26,7 +26,6 @@ import { Route as AdminOrganizationsIndexRouteImport } from './routes/admin/orga
 import { Route as AdminOnboardingIndexRouteImport } from './routes/admin/onboarding/index'
 import { Route as AdminJobsIndexRouteImport } from './routes/admin/jobs/index'
 import { Route as AdminFeatureFlagsIndexRouteImport } from './routes/admin/feature-flags/index'
-import { Route as AdminEimsIndexRouteImport } from './routes/admin/eims/index'
 import { Route as AdminBillingIndexRouteImport } from './routes/admin/billing/index'
 import { Route as AdminAuditLogsIndexRouteImport } from './routes/admin/audit-logs/index'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
@@ -34,17 +33,11 @@ import { Route as AuthenticatedReportsIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_authenticated/onboarding/index'
 import { Route as AuthenticatedNotificationsIndexRouteImport } from './routes/_authenticated/notifications/index'
 import { Route as AuthenticatedFilesIndexRouteImport } from './routes/_authenticated/files/index'
-import { Route as AuthenticatedEimsIndexRouteImport } from './routes/_authenticated/eims/index'
 import { Route as AdminPlansNewRouteImport } from './routes/admin/plans/new'
 import { Route as AdminPlansPlanIdRouteImport } from './routes/admin/plans/$planId'
 import { Route as AdminOrganizationsOrgIdRouteImport } from './routes/admin/organizations/$orgId'
 import { Route as AdminOnboardingNewRouteImport } from './routes/admin/onboarding/new'
 import { Route as AdminOnboardingTaskIdRouteImport } from './routes/admin/onboarding/$taskId'
-import { Route as AdminEimsTenantsRouteImport } from './routes/admin/eims/tenants'
-import { Route as AdminEimsResourcesRouteImport } from './routes/admin/eims/resources'
-import { Route as AdminEimsFailuresRouteImport } from './routes/admin/eims/failures'
-import { Route as AdminEimsComplianceRouteImport } from './routes/admin/eims/compliance'
-import { Route as AdminEimsCertificatesRouteImport } from './routes/admin/eims/certificates'
 import { Route as AdminBillingDashboardRouteImport } from './routes/admin/billing/dashboard'
 import { Route as AdminBillingSubscriptionIdRouteImport } from './routes/admin/billing/$subscriptionId'
 import { Route as AuthenticatedSettingsSecurityRouteImport } from './routes/_authenticated/settings/security'
@@ -61,16 +54,6 @@ import { Route as AuthenticatedReportsNewRouteImport } from './routes/_authentic
 import { Route as AuthenticatedNotificationsTemplatesRouteImport } from './routes/_authenticated/notifications/templates'
 import { Route as AuthenticatedNotificationsPreferencesRouteImport } from './routes/_authenticated/notifications/preferences'
 import { Route as AuthenticatedNotificationsDeliveriesRouteImport } from './routes/_authenticated/notifications/deliveries'
-import { Route as AuthenticatedEimsSubmissionsRouteImport } from './routes/_authenticated/eims/submissions'
-import { Route as AuthenticatedEimsSourcesRouteImport } from './routes/_authenticated/eims/sources'
-import { Route as AuthenticatedEimsSetupRouteImport } from './routes/_authenticated/eims/setup'
-import { Route as AuthenticatedEimsReceiptsRouteImport } from './routes/_authenticated/eims/receipts'
-import { Route as AuthenticatedEimsEstablishmentsRouteImport } from './routes/_authenticated/eims/establishments'
-import { Route as AuthenticatedEimsEnterprisesRouteImport } from './routes/_authenticated/eims/enterprises'
-import { Route as AuthenticatedEimsCredentialsRouteImport } from './routes/_authenticated/eims/credentials'
-import { Route as AuthenticatedEimsComplianceRouteImport } from './routes/_authenticated/eims/compliance'
-import { Route as AuthenticatedEimsCertificatesRouteImport } from './routes/_authenticated/eims/certificates'
-import { Route as AuthenticatedEimsBulkRouteImport } from './routes/_authenticated/eims/bulk'
 import { Route as AuthenticatedReportsDashboardMainRouteImport } from './routes/_authenticated/reports/dashboard.main'
 
 const SignupRoute = SignupRouteImport.update({
@@ -158,11 +141,6 @@ const AdminFeatureFlagsIndexRoute = AdminFeatureFlagsIndexRouteImport.update({
   path: '/feature-flags/',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminEimsIndexRoute = AdminEimsIndexRouteImport.update({
-  id: '/eims/',
-  path: '/eims/',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminBillingIndexRoute = AdminBillingIndexRouteImport.update({
   id: '/billing/',
   path: '/billing/',
@@ -202,11 +180,6 @@ const AuthenticatedFilesIndexRoute = AuthenticatedFilesIndexRouteImport.update({
   path: '/files/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedEimsIndexRoute = AuthenticatedEimsIndexRouteImport.update({
-  id: '/eims/',
-  path: '/eims/',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AdminPlansNewRoute = AdminPlansNewRouteImport.update({
   id: '/plans/new',
   path: '/plans/new',
@@ -232,29 +205,8 @@ const AdminOnboardingTaskIdRoute = AdminOnboardingTaskIdRouteImport.update({
   path: '/onboarding/$taskId',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminEimsTenantsRoute = AdminEimsTenantsRouteImport.update({
-  id: '/eims/tenants',
-  path: '/eims/tenants',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminEimsResourcesRoute = AdminEimsResourcesRouteImport.update({
-  id: '/eims/resources',
-  path: '/eims/resources',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminEimsFailuresRoute = AdminEimsFailuresRouteImport.update({
-  id: '/eims/failures',
-  path: '/eims/failures',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminEimsComplianceRoute = AdminEimsComplianceRouteImport.update({
-  id: '/eims/compliance',
-  path: '/eims/compliance',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminEimsCertificatesRoute = AdminEimsCertificatesRouteImport.update({
-  id: '/eims/certificates',
-  path: '/eims/certificates',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminBillingDashboardRoute = AdminBillingDashboardRouteImport.update({
@@ -351,62 +303,14 @@ const AuthenticatedNotificationsDeliveriesRoute =
     path: '/notifications/deliveries',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedEimsSubmissionsRoute =
-  AuthenticatedEimsSubmissionsRouteImport.update({
-    id: '/eims/submissions',
-    path: '/eims/submissions',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedEimsSourcesRoute =
-  AuthenticatedEimsSourcesRouteImport.update({
-    id: '/eims/sources',
-    path: '/eims/sources',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedEimsSetupRoute = AuthenticatedEimsSetupRouteImport.update({
-  id: '/eims/setup',
-  path: '/eims/setup',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedEimsReceiptsRoute =
-  AuthenticatedEimsReceiptsRouteImport.update({
-    id: '/eims/receipts',
-    path: '/eims/receipts',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedEimsEstablishmentsRoute =
-  AuthenticatedEimsEstablishmentsRouteImport.update({
-    id: '/eims/establishments',
-    path: '/eims/establishments',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedEimsEnterprisesRoute =
-  AuthenticatedEimsEnterprisesRouteImport.update({
-    id: '/eims/enterprises',
-    path: '/eims/enterprises',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedEimsCredentialsRoute =
-  AuthenticatedEimsCredentialsRouteImport.update({
-    id: '/eims/credentials',
-    path: '/eims/credentials',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedEimsComplianceRoute =
-  AuthenticatedEimsComplianceRouteImport.update({
-    id: '/eims/compliance',
-    path: '/eims/compliance',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedEimsCertificatesRoute =
-  AuthenticatedEimsCertificatesRouteImport.update({
-    id: '/eims/certificates',
-    path: '/eims/certificates',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedEimsBulkRoute = AuthenticatedEimsBulkRouteImport.update({
-  id: '/eims/bulk',
-  path: '/eims/bulk',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedReportsDashboardMainRoute =
@@ -424,16 +328,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/admin/': typeof AdminIndexRoute
-  '/eims/bulk': typeof AuthenticatedEimsBulkRoute
-  '/eims/certificates': typeof AuthenticatedEimsCertificatesRoute
-  '/eims/compliance': typeof AuthenticatedEimsComplianceRoute
-  '/eims/credentials': typeof AuthenticatedEimsCredentialsRoute
-  '/eims/enterprises': typeof AuthenticatedEimsEnterprisesRoute
-  '/eims/establishments': typeof AuthenticatedEimsEstablishmentsRoute
-  '/eims/receipts': typeof AuthenticatedEimsReceiptsRoute
-  '/eims/setup': typeof AuthenticatedEimsSetupRoute
-  '/eims/sources': typeof AuthenticatedEimsSourcesRoute
-  '/eims/submissions': typeof AuthenticatedEimsSubmissionsRoute
   '/notifications/deliveries': typeof AuthenticatedNotificationsDeliveriesRoute
   '/notifications/preferences': typeof AuthenticatedNotificationsPreferencesRoute
   '/notifications/templates': typeof AuthenticatedNotificationsTemplatesRoute
@@ -450,17 +344,11 @@ export interface FileRoutesByFullPath {
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/admin/billing/$subscriptionId': typeof AdminBillingSubscriptionIdRoute
   '/admin/billing/dashboard': typeof AdminBillingDashboardRoute
-  '/admin/eims/certificates': typeof AdminEimsCertificatesRoute
-  '/admin/eims/compliance': typeof AdminEimsComplianceRoute
-  '/admin/eims/failures': typeof AdminEimsFailuresRoute
-  '/admin/eims/resources': typeof AdminEimsResourcesRoute
-  '/admin/eims/tenants': typeof AdminEimsTenantsRoute
   '/admin/onboarding/$taskId': typeof AdminOnboardingTaskIdRoute
   '/admin/onboarding/new': typeof AdminOnboardingNewRoute
   '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/admin/plans/$planId': typeof AdminPlansPlanIdRoute
   '/admin/plans/new': typeof AdminPlansNewRoute
-  '/eims/': typeof AuthenticatedEimsIndexRoute
   '/files/': typeof AuthenticatedFilesIndexRoute
   '/notifications/': typeof AuthenticatedNotificationsIndexRoute
   '/onboarding/': typeof AuthenticatedOnboardingIndexRoute
@@ -468,7 +356,6 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/admin/audit-logs/': typeof AdminAuditLogsIndexRoute
   '/admin/billing/': typeof AdminBillingIndexRoute
-  '/admin/eims/': typeof AdminEimsIndexRoute
   '/admin/feature-flags/': typeof AdminFeatureFlagsIndexRoute
   '/admin/jobs/': typeof AdminJobsIndexRoute
   '/admin/onboarding/': typeof AdminOnboardingIndexRoute
@@ -487,16 +374,6 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/admin': typeof AdminIndexRoute
-  '/eims/bulk': typeof AuthenticatedEimsBulkRoute
-  '/eims/certificates': typeof AuthenticatedEimsCertificatesRoute
-  '/eims/compliance': typeof AuthenticatedEimsComplianceRoute
-  '/eims/credentials': typeof AuthenticatedEimsCredentialsRoute
-  '/eims/enterprises': typeof AuthenticatedEimsEnterprisesRoute
-  '/eims/establishments': typeof AuthenticatedEimsEstablishmentsRoute
-  '/eims/receipts': typeof AuthenticatedEimsReceiptsRoute
-  '/eims/setup': typeof AuthenticatedEimsSetupRoute
-  '/eims/sources': typeof AuthenticatedEimsSourcesRoute
-  '/eims/submissions': typeof AuthenticatedEimsSubmissionsRoute
   '/notifications/deliveries': typeof AuthenticatedNotificationsDeliveriesRoute
   '/notifications/preferences': typeof AuthenticatedNotificationsPreferencesRoute
   '/notifications/templates': typeof AuthenticatedNotificationsTemplatesRoute
@@ -513,17 +390,11 @@ export interface FileRoutesByTo {
   '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/admin/billing/$subscriptionId': typeof AdminBillingSubscriptionIdRoute
   '/admin/billing/dashboard': typeof AdminBillingDashboardRoute
-  '/admin/eims/certificates': typeof AdminEimsCertificatesRoute
-  '/admin/eims/compliance': typeof AdminEimsComplianceRoute
-  '/admin/eims/failures': typeof AdminEimsFailuresRoute
-  '/admin/eims/resources': typeof AdminEimsResourcesRoute
-  '/admin/eims/tenants': typeof AdminEimsTenantsRoute
   '/admin/onboarding/$taskId': typeof AdminOnboardingTaskIdRoute
   '/admin/onboarding/new': typeof AdminOnboardingNewRoute
   '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/admin/plans/$planId': typeof AdminPlansPlanIdRoute
   '/admin/plans/new': typeof AdminPlansNewRoute
-  '/eims': typeof AuthenticatedEimsIndexRoute
   '/files': typeof AuthenticatedFilesIndexRoute
   '/notifications': typeof AuthenticatedNotificationsIndexRoute
   '/onboarding': typeof AuthenticatedOnboardingIndexRoute
@@ -531,7 +402,6 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/admin/audit-logs': typeof AdminAuditLogsIndexRoute
   '/admin/billing': typeof AdminBillingIndexRoute
-  '/admin/eims': typeof AdminEimsIndexRoute
   '/admin/feature-flags': typeof AdminFeatureFlagsIndexRoute
   '/admin/jobs': typeof AdminJobsIndexRoute
   '/admin/onboarding': typeof AdminOnboardingIndexRoute
@@ -553,16 +423,6 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/admin/': typeof AdminIndexRoute
-  '/_authenticated/eims/bulk': typeof AuthenticatedEimsBulkRoute
-  '/_authenticated/eims/certificates': typeof AuthenticatedEimsCertificatesRoute
-  '/_authenticated/eims/compliance': typeof AuthenticatedEimsComplianceRoute
-  '/_authenticated/eims/credentials': typeof AuthenticatedEimsCredentialsRoute
-  '/_authenticated/eims/enterprises': typeof AuthenticatedEimsEnterprisesRoute
-  '/_authenticated/eims/establishments': typeof AuthenticatedEimsEstablishmentsRoute
-  '/_authenticated/eims/receipts': typeof AuthenticatedEimsReceiptsRoute
-  '/_authenticated/eims/setup': typeof AuthenticatedEimsSetupRoute
-  '/_authenticated/eims/sources': typeof AuthenticatedEimsSourcesRoute
-  '/_authenticated/eims/submissions': typeof AuthenticatedEimsSubmissionsRoute
   '/_authenticated/notifications/deliveries': typeof AuthenticatedNotificationsDeliveriesRoute
   '/_authenticated/notifications/preferences': typeof AuthenticatedNotificationsPreferencesRoute
   '/_authenticated/notifications/templates': typeof AuthenticatedNotificationsTemplatesRoute
@@ -579,17 +439,11 @@ export interface FileRoutesById {
   '/_authenticated/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/admin/billing/$subscriptionId': typeof AdminBillingSubscriptionIdRoute
   '/admin/billing/dashboard': typeof AdminBillingDashboardRoute
-  '/admin/eims/certificates': typeof AdminEimsCertificatesRoute
-  '/admin/eims/compliance': typeof AdminEimsComplianceRoute
-  '/admin/eims/failures': typeof AdminEimsFailuresRoute
-  '/admin/eims/resources': typeof AdminEimsResourcesRoute
-  '/admin/eims/tenants': typeof AdminEimsTenantsRoute
   '/admin/onboarding/$taskId': typeof AdminOnboardingTaskIdRoute
   '/admin/onboarding/new': typeof AdminOnboardingNewRoute
   '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/admin/plans/$planId': typeof AdminPlansPlanIdRoute
   '/admin/plans/new': typeof AdminPlansNewRoute
-  '/_authenticated/eims/': typeof AuthenticatedEimsIndexRoute
   '/_authenticated/files/': typeof AuthenticatedFilesIndexRoute
   '/_authenticated/notifications/': typeof AuthenticatedNotificationsIndexRoute
   '/_authenticated/onboarding/': typeof AuthenticatedOnboardingIndexRoute
@@ -597,7 +451,6 @@ export interface FileRoutesById {
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/admin/audit-logs/': typeof AdminAuditLogsIndexRoute
   '/admin/billing/': typeof AdminBillingIndexRoute
-  '/admin/eims/': typeof AdminEimsIndexRoute
   '/admin/feature-flags/': typeof AdminFeatureFlagsIndexRoute
   '/admin/jobs/': typeof AdminJobsIndexRoute
   '/admin/onboarding/': typeof AdminOnboardingIndexRoute
@@ -619,16 +472,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/admin/'
-    | '/eims/bulk'
-    | '/eims/certificates'
-    | '/eims/compliance'
-    | '/eims/credentials'
-    | '/eims/enterprises'
-    | '/eims/establishments'
-    | '/eims/receipts'
-    | '/eims/setup'
-    | '/eims/sources'
-    | '/eims/submissions'
     | '/notifications/deliveries'
     | '/notifications/preferences'
     | '/notifications/templates'
@@ -645,17 +488,11 @@ export interface FileRouteTypes {
     | '/settings/security'
     | '/admin/billing/$subscriptionId'
     | '/admin/billing/dashboard'
-    | '/admin/eims/certificates'
-    | '/admin/eims/compliance'
-    | '/admin/eims/failures'
-    | '/admin/eims/resources'
-    | '/admin/eims/tenants'
     | '/admin/onboarding/$taskId'
     | '/admin/onboarding/new'
     | '/admin/organizations/$orgId'
     | '/admin/plans/$planId'
     | '/admin/plans/new'
-    | '/eims/'
     | '/files/'
     | '/notifications/'
     | '/onboarding/'
@@ -663,7 +500,6 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/admin/audit-logs/'
     | '/admin/billing/'
-    | '/admin/eims/'
     | '/admin/feature-flags/'
     | '/admin/jobs/'
     | '/admin/onboarding/'
@@ -682,16 +518,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/admin'
-    | '/eims/bulk'
-    | '/eims/certificates'
-    | '/eims/compliance'
-    | '/eims/credentials'
-    | '/eims/enterprises'
-    | '/eims/establishments'
-    | '/eims/receipts'
-    | '/eims/setup'
-    | '/eims/sources'
-    | '/eims/submissions'
     | '/notifications/deliveries'
     | '/notifications/preferences'
     | '/notifications/templates'
@@ -708,17 +534,11 @@ export interface FileRouteTypes {
     | '/settings/security'
     | '/admin/billing/$subscriptionId'
     | '/admin/billing/dashboard'
-    | '/admin/eims/certificates'
-    | '/admin/eims/compliance'
-    | '/admin/eims/failures'
-    | '/admin/eims/resources'
-    | '/admin/eims/tenants'
     | '/admin/onboarding/$taskId'
     | '/admin/onboarding/new'
     | '/admin/organizations/$orgId'
     | '/admin/plans/$planId'
     | '/admin/plans/new'
-    | '/eims'
     | '/files'
     | '/notifications'
     | '/onboarding'
@@ -726,7 +546,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/admin/audit-logs'
     | '/admin/billing'
-    | '/admin/eims'
     | '/admin/feature-flags'
     | '/admin/jobs'
     | '/admin/onboarding'
@@ -747,16 +566,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/admin/'
-    | '/_authenticated/eims/bulk'
-    | '/_authenticated/eims/certificates'
-    | '/_authenticated/eims/compliance'
-    | '/_authenticated/eims/credentials'
-    | '/_authenticated/eims/enterprises'
-    | '/_authenticated/eims/establishments'
-    | '/_authenticated/eims/receipts'
-    | '/_authenticated/eims/setup'
-    | '/_authenticated/eims/sources'
-    | '/_authenticated/eims/submissions'
     | '/_authenticated/notifications/deliveries'
     | '/_authenticated/notifications/preferences'
     | '/_authenticated/notifications/templates'
@@ -773,17 +582,11 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/security'
     | '/admin/billing/$subscriptionId'
     | '/admin/billing/dashboard'
-    | '/admin/eims/certificates'
-    | '/admin/eims/compliance'
-    | '/admin/eims/failures'
-    | '/admin/eims/resources'
-    | '/admin/eims/tenants'
     | '/admin/onboarding/$taskId'
     | '/admin/onboarding/new'
     | '/admin/organizations/$orgId'
     | '/admin/plans/$planId'
     | '/admin/plans/new'
-    | '/_authenticated/eims/'
     | '/_authenticated/files/'
     | '/_authenticated/notifications/'
     | '/_authenticated/onboarding/'
@@ -791,7 +594,6 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/'
     | '/admin/audit-logs/'
     | '/admin/billing/'
-    | '/admin/eims/'
     | '/admin/feature-flags/'
     | '/admin/jobs/'
     | '/admin/onboarding/'
@@ -935,13 +737,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFeatureFlagsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/eims/': {
-      id: '/admin/eims/'
-      path: '/eims'
-      fullPath: '/admin/eims/'
-      preLoaderRoute: typeof AdminEimsIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/billing/': {
       id: '/admin/billing/'
       path: '/billing'
@@ -991,13 +786,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFilesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/eims/': {
-      id: '/_authenticated/eims/'
-      path: '/eims'
-      fullPath: '/eims/'
-      preLoaderRoute: typeof AuthenticatedEimsIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/admin/plans/new': {
       id: '/admin/plans/new'
       path: '/plans/new'
@@ -1031,41 +819,6 @@ declare module '@tanstack/react-router' {
       path: '/onboarding/$taskId'
       fullPath: '/admin/onboarding/$taskId'
       preLoaderRoute: typeof AdminOnboardingTaskIdRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/eims/tenants': {
-      id: '/admin/eims/tenants'
-      path: '/eims/tenants'
-      fullPath: '/admin/eims/tenants'
-      preLoaderRoute: typeof AdminEimsTenantsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/eims/resources': {
-      id: '/admin/eims/resources'
-      path: '/eims/resources'
-      fullPath: '/admin/eims/resources'
-      preLoaderRoute: typeof AdminEimsResourcesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/eims/failures': {
-      id: '/admin/eims/failures'
-      path: '/eims/failures'
-      fullPath: '/admin/eims/failures'
-      preLoaderRoute: typeof AdminEimsFailuresRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/eims/compliance': {
-      id: '/admin/eims/compliance'
-      path: '/eims/compliance'
-      fullPath: '/admin/eims/compliance'
-      preLoaderRoute: typeof AdminEimsComplianceRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/eims/certificates': {
-      id: '/admin/eims/certificates'
-      path: '/eims/certificates'
-      fullPath: '/admin/eims/certificates'
-      preLoaderRoute: typeof AdminEimsCertificatesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/billing/dashboard': {
@@ -1180,76 +933,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNotificationsDeliveriesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/eims/submissions': {
-      id: '/_authenticated/eims/submissions'
-      path: '/eims/submissions'
-      fullPath: '/eims/submissions'
-      preLoaderRoute: typeof AuthenticatedEimsSubmissionsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/eims/sources': {
-      id: '/_authenticated/eims/sources'
-      path: '/eims/sources'
-      fullPath: '/eims/sources'
-      preLoaderRoute: typeof AuthenticatedEimsSourcesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/eims/setup': {
-      id: '/_authenticated/eims/setup'
-      path: '/eims/setup'
-      fullPath: '/eims/setup'
-      preLoaderRoute: typeof AuthenticatedEimsSetupRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/eims/receipts': {
-      id: '/_authenticated/eims/receipts'
-      path: '/eims/receipts'
-      fullPath: '/eims/receipts'
-      preLoaderRoute: typeof AuthenticatedEimsReceiptsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/eims/establishments': {
-      id: '/_authenticated/eims/establishments'
-      path: '/eims/establishments'
-      fullPath: '/eims/establishments'
-      preLoaderRoute: typeof AuthenticatedEimsEstablishmentsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/eims/enterprises': {
-      id: '/_authenticated/eims/enterprises'
-      path: '/eims/enterprises'
-      fullPath: '/eims/enterprises'
-      preLoaderRoute: typeof AuthenticatedEimsEnterprisesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/eims/credentials': {
-      id: '/_authenticated/eims/credentials'
-      path: '/eims/credentials'
-      fullPath: '/eims/credentials'
-      preLoaderRoute: typeof AuthenticatedEimsCredentialsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/eims/compliance': {
-      id: '/_authenticated/eims/compliance'
-      path: '/eims/compliance'
-      fullPath: '/eims/compliance'
-      preLoaderRoute: typeof AuthenticatedEimsComplianceRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/eims/certificates': {
-      id: '/_authenticated/eims/certificates'
-      path: '/eims/certificates'
-      fullPath: '/eims/certificates'
-      preLoaderRoute: typeof AuthenticatedEimsCertificatesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/eims/bulk': {
-      id: '/_authenticated/eims/bulk'
-      path: '/eims/bulk'
-      fullPath: '/eims/bulk'
-      preLoaderRoute: typeof AuthenticatedEimsBulkRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/reports/dashboard/main': {
       id: '/_authenticated/reports/dashboard/main'
       path: '/reports/dashboard/main'
@@ -1261,16 +944,6 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedEimsBulkRoute: typeof AuthenticatedEimsBulkRoute
-  AuthenticatedEimsCertificatesRoute: typeof AuthenticatedEimsCertificatesRoute
-  AuthenticatedEimsComplianceRoute: typeof AuthenticatedEimsComplianceRoute
-  AuthenticatedEimsCredentialsRoute: typeof AuthenticatedEimsCredentialsRoute
-  AuthenticatedEimsEnterprisesRoute: typeof AuthenticatedEimsEnterprisesRoute
-  AuthenticatedEimsEstablishmentsRoute: typeof AuthenticatedEimsEstablishmentsRoute
-  AuthenticatedEimsReceiptsRoute: typeof AuthenticatedEimsReceiptsRoute
-  AuthenticatedEimsSetupRoute: typeof AuthenticatedEimsSetupRoute
-  AuthenticatedEimsSourcesRoute: typeof AuthenticatedEimsSourcesRoute
-  AuthenticatedEimsSubmissionsRoute: typeof AuthenticatedEimsSubmissionsRoute
   AuthenticatedNotificationsDeliveriesRoute: typeof AuthenticatedNotificationsDeliveriesRoute
   AuthenticatedNotificationsPreferencesRoute: typeof AuthenticatedNotificationsPreferencesRoute
   AuthenticatedNotificationsTemplatesRoute: typeof AuthenticatedNotificationsTemplatesRoute
@@ -1285,7 +958,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSettingsOrganizationRoute: typeof AuthenticatedSettingsOrganizationRoute
   AuthenticatedSettingsRolesRoute: typeof AuthenticatedSettingsRolesRoute
   AuthenticatedSettingsSecurityRoute: typeof AuthenticatedSettingsSecurityRoute
-  AuthenticatedEimsIndexRoute: typeof AuthenticatedEimsIndexRoute
   AuthenticatedFilesIndexRoute: typeof AuthenticatedFilesIndexRoute
   AuthenticatedNotificationsIndexRoute: typeof AuthenticatedNotificationsIndexRoute
   AuthenticatedOnboardingIndexRoute: typeof AuthenticatedOnboardingIndexRoute
@@ -1295,16 +967,6 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedEimsBulkRoute: AuthenticatedEimsBulkRoute,
-  AuthenticatedEimsCertificatesRoute: AuthenticatedEimsCertificatesRoute,
-  AuthenticatedEimsComplianceRoute: AuthenticatedEimsComplianceRoute,
-  AuthenticatedEimsCredentialsRoute: AuthenticatedEimsCredentialsRoute,
-  AuthenticatedEimsEnterprisesRoute: AuthenticatedEimsEnterprisesRoute,
-  AuthenticatedEimsEstablishmentsRoute: AuthenticatedEimsEstablishmentsRoute,
-  AuthenticatedEimsReceiptsRoute: AuthenticatedEimsReceiptsRoute,
-  AuthenticatedEimsSetupRoute: AuthenticatedEimsSetupRoute,
-  AuthenticatedEimsSourcesRoute: AuthenticatedEimsSourcesRoute,
-  AuthenticatedEimsSubmissionsRoute: AuthenticatedEimsSubmissionsRoute,
   AuthenticatedNotificationsDeliveriesRoute:
     AuthenticatedNotificationsDeliveriesRoute,
   AuthenticatedNotificationsPreferencesRoute:
@@ -1323,7 +985,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
     AuthenticatedSettingsOrganizationRoute,
   AuthenticatedSettingsRolesRoute: AuthenticatedSettingsRolesRoute,
   AuthenticatedSettingsSecurityRoute: AuthenticatedSettingsSecurityRoute,
-  AuthenticatedEimsIndexRoute: AuthenticatedEimsIndexRoute,
   AuthenticatedFilesIndexRoute: AuthenticatedFilesIndexRoute,
   AuthenticatedNotificationsIndexRoute: AuthenticatedNotificationsIndexRoute,
   AuthenticatedOnboardingIndexRoute: AuthenticatedOnboardingIndexRoute,
@@ -1341,11 +1002,6 @@ interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   AdminBillingSubscriptionIdRoute: typeof AdminBillingSubscriptionIdRoute
   AdminBillingDashboardRoute: typeof AdminBillingDashboardRoute
-  AdminEimsCertificatesRoute: typeof AdminEimsCertificatesRoute
-  AdminEimsComplianceRoute: typeof AdminEimsComplianceRoute
-  AdminEimsFailuresRoute: typeof AdminEimsFailuresRoute
-  AdminEimsResourcesRoute: typeof AdminEimsResourcesRoute
-  AdminEimsTenantsRoute: typeof AdminEimsTenantsRoute
   AdminOnboardingTaskIdRoute: typeof AdminOnboardingTaskIdRoute
   AdminOnboardingNewRoute: typeof AdminOnboardingNewRoute
   AdminOrganizationsOrgIdRoute: typeof AdminOrganizationsOrgIdRoute
@@ -1353,7 +1009,6 @@ interface AdminRouteChildren {
   AdminPlansNewRoute: typeof AdminPlansNewRoute
   AdminAuditLogsIndexRoute: typeof AdminAuditLogsIndexRoute
   AdminBillingIndexRoute: typeof AdminBillingIndexRoute
-  AdminEimsIndexRoute: typeof AdminEimsIndexRoute
   AdminFeatureFlagsIndexRoute: typeof AdminFeatureFlagsIndexRoute
   AdminJobsIndexRoute: typeof AdminJobsIndexRoute
   AdminOnboardingIndexRoute: typeof AdminOnboardingIndexRoute
@@ -1369,11 +1024,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   AdminBillingSubscriptionIdRoute: AdminBillingSubscriptionIdRoute,
   AdminBillingDashboardRoute: AdminBillingDashboardRoute,
-  AdminEimsCertificatesRoute: AdminEimsCertificatesRoute,
-  AdminEimsComplianceRoute: AdminEimsComplianceRoute,
-  AdminEimsFailuresRoute: AdminEimsFailuresRoute,
-  AdminEimsResourcesRoute: AdminEimsResourcesRoute,
-  AdminEimsTenantsRoute: AdminEimsTenantsRoute,
   AdminOnboardingTaskIdRoute: AdminOnboardingTaskIdRoute,
   AdminOnboardingNewRoute: AdminOnboardingNewRoute,
   AdminOrganizationsOrgIdRoute: AdminOrganizationsOrgIdRoute,
@@ -1381,7 +1031,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPlansNewRoute: AdminPlansNewRoute,
   AdminAuditLogsIndexRoute: AdminAuditLogsIndexRoute,
   AdminBillingIndexRoute: AdminBillingIndexRoute,
-  AdminEimsIndexRoute: AdminEimsIndexRoute,
   AdminFeatureFlagsIndexRoute: AdminFeatureFlagsIndexRoute,
   AdminJobsIndexRoute: AdminJobsIndexRoute,
   AdminOnboardingIndexRoute: AdminOnboardingIndexRoute,

@@ -9,7 +9,6 @@ const EIMS_PATHS = [
 	"apps/api-tests/bruno/EIMS-Phase0",
 	"apps/api-tests/scripts/eims-mock-api-server.mjs",
 	"apps/api-tests/scripts/eims-static-web-server.mjs",
-	"apps/api-tests/scripts/with-mock-api.mjs",
 	"apps/api-tests/tests/eims-acceptance.spec.ts",
 	"apps/api-tests/tests/eims-v3-mock.spec.ts",
 	"apps/acceptance/features/eims.feature",

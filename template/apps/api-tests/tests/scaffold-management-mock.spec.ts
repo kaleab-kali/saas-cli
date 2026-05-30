@@ -110,7 +110,7 @@ test.describe("Scaffold management backend mock contract", () => {
 		const flags = await request.get("/api/v1/admin/settings/feature-flags");
 		expect(flags.ok(), await flags.text()).toBe(true);
 		expect((await flags.json()).data).toEqual(
-			expect.arrayContaining([expect.objectContaining({ name: "eims.enabled", enabledGlobal: true })]),
+			expect.arrayContaining([expect.objectContaining({ name: "platform.webhooks", enabledGlobal: true })]),
 		);
 	});
 });

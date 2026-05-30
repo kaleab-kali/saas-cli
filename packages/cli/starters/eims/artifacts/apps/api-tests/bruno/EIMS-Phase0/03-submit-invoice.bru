@@ -1,0 +1,26 @@
+meta {
+  name: EIMS Mock Invoice Submit
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/eims/submissions/mock-submit
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "documentNumber": "INV-BRUNO-001"
+  }
+}
+
+tests {
+  test("submits through backend mock EIMS client", function () {
+    expect(res.status).to.equal(201);
+    expect(res.body.data.documentNumber).to.equal("INV-BRUNO-001");
+    expect(res.body.data.status).to.equal("accepted");
+    expect(res.body.data.irn).to.match(/^TEST-IRN-/);
+  });
+}

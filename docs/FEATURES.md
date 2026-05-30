@@ -24,6 +24,7 @@ This repository packages the `create-vyllion-saas` CLI and a domain-neutral SaaS
 - Notification center
 - Reporting workspace
 - Billing and subscription management
+- Generic tenant onboarding and admin onboarding operations
 - Super admin dashboard, organizations, users, plans, billing, settings, jobs, feature flags, server operations, and audit logs
 
 ## Domain Surface
@@ -50,5 +51,5 @@ The CLI copies `template/`, applies explicit `{{projectName}}`, `{{projectSlug}}
 ## CLI Utilities
 - `create-vyllion-saas doctor` checks a generated project's local environment.
 - `create-vyllion-saas add module <name>` creates a neutral API/web module scaffold.
-- `create-vyllion-saas add starter <pack>` creates CRM, marketplace, project management, AI SaaS, booking, or helpdesk starter modules.
+- `create-vyllion-saas add starter <pack>` creates CRM, marketplace, project management, AI SaaS, booking, helpdesk, or EIMS starter modules.
 - `--bootstrap` runs install, Prisma push, and seed after scaffold.

@@ -1,4 +1,16 @@
-# EIMS Scaffold Verification
+# Scaffold Verification
+
+Base scaffold proof:
+
+```bash
+pnpm test:base:scaffold
+```
+
+That verifier creates a generated project in the OS temp directory, confirms the
+generic onboarding module is present, and confirms no EIMS routes, scripts,
+sidebar entries, API modules, or test assets are present in the default scaffold.
+
+## EIMS Scaffold Verification
 
 This folder is for generated-project verification. The generated SaaS project
 used for local proof lives in the shared Novek testing workspace:

@@ -35,5 +35,4 @@ const runCollection = (collectionPath) =>
 const rootCode = await runCollection(".");
 if (rootCode !== 0) process.exit(rootCode);
 
-const eimsCode = await runCollection("EIMS-Phase0");
-process.exit(eimsCode);
+process.exit(0);

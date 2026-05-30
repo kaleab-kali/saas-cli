@@ -1,10 +1,12 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import fs from "fs-extra";
 import pc from "picocolors";
 import { stripDomainStarterCode } from "./base-cleanup.js";
-import { resolveTemplateDir } from "./template-path.js";
 
-const TEMPLATE_DIR = resolveTemplateDir(import.meta.url);
+const SOURCE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const STARTER_PACK_ROOT = path.resolve(SOURCE_DIR, "../starters");
+const EIMS_STARTER_ARTIFACTS_DIR = path.join(STARTER_PACK_ROOT, "eims", "artifacts");
 
 const slugify = (s) =>
 	s
@@ -30,6 +32,11 @@ const writeNew = async (file, content) => {
 		throw new Error(`Refusing to overwrite existing file: ${file}`);
 	await fs.ensureDir(path.dirname(file));
 	await fs.writeFile(file, content, "utf8");
+};
+
+const writeIfMissing = async (file, content) => {
+	if (await fs.pathExists(file)) return;
+	await writeNew(file, content);
 };
 
 const STARTER_PACKS = {
@@ -124,9 +131,10 @@ const EIMS_DIRECTORY_SKELETON = [
 	"apps/e2e/tests",
 ];
 
-const EIMS_TEMPLATE_ARTIFACTS = [
+const EIMS_STARTER_ARTIFACTS = [
 	"apps/api/src/modules/eims",
 	"apps/api/src/modules/invoicing",
+	"apps/api-tests/bruno/EIMS-Phase0",
 	"apps/api-tests/scripts/eims-mock-api-server.mjs",
 	"apps/api-tests/scripts/eims-static-web-server.mjs",
 	"apps/api-tests/scripts/with-mock-api.mjs",
@@ -138,6 +146,7 @@ const EIMS_TEMPLATE_ARTIFACTS = [
 	"apps/web/src/routes/_authenticated/eims",
 	"apps/web/src/routes/admin/eims",
 ];
+const EIMS_REPLACEABLE_ARTIFACTS = new Set(["apps/api-tests/scripts/with-mock-api.mjs"]);
 
 export const listStarterPacks = () => Object.keys(STARTER_PACKS);
 
@@ -4672,7 +4681,7 @@ const payloadHash = createHash("sha256").update(canonicalJson).digest("hex");
 console.log(JSON.stringify({ ok: true, canonicalJson, payloadHash, signatureLength: signature.length }, null, 2));
 `,
 	);
-	await writeNew(
+	await writeIfMissing(
 		path.join(root, "apps/api-tests/bruno/EIMS-Phase0/collection.bru"),
 		`meta {
   name: EIMS Phase 0
@@ -4680,7 +4689,7 @@ console.log(JSON.stringify({ ok: true, canonicalJson, payloadHash, signatureLeng
 }
 `,
 	);
-	await writeNew(
+	await writeIfMissing(
 		path.join(
 			root,
 			"apps/api-tests/bruno/EIMS-Phase0/environments/sandbox.example.env",
@@ -4843,17 +4852,20 @@ const assertEimsCanBeCreated = async (cwd) => {
 	}
 };
 
-const copyEimsTemplateArtifacts = async (root) => {
-	for (const relPath of EIMS_TEMPLATE_ARTIFACTS) {
-		const source = path.join(TEMPLATE_DIR, relPath);
+const copyEimsStarterArtifacts = async (root) => {
+	for (const relPath of EIMS_STARTER_ARTIFACTS) {
+		const source = path.join(EIMS_STARTER_ARTIFACTS_DIR, relPath);
 		const target = path.join(root, relPath);
 		if (!(await fs.pathExists(source))) {
 			throw new Error(`EIMS starter source artifact is missing: ${source}`);
 		}
-		if (await fs.pathExists(target)) {
+		if ((await fs.pathExists(target)) && !EIMS_REPLACEABLE_ARTIFACTS.has(relPath)) {
 			throw new Error(`Refusing to overwrite existing EIMS starter artifact: ${target}`);
 		}
-		await fs.copy(source, target, { overwrite: false, errorOnExist: true });
+		await fs.copy(source, target, {
+			overwrite: EIMS_REPLACEABLE_ARTIFACTS.has(relPath),
+			errorOnExist: !EIMS_REPLACEABLE_ARTIFACTS.has(relPath),
+		});
 	}
 };
 
@@ -4874,7 +4886,7 @@ const writeEimsSupplementalFiles = async (root) => {
 const addEimsStarterPack = async ({ cwd }) => {
 	await assertEimsCanBeCreated(cwd);
 	console.log(pc.bold("Scaffolding EIMS/EIRMS e-invoicing starter pack"));
-	await copyEimsTemplateArtifacts(cwd);
+	await copyEimsStarterArtifacts(cwd);
 	await ensureEimsDirectorySkeleton(cwd);
 	await patchEimsPrismaSchema(cwd);
 	await writeEimsSupplementalFiles(cwd);

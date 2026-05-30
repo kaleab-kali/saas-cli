@@ -1,7 +1,6 @@
 import {
 	ChartLineData02Icon,
 	DashboardSquare01Icon,
-	FileValidationIcon,
 	Home02Icon,
 	Megaphone01Icon,
 	Settings02Icon,
@@ -75,19 +74,6 @@ const NAV_ITEMS: readonly NavItemDef[] = [
 			{ labelKey: "sidebar.emailDeliveries", to: "/notifications/deliveries" },
 		],
 	},
-	{
-		labelKey: "sidebar.eims",
-		to: "/eims",
-		icon: FileValidationIcon,
-		children: [
-			{ labelKey: "sidebar.eimsOverview", to: "/eims" },
-			{ labelKey: "sidebar.eimsSetup", to: "/eims/setup" },
-			{ labelKey: "sidebar.eimsSubmissions", to: "/eims/submissions" },
-			{ labelKey: "sidebar.eimsReceipts", to: "/eims/receipts" },
-			{ labelKey: "sidebar.eimsBulk", to: "/eims/bulk" },
-			{ labelKey: "sidebar.eimsCompliance", to: "/eims/compliance" },
-		],
-	},
 ] as const;
 
 const SETTINGS_ITEM = { labelKey: "sidebar.settings", to: "/settings", icon: Settings02Icon } as const;
@@ -106,7 +92,7 @@ const NavItem = React.memo(
 		const { t } = useTranslation();
 		const { isMobile, setOpenMobile } = useSidebar();
 		const hasChildren = !!item.children && item.children.length > 0;
-		const forceOpen = item.labelKey === "sidebar.eims";
+		const forceOpen = false;
 		const [open, setOpen] = React.useState(isActive || forceOpen);
 		const label = t(item.labelKey);
 

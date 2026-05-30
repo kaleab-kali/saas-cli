@@ -62,15 +62,7 @@
 		"pm2:restart": "pm2 restart ecosystem.config.cjs",
 		"pm2:logs": "pm2 logs",
 		"gen:starters": "create-vyllion-saas list starters",
-		"gen:starter:uninstall": "create-vyllion-saas remove starter",
-		"test:eims:local": "pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts",
-		"phase0:eims:local": "pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts",
-		"test:eims:api": "pnpm --filter api-tests test:eims:mock",
-		"test:eims:phase0": "pnpm --filter api-tests test:bruno:mock",
-		"test:eims:sandbox": "pnpm --filter api-tests test:bruno",
-		"test:eims:ui": "pnpm --filter e2e test:eims",
-		"test:eims:ui:headed": "pnpm --filter e2e test:eims:headed",
-		"test:eims:mock": "pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:api && pnpm test:eims:phase0 && pnpm test:eims:ui"
+		"gen:starter:uninstall": "create-vyllion-saas remove starter"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.12",

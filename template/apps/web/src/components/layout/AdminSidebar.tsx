@@ -55,14 +55,6 @@ const ADMIN_NAV = [
 	{ labelKey: "admin.nav.auditLogs", to: "/admin/audit-logs", icon: FileValidationIcon },
 	{ labelKey: "admin.nav.settings", to: "/admin/settings", icon: Settings02Icon },
 ] as const;
-const ADMIN_EIMS_NAV = [
-	{ labelKey: "admin.nav.eimsOverview", to: "/admin/eims", icon: FileValidationIcon },
-	{ labelKey: "admin.nav.eimsTenants", to: "/admin/eims/tenants", icon: Building06Icon },
-	{ labelKey: "admin.nav.eimsFailures", to: "/admin/eims/failures", icon: FileValidationIcon },
-	{ labelKey: "admin.nav.eimsCertificates", to: "/admin/eims/certificates", icon: AiSecurity01Icon },
-	{ labelKey: "admin.nav.eimsResources", to: "/admin/eims/resources", icon: Timer02Icon },
-	{ labelKey: "admin.nav.eimsCompliance", to: "/admin/eims/compliance", icon: FileValidationIcon },
-] as const;
 const APP_NAME = import.meta.env.VITE_APP_NAME ?? "SaaS";
 
 const AdminNavItem = React.memo(
@@ -166,26 +158,6 @@ export const AdminSidebar = React.memo(
 										icon={item.icon}
 										isActive={
 											item.to === "/admin" ? !!matchRoute({ to: "/admin" }) : !!matchRoute({ to: item.to, fuzzy: true })
-										}
-									/>
-								))}
-							</SidebarMenu>
-						</SidebarGroupContent>
-					</SidebarGroup>
-					<SidebarGroup>
-						<SidebarGroupLabel>{t("admin.nav.eimsOperations")}</SidebarGroupLabel>
-						<SidebarGroupContent>
-							<SidebarMenu>
-								{ADMIN_EIMS_NAV.map((item) => (
-									<AdminNavItem
-										key={item.to}
-										label={t(item.labelKey)}
-										to={item.to}
-										icon={item.icon}
-										isActive={
-											item.to === "/admin/eims"
-												? !!matchRoute({ to: "/admin/eims" })
-												: !!matchRoute({ to: item.to, fuzzy: true })
 										}
 									/>
 								))}
