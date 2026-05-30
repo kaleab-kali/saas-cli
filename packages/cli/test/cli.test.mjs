@@ -137,3 +137,44 @@ test("scaffolds a base project through the bin entrypoint", () => {
 		rmSync(targetDir, { recursive: true, force: true });
 	}
 });
+
+test("adds and removes the EIMS starter without leaving generated residue", () => {
+	const targetDir = path.join(tmpRoot, `eims-remove-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
+	rmSync(targetDir, { recursive: true, force: true });
+
+	try {
+		const scaffoldResult = runCli([targetDir, "--yes"], { timeout: 120_000 });
+		assert.equal(scaffoldResult.status, 0, outputOf(scaffoldResult));
+
+		const addResult = runCli(["add", "starter", "eims"], { cwd: targetDir, timeout: 120_000 });
+		assert.equal(addResult.status, 0, outputOf(addResult));
+		assert.ok(existsSync(path.join(targetDir, "apps/api/src/modules/eims")), "EIMS API module should be installed");
+		assert.ok(
+			existsSync(path.join(targetDir, "apps/performance/scripts/eims-mock-load.mjs")),
+			"EIMS performance smoke should be installed",
+		);
+
+		const removeResult = runCli(["remove", "starter", "eims"], { cwd: targetDir, timeout: 120_000 });
+		assert.equal(removeResult.status, 0, outputOf(removeResult));
+		assert.ok(!existsSync(path.join(targetDir, "apps/api/src/modules/eims")), "EIMS API module should be removed");
+		assert.ok(
+			!existsSync(path.join(targetDir, "apps/performance/scripts/eims-mock-load.mjs")),
+			"EIMS performance smoke should be removed",
+		);
+		assert.ok(
+			!existsSync(path.join(targetDir, "apps/api/prisma/seed-eims-onboarding-template.ts")),
+			"EIMS onboarding seed should be removed",
+		);
+
+		const scaffoldState = JSON.parse(readFileSync(path.join(targetDir, ".scaffold-state.json"), "utf8"));
+		assert.deepEqual(scaffoldState.starters, []);
+
+		const packageJson = JSON.parse(readFileSync(path.join(targetDir, "package.json"), "utf8"));
+		assert.ok(
+			Object.keys(packageJson.scripts ?? {}).every((key) => !key.toLowerCase().includes("eims")),
+			"EIMS scripts should be removed",
+		);
+	} finally {
+		rmSync(targetDir, { recursive: true, force: true });
+	}
+});

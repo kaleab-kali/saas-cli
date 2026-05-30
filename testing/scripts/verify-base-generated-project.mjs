@@ -18,13 +18,23 @@ const mustNotExist = [
 	"apps/api-tests/scripts/eims-static-web-server.mjs",
 	"apps/api-tests/tests/eims-acceptance.spec.ts",
 	"apps/api-tests/tests/eims-v3-mock.spec.ts",
+	"apps/acceptance/features/eims.feature",
 	"apps/e2e/playwright.eims.config.ts",
 	"apps/e2e/tests/eims-mock.spec.ts",
+	"apps/performance/k6/eims-submit.js",
+	"apps/performance/scripts/eims-mock-load.mjs",
+	"apps/security/scripts/eims-security-smoke.mjs",
 	"apps/web/src/features/eims",
 	"apps/web/src/routes/_authenticated/eims",
 	"apps/web/src/routes/admin/eims",
+	"apps/api/prisma/seed-eims-entitlements.ts",
+	"apps/api/prisma/seed-eims-onboarding-template.ts",
 	"docs/EIMS_SETUP_GUIDE.md",
 	"docs/EIMS_PHASE0_RUNBOOK.md",
+	"docs/EIMS_VAULT_RUNBOOK.md",
+	"docs/EIMS_COMPLIANCE_EVIDENCE.md",
+	"docs/EIMS_TENANT_ONBOARDING.md",
+	"docs/EIMS_DR_RUNBOOK.md",
 ];
 
 const mustExist = [
