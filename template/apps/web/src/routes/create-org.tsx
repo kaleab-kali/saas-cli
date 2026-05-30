@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { AuthShell } from "#shared/components/AuthShell";
 import { authClient } from "#shared/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,10 +72,10 @@ const CreateOrgForm = React.memo(
 		);
 
 		return (
-			<Card className="w-full max-w-sm">
+			<Card className="w-full border-border/70 shadow-sm">
 				<CardHeader className="space-y-1">
-					<CardTitle className="text-2xl font-bold text-center">{t("createOrg.title")}</CardTitle>
-					<CardDescription className="text-center">{t("createOrg.subtitle")}</CardDescription>
+					<CardTitle className="text-xl font-semibold">{t("createOrg.title")}</CardTitle>
+					<CardDescription>{t("createOrg.subtitle")}</CardDescription>
 				</CardHeader>
 				<form onSubmit={handleSubmit}>
 					<CardContent className="space-y-4">
@@ -120,8 +121,12 @@ CreateOrgForm.displayName = "CreateOrgForm";
 
 function CreateOrgPage() {
 	return (
-		<div className="flex min-h-screen items-center justify-center p-4">
+		<AuthShell
+			eyebrow="Workspace foundation"
+			title="Name the tenant workspace"
+			description="This creates the organization scope used by permissions, billing, audit logs, onboarding, and starter-pack modules."
+		>
 			<CreateOrgForm />
-		</div>
+		</AuthShell>
 	);
 }

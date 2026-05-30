@@ -34,8 +34,10 @@ const mustExist = [
 	"apps/web/src/routes/_authenticated/onboarding/index.tsx",
 	"apps/web/src/routes/admin/onboarding/index.tsx",
 	"apps/web/src/routes/admin/onboarding/new.tsx",
+	"apps/web/src/shared/components/AuthShell.tsx",
 	"apps/web/src/shared/components/CommandPalette.tsx",
 	"apps/web/src/shared/components/PageShell.tsx",
+	"apps/e2e/tests/smoke.spec.ts",
 	"apps/security/scripts/source-security-check.mjs",
 	"scripts/backup-postgres.mjs",
 	"scripts/restore-postgres.mjs",
@@ -89,6 +91,7 @@ function assertDeployGateBuilds() {
 	assert(testCi.includes("test:api:bruno:mock"), "CI test gate includes mock Bruno API tests");
 	assert(testCi.includes("test:security:source"), "CI test gate includes deterministic source security checks");
 	assert(testCi.includes("test:security:api"), "CI test gate includes deterministic API security checks");
+	assert(testSmoke.includes("test:e2e:smoke"), "smoke test gate includes browser E2E smoke");
 	assert(testSmoke.includes("test:security:source"), "smoke test gate includes deterministic source security checks");
 	assert(packageJson.scripts?.["db:backup"]?.includes("backup-postgres.mjs"), "base package has Postgres backup script");
 	assert(packageJson.scripts?.["db:restore"]?.includes("restore-postgres.mjs"), "base package has Postgres restore script");
@@ -134,14 +137,21 @@ function assertFrontendImprovementSurface() {
 	const topBar = readProjectFile("apps/web/src/components/layout/TopBar.tsx");
 	const dataTable = readProjectFile("apps/web/src/shared/components/DataTable.tsx");
 	const onboarding = readProjectFile("apps/web/src/features/onboarding/components/onboarding-pages.tsx");
+	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
+	const e2eSmoke = readProjectFile("apps/e2e/tests/smoke.spec.ts");
 	assert(topBar.includes("<CommandPalette />"), "top bar exposes command palette");
+	assert(topBar.includes("Workspace command center"), "top bar exposes visible command-center shell");
+	assert(authShell.includes("SaaS launch console"), "auth screens use visible product console shell");
 	assert(dataTable.includes("useDebouncedValue"), "DataTable has debounced global search");
 	assert(dataTable.includes("DataTableColumnFilter"), "DataTable renders per-column filters");
 	assert(dataTable.includes("DropdownMenuCheckboxItem"), "DataTable has column visibility controls");
+	assert(onboarding.includes("Concierge launch workflow"), "tenant onboarding uses visible launch workflow console");
 	assert(onboarding.includes("Concierge onboarding"), "admin onboarding uses concierge operations copy");
 	assert(onboarding.includes("<DataTable"), "admin onboarding list uses shared DataTable");
 	assert(onboarding.includes("Current action"), "onboarding pages expose active workflow step");
 	assert(onboarding.includes("TemplatePreview"), "new onboarding page previews selected templates");
+	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
+	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
 }
 
 function readEnv(relPath) {

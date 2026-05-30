@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { LanguageSwitcher } from "#shared/components/LanguageSwitcher";
+import { AuthShell } from "#shared/components/AuthShell";
 import { authClient } from "#shared/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,10 +51,10 @@ const SignupForm = React.memo(
 		);
 
 		return (
-			<Card className="w-full max-w-sm">
+			<Card className="w-full border-border/70 shadow-sm">
 				<CardHeader className="space-y-1">
-					<CardTitle className="text-2xl font-bold text-center">{t("auth.createAccount")}</CardTitle>
-					<CardDescription className="text-center">{t("auth.getStarted")}</CardDescription>
+					<CardTitle className="text-xl font-semibold">{t("auth.createAccount")}</CardTitle>
+					<CardDescription>{t("auth.getStarted")}</CardDescription>
 				</CardHeader>
 				<form onSubmit={handleSubmit}>
 					<CardContent className="space-y-4">
@@ -118,11 +118,12 @@ SignupForm.displayName = "SignupForm";
 
 function SignupPage() {
 	return (
-		<div className="flex min-h-screen items-center justify-center p-4 relative">
-			<div className="absolute top-4 right-4">
-				<LanguageSwitcher />
-			</div>
+		<AuthShell
+			eyebrow="Start a tenant-ready product"
+			title="Create the owner account"
+			description="The next screen creates the first organization and drops the tenant into the onboarding workflow."
+		>
 			<SignupForm />
-		</div>
+		</AuthShell>
 	);
 }

@@ -45,12 +45,12 @@ const AdminTopBanner = React.memo(
 	() => {
 		const { t } = useTranslation();
 		return (
-			<div className="border-b border-border bg-destructive/5 px-6 py-2 flex items-center justify-between gap-3">
+			<div className="flex items-center justify-between gap-3 border-b border-border bg-background/92 px-4 py-3 shadow-[0_1px_0_rgba(17,19,15,0.02)] backdrop-blur sm:px-6">
 				<div className="flex min-w-0 items-center gap-2">
 					<SidebarTrigger />
-					<p className="min-w-0 text-xs font-medium text-destructive">
+					<p className="min-w-0 text-xs font-medium text-destructive sm:text-sm">
 						{t("admin.superAdminBanner", {
-							defaultValue: "SUPER ADMIN MODE — You are viewing platform-level data across all organizations",
+							defaultValue: "SUPER ADMIN MODE - platform-level data across all organizations",
 						})}
 					</p>
 				</div>
@@ -79,8 +79,10 @@ function AdminLayout() {
 				<AdminSidebar />
 				<SidebarInset>
 					<AdminTopBanner />
-					<main className="flex-1 p-6">
-						<Outlet />
+					<main className="flex-1 bg-[#f8f8f4] p-4 sm:p-6 lg:p-8">
+						<div className="mx-auto w-full max-w-[1500px]">
+							<Outlet />
+						</div>
 					</main>
 				</SidebarInset>
 			</SidebarProvider>

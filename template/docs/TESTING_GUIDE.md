@@ -48,7 +48,7 @@ pnpm test:all
 pnpm deploy:check
 ```
 
-`test:smoke` validates the scaffold without requiring Postgres, Redis, k6, nuclei, or a running SaaS server. It includes deterministic source/API security checks that run against the checked-out code and a local mock API when no target URL is provided.
+`test:smoke` validates the scaffold without requiring Postgres, Redis, k6, nuclei, or a running SaaS server. It includes deterministic source/API security checks that run against the checked-out code, local mock API coverage, and browser smoke coverage for the visible tenant/admin onboarding UI.
 
 `test:all` is the full local quality gate. It adds lint, mutation testing, browser smoke, mock HTTP/Bruno API checks, performance, security, acceptance, and AI eval harnesses while still avoiding a required deployed environment.
 
@@ -127,6 +127,8 @@ pnpm test:e2e:smoke
 ```
 
 Use browser E2E for user-visible workflows: login, tenant switching, plan upgrade flows, upload UI, member invitations, and admin screens.
+
+The default smoke spec covers the public shell, admin login reachability, the mocked tenant launch console with command palette, and the mocked admin concierge onboarding table on desktop and mobile. Keep this suite focused on first-screen regressions that would make a fresh scaffold feel broken.
 
 ## Acceptance Tests
 

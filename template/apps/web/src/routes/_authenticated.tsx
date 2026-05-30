@@ -63,8 +63,10 @@ function AuthenticatedLayout() {
 				<AppSidebar />
 				<SidebarInset className="min-w-0 overflow-x-hidden">
 					<TopBar />
-					<main className="flex-1 p-6 min-w-0">
-						<Outlet />
+					<main className="min-w-0 flex-1 bg-[#f8f8f4] p-4 sm:p-6 lg:p-8">
+						<div className="mx-auto w-full max-w-[1500px]">
+							<Outlet />
+						</div>
 					</main>
 				</SidebarInset>
 			</SidebarProvider>

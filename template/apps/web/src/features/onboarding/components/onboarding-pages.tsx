@@ -201,6 +201,57 @@ function TemplatePreview({ template }: { readonly template: OnboardingTemplate |
 	);
 }
 
+function OnboardingConsoleBand({
+	mode,
+	progress,
+	current,
+}: {
+	readonly mode: string;
+	readonly progress: { readonly completed: number; readonly total: number; readonly percent: number };
+	readonly current: { readonly title: string; readonly description?: string | null } | null;
+}) {
+	return (
+		<section className="overflow-hidden rounded-lg border border-[#1e241a] bg-[#11130f] text-white">
+			<div className="grid gap-6 p-5 md:grid-cols-[1.2fr_0.8fr] md:p-6">
+				<div className="space-y-4">
+					<div className="flex flex-wrap items-center gap-2">
+						<Badge className="bg-primary text-primary-foreground hover:bg-primary">{mode}</Badge>
+						<Badge variant="outline" className="border-white/20 text-white">
+							{progress.percent}% ready
+						</Badge>
+					</div>
+					<div className="space-y-2">
+						<h2 className="text-2xl font-semibold tracking-normal">Concierge launch workflow</h2>
+						<p className="max-w-2xl text-sm leading-6 text-white/65">
+							The base template now treats tenant setup as an operational workflow: staff-assisted by default,
+							self-service when appropriate, and starter-pack ready for EIMS or any future vertical.
+						</p>
+					</div>
+					<div className="grid gap-2 sm:grid-cols-3">
+						{["Collect tenant details", "Complete assisted setup", "Verify first live action"].map((item, index) => (
+							<div key={item} className="rounded-md border border-white/10 bg-white/[0.04] p-3">
+								<div className="font-mono text-xs text-white/40">0{index + 1}</div>
+								<div className="mt-2 text-sm font-medium">{item}</div>
+							</div>
+						))}
+					</div>
+				</div>
+				<div className="rounded-lg border border-white/10 bg-white/[0.05] p-4">
+					<div className="text-xs font-medium uppercase text-white/45">Current action</div>
+					<div className="mt-3 text-xl font-semibold">{current?.title ?? "Ready to create workflow"}</div>
+					<p className="mt-2 text-sm leading-6 text-white/62">
+						{current?.description ??
+							"Create or assign a tenant workflow from the admin onboarding queue to start tracking setup."}
+					</p>
+					<div className="mt-5">
+						<ProgressBar {...progress} />
+					</div>
+				</div>
+			</div>
+		</section>
+	);
+}
+
 export function TenantOnboardingPage() {
 	const { data, isLoading } = useTenantOnboarding();
 	const complete = useCompleteTenantOnboardingStep();
@@ -234,8 +285,13 @@ export function TenantOnboardingPage() {
 			<div className="space-y-6">
 				<PageHeader
 					eyebrow="Workspace setup"
-					title="Onboarding"
-					description="Follow the baseline setup checklist or ask staff to run the same workflow in concierge mode."
+					title="Launch console"
+					description="The default SaaS entry screen now shows the assisted onboarding workflow instead of a generic starter page."
+				/>
+				<OnboardingConsoleBand
+					mode="CONCIERGE DEFAULT"
+					progress={{ completed: 0, total: previewSteps.length, percent: 0 }}
+					current={previewSteps[0] ?? null}
 				/>
 				<div className="grid gap-4 md:grid-cols-3">
 					<MetricCard label="Default mode" value="Concierge" helper="Staff-assisted setup is ready by default." />
@@ -261,7 +317,7 @@ export function TenantOnboardingPage() {
 		<div className="space-y-6">
 			<PageHeader
 				eyebrow="Workspace setup"
-				title="Onboarding"
+				title="Launch console"
 				description="Your active tenant setup workflow, shared with support staff when concierge or hybrid mode is enabled."
 				actions={
 					<>
@@ -270,6 +326,8 @@ export function TenantOnboardingPage() {
 					</>
 				}
 			/>
+
+			<OnboardingConsoleBand mode={modeLabel(data.mode)} progress={data.progress} current={step} />
 
 			<div className="grid gap-4 md:grid-cols-3">
 				<MetricCard

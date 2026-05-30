@@ -172,10 +172,15 @@ export const AppSidebar = React.memo(() => {
 
 	return (
 		<Sidebar collapsible="icon">
-			<SidebarHeader className="border-b border-sidebar-border">
-				<div className="flex items-center gap-2 px-2 py-1">
-					<HugeiconsIcon icon={Home02Icon} size={20} className="shrink-0" />
-					<span className="font-semibold text-base group-data-[collapsible=icon]:hidden">{APP_NAME}</span>
+			<SidebarHeader className="border-b border-sidebar-border p-2">
+				<div className="flex items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/60 px-2.5 py-2">
+					<div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
+						<HugeiconsIcon icon={Home02Icon} size={18} />
+					</div>
+					<div className="min-w-0 group-data-[collapsible=icon]:hidden">
+						<div className="truncate text-sm font-semibold">{APP_NAME}</div>
+						<div className="truncate text-xs text-sidebar-foreground/60">Tenant workspace</div>
+					</div>
 				</div>
 				<OrgSwitcher />
 			</SidebarHeader>
@@ -193,6 +198,15 @@ export const AppSidebar = React.memo(() => {
 								/>
 							))}
 						</SidebarMenu>
+					</SidebarGroupContent>
+				</SidebarGroup>
+				<SidebarGroup className="group-data-[collapsible=icon]:hidden">
+					<SidebarGroupLabel>Launch status</SidebarGroupLabel>
+					<SidebarGroupContent>
+						<div className="mx-2 rounded-lg border border-sidebar-border bg-sidebar-accent/45 p-3 text-xs">
+							<div className="font-medium text-sidebar-foreground">Concierge setup ready</div>
+							<div className="mt-1 text-sidebar-foreground/62">Use onboarding first, then attach vertical packs.</div>
+						</div>
 					</SidebarGroupContent>
 				</SidebarGroup>
 			</SidebarContent>

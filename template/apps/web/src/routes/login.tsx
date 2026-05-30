@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { LanguageSwitcher } from "#shared/components/LanguageSwitcher";
+import { AuthShell } from "#shared/components/AuthShell";
 import { authClient } from "#shared/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,10 +52,10 @@ const LoginForm = React.memo(
 		}, []);
 
 		return (
-			<Card className="w-full max-w-sm">
+			<Card className="w-full border-border/70 shadow-sm">
 				<CardHeader className="space-y-1">
-					<CardTitle className="text-2xl font-bold text-center">{t("auth.signIn")}</CardTitle>
-					<CardDescription className="text-center">{t("auth.signInDesc")}</CardDescription>
+					<CardTitle className="text-xl font-semibold">{t("auth.signIn")}</CardTitle>
+					<CardDescription>{t("auth.signInDesc")}</CardDescription>
 				</CardHeader>
 				<form onSubmit={handleSubmit}>
 					<CardContent className="space-y-4">
@@ -107,11 +107,12 @@ LoginForm.displayName = "LoginForm";
 
 function LoginPage() {
 	return (
-		<div className="flex min-h-screen items-center justify-center p-4 relative">
-			<div className="absolute top-4 right-4">
-				<LanguageSwitcher />
-			</div>
+		<AuthShell
+			eyebrow="Secure workspace access"
+			title="Return to your operating console"
+			description="Sign in to manage onboarding, reports, billing, notifications, files, and tenant settings from the same SaaS base."
+		>
 			<LoginForm />
-		</div>
+		</AuthShell>
 	);
 }

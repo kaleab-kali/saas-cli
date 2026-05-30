@@ -134,8 +134,11 @@ export const AdminSidebar = React.memo(
 
 		return (
 			<Sidebar collapsible="icon">
-				<SidebarHeader className="border-b border-sidebar-border">
-					<SidebarMenuButton size="lg" className="w-full cursor-default">
+				<SidebarHeader className="border-b border-sidebar-border p-2">
+					<SidebarMenuButton
+						size="lg"
+						className="h-auto w-full cursor-default rounded-lg border border-sidebar-border bg-sidebar-accent/60 px-2.5 py-2"
+					>
 						<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-destructive text-destructive-foreground">
 							<HugeiconsIcon icon={AiSecurity01Icon} size={16} />
 						</div>
@@ -162,6 +165,17 @@ export const AdminSidebar = React.memo(
 									/>
 								))}
 							</SidebarMenu>
+						</SidebarGroupContent>
+					</SidebarGroup>
+					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
+						<SidebarGroupLabel>Operations focus</SidebarGroupLabel>
+						<SidebarGroupContent>
+							<div className="mx-2 rounded-lg border border-sidebar-border bg-destructive/5 p-3 text-xs">
+								<div className="font-medium text-sidebar-foreground">Tenant launch queue</div>
+								<div className="mt-1 text-sidebar-foreground/62">
+									Onboarding, jobs, billing, and audits are grouped for support staff.
+								</div>
+							</div>
 						</SidebarGroupContent>
 					</SidebarGroup>
 				</SidebarContent>
