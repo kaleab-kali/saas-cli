@@ -30,8 +30,11 @@ const mustNotExist = [
 const mustExist = [
 	"apps/api/src/modules/onboarding/onboarding.module.ts",
 	"apps/api/src/modules/onboarding/application/onboarding.service.spec.ts",
+	"apps/api/src/modules/auth/guards/permissions.guard.spec.ts",
 	"apps/api/src/modules/health/detailed-health.controller.ts",
 	"apps/api/src/modules/health/health-diagnostics.service.ts",
+	"apps/api/src/shared/filters/global-exception.filter.spec.ts",
+	"apps/api/src/shared/interceptors/audit.interceptor.spec.ts",
 	"apps/api/src/shared/rate-limit/rate-limit.config.ts",
 	"apps/api/src/shared/rate-limit/tenant-throttler.guard.ts",
 	"apps/api/src/shared/rate-limit/tenant-throttler.guard.spec.ts",
@@ -150,6 +153,18 @@ function assertDeployGateBuilds() {
 	assert(
 		apiPackageJson.jest?.coverageThreshold?.["src/modules/onboarding/application/onboarding.service.ts"]?.lines >= 75,
 		"coverage enforces onboarding workflow service threshold",
+	);
+	assert(
+		apiPackageJson.jest?.coverageThreshold?.["src/modules/auth/guards/permissions.guard.ts"]?.lines >= 95,
+		"coverage enforces permission guard threshold",
+	);
+	assert(
+		apiPackageJson.jest?.coverageThreshold?.["src/shared/interceptors/audit.interceptor.ts"]?.lines >= 95,
+		"coverage enforces audit interceptor threshold",
+	);
+	assert(
+		apiPackageJson.jest?.coverageThreshold?.["src/shared/filters/global-exception.filter.ts"]?.lines >= 95,
+		"coverage enforces exception filter threshold",
 	);
 	assert(
 		apiPackageJson.jest?.coverageThreshold?.["src/shared/crypto/cipher.service.ts"]?.branches >= 80,
@@ -291,6 +306,23 @@ function assertTenantAwareRateLimitSurface() {
 	assert(sourceSecurity.includes("rate limiting must isolate tenant request buckets"), "source security gate enforces tenant rate limits");
 	assert(envExample.includes("API_RATE_LIMIT_PER_TENANT=60"), "env example includes rate limit tenant default");
 	assert(envProduction.includes("API_RATE_LIMIT_PER_TENANT=60"), "production env example includes rate limit tenant default");
+}
+
+function assertAuditAndErrorSecuritySurface() {
+	const permissionsSpec = readProjectFile("apps/api/src/modules/auth/guards/permissions.guard.spec.ts");
+	const auditSpec = readProjectFile("apps/api/src/shared/interceptors/audit.interceptor.spec.ts");
+	const exceptionSpec = readProjectFile("apps/api/src/shared/filters/global-exception.filter.spec.ts");
+	const loggerConstants = readProjectFile("apps/api/src/shared/logger/logger.constants.ts");
+	const sourceSecurity = readProjectFile("apps/security/scripts/source-security-check.mjs");
+	assert(permissionsSpec.includes("rejects as soon as one required permission is missing"), "permission guard tests denial path");
+	assert(auditSpec.includes("persists a redacted success audit record"), "audit interceptor tests redacted success records");
+	assert(auditSpec.includes("persists failure audit records"), "audit interceptor tests failure records");
+	assert(exceptionSpec.includes("sanitizes Nest 404 route messages"), "exception filter tests route sanitization");
+	assert(exceptionSpec.includes("returns a generic 500 response"), "exception filter tests generic server errors");
+	assert(loggerConstants.includes('"apiKey"'), "sensitive-field list redacts API keys");
+	assert(loggerConstants.includes('"privateKey"'), "sensitive-field list redacts private keys");
+	assert(sourceSecurity.includes("log redaction must cover API key fields"), "source security gate enforces API key redaction");
+	assert(sourceSecurity.includes("audit logging must redact request bodies"), "source security gate enforces audit body redaction");
 }
 
 function assertOnboardingFirstEntry() {
@@ -458,6 +490,7 @@ async function main() {
 	assertHealthObservabilitySurface();
 	assertUploadHardeningSurface();
 	assertTenantAwareRateLimitSurface();
+	assertAuditAndErrorSecuritySurface();
 	assertOnboardingFirstEntry();
 	assertFrontendImprovementSurface();
 	assertOnboardingServerTableQuery();

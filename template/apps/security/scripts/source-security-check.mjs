@@ -50,12 +50,21 @@ assertIncludes(uploadService, "text upload contains unsafe content", "uploads mu
 const appModule = read("apps/api/src/app.module.ts");
 const tenantThrottler = read("apps/api/src/shared/rate-limit/tenant-throttler.guard.ts");
 const rateLimitConfig = read("apps/api/src/shared/rate-limit/rate-limit.config.ts");
+const loggerConstants = read("apps/api/src/shared/logger/logger.constants.ts");
+const auditInterceptor = read("apps/api/src/shared/interceptors/audit.interceptor.ts");
 assertIncludes(appModule, "TenantThrottlerGuard", "global throttling must use tenant-aware tracker guard");
 assertIncludes(tenantThrottler, "tenant:", "rate limiting must isolate tenant request buckets");
 assertIncludes(tenantThrottler, "admin:", "rate limiting must isolate admin request buckets");
 assertIncludes(tenantThrottler, "auth.api.getSession", "tenant throttler must resolve Better Auth tenant sessions");
 assertIncludes(tenantThrottler, "adminAuth.api.getSession", "tenant throttler must resolve admin sessions separately");
 assertIncludes(rateLimitConfig, "API_RATE_LIMIT_PER_TENANT", "rate limit defaults must be configurable per deployment");
+assertIncludes(loggerConstants, '"apiKey"', "log redaction must cover API key fields");
+assertIncludes(loggerConstants, '"privateKey"', "log redaction must cover private key fields");
+assertIncludes(
+	auditInterceptor,
+	"redactSensitiveFields(body)",
+	"audit logging must redact request bodies before persistence",
+);
 
 const allSource = walkFiles(repoRoot, (file) => sourceExt.test(file));
 const unsafePrismaRaw = "$query" + "RawUnsafe";

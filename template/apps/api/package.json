@@ -146,6 +146,24 @@
 				"functions": 65,
 				"lines": 75
 			},
+			"src/modules/auth/guards/permissions.guard.ts": {
+				"statements": 95,
+				"branches": 85,
+				"functions": 100,
+				"lines": 95
+			},
+			"src/shared/filters/global-exception.filter.ts": {
+				"statements": 95,
+				"branches": 75,
+				"functions": 100,
+				"lines": 95
+			},
+			"src/shared/interceptors/audit.interceptor.ts": {
+				"statements": 95,
+				"branches": 75,
+				"functions": 100,
+				"lines": 95
+			},
 			"src/shared/crypto/cipher.service.ts": {
 				"statements": 85,
 				"branches": 80,
