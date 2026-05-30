@@ -97,7 +97,7 @@ function AdminOperationsHero({ stats }: { readonly stats: readonly (readonly [st
 							Cross-tenant controls
 						</span>
 					</div>
-					<h1 className="mt-3 text-2xl font-semibold tracking-normal md:text-3xl">EIMS operations</h1>
+					<h1 className="mt-3 text-2xl font-semibold tracking-normal md:text-3xl">Platform EIMS Operations</h1>
 					<p className="mt-2 max-w-3xl text-sm leading-6 text-white/68">
 						Track blocked tenants, retry queues, certificate expiry, compliance evidence, and source approval health
 						before they reach support escalations.
@@ -271,7 +271,7 @@ function AcceptanceCaseRunner() {
 					emptyTitle="No acceptance cases"
 					emptyMessage="No EIMS acceptance cases are available."
 					getRowId={(row) => row.caseId}
-					pageSize={10}
+					pageSize={20}
 					searchPlaceholder="Search acceptance cases..."
 					totalCount={cases.data.data.length}
 				/>

@@ -210,34 +210,160 @@ function AuthorityFlowPanel({ overview }: { readonly overview: EimsOverview }) {
 }
 
 const setupJourney = [
-	["Welcome", "Confirm MoR portal registration and tenant contact details"],
-	["Credentials", "Capture client ID, username, API key, password, and client secret"],
-	["CSR", "Generate the certificate signing request and protected private key"],
-	["INSA request", "Send the prepared certificate request package"],
-	["Certificate", "Upload and validate the issued certificate"],
-	["Verify", "Run a test invoice before live operation"],
+	["Company profile", "Confirm TIN, VAT, contact person, and branch ownership"],
+	["MoR portal", "Track signup, OTP handoff, username, and portal readiness"],
+	["Register/POS", "Save source system details before authority approval"],
+	["Credentials", "Capture API access details through the secure backend"],
+	["INSA certificate", "Generate the request package and upload the issued certificate"],
+	["Go live", "Issue the first controlled invoice and prepare the tenant for daily use"],
 ] as const;
 
-function SetupJourneyPanel() {
+const doneStatuses = new Set(["accepted", "active", "approved", "complete", "ready", "test_ready"]);
+
+const stepStatusTone = (status: string) => {
+	const normalized = status.toLowerCase();
+	if (doneStatuses.has(normalized)) return "border-primary/30 bg-primary/5";
+	if (["blocked", "error", "failed_retryable"].includes(normalized)) return "border-destructive/35 bg-destructive/5";
+	if (["attention", "pending_offline", "warning"].includes(normalized)) return "border-amber-300 bg-amber-50 text-amber-950";
+	return "border-border bg-background";
+};
+
+function SetupJourneyPanel({ workspace }: { readonly workspace: EimsTenantWorkspace }) {
+	const firstOpenStepIndex = workspace.readiness.steps.findIndex((step) => !doneStatuses.has(step.status.toLowerCase()));
+	const currentStepIndex =
+		firstOpenStepIndex === -1 ? Math.max(0, workspace.readiness.steps.length - 1) : firstOpenStepIndex;
+	const currentJourneyIndex = Math.min(currentStepIndex, setupJourney.length - 1);
+	const currentStep = workspace.readiness.steps[currentStepIndex] ?? workspace.readiness.steps[0];
+	const blockers = workspace.readiness.blockers.slice(0, 3);
+
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle className="text-base">EIMS setup path</CardTitle>
-			</CardHeader>
-			<CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-				{setupJourney.map(([title, description], index) => (
-					<div key={title} className="rounded-md border p-3">
-						<div className="flex items-center gap-3">
-							<span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-								{index + 1}
-							</span>
-							<div className="font-medium">{title}</div>
+		<section className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+			<div className="rounded-md border bg-background">
+				<div className="border-b p-4">
+					<p className="text-sm font-semibold">EIMS setup path</p>
+					<p className="mt-1 text-sm text-muted-foreground">
+						The tenant sees plain business tasks while staff keeps the MoR and INSA handoffs moving.
+					</p>
+				</div>
+				<div className="grid gap-2 p-3">
+					{setupJourney.map(([title, description], index) => {
+						const readinessStep = workspace.readiness.steps[index];
+						const status = readinessStep?.status ?? (index < currentStepIndex ? "complete" : "pending");
+						const isCurrent = index === currentJourneyIndex;
+						return (
+							<div
+								key={title}
+								className={`rounded-md border p-3 ${stepStatusTone(status)} ${isCurrent ? "ring-2 ring-primary/25" : ""}`}
+							>
+								<div className="flex items-start justify-between gap-3">
+									<div className="flex min-w-0 items-start gap-3">
+										<span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+											{index + 1}
+										</span>
+										<div className="min-w-0">
+											<div className="font-medium">{title}</div>
+											<p className="mt-1 text-sm text-muted-foreground">{description}</p>
+										</div>
+									</div>
+									<StatusBadge status={status} />
+								</div>
+							</div>
+						);
+					})}
+				</div>
+			</div>
+
+			<div className="grid gap-4">
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">Current staff handoff</CardTitle>
+					</CardHeader>
+					<CardContent className="grid gap-4">
+						<div className="rounded-md border bg-muted/30 p-4">
+							<div className="flex flex-wrap items-center justify-between gap-3">
+								<div>
+									<p className="text-xs font-medium uppercase text-muted-foreground">Next action</p>
+									<p className="mt-1 text-lg font-semibold">{currentStep?.label ?? "Review setup progress"}</p>
+								</div>
+								<StatusBadge status={currentStep?.status ?? "pending"} />
+							</div>
+							{currentStep?.actionLabel ? (
+								<p className="mt-3 text-sm text-muted-foreground">{currentStep.actionLabel}</p>
+							) : null}
+							{currentStep?.tenantProvides?.length ? (
+								<div className="mt-3 flex flex-wrap gap-2">
+									{currentStep.tenantProvides.map((item) => (
+										<Badge key={item} variant="outline">
+											{item}
+										</Badge>
+									))}
+								</div>
+							) : null}
 						</div>
-						<p className="mt-2 text-sm text-muted-foreground">{description}</p>
+						<div className="grid gap-3 md:grid-cols-3">
+							{[
+								["Tenant contact", "Call, WhatsApp, or email before every authority step"],
+								["Authority evidence", "Keep portal screenshots, issued files, and receipt notes together"],
+								["Launch control", "Do not enable daily invoices until the first accepted invoice is confirmed"],
+							].map(([title, detail]) => (
+								<div key={title} className="rounded-md border p-3">
+									<p className="text-sm font-medium">{title}</p>
+									<p className="mt-1 text-xs leading-5 text-muted-foreground">{detail}</p>
+								</div>
+							))}
+						</div>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">Tenant handoff dossier</CardTitle>
+					</CardHeader>
+					<CardContent className="grid gap-3">
+						{blockers.length > 0 ? (
+							blockers.map((blocker) => (
+								<div key={blocker} className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+									{blocker}
+								</div>
+							))
+						) : (
+							<div className="rounded-md border bg-muted/30 p-3 text-sm">No setup blockers are currently recorded.</div>
+						)}
+					</CardContent>
+				</Card>
+			</div>
+		</section>
+	);
+}
+
+function TenantLaunchPanel({ workspace }: { readonly workspace: EimsTenantWorkspace }) {
+	return (
+		<section className="grid gap-4 lg:grid-cols-[1fr_0.72fr]">
+			<div className="rounded-md border bg-background p-4">
+				<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+					<div>
+						<p className="text-sm font-semibold">Operational launch board</p>
+						<p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+							Track what the restaurant must provide, what staff controls, and when tax invoicing can be enabled.
+						</p>
 					</div>
-				))}
-			</CardContent>
-		</Card>
+					<Badge variant={workspace.readiness.readyForLive ? "default" : "secondary"}>
+						{workspace.readiness.readyForLive ? "ready for live invoices" : "setup in progress"}
+					</Badge>
+				</div>
+				<div className="mt-4 grid gap-3 md:grid-cols-3">
+					{workspace.primaryActions.slice(0, 3).map((action) => (
+						<Button key={action.href} asChild variant="outline" className="justify-start">
+							<a href={action.href}>{action.label}</a>
+						</Button>
+					))}
+				</div>
+			</div>
+			<div className="rounded-md border bg-muted/25 p-4">
+				<p className="text-sm font-semibold">Support note</p>
+				<p className="mt-2 text-sm leading-6 text-muted-foreground">{workspace.supportNote}</p>
+			</div>
+		</section>
 	);
 }
 
@@ -884,6 +1010,7 @@ export function EimsOverviewPage() {
 					{alert.message}
 				</div>
 			))}
+			<TenantLaunchPanel workspace={workspace} />
 			<AuthorityFlowPanel overview={overview} />
 			<StatCards overview={overview} />
 			<RequiredInputsPanel workspace={workspace} />
@@ -938,7 +1065,7 @@ export function EimsSetupPage() {
 				mode={workspace.operationModeLabel}
 				overview={overview}
 			/>
-			<SetupJourneyPanel />
+			<SetupJourneyPanel workspace={workspace} />
 			<ReadinessSteps workspace={workspace} />
 			<Card>
 				<CardHeader>

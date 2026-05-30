@@ -261,6 +261,9 @@ function assertGeneratedStructure() {
 	const tenantPages = readProjectFile("apps/web/src/features/eims/components/eims-tenant-pages.tsx");
 	assert(tenantPages.includes("Ethiopia tax workspace"), "tenant EIMS UI has a domain-specific workspace header");
 	assert(tenantPages.includes("EIMS setup path"), "tenant EIMS UI has the guided six-step setup path");
+	assert(tenantPages.includes("Operational launch board"), "tenant EIMS status page has a launch-focused workflow panel");
+	assert(tenantPages.includes("Current staff handoff"), "tenant EIMS setup page has a concierge handoff panel");
+	assert(tenantPages.includes("Tenant handoff dossier"), "tenant EIMS setup page keeps tenant blockers visible");
 	assert(tenantPages.includes("SharedDataTable"), "tenant EIMS pages use the shared DataTable surface");
 	assert(!tenantPages.includes("@/components/ui/table"), "tenant EIMS pages do not use raw table primitives");
 	const adminPages = readProjectFile("apps/web/src/features/eims/components/eims-admin-pages.tsx");

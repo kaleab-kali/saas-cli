@@ -196,7 +196,20 @@ async function gotoAndWait<T>(page: Page, path: string, urlFragment: string, hea
 async function expectVisibleTexts(page: Page, values: Array<string | number | null | undefined>) {
 	for (const value of values) {
 		if (value === null || value === undefined || value === "") continue;
-		await expect(page.getByText(String(value), { exact: false }).first()).toBeVisible();
+		const expectedText = String(value);
+		await expect
+			.poll(
+				async () =>
+					page.getByText(expectedText, { exact: false }).evaluateAll((elements) =>
+						elements.some((element) => {
+							const style = window.getComputedStyle(element);
+							const box = element.getBoundingClientRect();
+							return style.display !== "none" && style.visibility !== "hidden" && box.width > 0 && box.height > 0;
+						}),
+					),
+				{ message: `${expectedText} should be visible` },
+			)
+			.toBe(true);
 	}
 }
 
@@ -307,6 +320,7 @@ test.describe("tenant EIMS workflow is business-facing and backend-driven", () =
 		const workspace = (await workspacePromise).data;
 
 		await expect(page.getByRole("heading", { name: "Tax invoicing status" })).toBeVisible();
+		await expect(page.getByText("Operational launch board")).toBeVisible();
 		await expectVisibleTexts(page, [workspace.operationModeLabel, workspace.plainLanguageSummary]);
 		for (const requiredInput of workspace.requiredInputs) await expectVisibleTexts(page, [requiredInput]);
 		await expectVisibleTexts(page, [workspace.supportNote]);
@@ -353,6 +367,8 @@ test.describe("tenant EIMS workflow is business-facing and backend-driven", () =
 		const buyers = (await buyersPromise).data;
 
 		await expect(page.getByRole("heading", { name: "Guided tax setup" })).toBeVisible();
+		await expect(page.getByText("Current staff handoff")).toBeVisible();
+		await expect(page.getByText("Tenant handoff dossier")).toBeVisible();
 		for (const blocker of workspace.readiness.blockers) await expectVisibleTexts(page, [blocker]);
 
 		await page.getByRole("textbox", { name: "TIN", exact: true }).fill("0074136947");
