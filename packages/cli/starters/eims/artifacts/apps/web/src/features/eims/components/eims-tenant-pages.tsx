@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
 import {
 	type EimsOverview,
@@ -31,14 +32,19 @@ import {
 	useSaveEimsCredential,
 	useTestEimsCredential,
 } from "#features/eims/api/eims.hooks";
+import { DataTable as SharedDataTable } from "#shared/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type DirectoryKind = "enterprises" | "establishments" | "sources";
 type TableRows = readonly (readonly string[])[];
+type RecordTableRow = {
+	readonly id: string;
+	readonly values: readonly string[];
+	readonly byHeader: Record<string, string>;
+};
 
 const badgeVariant = (status: string) => {
 	const normalized = status.toLowerCase();
@@ -129,18 +135,27 @@ function EimsWorkspaceHeader({
 	] as const;
 
 	return (
-		<section className="rounded-md border bg-muted/20 p-5">
-			<div className="grid gap-5 xl:grid-cols-[1fr_0.7fr]">
+		<section className="overflow-hidden rounded-md border border-[#20351f] bg-[#101712] text-white">
+			<div className="grid gap-5 p-5 xl:grid-cols-[1fr_0.7fr] xl:p-6">
 				<div className="min-w-0">
 					<div className="flex flex-wrap items-center gap-2">
-						<Badge variant="outline">Ethiopia tax workspace</Badge>
-						{mode ? <Badge variant="secondary">{mode}</Badge> : null}
+						<Badge className="bg-[#9dcc69] text-[#17200f] hover:bg-[#9dcc69]">Ethiopia tax workspace</Badge>
+						{mode ? <Badge className="border-white/20 bg-white/10 text-white hover:bg-white/10">{mode}</Badge> : null}
 					</div>
-					<h1 className="mt-3 text-2xl font-semibold tracking-normal">{title}</h1>
-					<p className="mt-2 max-w-3xl text-sm text-muted-foreground">{description}</p>
+					<h1 className="mt-3 text-2xl font-semibold tracking-normal md:text-3xl">{title}</h1>
+					<p className="mt-2 max-w-3xl text-sm leading-6 text-white/68">{description}</p>
 					<div className="mt-4 flex flex-wrap gap-2">
 						{actions.map(([label, to], index) => (
-							<Button key={to} asChild variant={index === 0 ? "default" : "outline"}>
+							<Button
+								key={to}
+								asChild
+								variant={index === 0 ? "default" : "outline"}
+								className={
+									index === 0
+										? "bg-[#9dcc69] text-[#17200f] hover:bg-[#b4df79]"
+										: "border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+								}
+							>
 								<Link to={to}>{label}</Link>
 							</Button>
 						))}
@@ -148,12 +163,19 @@ function EimsWorkspaceHeader({
 				</div>
 				<div className="grid gap-2 sm:grid-cols-2">
 					{metrics.map(([label, value]) => (
-						<div key={label} className="rounded-md border bg-background p-3">
-							<p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+						<div key={label} className="rounded-md border border-white/10 bg-white/[0.06] p-3">
+							<p className="text-xs font-medium uppercase text-white/50">{label}</p>
 							<p className="mt-1 text-2xl font-semibold">{value}</p>
 						</div>
 					))}
 				</div>
+			</div>
+			<div className="grid border-t border-white/10 bg-white/[0.03] text-sm md:grid-cols-3">
+				{["MoR source approval", "INSA certificate", "Official IRN and QR"].map((label) => (
+					<div key={label} className="border-white/10 px-5 py-3 text-white/70 md:border-r last:md:border-r-0">
+						{label}
+					</div>
+				))}
 			</div>
 		</section>
 	);
@@ -249,30 +271,42 @@ function ComplianceReadinessPanel({
 }
 
 function DataTable({ headers, rows }: { readonly headers: readonly string[]; readonly rows: TableRows }) {
+	const tableRows = React.useMemo<RecordTableRow[]>(
+		() =>
+			rows.map((row, index) => ({
+				id: `${index}-${row.join("|")}`,
+				values: row,
+				byHeader: Object.fromEntries(headers.map((header, cellIndex) => [header, row[cellIndex] ?? ""])),
+			})),
+		[headers, rows],
+	);
+	const columns = React.useMemo<ColumnDef<RecordTableRow, string>[]>(
+		() =>
+			headers.map((header, index) => ({
+				id: `${header}-${index}`,
+				accessorFn: (row) => row.byHeader[header] ?? row.values[index] ?? "",
+				header,
+				cell: ({ row }) => row.original.values[index] ?? "",
+				meta: {
+					filter: { type: "text" },
+					className: index === headers.length - 1 ? "max-w-md whitespace-normal" : undefined,
+				},
+			})),
+		[headers],
+	);
+
 	return (
-		<Table>
-			<TableHeader>
-				<TableRow>
-					{headers.map((header) => (
-						<TableHead key={header}>{header}</TableHead>
-					))}
-				</TableRow>
-			</TableHeader>
-			<TableBody>
-				{rows.map((row) => (
-					<TableRow key={row.join("|")}>
-						{row.map((cell, index) => (
-							<TableCell
-								key={String(index)}
-								className={index === row.length - 1 ? "max-w-md whitespace-normal" : undefined}
-							>
-								{cell}
-							</TableCell>
-						))}
-					</TableRow>
-				))}
-			</TableBody>
-		</Table>
+		<SharedDataTable
+			columns={columns}
+			data={tableRows}
+			enableColumnVisibility={false}
+			emptyTitle="No records"
+			emptyMessage="No EIMS records match this view."
+			getRowId={(row) => row.id}
+			pageSize={10}
+			searchPlaceholder="Search EIMS records..."
+			totalCount={tableRows.length}
+		/>
 	);
 }
 

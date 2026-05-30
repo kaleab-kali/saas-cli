@@ -104,6 +104,9 @@ function assertDeployGateBuilds() {
 	assert(deployCheck.includes("build:api"), "deploy gate includes API production build");
 	assert(deployCheck.includes("build:web"), "deploy gate includes web production build");
 	assert(deployCheck.includes("test:smoke"), "deploy gate runs broad smoke suite");
+	assert(deployCheck.includes("pnpm lint"), "deploy gate includes lint without duplicate Prisma generation");
+	assert(deployCheck.includes("pnpm typecheck"), "deploy gate includes typecheck without duplicate Prisma generation");
+	assert(!deployCheck.includes("lint:ci"), "deploy gate avoids nested lint:ci duplicate Prisma generation");
 	assert(!deployCheck.includes("test:ci &&"), "deploy gate does not bypass browser smoke via narrow CI gate");
 	assert(testCi.includes("test:api:http:mock"), "CI test gate includes mock HTTP API tests");
 	assert(testCi.includes("test:api:bruno:mock"), "CI test gate includes mock Bruno API tests");
@@ -163,15 +166,33 @@ function assertFrontendImprovementSurface() {
 	assert(topBar.includes("Workspace command center"), "top bar exposes visible command-center shell");
 	assert(authShell.includes("SaaS launch console"), "auth screens use visible product console shell");
 	assert(dataTable.includes("useDebouncedValue"), "DataTable has debounced global search");
+	assert(dataTable.includes("useDataTableState"), "DataTable exposes URL-synced state hook");
+	assert(dataTable.includes("useSearch({ strict: false })"), "DataTable state reads TanStack Router search params");
+	assert(dataTable.includes("manualPagination"), "DataTable supports server-side pagination");
 	assert(dataTable.includes("DataTableColumnFilter"), "DataTable renders per-column filters");
 	assert(dataTable.includes("DropdownMenuCheckboxItem"), "DataTable has column visibility controls");
 	assert(onboarding.includes("Concierge launch workflow"), "tenant onboarding uses visible launch workflow console");
 	assert(onboarding.includes("Concierge onboarding"), "admin onboarding uses concierge operations copy");
 	assert(onboarding.includes("<DataTable"), "admin onboarding list uses shared DataTable");
+	assert(onboarding.includes("useDataTableState"), "admin onboarding table syncs table state to URL");
+	assert(onboarding.includes("tableState.queryParams"), "admin onboarding table sends server-side table params");
 	assert(onboarding.includes("Current action"), "onboarding pages expose active workflow step");
 	assert(onboarding.includes("TemplatePreview"), "new onboarding page previews selected templates");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
 	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
+	assert(e2eSmoke.includes("search=Demo"), "E2E smoke covers bookmarkable admin table search");
+}
+
+function assertOnboardingServerTableQuery() {
+	const dto = readProjectFile("apps/api/src/modules/onboarding/presentation/dtos/onboarding.dto.ts");
+	const service = readProjectFile("apps/api/src/modules/onboarding/application/onboarding.service.ts");
+	const hooks = readProjectFile("apps/web/src/features/onboarding/api/onboarding.hooks.ts");
+	assert(dto.includes("search?: string"), "onboarding list DTO accepts search");
+	assert(dto.includes("sort?: string"), "onboarding list DTO accepts sort");
+	assert(service.includes("query.search?.trim()"), "onboarding list applies server-side search");
+	assert(service.includes("onboardingSort(query.sort)"), "onboarding list applies server-side sort");
+	assert(hooks.includes("search?: string"), "web onboarding hook sends search param");
+	assert(hooks.includes("sort?: string"), "web onboarding hook sends sort param");
 }
 
 function assertWebBundleImportPolicy() {
@@ -256,6 +277,7 @@ async function main() {
 	assertPerformanceMockGateRuns();
 	assertOnboardingFirstEntry();
 	assertFrontendImprovementSurface();
+	assertOnboardingServerTableQuery();
 	assertWebBundleImportPolicy();
 	assertGeneratedSecrets();
 

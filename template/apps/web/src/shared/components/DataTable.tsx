@@ -1,3 +1,4 @@
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
 	type ColumnDef,
 	type ColumnFiltersState,
@@ -8,8 +9,11 @@ import {
 	getPaginationRowModel,
 	getSortedRowModel,
 	type Header,
+	type OnChangeFn,
 	type PaginationState,
 	type SortingState,
+	type Table as TanStackTable,
+	type Updater,
 	useReactTable,
 	type VisibilityState,
 } from "@tanstack/react-table";
@@ -73,6 +77,191 @@ interface DataTableProps<TData, TValue> {
 	readonly toolbarActions?: React.ReactNode;
 	readonly getRowId?: (row: TData, index: number) => string;
 	readonly onRowClick?: (row: TData) => void;
+	readonly state?: {
+		readonly sorting?: SortingState;
+		readonly pagination?: PaginationState;
+		readonly columnFilters?: ColumnFiltersState;
+		readonly globalFilterInput?: string;
+	};
+	readonly onSortingChange?: OnChangeFn<SortingState>;
+	readonly onPaginationChange?: OnChangeFn<PaginationState>;
+	readonly onColumnFiltersChange?: OnChangeFn<ColumnFiltersState>;
+	readonly onGlobalFilterInputChange?: (value: string) => void;
+	readonly manualPagination?: boolean;
+	readonly manualSorting?: boolean;
+	readonly manualFiltering?: boolean;
+	readonly pageCount?: number;
+}
+
+interface DataTableQueryParams {
+	readonly page: number;
+	readonly limit: number;
+	readonly search?: string;
+	readonly sort?: string;
+	readonly [key: `filter.${string}`]: string | undefined;
+}
+
+interface UseDataTableStateOptions {
+	readonly defaultPageSize?: number;
+	readonly defaultSort?: SortingState;
+	readonly pageKey?: string;
+	readonly limitKey?: string;
+	readonly searchKey?: string;
+	readonly sortKey?: string;
+	readonly filterPrefix?: string;
+}
+
+function resolveUpdater<T>(updater: Updater<T>, previous: T): T {
+	return typeof updater === "function" ? (updater as (old: T) => T)(previous) : updater;
+}
+
+const readString = (value: unknown) => (typeof value === "string" ? value : undefined);
+
+const readPositiveInt = (value: unknown, fallback: number) => {
+	const parsed = Number(value);
+	return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const sortParamFromSorting = (sorting: SortingState) => {
+	const first = sorting[0];
+	if (!first) return undefined;
+	return `${first.id}:${first.desc ? "desc" : "asc"}`;
+};
+
+const sortingFromSortParam = (value: unknown, fallback: SortingState) => {
+	const raw = readString(value);
+	if (!raw) return fallback;
+	const [id, direction] = raw.split(":");
+	if (!id) return fallback;
+	return [{ id, desc: direction === "desc" }];
+};
+
+const serializeFilterValue = (value: unknown) => {
+	if (!hasFilterValue(value)) return undefined;
+	const filter = value as FilterValue;
+	if (filter.min || filter.max) return `${filter.min ?? ""}..${filter.max ?? ""}`;
+	return filter.value;
+};
+
+export function useDataTableState({
+	defaultPageSize = 20,
+	defaultSort = [],
+	pageKey = "page",
+	limitKey = "limit",
+	searchKey = "search",
+	sortKey = "sort",
+	filterPrefix = "filter.",
+}: UseDataTableStateOptions = {}) {
+	const search = useSearch({ strict: false }) as Record<string, unknown>;
+	const navigate = useNavigate();
+	const page = readPositiveInt(search[pageKey], 1);
+	const pageSize = readPositiveInt(search[limitKey], defaultPageSize);
+	const searchText = readString(search[searchKey]) ?? "";
+	const sorting = sortingFromSortParam(search[sortKey], defaultSort);
+	const pagination = React.useMemo<PaginationState>(() => ({ pageIndex: page - 1, pageSize }), [page, pageSize]);
+
+	const columnFilters = React.useMemo<ColumnFiltersState>(() => {
+		return Object.entries(search)
+			.filter(([key, value]) => key.startsWith(filterPrefix) && typeof value === "string" && value.length > 0)
+			.map(([key, value]) => ({
+				id: key.slice(filterPrefix.length),
+				value: { type: "text", value: value as string } satisfies FilterValue,
+			}));
+	}, [filterPrefix, search]);
+
+	const setSearchParams = React.useCallback(
+		(patch: Record<string, string | number | boolean | undefined>) => {
+			void navigate({
+				replace: true,
+				resetScroll: false,
+				search: ((previous: Record<string, unknown>) => {
+					const next = { ...previous, ...patch };
+					for (const [key, value] of Object.entries(next)) {
+						const shouldDrop =
+							value === undefined ||
+							value === "" ||
+							(key === pageKey && Number(value) === 1) ||
+							(key === limitKey && Number(value) === defaultPageSize) ||
+							(key === sortKey && value === sortParamFromSorting(defaultSort));
+						if (shouldDrop) delete next[key];
+					}
+					return next;
+				}) as never,
+			});
+		},
+		[defaultPageSize, defaultSort, limitKey, navigate, pageKey, sortKey],
+	);
+
+	const onPaginationChange = React.useCallback<OnChangeFn<PaginationState>>(
+		(updater) => {
+			const next = resolveUpdater(updater, pagination);
+			setSearchParams({ [pageKey]: next.pageIndex + 1, [limitKey]: next.pageSize });
+		},
+		[limitKey, pageKey, pagination, setSearchParams],
+	);
+
+	const onSortingChange = React.useCallback<OnChangeFn<SortingState>>(
+		(updater) => {
+			const next = resolveUpdater(updater, sorting);
+			setSearchParams({ [sortKey]: sortParamFromSorting(next), [pageKey]: 1 });
+		},
+		[pageKey, setSearchParams, sortKey, sorting],
+	);
+
+	const onColumnFiltersChange = React.useCallback<OnChangeFn<ColumnFiltersState>>(
+		(updater) => {
+			const next = resolveUpdater(updater, columnFilters);
+			const patch: Record<string, string | number | boolean | undefined> = { [pageKey]: 1 };
+			for (const key of Object.keys(search)) {
+				if (key.startsWith(filterPrefix)) patch[key] = undefined;
+			}
+			for (const filter of next) {
+				patch[`${filterPrefix}${filter.id}`] = serializeFilterValue(filter.value);
+			}
+			setSearchParams(patch);
+		},
+		[columnFilters, filterPrefix, pageKey, search, setSearchParams],
+	);
+
+	const onGlobalFilterInputChange = React.useCallback(
+		(value: string) => setSearchParams({ [searchKey]: value.trim() || undefined, [pageKey]: 1 }),
+		[pageKey, searchKey, setSearchParams],
+	);
+
+	const filterQueryParams = Object.fromEntries(
+		columnFilters.map((filter) => [`${filterPrefix}${filter.id}`, serializeFilterValue(filter.value)]),
+	) as Record<`filter.${string}`, string | undefined>;
+	const sort = sortParamFromSorting(sorting);
+	const queryParams = {
+		page,
+		limit: pageSize,
+		search: searchText || undefined,
+		sort,
+		...filterQueryParams,
+	} satisfies DataTableQueryParams;
+
+	return {
+		page,
+		pageSize,
+		search: searchText,
+		sorting,
+		pagination,
+		columnFilters,
+		sort,
+		queryParams,
+		urlSearch: search,
+		setSearchParams,
+		tableProps: {
+			state: { sorting, pagination, columnFilters, globalFilterInput: searchText },
+			onSortingChange,
+			onPaginationChange,
+			onColumnFiltersChange,
+			onGlobalFilterInputChange,
+			pageSize,
+			manualPagination: true,
+			manualSorting: true,
+		},
+	};
 }
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
@@ -222,6 +411,255 @@ function DataTableColumnFilter<TData, TValue>({ header }: { readonly header: Hea
 	);
 }
 
+function DataTableToolbar<TData>({
+	enableSearch,
+	searchPlaceholder,
+	globalFilterInput,
+	setGlobalFilterInput,
+	hasFilters,
+	resetFilters,
+	toolbarActions,
+	enableColumnVisibility,
+	table,
+}: {
+	readonly enableSearch: boolean;
+	readonly searchPlaceholder: string;
+	readonly globalFilterInput: string;
+	readonly setGlobalFilterInput: (value: string) => void;
+	readonly hasFilters: boolean;
+	readonly resetFilters: () => void;
+	readonly toolbarActions?: React.ReactNode;
+	readonly enableColumnVisibility: boolean;
+	readonly table: TanStackTable<TData>;
+}) {
+	if (!(enableSearch || toolbarActions || enableColumnVisibility || hasFilters)) return null;
+
+	return (
+		<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+			<div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+				{enableSearch && (
+					<Input
+						placeholder={searchPlaceholder}
+						value={globalFilterInput}
+						onChange={(event) => setGlobalFilterInput(event.target.value)}
+						className="w-full max-w-sm"
+					/>
+				)}
+				{hasFilters && (
+					<Button variant="ghost" size="sm" onClick={resetFilters}>
+						Reset filters
+					</Button>
+				)}
+			</div>
+			<div className="flex flex-wrap items-center gap-2">
+				{toolbarActions}
+				{enableColumnVisibility && (
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="outline" size="sm">
+								Columns
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+							<DropdownMenuSeparator />
+							{table
+								.getAllLeafColumns()
+								.filter((column) => column.getCanHide())
+								.map((column) => (
+									<DropdownMenuCheckboxItem
+										key={column.id}
+										checked={column.getIsVisible()}
+										onCheckedChange={(value) => column.toggleVisibility(!!value)}
+									>
+										{column.id}
+									</DropdownMenuCheckboxItem>
+								))}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function DataTablePagination<TData>({
+	table,
+	firstRow,
+	lastRow,
+	totalRows,
+	currentPageSize,
+	handlePageSizeChange,
+	pageIndex,
+	pageCount,
+}: {
+	readonly table: TanStackTable<TData>;
+	readonly firstRow: number;
+	readonly lastRow: number;
+	readonly totalRows: number;
+	readonly currentPageSize: number;
+	readonly handlePageSizeChange: (value: string) => void;
+	readonly pageIndex: number;
+	readonly pageCount: number;
+}) {
+	const { t } = useTranslation();
+
+	return (
+		<div className="flex flex-wrap items-center justify-between gap-3">
+			<div className="text-sm text-muted-foreground">
+				{t("common.showingRange", { from: firstRow, to: lastRow, total: totalRows })}
+			</div>
+			<div className="flex flex-wrap items-center gap-4">
+				<div className="flex items-center gap-2">
+					<span className="text-sm text-muted-foreground">{t("common.rowsPerPage")}</span>
+					<Select value={String(currentPageSize)} onValueChange={handlePageSizeChange}>
+						<SelectTrigger className="h-8 w-20">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{PAGE_SIZE_OPTIONS.map((n) => (
+								<SelectItem key={n} value={String(n)}>
+									{n}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+				<div className="flex items-center gap-1">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => table.setPageIndex(0)}
+						disabled={!table.getCanPreviousPage()}
+						title={t("common.firstPage")}
+					>
+						{"<<"}
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => table.previousPage()}
+						disabled={!table.getCanPreviousPage()}
+						title={t("common.previousPage")}
+					>
+						{"<"}
+					</Button>
+					<span className="mx-2 whitespace-nowrap text-sm">
+						{t("common.pageOfN", { current: pageIndex + 1, total: Math.max(1, pageCount) })}
+					</span>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => table.nextPage()}
+						disabled={!table.getCanNextPage()}
+						title={t("common.nextPage")}
+					>
+						{">"}
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => table.setPageIndex(pageCount - 1)}
+						disabled={!table.getCanNextPage()}
+						title={t("common.lastPage")}
+					>
+						{">>"}
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function DataTableRows<TData>({
+	table,
+	error,
+	onRetry,
+	isLoading,
+	currentPageSize,
+	emptyTitle,
+	emptyMessage,
+	emptyAction,
+	onRowClick,
+}: {
+	readonly table: TanStackTable<TData>;
+	readonly error?: unknown;
+	readonly onRetry?: () => void;
+	readonly isLoading: boolean;
+	readonly currentPageSize: number;
+	readonly emptyTitle: string;
+	readonly emptyMessage: string;
+	readonly emptyAction?: React.ReactNode;
+	readonly onRowClick?: (row: TData) => void;
+}) {
+	const visibleColumns = table.getVisibleLeafColumns();
+	const rows = table.getRowModel().rows;
+
+	if (error) {
+		return (
+			<TableRow>
+				<TableCell colSpan={visibleColumns.length} className="h-32 text-center">
+					<div className="flex flex-col items-center gap-3">
+						<div>
+							<div className="font-medium">Could not load rows</div>
+							<div className="text-sm text-muted-foreground">
+								{error instanceof Error ? error.message : "The table request failed."}
+							</div>
+						</div>
+						{onRetry && (
+							<Button variant="outline" size="sm" onClick={onRetry}>
+								Retry
+							</Button>
+						)}
+					</div>
+				</TableCell>
+			</TableRow>
+		);
+	}
+
+	if (isLoading) {
+		return Array.from({ length: Math.min(currentPageSize, 8) }).map((_, i) => (
+			<TableRow key={`loading-${i}`}>
+				{visibleColumns.map((column) => (
+					<TableCell key={`loading-${i}-${column.id}`}>
+						<Skeleton className="h-4 w-full" />
+					</TableCell>
+				))}
+			</TableRow>
+		));
+	}
+
+	if (rows.length === 0) {
+		return (
+			<TableRow>
+				<TableCell colSpan={visibleColumns.length} className="h-40 text-center">
+					<div className="flex flex-col items-center gap-3">
+						<div>
+							<div className="font-medium">{emptyTitle}</div>
+							<div className="text-sm text-muted-foreground">{emptyMessage}</div>
+						</div>
+						{emptyAction}
+					</div>
+				</TableCell>
+			</TableRow>
+		);
+	}
+
+	return rows.map((row) => (
+		<TableRow
+			key={row.id}
+			className={onRowClick ? "cursor-pointer" : undefined}
+			onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+		>
+			{row.getVisibleCells().map((cell) => (
+				<TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>
+					{flexRender(cell.column.columnDef.cell, cell.getContext())}
+				</TableCell>
+			))}
+		</TableRow>
+	));
+}
+
 export function DataTable<TData, TValue>({
 	columns,
 	data,
@@ -242,30 +680,63 @@ export function DataTable<TData, TValue>({
 	toolbarActions,
 	getRowId,
 	onRowClick,
+	state,
+	onSortingChange,
+	onPaginationChange,
+	onColumnFiltersChange,
+	onGlobalFilterInputChange,
+	manualPagination = false,
+	manualSorting = false,
+	manualFiltering = false,
+	pageCount,
 }: DataTableProps<TData, TValue>) {
 	const { t } = useTranslation();
 	const resolvedSearchPlaceholder = searchPlaceholder ?? t("common.searchDots");
 	const resolvedEmptyMessage = emptyMessage ?? t("common.noResults");
-	const [sorting, setSorting] = React.useState<SortingState>([]);
-	const [globalFilterInput, setGlobalFilterInput] = React.useState("");
-	const [globalFilter, setGlobalFilter] = React.useState("");
-	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+	const [internalSorting, setInternalSorting] = React.useState<SortingState>([]);
+	const [globalFilterInput, setGlobalFilterInput] = React.useState(state?.globalFilterInput ?? "");
+	const [internalGlobalFilter, setInternalGlobalFilter] = React.useState("");
+	const [internalColumnFilters, setInternalColumnFilters] = React.useState<ColumnFiltersState>([]);
 	const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-	const [pagination, setPagination] = React.useState<PaginationState>({
+	const [internalPagination, setInternalPagination] = React.useState<PaginationState>({
 		pageIndex: 0,
 		pageSize: pageSize,
 	});
+	const lastExternalGlobalFilter = React.useRef(state?.globalFilterInput);
+	const sorting = state?.sorting ?? internalSorting;
+	const columnFilters = state?.columnFilters ?? internalColumnFilters;
+	const pagination = state?.pagination ?? internalPagination;
 	const debouncedGlobalFilter = useDebouncedValue(globalFilterInput, 300);
 	const dataTableFilter = React.useCallback<FilterFn<TData>>(
 		(row, columnId, filterValue) => matchesFilter(row.getValue(columnId), filterValue),
 		[],
 	);
+	const globalFilter = manualFiltering ? globalFilterInput : internalGlobalFilter;
+	const setSorting = onSortingChange ?? setInternalSorting;
+	const setColumnFilters = onColumnFiltersChange ?? setInternalColumnFilters;
+	const setPagination = onPaginationChange ?? setInternalPagination;
 
 	React.useEffect(() => {
-		setGlobalFilter(debouncedGlobalFilter);
-	}, [debouncedGlobalFilter]);
+		const nextGlobalFilter = state?.globalFilterInput;
+		if (nextGlobalFilter !== undefined && nextGlobalFilter !== lastExternalGlobalFilter.current) {
+			lastExternalGlobalFilter.current = nextGlobalFilter;
+			setGlobalFilterInput(nextGlobalFilter);
+		}
+	}, [state?.globalFilterInput]);
+
+	React.useEffect(() => {
+		if (onGlobalFilterInputChange) {
+			if (debouncedGlobalFilter !== (state?.globalFilterInput ?? "")) {
+				onGlobalFilterInputChange(debouncedGlobalFilter);
+			}
+			return;
+		}
+		setInternalGlobalFilter(debouncedGlobalFilter);
+	}, [debouncedGlobalFilter, onGlobalFilterInputChange, state?.globalFilterInput]);
 
 	const mutableData = React.useMemo(() => [...data], [data]);
+	const manualPageCount =
+		pageCount ?? (totalCount !== undefined ? Math.ceil(totalCount / pagination.pageSize) : undefined);
 
 	const table = useReactTable({
 		data: mutableData,
@@ -279,99 +750,73 @@ export function DataTable<TData, TValue>({
 			pagination,
 		},
 		onSortingChange: setSorting,
-		onGlobalFilterChange: setGlobalFilter,
+		onGlobalFilterChange: setInternalGlobalFilter,
 		onColumnFiltersChange: setColumnFilters,
 		onColumnVisibilityChange: setColumnVisibility,
 		onPaginationChange: setPagination,
 		defaultColumn: {
 			filterFn: dataTableFilter,
 		},
+		manualPagination,
+		manualSorting,
+		manualFiltering,
+		pageCount: manualPagination ? manualPageCount : undefined,
 		globalFilterFn: searchKey
 			? (row, _columnId, filterValue) => normalize(row.original[searchKey]).includes(normalize(filterValue))
 			: (row, columnId, filterValue) => normalize(row.getValue(columnId)).includes(normalize(filterValue)),
 		getCoreRowModel: getCoreRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
-		getPaginationRowModel: enablePagination ? getPaginationRowModel() : undefined,
+		getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
+		getFilteredRowModel: manualFiltering ? undefined : getFilteredRowModel(),
+		getPaginationRowModel: enablePagination && !manualPagination ? getPaginationRowModel() : undefined,
 		autoResetPageIndex: false,
 	});
 
-	const handlePageSizeChange = React.useCallback((value: string) => {
-		const size = Number(value);
-		setPagination({ pageIndex: 0, pageSize: size });
-	}, []);
+	const handlePageSizeChange = React.useCallback(
+		(value: string) => {
+			const size = Number(value);
+			setPagination({ pageIndex: 0, pageSize: size });
+		},
+		[setPagination],
+	);
 
 	const resetFilters = React.useCallback(() => {
 		setGlobalFilterInput("");
-		setGlobalFilter("");
+		setInternalGlobalFilter("");
+		onGlobalFilterInputChange?.("");
 		setColumnFilters([]);
 		table.resetColumnFilters();
-	}, [table]);
+	}, [onGlobalFilterInputChange, setColumnFilters, table]);
 
 	const hasFilters = Boolean(
 		globalFilterInput || globalFilter || columnFilters.some((filter) => hasFilterValue(filter.value)),
 	);
-	const visibleColumns = table.getVisibleLeafColumns();
 	const pageIndex = pagination.pageIndex;
 	const currentPageSize = pagination.pageSize;
-	const pageCount = table.getPageCount();
+	const resolvedPageCount = manualPagination ? (manualPageCount ?? 0) : table.getPageCount();
 	const filteredRows = table.getFilteredRowModel().rows.length;
 	const totalRows = totalCount ?? filteredRows;
-	const firstRow = filteredRows === 0 ? 0 : pageIndex * currentPageSize + 1;
-	const lastRow = Math.min((pageIndex + 1) * currentPageSize, totalRows);
+	const currentRowCount = table.getRowModel().rows.length;
+	const firstRow = totalRows === 0 || currentRowCount === 0 ? 0 : pageIndex * currentPageSize + 1;
+	const lastRow = manualPagination
+		? Math.min(firstRow + currentRowCount - 1, totalRows)
+		: Math.min((pageIndex + 1) * currentPageSize, totalRows);
 	const showFilterRow =
 		enableColumnFilters &&
 		table.getHeaderGroups().some((group) => group.headers.some((header) => header.column.columnDef.meta?.filter));
 
 	return (
 		<div className="space-y-4">
-			{(enableSearch || toolbarActions || enableColumnVisibility || hasFilters) && (
-				<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-					<div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-						{enableSearch && (
-							<Input
-								placeholder={resolvedSearchPlaceholder}
-								value={globalFilterInput}
-								onChange={(event) => setGlobalFilterInput(event.target.value)}
-								className="w-full max-w-sm"
-							/>
-						)}
-						{hasFilters && (
-							<Button variant="ghost" size="sm" onClick={resetFilters}>
-								Reset filters
-							</Button>
-						)}
-					</div>
-					<div className="flex flex-wrap items-center gap-2">
-						{toolbarActions}
-						{enableColumnVisibility && (
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button variant="outline" size="sm">
-										Columns
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end">
-									<DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-									<DropdownMenuSeparator />
-									{table
-										.getAllLeafColumns()
-										.filter((column) => column.getCanHide())
-										.map((column) => (
-											<DropdownMenuCheckboxItem
-												key={column.id}
-												checked={column.getIsVisible()}
-												onCheckedChange={(value) => column.toggleVisibility(!!value)}
-											>
-												{column.id}
-											</DropdownMenuCheckboxItem>
-										))}
-								</DropdownMenuContent>
-							</DropdownMenu>
-						)}
-					</div>
-				</div>
-			)}
+			<DataTableToolbar
+				enableSearch={enableSearch}
+				searchPlaceholder={resolvedSearchPlaceholder}
+				globalFilterInput={globalFilterInput}
+				setGlobalFilterInput={setGlobalFilterInput}
+				hasFilters={hasFilters}
+				resetFilters={resetFilters}
+				toolbarActions={toolbarActions}
+				enableColumnVisibility={enableColumnVisibility}
+				table={table}
+			/>
 
 			<div className="overflow-x-auto rounded-md border">
 				<Table>
@@ -421,129 +866,32 @@ export function DataTable<TData, TValue>({
 						))}
 					</TableHeader>
 					<TableBody>
-						{error ? (
-							<TableRow>
-								<TableCell colSpan={visibleColumns.length} className="h-32 text-center">
-									<div className="flex flex-col items-center gap-3">
-										<div>
-											<div className="font-medium">Could not load rows</div>
-											<div className="text-sm text-muted-foreground">
-												{error instanceof Error ? error.message : "The table request failed."}
-											</div>
-										</div>
-										{onRetry && (
-											<Button variant="outline" size="sm" onClick={onRetry}>
-												Retry
-											</Button>
-										)}
-									</div>
-								</TableCell>
-							</TableRow>
-						) : isLoading ? (
-							Array.from({ length: Math.min(currentPageSize, 8) }).map((_, i) => (
-								<TableRow key={`loading-${i}`}>
-									{visibleColumns.map((column) => (
-										<TableCell key={`loading-${i}-${column.id}`}>
-											<Skeleton className="h-4 w-full" />
-										</TableCell>
-									))}
-								</TableRow>
-							))
-						) : table.getRowModel().rows.length === 0 ? (
-							<TableRow>
-								<TableCell colSpan={visibleColumns.length} className="h-40 text-center">
-									<div className="flex flex-col items-center gap-3">
-										<div>
-											<div className="font-medium">{emptyTitle}</div>
-											<div className="text-sm text-muted-foreground">{resolvedEmptyMessage}</div>
-										</div>
-										{emptyAction}
-									</div>
-								</TableCell>
-							</TableRow>
-						) : (
-							table.getRowModel().rows.map((row) => (
-								<TableRow
-									key={row.id}
-									className={onRowClick ? "cursor-pointer" : undefined}
-									onClick={onRowClick ? () => onRowClick(row.original) : undefined}
-								>
-									{row.getVisibleCells().map((cell) => (
-										<TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>
-											{flexRender(cell.column.columnDef.cell, cell.getContext())}
-										</TableCell>
-									))}
-								</TableRow>
-							))
-						)}
+						<DataTableRows
+							table={table}
+							error={error}
+							onRetry={onRetry}
+							isLoading={isLoading}
+							currentPageSize={currentPageSize}
+							emptyTitle={emptyTitle}
+							emptyMessage={resolvedEmptyMessage}
+							emptyAction={emptyAction}
+							onRowClick={onRowClick}
+						/>
 					</TableBody>
 				</Table>
 			</div>
 
 			{enablePagination && totalRows > 0 && (
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<div className="text-sm text-muted-foreground">
-						{t("common.showingRange", { from: firstRow, to: lastRow, total: totalRows })}
-					</div>
-					<div className="flex flex-wrap items-center gap-4">
-						<div className="flex items-center gap-2">
-							<span className="text-sm text-muted-foreground">{t("common.rowsPerPage")}</span>
-							<Select value={String(currentPageSize)} onValueChange={handlePageSizeChange}>
-								<SelectTrigger className="h-8 w-20">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{PAGE_SIZE_OPTIONS.map((n) => (
-										<SelectItem key={n} value={String(n)}>
-											{n}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-						<div className="flex items-center gap-1">
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => table.setPageIndex(0)}
-								disabled={!table.getCanPreviousPage()}
-								title={t("common.firstPage")}
-							>
-								{"<<"}
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => table.previousPage()}
-								disabled={!table.getCanPreviousPage()}
-								title={t("common.previousPage")}
-							>
-								{"<"}
-							</Button>
-							<span className="mx-2 whitespace-nowrap text-sm">
-								{t("common.pageOfN", { current: pageIndex + 1, total: Math.max(1, pageCount) })}
-							</span>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => table.nextPage()}
-								disabled={!table.getCanNextPage()}
-								title={t("common.nextPage")}
-							>
-								{">"}
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => table.setPageIndex(pageCount - 1)}
-								disabled={!table.getCanNextPage()}
-								title={t("common.lastPage")}
-							>
-								{">>"}
-							</Button>
-						</div>
-					</div>
-				</div>
+				<DataTablePagination
+					table={table}
+					firstRow={firstRow}
+					lastRow={lastRow}
+					totalRows={totalRows}
+					currentPageSize={currentPageSize}
+					handlePageSizeChange={handlePageSizeChange}
+					pageIndex={pageIndex}
+					pageCount={resolvedPageCount}
+				/>
 			)}
 		</div>
 	);

@@ -34,6 +34,16 @@ export class ListOnboardingTasksQueryDto {
 	@IsString()
 	vertical?: string;
 
+	@ApiProperty({ required: false })
+	@IsOptional()
+	@IsString()
+	search?: string;
+
+	@ApiProperty({ required: false, description: "Sort as field:asc or field:desc" })
+	@IsOptional()
+	@IsString()
+	sort?: string;
+
 	@ApiProperty({ required: false, default: 1 })
 	@IsOptional()
 	@IsInt()

@@ -30,6 +30,16 @@ export interface OnboardingStepDefinition {
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 const STALE_STEP_DAYS = 5;
+const SORT_FIELDS = {
+	assigned: "assignedToUserId",
+	contactEmail: "contactEmail",
+	currentStep: "currentStepKey",
+	mode: "mode",
+	startedAt: "startedAt",
+	status: "status",
+	tenant: "contactName",
+	templateKey: "templateKey",
+} as const;
 
 export const GENERIC_ONBOARDING_STEPS: readonly OnboardingStepDefinition[] = [
 	{
@@ -118,12 +128,23 @@ export class OnboardingService {
 			});
 			where.templateKey = { in: templates.map((template) => template.key) };
 		}
+		const search = query.search?.trim();
+		if (search) {
+			where.OR = [
+				{ contactName: { contains: search, mode: "insensitive" } },
+				{ contactEmail: { contains: search, mode: "insensitive" } },
+				{ contactPhone: { contains: search, mode: "insensitive" } },
+				{ currentStepKey: { contains: search, mode: "insensitive" } },
+				{ templateKey: { contains: search, mode: "insensitive" } },
+				{ organization: { name: { contains: search, mode: "insensitive" } } },
+			];
+		}
 
 		const [rows, total, summary] = await Promise.all([
 			this.prisma.onboardingTask.findMany({
 				where,
 				include: taskInclude,
-				orderBy: { startedAt: "desc" },
+				orderBy: onboardingSort(query.sort),
 				skip: (page - 1) * limit,
 				take: limit,
 			}),
@@ -457,4 +478,11 @@ function asRequiredString(value: unknown, path: string) {
 		throw new BadRequestException(`${path} is required`);
 	}
 	return value.trim();
+}
+
+function onboardingSort(sort: string | undefined): Prisma.OnboardingTaskOrderByWithRelationInput {
+	const [requestedField, requestedDirection] = sort?.split(":") ?? [];
+	const field = SORT_FIELDS[requestedField as keyof typeof SORT_FIELDS] ?? SORT_FIELDS.startedAt;
+	const direction = requestedDirection === "asc" ? "asc" : "desc";
+	return { [field]: direction };
 }

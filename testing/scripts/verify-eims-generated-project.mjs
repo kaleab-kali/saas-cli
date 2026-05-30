@@ -1,15 +1,17 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import http from "node:http";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { addStarterPack } from "../../packages/cli/src/module-generator.js";
+import { scaffold } from "../../packages/cli/src/scaffold.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "../..");
-const novekRoot = path.resolve(repoRoot, "..", "..", "..");
 const generatedRoot =
-	process.env.EIMS_GENERATED_PROJECT_ROOT ??
-	path.join(novekRoot, "testing", "vyllion-eims-v3-data-ui-proof");
+	process.env.EIMS_GENERATED_PROJECT_ROOT ?? path.join(os.tmpdir(), "vyllion-eims-scaffold-proof");
+const shouldGenerateProject = !process.env.EIMS_GENERATED_PROJECT_ROOT;
 const mockPort = Number(process.env.EIMS_SCAFFOLD_MOCK_PORT ?? 0);
 let baseUrl = "";
 
@@ -138,6 +140,33 @@ function assertPathExists(relPath) {
 	assert(existsSync(path.join(generatedRoot, relPath)), `path exists: ${relPath}`);
 }
 
+async function ensureGeneratedProject() {
+	if (!shouldGenerateProject) return;
+
+	rmSync(generatedRoot, { force: true, recursive: true });
+	await scaffold({
+		templateDir: path.join(repoRoot, "template"),
+		targetDir: generatedRoot,
+		tokens: {
+			projectName: "Vyllion EIMS Scaffold Proof",
+			projectSlug: "vyllion-eims-scaffold-proof",
+			dbName: "vyllion_eims_scaffold_proof_dev",
+			superAdminEmail: "admin@example.com",
+			superAdminPassword: "Admin!234567890",
+			ownerEmail: "owner@example.com",
+			ownerPassword: "Owner!234567890",
+			authSecret: "a".repeat(64),
+			masterKey: "b".repeat(64),
+			caddyDomain: "localhost",
+		},
+		actions: {
+			afterTemplate: async (createdDir) => {
+				await addStarterPack({ cwd: createdDir, starterName: "eims" });
+			},
+		},
+	});
+}
+
 async function getJson(route) {
 	const response = await fetch(`${baseUrl}${route}`);
 	const body = await response.json();
@@ -226,6 +255,12 @@ function assertGeneratedStructure() {
 	const tenantPages = readProjectFile("apps/web/src/features/eims/components/eims-tenant-pages.tsx");
 	assert(tenantPages.includes("Ethiopia tax workspace"), "tenant EIMS UI has a domain-specific workspace header");
 	assert(tenantPages.includes("EIMS setup path"), "tenant EIMS UI has the guided six-step setup path");
+	assert(tenantPages.includes("SharedDataTable"), "tenant EIMS pages use the shared DataTable surface");
+	assert(!tenantPages.includes("@/components/ui/table"), "tenant EIMS pages do not use raw table primitives");
+	const adminPages = readProjectFile("apps/web/src/features/eims/components/eims-admin-pages.tsx");
+	assert(adminPages.includes("Platform EIMS command center"), "admin EIMS UI has an operations command header");
+	assert(adminPages.includes("SharedDataTable"), "admin EIMS pages use the shared DataTable surface");
+	assert(!adminPages.includes("@/components/ui/table"), "admin EIMS pages do not use raw table primitives");
 	const permissions = readProjectFile("apps/api/src/modules/auth/permissions.ts");
 	assert((permissions.match(/^\tinvoice:/gm) ?? []).length === 5, "EIMS permissions do not duplicate invoice keys");
 	assert(
@@ -362,6 +397,7 @@ async function assertBackendMockData() {
 }
 
 async function main() {
+	await ensureGeneratedProject();
 	assertGeneratedStructure();
 
 	const server = await startMockApi();

@@ -128,6 +128,8 @@ export const useAdminOnboardingTasks = (params: {
 	vertical?: string;
 	page?: number;
 	limit?: number;
+	search?: string;
+	sort?: string;
 }) =>
 	useQuery({
 		queryKey: onboardingKeys.adminList(params),

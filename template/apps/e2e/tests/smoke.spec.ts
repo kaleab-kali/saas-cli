@@ -165,6 +165,8 @@ async function installAuthenticatedMocks(page: Page) {
 }
 
 async function installAdminMocks(page: Page) {
+	const onboardingListRequests: string[] = [];
+
 	await page.route("**/api/v1/**", async (route: Route) => {
 		const url = route.request().url();
 		if (url.includes("/admin/auth/me")) {
@@ -199,6 +201,7 @@ async function installAdminMocks(page: Page) {
 			return;
 		}
 		if (url.includes("/admin/onboarding")) {
+			onboardingListRequests.push(url);
 			await route.fulfill(
 				ok({
 					data: [onboardingTask],
@@ -210,6 +213,8 @@ async function installAdminMocks(page: Page) {
 		}
 		await route.fulfill(ok({ data: {} }));
 	});
+
+	return { onboardingListRequests };
 }
 
 async function expectNoConsoleErrors(page: Page) {
@@ -253,17 +258,22 @@ test("tenant onboarding smoke renders workflow and command palette", async ({ pa
 
 test("admin onboarding smoke renders filterable operations table", async ({ page }) => {
 	const assertNoErrors = await expectNoConsoleErrors(page);
-	await installAdminMocks(page);
+	const { onboardingListRequests } = await installAdminMocks(page);
 
-	await page.goto("/admin/onboarding", { waitUntil: "networkidle" });
+	await page.goto("/admin/onboarding?search=Demo&limit=50&sort=tenant%3Aasc", { waitUntil: "networkidle" });
 
 	await expect(page.getByRole("heading", { name: "Concierge onboarding" })).toBeVisible();
-	await expect(page.getByRole("textbox", { name: /Search tenants/i })).toBeVisible();
+	const search = page.getByRole("textbox", { name: /Search tenants/i });
+	await expect(search).toHaveValue("Demo");
 	await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
 	await expect(page.getByRole("columnheader", { name: /Current step/i })).toBeVisible();
 	await expect(page.getByRole("cell", { name: /Demo Cafe/i })).toBeVisible();
+	await expect
+		.poll(() => onboardingListRequests.some((url) => new URL(url).searchParams.get("search") === "Demo"))
+		.toBe(true);
 
-	await page.getByRole("textbox", { name: /Search tenants/i }).fill("Demo Cafe");
+	await search.fill("Demo Cafe");
+	await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe("Demo Cafe");
 	await expect(page.getByRole("cell", { name: /Demo Cafe/i })).toBeVisible();
 	await expect(page.getByText("1/4 steps")).toBeVisible();
 

@@ -19,7 +19,7 @@ import {
 	useOnboardingTemplates,
 	useTenantOnboarding,
 } from "#features/onboarding/api/onboarding.hooks";
-import { DataTable } from "#shared/components/DataTable";
+import { DataTable, useDataTableState } from "#shared/components/DataTable";
 import { EmptyState, LoadingState, MetricCard, PageHeader } from "#shared/components/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,14 @@ const statusVariant = (status: string) => {
 };
 
 const modeLabel = (mode: OnboardingMode) => mode.replace("_", " ");
+const statusFilters = ["ALL", "ACTIVE", "COMPLETED", "BLOCKED", "CANCELLED"] as const;
+const modeFilters = ["ALL", "CONCIERGE", "SELF_SERVICE", "HYBRID"] as const;
+
+const isStatusFilter = (value: unknown): value is OnboardingTaskStatus | "ALL" =>
+	typeof value === "string" && statusFilters.includes(value as (typeof statusFilters)[number]);
+
+const isModeFilter = (value: unknown): value is OnboardingMode | "ALL" =>
+	typeof value === "string" && modeFilters.includes(value as (typeof modeFilters)[number]);
 
 const currentStep = (task: OnboardingTask) =>
 	task.steps.find((step) => step.stepKey === task.currentStepKey) ??
@@ -386,11 +394,29 @@ export function TenantOnboardingPage() {
 }
 
 export function AdminOnboardingListPage() {
-	const [status, setStatus] = React.useState<OnboardingTaskStatus | "ALL">("ACTIVE");
-	const [mode, setMode] = React.useState<OnboardingMode | "ALL">("ALL");
+	const tableState = useDataTableState({
+		defaultPageSize: 20,
+		defaultSort: [{ id: "startedAt", desc: true }],
+	});
+	const status = isStatusFilter(tableState.urlSearch.status) ? tableState.urlSearch.status : "ACTIVE";
+	const mode = isModeFilter(tableState.urlSearch.mode) ? tableState.urlSearch.mode : "ALL";
+	const setStatus = React.useCallback(
+		(value: OnboardingTaskStatus | "ALL") =>
+			tableState.setSearchParams({ status: value === "ALL" ? undefined : value, page: 1 }),
+		[tableState],
+	);
+	const setMode = React.useCallback(
+		(value: OnboardingMode | "ALL") =>
+			tableState.setSearchParams({ mode: value === "ALL" ? undefined : value, page: 1 }),
+		[tableState],
+	);
 	const { data, isLoading, error, refetch } = useAdminOnboardingTasks({
 		status: status === "ALL" ? undefined : status,
 		mode: mode === "ALL" ? undefined : mode,
+		page: tableState.queryParams.page,
+		limit: tableState.queryParams.limit,
+		search: tableState.queryParams.search,
+		sort: tableState.queryParams.sort,
 	});
 	const tasks = data?.data ?? [];
 	const summary = data?.summary;
@@ -466,6 +492,7 @@ export function AdminOnboardingListPage() {
 				accessorFn: (task) => task.progress.percent,
 				header: "Progress",
 				cell: ({ row }) => <ProgressBar {...row.original.progress} />,
+				enableSorting: false,
 				meta: { filter: { type: "number-range" } },
 			},
 			{
@@ -558,7 +585,9 @@ export function AdminOnboardingListPage() {
 							</Link>
 						}
 						totalCount={data?.meta.total}
+						pageCount={data?.meta.totalPages}
 						toolbarActions={toolbarActions}
+						{...tableState.tableProps}
 					/>
 				</CardContent>
 			</Card>

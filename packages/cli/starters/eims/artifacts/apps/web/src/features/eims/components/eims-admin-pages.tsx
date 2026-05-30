@@ -1,5 +1,7 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
 import {
+	type EimsAcceptanceCase,
 	type EimsAcceptanceRun,
 	useAdminEimsAction,
 	useAdminEimsCertificates,
@@ -12,12 +14,17 @@ import {
 	useRunAllEimsAcceptanceCases,
 	useRunEimsAcceptanceCase,
 } from "#features/eims/api/eims.hooks";
+import { DataTable as SharedDataTable } from "#shared/components/DataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type TableRows = readonly (readonly string[])[];
+type RecordTableRow = {
+	readonly id: string;
+	readonly values: readonly string[];
+	readonly byHeader: Record<string, string>;
+};
 
 function LoadingPanel() {
 	return (
@@ -38,30 +45,81 @@ function PageHeader({ title, description }: { readonly title: string; readonly d
 }
 
 function DataTable({ headers, rows }: { readonly headers: readonly string[]; readonly rows: TableRows }) {
+	const tableRows = React.useMemo<RecordTableRow[]>(
+		() =>
+			rows.map((row, index) => ({
+				id: `${index}-${row.join("|")}`,
+				values: row,
+				byHeader: Object.fromEntries(headers.map((header, cellIndex) => [header, row[cellIndex] ?? ""])),
+			})),
+		[headers, rows],
+	);
+	const columns = React.useMemo<ColumnDef<RecordTableRow, string>[]>(
+		() =>
+			headers.map((header, index) => ({
+				id: `${header}-${index}`,
+				accessorFn: (row) => row.byHeader[header] ?? row.values[index] ?? "",
+				header,
+				cell: ({ row }) => row.original.values[index] ?? "",
+				meta: {
+					filter: { type: "text" },
+					className: index === headers.length - 1 ? "max-w-md whitespace-normal" : undefined,
+				},
+			})),
+		[headers],
+	);
+
 	return (
-		<Table>
-			<TableHeader>
-				<TableRow>
-					{headers.map((header) => (
-						<TableHead key={header}>{header}</TableHead>
+		<SharedDataTable
+			columns={columns}
+			data={tableRows}
+			enableColumnVisibility={false}
+			emptyTitle="No operational records"
+			emptyMessage="No EIMS platform records match this view."
+			getRowId={(row) => row.id}
+			pageSize={10}
+			searchPlaceholder="Search EIMS operations..."
+			totalCount={tableRows.length}
+		/>
+	);
+}
+
+function AdminOperationsHero({ stats }: { readonly stats: readonly (readonly [string, string])[] }) {
+	return (
+		<section className="overflow-hidden rounded-md border border-[#3a2217] bg-[#1a130f] text-white">
+			<div className="grid gap-5 p-5 xl:grid-cols-[1fr_0.85fr] xl:p-6">
+				<div>
+					<div className="flex flex-wrap items-center gap-2">
+						<span className="rounded-md bg-[#f2b36d] px-2.5 py-1 text-xs font-medium text-[#25170c]">
+							Platform EIMS command center
+						</span>
+						<span className="rounded-md border border-white/15 px-2.5 py-1 text-xs text-white/70">
+							Cross-tenant controls
+						</span>
+					</div>
+					<h1 className="mt-3 text-2xl font-semibold tracking-normal md:text-3xl">EIMS operations</h1>
+					<p className="mt-2 max-w-3xl text-sm leading-6 text-white/68">
+						Track blocked tenants, retry queues, certificate expiry, compliance evidence, and source approval health
+						before they reach support escalations.
+					</p>
+				</div>
+				<div className="grid gap-2 sm:grid-cols-3">
+					{stats.slice(0, 6).map(([label, value]) => (
+						<div key={label} className="rounded-md border border-white/10 bg-white/[0.06] p-3">
+							<div className="text-xs uppercase text-white/48">{label}</div>
+							<div className="mt-1 text-2xl font-semibold">{value}</div>
+						</div>
 					))}
-				</TableRow>
-			</TableHeader>
-			<TableBody>
-				{rows.map((row) => (
-					<TableRow key={row.join("|")}>
-						{row.map((cell, index) => (
-							<TableCell
-								key={String(index)}
-								className={index === row.length - 1 ? "max-w-md whitespace-normal" : undefined}
-							>
-								{cell}
-							</TableCell>
-						))}
-					</TableRow>
+				</div>
+			</div>
+			<div className="grid border-t border-white/10 bg-white/[0.03] text-sm md:grid-cols-4">
+				{["Tenants", "Failure queue", "Certificates", "Evidence"].map((label) => (
+					<div key={label} className="border-white/10 px-5 py-3 text-white/70 md:border-r last:md:border-r-0">
+						{label}
+					</div>
 				))}
-			</TableBody>
-		</Table>
+			</div>
+		</section>
 	);
 }
 
@@ -142,6 +200,52 @@ function AcceptanceCaseRunner() {
 	};
 
 	if (cases.isLoading || !cases.data) return <LoadingPanel />;
+	const caseColumns: ColumnDef<EimsAcceptanceCase, unknown>[] = [
+		{
+			accessorKey: "caseId",
+			header: "Case",
+			cell: ({ row }) => (
+				<div>
+					<div className="font-medium">{row.original.caseId}</div>
+					<div className="max-w-sm text-xs text-muted-foreground">{row.original.title}</div>
+				</div>
+			),
+			meta: { filter: { type: "text" } },
+		},
+		{ accessorKey: "operation", header: "Operation", meta: { filter: { type: "text" } } },
+		{
+			accessorKey: "endpoint",
+			header: "Endpoint",
+			cell: ({ row }) => <code className="text-xs">{row.original.endpoint}</code>,
+			meta: { filter: { type: "text" } },
+		},
+		{
+			id: "evidence",
+			accessorFn: (row) => row.requiredEvidence.join(", "),
+			header: "Evidence",
+			cell: ({ row }) => (
+				<span className="max-w-sm text-xs text-muted-foreground">{row.original.requiredEvidence.join(", ")}</span>
+			),
+			meta: { filter: { type: "text" } },
+		},
+		{
+			id: "action",
+			header: "Action",
+			enableSorting: false,
+			enableColumnFilter: false,
+			cell: ({ row }) => (
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					onClick={() => void executeCase(row.original.caseId)}
+					disabled={runCase.isPending}
+				>
+					Run {row.original.caseId}
+				</Button>
+			),
+		},
+	];
 
 	return (
 		<Card>
@@ -161,45 +265,16 @@ function AcceptanceCaseRunner() {
 			</CardHeader>
 			<CardContent className="grid gap-4">
 				{summary ? <div className="rounded-md border bg-muted/40 p-3 text-sm">{summary}</div> : null}
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>Case</TableHead>
-							<TableHead>Operation</TableHead>
-							<TableHead>Endpoint</TableHead>
-							<TableHead>Evidence</TableHead>
-							<TableHead>Action</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{cases.data.data.map((testCase) => (
-							<TableRow key={testCase.caseId}>
-								<TableCell>
-									<div className="font-medium">{testCase.caseId}</div>
-									<div className="max-w-sm text-xs text-muted-foreground">{testCase.title}</div>
-								</TableCell>
-								<TableCell>{testCase.operation}</TableCell>
-								<TableCell>
-									<code className="text-xs">{testCase.endpoint}</code>
-								</TableCell>
-								<TableCell className="max-w-sm text-xs text-muted-foreground">
-									{testCase.requiredEvidence.join(", ")}
-								</TableCell>
-								<TableCell>
-									<Button
-										type="button"
-										variant="outline"
-										size="sm"
-										onClick={() => void executeCase(testCase.caseId)}
-										disabled={runCase.isPending}
-									>
-										Run {testCase.caseId}
-									</Button>
-								</TableCell>
-							</TableRow>
-						))}
-					</TableBody>
-				</Table>
+				<SharedDataTable
+					columns={caseColumns}
+					data={cases.data.data}
+					emptyTitle="No acceptance cases"
+					emptyMessage="No EIMS acceptance cases are available."
+					getRowId={(row) => row.caseId}
+					pageSize={10}
+					searchPlaceholder="Search acceptance cases..."
+					totalCount={cases.data.data.length}
+				/>
 				{lastRun ? (
 					<div className="grid gap-3 rounded-md border p-4">
 						<div className="flex flex-wrap items-center gap-3">
@@ -240,10 +315,7 @@ export function AdminEimsOverviewPage() {
 
 	return (
 		<div className="space-y-5">
-			<PageHeader
-				title="Platform EIMS Operations"
-				description="Super-admin view across tenants, source queues, certificate risks, and backend EIMS test-connector failures."
-			/>
+			<AdminOperationsHero stats={stats} />
 			<div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
 				{stats.map(([label, value]) => (
 					<Card key={label}>
