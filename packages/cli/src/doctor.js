@@ -101,7 +101,7 @@ export const runDoctor = async (cwd, options = {}) => {
 			? fail("Prisma client", "run pnpm db:generate before deploy")
 			: warn("Prisma client", "run pnpm db:generate");
 
-	const apiEnv = readEnv(apiEnvPath);
+	const apiEnv = { ...readEnv(apiEnvPath), ...process.env };
 	if (apiEnv.DATABASE_URL) ok("DATABASE_URL configured");
 	else warn("DATABASE_URL", "missing from apps/api/.env");
 
@@ -109,7 +109,7 @@ export const runDoctor = async (cwd, options = {}) => {
 		ok("MASTER_KEY configured", "32-byte hex key");
 	} else {
 		production
-			? fail("MASTER_KEY", "missing or invalid; set a 32-byte hex key before deploy")
+			? fail("MASTER_KEY", "missing or invalid; set a 32-byte hex key with openssl rand -hex 32 before deploy")
 			: warn("MASTER_KEY", "missing or invalid; rerun scaffold or set a 32-byte hex key");
 	}
 
@@ -117,7 +117,7 @@ export const runDoctor = async (cwd, options = {}) => {
 		ok("BETTER_AUTH_SECRET configured", "32-byte hex key");
 	} else {
 		production
-			? fail("BETTER_AUTH_SECRET", "missing or weak secret before deploy")
+			? fail("BETTER_AUTH_SECRET", "missing or weak; set a 32-byte hex secret with openssl rand -hex 32 before deploy")
 			: warn("BETTER_AUTH_SECRET", "missing or weak secret");
 	}
 

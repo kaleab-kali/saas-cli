@@ -20,7 +20,7 @@
 		"test:property": "jest --runTestsByPath src/modules/billing/application/services/policy.service.property.spec.ts src/modules/billing/domain/value-objects/billing.property.spec.ts --runInBand",
 		"test:mutation": "stryker run",
 		"test:e2e": "jest --config ./test/jest-e2e.json",
-		"db:generate": "prisma generate",
+		"db:generate": "prisma generate && node ../../scripts/trim-generated-prisma.mjs",
 		"db:migrate": "prisma migrate dev",
 		"db:push": "prisma db push",
 		"db:studio": "prisma studio",

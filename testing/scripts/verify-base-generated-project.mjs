@@ -73,6 +73,22 @@ function assertNoEimsScripts() {
 	assert(eimsScripts.length === 0, "base package has no EIMS scripts", eimsScripts.join(", "));
 }
 
+function readEnv(relPath) {
+	const out = {};
+	for (const line of readProjectFile(relPath).split(/\r?\n/)) {
+		if (!line || line.trimStart().startsWith("#") || !line.includes("=")) continue;
+		const [key, ...rest] = line.split("=");
+		out[key.trim()] = rest.join("=").trim().replace(/^"|"$/g, "");
+	}
+	return out;
+}
+
+function assertGeneratedSecrets() {
+	const apiEnv = readEnv("apps/api/.env");
+	assert(/^[a-f0-9]{64}$/i.test(apiEnv.BETTER_AUTH_SECRET ?? ""), "generated BETTER_AUTH_SECRET is 32-byte hex");
+	assert(/^[a-f0-9]{64}$/i.test(apiEnv.MASTER_KEY ?? ""), "generated MASTER_KEY is 32-byte hex");
+}
+
 async function main() {
 	rmSync(targetRoot, { recursive: true, force: true });
 	await scaffold({
@@ -87,7 +103,7 @@ async function main() {
 			superAdminName: "Platform Admin",
 			ownerEmail: "owner@example.test",
 			ownerPassword: "Owner123456!",
-			authSecret: "base-scaffold-proof-better-auth-secret-32-bytes",
+			authSecret: "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
 			masterKey: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 			caddyDomain: "example.test",
 		},
@@ -108,6 +124,7 @@ async function main() {
 	}
 
 	assertNoEimsScripts();
+	assertGeneratedSecrets();
 
 	console.log(`Base generated-project verification passed: ${checks.length} checks`);
 	for (const check of checks) console.log(`- ${check}`);

@@ -95,17 +95,17 @@ const main = async () => {
 			? status.fail("Prisma client", "run pnpm db:generate")
 			: status.warn("Prisma client", "run pnpm db:generate");
 
-	const apiEnv = env("apps/api/.env");
+	const apiEnv = { ...env("apps/api/.env"), ...process.env };
 	apiEnv.DATABASE_URL ? status.ok("DATABASE_URL") : status.warn("DATABASE_URL", "missing");
 	/^[a-f0-9]{64}$/i.test(apiEnv.MASTER_KEY ?? "")
 		? status.ok("MASTER_KEY", "32-byte hex")
 		: production
-			? status.fail("MASTER_KEY", "set a 32-byte hex key")
+			? status.fail("MASTER_KEY", "set a 32-byte hex key with openssl rand -hex 32")
 			: status.warn("MASTER_KEY", "missing or invalid");
 	/^[a-f0-9]{64}$/i.test(apiEnv.BETTER_AUTH_SECRET ?? "")
 		? status.ok("BETTER_AUTH_SECRET", "32-byte hex")
 		: production
-			? status.fail("BETTER_AUTH_SECRET", "set a strong secret")
+			? status.fail("BETTER_AUTH_SECRET", "set a 32-byte hex secret with openssl rand -hex 32")
 			: status.warn("BETTER_AUTH_SECRET", "missing or weak");
 
 	for (const script of ["lint:ci", "test:ci", "test:smoke", "test:security", "test:load:k6:mock", "test:mutation"]) {

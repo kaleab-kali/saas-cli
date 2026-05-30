@@ -6,6 +6,8 @@ This template assumes every production deployment is multi-tenant and internet-f
 
 - `BETTER_AUTH_SECRET`: 32-byte hex value generated at scaffold time.
 - `MASTER_KEY`: 32-byte hex value generated at scaffold time. Used by `CipherService` for encrypted secrets.
+
+Generate replacement production values with `openssl rand -hex 32` and store them in your deployment secret manager.
 - Provider keys such as `STRIPE_SECRET_KEY`, `CHAPA_SECRET_KEY`, object storage keys, SMTP credentials, and webhook secrets must never be committed.
 
 Rotate secrets when a staff member with production env access leaves, when a deployment artifact leaks, or before a compliance audit if rotation history is unclear.
