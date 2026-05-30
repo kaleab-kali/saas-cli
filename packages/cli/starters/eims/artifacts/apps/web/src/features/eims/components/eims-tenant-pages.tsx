@@ -220,16 +220,52 @@ const setupJourney = [
 
 const doneStatuses = new Set(["accepted", "active", "approved", "complete", "ready", "test_ready"]);
 
+const conciergeStages = [
+	{
+		title: "Tenant intake",
+		owner: "Staff",
+		window: "Day 1",
+		items: ["TIN and legal name", "Contact and payment proof", "Organization shell"],
+	},
+	{
+		title: "MoR portal",
+		owner: "Staff + tenant",
+		window: "Days 1-4",
+		items: ["OTP handoff", "2FA backup codes", "Source registration"],
+	},
+	{
+		title: "INSA certificate",
+		owner: "Staff",
+		window: "Days 4-8",
+		items: ["CSR package", "Request email", "Signed certificate upload"],
+	},
+	{
+		title: "Sandbox proof",
+		owner: "Staff",
+		window: "Day 8",
+		items: ["Test invoice", "IRN returned", "QR evidence captured"],
+	},
+	{
+		title: "First live invoice",
+		owner: "Tenant",
+		window: "Day 10",
+		items: ["Cashier training", "Production IRN", "Launch complete"],
+	},
+] as const;
+
 const stepStatusTone = (status: string) => {
 	const normalized = status.toLowerCase();
 	if (doneStatuses.has(normalized)) return "border-primary/30 bg-primary/5";
 	if (["blocked", "error", "failed_retryable"].includes(normalized)) return "border-destructive/35 bg-destructive/5";
-	if (["attention", "pending_offline", "warning"].includes(normalized)) return "border-amber-300 bg-amber-50 text-amber-950";
+	if (["attention", "pending_offline", "warning"].includes(normalized))
+		return "border-amber-300 bg-amber-50 text-amber-950";
 	return "border-border bg-background";
 };
 
 function SetupJourneyPanel({ workspace }: { readonly workspace: EimsTenantWorkspace }) {
-	const firstOpenStepIndex = workspace.readiness.steps.findIndex((step) => !doneStatuses.has(step.status.toLowerCase()));
+	const firstOpenStepIndex = workspace.readiness.steps.findIndex(
+		(step) => !doneStatuses.has(step.status.toLowerCase()),
+	);
 	const currentStepIndex =
 		firstOpenStepIndex === -1 ? Math.max(0, workspace.readiness.steps.length - 1) : firstOpenStepIndex;
 	const currentJourneyIndex = Math.min(currentStepIndex, setupJourney.length - 1);
@@ -322,7 +358,10 @@ function SetupJourneyPanel({ workspace }: { readonly workspace: EimsTenantWorksp
 					<CardContent className="grid gap-3">
 						{blockers.length > 0 ? (
 							blockers.map((blocker) => (
-								<div key={blocker} className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+								<div
+									key={blocker}
+									className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+								>
 									{blocker}
 								</div>
 							))
@@ -331,6 +370,83 @@ function SetupJourneyPanel({ workspace }: { readonly workspace: EimsTenantWorksp
 						)}
 					</CardContent>
 				</Card>
+			</div>
+		</section>
+	);
+}
+
+function ConciergeOnboardingCockpit({
+	workspace,
+	overview,
+}: {
+	readonly workspace: EimsTenantWorkspace;
+	readonly overview: EimsOverview;
+}) {
+	const completedSteps = workspace.readiness.steps.filter((step) => doneStatuses.has(step.status.toLowerCase())).length;
+	const totalSteps = Math.max(workspace.readiness.steps.length, 1);
+	const firstOpenStepIndex = workspace.readiness.steps.findIndex(
+		(step) => !doneStatuses.has(step.status.toLowerCase()),
+	);
+	const currentStepIndex = firstOpenStepIndex === -1 ? totalSteps - 1 : firstOpenStepIndex;
+	const currentStageIndex = Math.min(
+		conciergeStages.length - 1,
+		Math.floor((currentStepIndex / totalSteps) * conciergeStages.length),
+	);
+	const summary = [
+		["Setup gates", `${completedSteps}/${totalSteps}`],
+		["Open blockers", String(workspace.readiness.blockers.length)],
+		["Pending sync", String(overview.stats.pendingOffline)],
+		["Cert alerts", String(overview.stats.certificatesExpiring)],
+	] as const;
+
+	return (
+		<section className="overflow-hidden rounded-md border bg-background">
+			<div className="grid gap-4 border-b bg-muted/25 p-4 xl:grid-cols-[1fr_420px]">
+				<div>
+					<p className="text-sm font-semibold">Concierge onboarding cockpit</p>
+					<h2 className="mt-1 text-xl font-semibold tracking-normal">MoR and INSA launch control</h2>
+					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+						Staff-assisted launch flow for tenant intake, MoR source approval, INSA certificate handling, sandbox proof,
+						and first production invoice.
+					</p>
+				</div>
+				<div className="grid grid-cols-2 gap-2">
+					{summary.map(([label, value]) => (
+						<div key={label} className="rounded-md border bg-background p-3">
+							<p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+							<p className="mt-1 text-2xl font-semibold">{value}</p>
+						</div>
+					))}
+				</div>
+			</div>
+			<div className="grid gap-3 p-4 xl:grid-cols-5">
+				{conciergeStages.map((stage, index) => {
+					const status = index < currentStageIndex ? "complete" : index === currentStageIndex ? "attention" : "pending";
+					return (
+						<div key={stage.title} className={`rounded-md border p-3 ${stepStatusTone(status)}`}>
+							<div className="flex items-start justify-between gap-3">
+								<div>
+									<p className="text-sm font-semibold">{stage.title}</p>
+									<p className="mt-1 text-xs text-muted-foreground">
+										{stage.owner} - {stage.window}
+									</p>
+								</div>
+								<StatusBadge status={status} />
+							</div>
+							<ul className="mt-3 grid gap-2 text-xs text-muted-foreground">
+								{stage.items.map((item) => (
+									<li key={item} className="rounded-md border bg-background/70 px-2 py-1.5">
+										{item}
+									</li>
+								))}
+							</ul>
+						</div>
+					);
+				})}
+			</div>
+			<div className="border-t px-4 py-3 text-sm text-muted-foreground">
+				Launch gate timeline: tenant data before MoR, MoR approval before credentials, certificate before sandbox,
+				sandbox before live invoices.
 			</div>
 		</section>
 	);
@@ -1010,6 +1126,7 @@ export function EimsOverviewPage() {
 					{alert.message}
 				</div>
 			))}
+			<ConciergeOnboardingCockpit workspace={workspace} overview={overview} />
 			<TenantLaunchPanel workspace={workspace} />
 			<AuthorityFlowPanel overview={overview} />
 			<StatCards overview={overview} />
@@ -1065,6 +1182,7 @@ export function EimsSetupPage() {
 				mode={workspace.operationModeLabel}
 				overview={overview}
 			/>
+			<ConciergeOnboardingCockpit workspace={workspace} overview={overview} />
 			<SetupJourneyPanel workspace={workspace} />
 			<ReadinessSteps workspace={workspace} />
 			<Card>

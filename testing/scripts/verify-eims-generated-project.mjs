@@ -273,6 +273,9 @@ function assertGeneratedStructure() {
 	const tenantPages = readProjectFile("apps/web/src/features/eims/components/eims-tenant-pages.tsx");
 	assert(tenantPages.includes("Ethiopia tax workspace"), "tenant EIMS UI has a domain-specific workspace header");
 	assert(tenantPages.includes("EIMS setup path"), "tenant EIMS UI has the guided six-step setup path");
+	assert(tenantPages.includes("Concierge onboarding cockpit"), "tenant EIMS UI exposes concierge onboarding cockpit");
+	assert(tenantPages.includes("MoR and INSA launch control"), "tenant EIMS UI names the MoR/INSA launch flow");
+	assert(tenantPages.includes("Launch gate timeline"), "tenant EIMS UI shows launch gates from intake to live invoices");
 	assert(tenantPages.includes("Operational launch board"), "tenant EIMS status page has a launch-focused workflow panel");
 	assert(tenantPages.includes("Current staff handoff"), "tenant EIMS setup page has a concierge handoff panel");
 	assert(tenantPages.includes("Tenant handoff dossier"), "tenant EIMS setup page keeps tenant blockers visible");
@@ -280,6 +283,8 @@ function assertGeneratedStructure() {
 	assert(!tenantPages.includes("@/components/ui/table"), "tenant EIMS pages do not use raw table primitives");
 	const adminPages = readProjectFile("apps/web/src/features/eims/components/eims-admin-pages.tsx");
 	assert(adminPages.includes("Platform EIMS command center"), "admin EIMS UI has an operations command header");
+	assert(adminPages.includes("Concierge launch operations"), "admin EIMS UI exposes concierge launch operations");
+	assert(adminPages.includes("MoR/INSA queue"), "admin EIMS UI separates MoR and INSA launch queues");
 	assert(adminPages.includes("SharedDataTable"), "admin EIMS pages use the shared DataTable surface");
 	assert(!adminPages.includes("@/components/ui/table"), "admin EIMS pages do not use raw table primitives");
 	const permissions = readProjectFile("apps/api/src/modules/auth/permissions.ts");

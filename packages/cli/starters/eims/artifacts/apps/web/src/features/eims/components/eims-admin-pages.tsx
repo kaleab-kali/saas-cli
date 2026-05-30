@@ -123,6 +123,67 @@ function AdminOperationsHero({ stats }: { readonly stats: readonly (readonly [st
 	);
 }
 
+const adminLaunchLanes = [
+	{
+		title: "Tenant intake lane",
+		detail: "Payment proof, TIN, owner contact, and organization shell are captured before MoR work starts.",
+		status: "Active",
+	},
+	{
+		title: "MoR/INSA queue",
+		detail: "Staff can separate portal approval waits from certificate request waits and follow up on stale handoffs.",
+		status: "Watch",
+	},
+	{
+		title: "Sandbox proof lane",
+		detail: "Every tenant must produce a test IRN and QR evidence before the live invoice switch is opened.",
+		status: "Gate",
+	},
+] as const;
+
+function AdminConciergeQueuePanel({ stats }: { readonly stats: readonly (readonly [string, string])[] }) {
+	const tenantsTotal = stats.find(([label]) => label === "Tenants")?.[1] ?? "0";
+	const blocked = stats.find(([label]) => label === "Blocked")?.[1] ?? "0";
+
+	return (
+		<section className="rounded-md border bg-background">
+			<div className="grid gap-4 border-b bg-muted/25 p-4 lg:grid-cols-[1fr_320px]">
+				<div>
+					<p className="text-sm font-semibold">Concierge launch operations</p>
+					<h2 className="mt-1 text-xl font-semibold tracking-normal">Tenant onboarding command queue</h2>
+					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+						Cross-tenant view for the 15-step EIMS restaurant launch workflow: staff intake, MoR approval, INSA
+						certificate, sandbox proof, and first production invoice.
+					</p>
+				</div>
+				<div className="grid grid-cols-2 gap-2">
+					<div className="rounded-md border bg-background p-3">
+						<p className="text-xs font-medium uppercase text-muted-foreground">Tenant queue</p>
+						<p className="mt-1 text-2xl font-semibold">{tenantsTotal}</p>
+					</div>
+					<div className="rounded-md border bg-background p-3">
+						<p className="text-xs font-medium uppercase text-muted-foreground">Blocked launches</p>
+						<p className="mt-1 text-2xl font-semibold">{blocked}</p>
+					</div>
+				</div>
+			</div>
+			<div className="grid gap-3 p-4 lg:grid-cols-3">
+				{adminLaunchLanes.map((lane) => (
+					<div key={lane.title} className="rounded-md border p-4">
+						<div className="flex items-start justify-between gap-3">
+							<div>
+								<p className="font-medium">{lane.title}</p>
+								<p className="mt-2 text-sm leading-6 text-muted-foreground">{lane.detail}</p>
+							</div>
+							<span className="rounded-md border px-2 py-1 text-xs">{lane.status}</span>
+						</div>
+					</div>
+				))}
+			</div>
+		</section>
+	);
+}
+
 function AdminActionPanel({
 	title,
 	description,
@@ -316,6 +377,7 @@ export function AdminEimsOverviewPage() {
 	return (
 		<div className="space-y-5">
 			<AdminOperationsHero stats={stats} />
+			<AdminConciergeQueuePanel stats={stats} />
 			<div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
 				{stats.map(([label, value]) => (
 					<Card key={label}>
