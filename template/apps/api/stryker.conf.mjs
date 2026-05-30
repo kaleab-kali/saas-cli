@@ -11,6 +11,7 @@ export default {
 	tempDirName: "stryker-tmp",
 	inPlace: true,
 	concurrency: 1,
+	testRunnerNodeArgs: ["--max-old-space-size=4096"],
 	coverageAnalysis: "perTest",
 	mutate: ["src/modules/billing/application/services/policy.service.ts"],
 	testFiles: ["src/modules/billing/application/services/policy.service.property.spec.ts"],

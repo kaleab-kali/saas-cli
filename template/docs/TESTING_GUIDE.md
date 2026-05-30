@@ -84,6 +84,8 @@ Use these for domain logic, billing rules, entitlement enforcement, and Nest ser
 
 Generated modules and starter-pack modules include a starter handler spec under each module's `application/commands` folder. Keep those tests close to the module and add deeper unit/property/mutation coverage for business rules as the module becomes real.
 
+`pnpm test:mutation` runs Stryker against the current high-signal billing policy target and writes the HTML report under `apps/api/reports/mutation/`. The Stryker test runner uses explicit Node heap headroom so the command can run as a reliable nightly/full gate instead of restarting under memory pressure on fresh scaffolds.
+
 ## HTTP API Tests
 
 Black-box API tests live in `apps/api-tests`.
