@@ -103,9 +103,12 @@ function assertNoEimsScripts() {
 
 function assertDeployGateBuilds() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
+	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
 	const deployCheck = packageJson.scripts?.["deploy:check"] ?? "";
 	const testCi = packageJson.scripts?.["test:ci"] ?? "";
 	const testSmoke = packageJson.scripts?.["test:smoke"] ?? "";
+	const testIntegration = packageJson.scripts?.["test:integration"] ?? "";
+	const testAll = packageJson.scripts?.["test:all"] ?? "";
 	assert(deployCheck.includes("build:api"), "deploy gate includes API production build");
 	assert(deployCheck.includes("build:web"), "deploy gate includes web production build");
 	assert(deployCheck.includes("test:smoke"), "deploy gate runs broad smoke suite");
@@ -119,6 +122,18 @@ function assertDeployGateBuilds() {
 	assert(testCi.includes("test:security:api"), "CI test gate includes deterministic API security checks");
 	assert(testSmoke.includes("test:e2e:smoke"), "smoke test gate includes browser E2E smoke");
 	assert(testSmoke.includes("test:security:source"), "smoke test gate includes deterministic source security checks");
+	assert(packageJson.scripts?.["test:unit"] === "pnpm test:api", "base package exposes fast unit test category");
+	assert(testIntegration.includes("test:api:e2e"), "integration test category includes API e2e harness");
+	assert(testIntegration.includes("test:api:http:mock"), "integration test category includes mock HTTP API tests");
+	assert(testIntegration.includes("test:api:contract:smoke"), "integration test category includes OpenAPI smoke contract");
+	assert(packageJson.scripts?.["test:coverage"] === "pnpm --filter api test:coverage", "base package exposes API coverage command");
+	assert(testAll.includes("test:mutation"), "full local gate includes mutation testing");
+	assert(testAll.includes("test:performance"), "full local gate includes performance testing");
+	assert(testAll.includes("test:security"), "full local gate includes security testing");
+	assert(packageJson.scripts?.["test:full"] === "pnpm test:all", "base package exposes full test category alias");
+	assert(apiPackageJson.scripts?.["test:unit"] === "jest --runInBand", "API workspace exposes unit test command");
+	assert(apiPackageJson.scripts?.["test:integration"]?.includes("jest-e2e.json"), "API workspace exposes integration test command");
+	assert(apiPackageJson.scripts?.["test:coverage"]?.includes("--coverage"), "API workspace exposes coverage test command");
 	assert(packageJson.scripts?.["db:backup"]?.includes("backup-postgres.mjs"), "base package has Postgres backup script");
 	assert(packageJson.scripts?.["db:restore"]?.includes("restore-postgres.mjs"), "base package has Postgres restore script");
 }

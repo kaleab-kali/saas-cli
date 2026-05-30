@@ -43,14 +43,23 @@ PERFORMANCE_STRICT_TOOLS=1 pnpm test:load:k6:mock
 pnpm db:generate
 pnpm typecheck
 pnpm lint
+pnpm test:unit
+pnpm test:integration
 pnpm test:smoke
 pnpm test:all
+pnpm test:full
 pnpm deploy:check
 ```
+
+`test:unit` is the fast white-box API unit suite and should be the default command while editing backend logic.
+
+`test:integration` runs the API e2e harness, the deterministic mock HTTP API suite, and the OpenAPI smoke contract so integration tooling works before a developer has a database-backed app running.
 
 `test:smoke` validates the scaffold without requiring Postgres, Redis, k6, nuclei, or a running SaaS server. It includes deterministic source/API security checks that run against the checked-out code, local mock API coverage, and browser smoke coverage for the visible tenant/admin onboarding UI.
 
 `test:all` is the full local quality gate. It adds lint, mutation testing, browser smoke, mock HTTP/Bruno API checks, performance, security, acceptance, and AI eval harnesses while still avoiding a required deployed environment.
+
+`test:full` is an explicit alias for `test:all` so teams can wire nightly jobs to the plan's "full" test category without remembering scaffold-specific naming.
 
 `deploy:check` is the pre-release gate. It runs Prisma generation, production doctor checks, CI lint/type checks, API and web production builds, then the broad smoke suite. That means deploy readiness includes mock HTTP and Bruno API checks, browser smoke, acceptance, deterministic source/API security checks, security tooling smoke tests, AI eval harnesses, and the mock k6 load check.
 
@@ -65,6 +74,8 @@ White-box API tests live inside `apps/api`.
 
 ```bash
 pnpm test:api
+pnpm test:unit
+pnpm test:coverage
 pnpm test:property
 pnpm test:mutation
 ```

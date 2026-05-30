@@ -12,6 +12,17 @@
     },
     "lint": {},
     "test": {},
+    "test:unit": {},
+    "test:integration": {
+      "cache": false
+    },
+    "test:coverage": {
+      "cache": false,
+      "outputs": ["coverage/**"]
+    },
+    "test:full": {
+      "cache": false
+    },
     "test:e2e": {
       "cache": false
     },
