@@ -1182,8 +1182,9 @@ const patchEimsPackageScripts = async (root) => {
 		json.scripts["test:eims:ui"] ??= "pnpm --filter e2e test:eims";
 		json.scripts["test:eims:ui:headed"] ??=
 			"pnpm --filter e2e test:eims:headed";
+		json.scripts["test:eims:security"] ??= "pnpm --filter security test:eims";
 		json.scripts["test:eims:mock"] ??=
-			"pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:api && pnpm test:eims:phase0 && pnpm test:eims:ui";
+			"pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:api && pnpm test:eims:phase0 && pnpm test:eims:security && pnpm test:eims:ui";
 		return json;
 	});
 	await patchJsonFile(path.join(root, "apps/e2e/package.json"), (json) => {
@@ -1196,6 +1197,11 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "apps/api-tests/package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:mock"] ??= "node scripts/with-mock-api.mjs eims-http";
+		return json;
+	});
+	await patchJsonFile(path.join(root, "apps/security/package.json"), (json) => {
+		json.scripts ??= {};
+		json.scripts["test:eims"] ??= "node scripts/eims-security-smoke.mjs";
 		return json;
 	});
 };
@@ -4957,7 +4963,113 @@ export default function () {
 	);
 	await writeNew(
 		path.join(root, "apps/security/scripts/eims-security-smoke.mjs"),
-		`console.log("EIMS security smoke scaffold: add secret redaction, RLS, and 2FA checks during implementation.");
+		`import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
+import { repoRoot } from "./lib.mjs";
+
+const failures = [];
+const eimsRoot = path.join(repoRoot, "apps/api/src/modules/eims");
+
+const fail = (message) => failures.push(message);
+const rel = (fullPath) => path.relative(repoRoot, fullPath).replaceAll("\\\\", "/");
+const read = (relPath) => readFileSync(path.join(repoRoot, relPath), "utf8");
+
+const assertIncludes = (text, needle, message) => {
+\tif (!text.includes(needle)) fail(message);
+};
+
+const walkFiles = (dir, predicate, out = []) => {
+\tif (!existsSync(dir)) return out;
+\tfor (const entry of readdirSync(dir)) {
+\t\tconst fullPath = path.join(dir, entry);
+\t\tconst stat = statSync(fullPath);
+\t\tif (stat.isDirectory()) {
+\t\t\tif (["node_modules", "dist", "coverage", "generated"].includes(entry)) continue;
+\t\t\twalkFiles(fullPath, predicate, out);
+\t\t} else if (predicate(fullPath)) {
+\t\t\tout.push(fullPath);
+\t\t}
+\t}
+\treturn out;
+};
+
+if (!existsSync(eimsRoot)) {
+\tconsole.log("EIMS security smoke skipped because the EIMS starter is not installed.");
+\tprocess.exit(0);
+}
+
+const controllerFiles = walkFiles(eimsRoot, (file) => file.endsWith(".controller.ts"));
+for (const file of controllerFiles) {
+\tconst relative = rel(file);
+\tconst text = readFileSync(file, "utf8");
+\tconst isAdminController = relative.includes("/admin/") || relative.includes("/compliance/presentation/eims-acceptance");
+
+\tif (isAdminController) {
+\t\tassertIncludes(text, "SuperAdminGuard", relative + " must require the platform super-admin guard");
+\t\tassertIncludes(text, "@UseGuards(SuperAdminGuard)", relative + " must bind the platform super-admin guard");
+\t} else {
+\t\tassertIncludes(text, "AuthGuard", relative + " must require tenant authentication");
+\t\tassertIncludes(text, "PermissionsGuard", relative + " must require tenant permission checks");
+\t\tassertIncludes(text, "@UseGuards(AuthGuard, PermissionsGuard)", relative + " must bind auth and permission guards");
+\t\tconst endpoints = text.match(/@(Get|Post|Put|Patch|Delete)\\(/g) ?? [];
+\t\tconst permissions = text.match(/@RequirePermissions\\(/g) ?? [];
+\t\tif (permissions.length < endpoints.length) {
+\t\t\tfail(relative + " has EIMS endpoints without matching @RequirePermissions decorators");
+\t\t}
+\t}
+}
+
+const supportingController = read("apps/api/src/modules/eims/shared/presentation/eims-supporting-resources.controller.ts");
+for (const [needle, message] of [
+\t['@RequirePermissions("eims-credential:read")', "EIMS credential reads must be permission protected"],
+\t['@RequirePermissions("eims-credential:create")', "EIMS credential writes/tests must be permission protected"],
+\t['@RequirePermissions("eims-certificate:read")', "EIMS certificate reads must be permission protected"],
+\t['@RequirePermissions("eims-certificate:import")', "EIMS certificate import/CSR must be permission protected"],
+\t['@RequirePermissions("eims-bulk:create")', "EIMS bulk submission must be permission protected"],
+\t['@RequirePermissions("eims-bulk:retry")', "EIMS bulk reconcile must require retry permission"],
+\t['@RequirePermissions("eims-compliance:export")', "EIMS compliance evidence export must be permission protected"],
+]) {
+\tassertIncludes(supportingController, needle, message);
+}
+
+const mockService = read("apps/api/src/modules/eims/shared/mock/eims-mock.service.ts");
+assertIncludes(mockService, "secretsReturned: false", "EIMS credential APIs must explicitly report secrets as redacted");
+assertIncludes(mockService, "apiKeyConfigured", "EIMS credential APIs should expose configured flags instead of API keys");
+assertIncludes(mockService, "clientSecretConfigured", "EIMS credential APIs should expose configured flags instead of client secrets");
+assertIncludes(mockService, "refreshTokenConfigured", "EIMS credential APIs should expose configured flags instead of refresh tokens");
+for (const secretField of ["apiKey", "password", "clientSecret", "refreshToken", "privateKey"]) {
+\tconst rawSecretProperty = new RegExp("\\\\b" + secretField + "\\\\s*:");
+\tif (rawSecretProperty.test(mockService)) {
+\t\tfail("EIMS mock responses must not expose raw " + secretField + " properties");
+\t}
+}
+
+const apiMockTests = read("apps/api-tests/tests/eims-v3-mock.spec.ts");
+for (const secretField of ["apiKey", "password", "clientSecret", "refreshToken"]) {
+\tassertIncludes(
+\t\tapiMockTests,
+\t\t'not.toHaveProperty("' + secretField + '")',
+\t\t"EIMS API mock tests must prove " + secretField + " is not returned",
+\t);
+}
+assertIncludes(apiMockTests, "secretsReturned: false", "EIMS API mock tests must prove credential redaction status");
+assertIncludes(apiMockTests, "/api/v1/eims/bulk/reconcile", "EIMS API mock tests must cover bulk callback reconciliation flow");
+
+const acceptanceTests = read("apps/api-tests/tests/eims-acceptance.spec.ts");
+assertIncludes(
+\tacceptanceTests,
+\t'"/api/v1/eims/acceptance/cases"',
+\t"EIMS acceptance cases must stay admin-only in API tests",
+);
+assertIncludes(acceptanceTests, "expect(tenantResponse.status()).toBe(404)", "Tenant routes must not expose admin acceptance cases");
+
+if (failures.length > 0) {
+\tconsole.error("EIMS security smoke failed:");
+\tfor (const failure of failures) console.error("- " + failure);
+\tprocess.exit(1);
+}
+
+console.log("EIMS security smoke passed");
 `,
 	);
 };

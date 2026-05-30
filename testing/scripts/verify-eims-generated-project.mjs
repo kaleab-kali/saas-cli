@@ -83,6 +83,7 @@ const requiredFiles = [
 	"apps/api-tests/scripts/eims-mock-api-server.mjs",
 	"apps/api-tests/tests/eims-v3-mock.spec.ts",
 	"apps/e2e/tests/eims-mock.spec.ts",
+	"apps/security/scripts/eims-security-smoke.mjs",
 	"apps/api/prisma/seed-eims-onboarding-template.ts",
 ];
 
@@ -231,6 +232,14 @@ function assertGeneratedStructure() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	assert(packageJson.scripts["test:eims:mock"]?.includes("test:eims:ui"), "generated package has full EIMS mock gate");
 	assert(packageJson.scripts["test:eims:api"]?.includes("api-tests"), "generated package has EIMS API tests");
+	assert(
+		packageJson.scripts["test:eims:security"] === "pnpm --filter security test:eims",
+		"generated package has EIMS security smoke command",
+	);
+	assert(
+		packageJson.scripts["test:eims:mock"]?.includes("test:eims:security"),
+		"generated EIMS mock gate includes security smoke",
+	);
 	const scaffoldState = JSON.parse(readProjectFile(".scaffold-state.json"));
 	const eimsStarter = scaffoldState.starters?.find((starter) => starter.name === "eims");
 	assert(eimsStarter, "scaffold state records EIMS starter installation");
@@ -252,6 +261,25 @@ function assertGeneratedStructure() {
 	assert(webPackageJson.scripts?.format === "biome check --write .", "web workspace format uses Biome");
 	const e2ePackageJson = JSON.parse(readProjectFile("apps/e2e/package.json"));
 	assert(e2ePackageJson.scripts?.["test:eims"]?.includes("playwright.eims.config.ts"), "EIMS e2e test script is installed");
+	const securityPackageJson = JSON.parse(readProjectFile("apps/security/package.json"));
+	assert(
+		securityPackageJson.scripts?.["test:eims"] === "node scripts/eims-security-smoke.mjs",
+		"EIMS security smoke script is installed",
+	);
+	const eimsSecuritySmoke = readProjectFile("apps/security/scripts/eims-security-smoke.mjs");
+	assert(!eimsSecuritySmoke.includes("add secret redaction"), "EIMS security smoke is not a placeholder");
+	assert(
+		eimsSecuritySmoke.includes("EIMS credential APIs must explicitly report secrets as redacted"),
+		"EIMS security smoke enforces credential redaction",
+	);
+	assert(
+		eimsSecuritySmoke.includes("EIMS bulk reconcile must require retry permission"),
+		"EIMS security smoke enforces bulk reconcile permission",
+	);
+	assert(
+		eimsSecuritySmoke.includes("EIMS acceptance cases must stay admin-only"),
+		"EIMS security smoke enforces admin-only acceptance cases",
+	);
 
 	const appSidebar = readProjectFile("apps/web/src/components/layout/AppSidebar.tsx");
 	assert(appSidebar.includes('labelKey: "sidebar.eims"'), "tenant sidebar includes EIMS navigation group");
