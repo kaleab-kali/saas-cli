@@ -20,7 +20,7 @@ Free external CLIs are optional and intentionally not installed as Node dependen
 - semgrep: https://semgrep.dev/docs/getting-started/
 - nuclei: https://docs.projectdiscovery.io/tools/nuclei/install
 
-External CLI wrappers skip when the tool is missing. Use strict mode in CI:
+External CLI wrappers are optional for local development. Security wrappers skip missing external scanners unless strict mode is enabled; the mock performance gate runs a built-in HTTP load smoke when k6 is missing. Use strict mode in CI when you want external tools to be mandatory:
 
 ```bash
 SECURITY_STRICT_TOOLS=1 pnpm test:security
@@ -158,8 +158,12 @@ Useful knobs:
 - `K6_P95_MS`, default `750`
 - `K6_MAX_ERROR_RATE`, default `0.01`
 - `K6_SESSION_COOKIE`, optional authenticated session cookie
+- `PERFORMANCE_BUILTIN_REQUESTS`, default `40` when k6 is not installed
+- `PERFORMANCE_BUILTIN_CONCURRENCY`, default `8` when k6 is not installed
 
 The tenant API load test starts as a low-volume authenticated smoke load so it does not accidentally fail on the scaffold's default rate limit. Raise `K6_VUS` when you intentionally want to test throttling or higher traffic.
+
+`test:load:k6:mock` always exercises a performance gate. With k6 installed it runs `k6/health.js`; without k6 it starts a local mock `/health` endpoint and checks request failures plus p95 latency against `K6_MAX_ERROR_RATE` and `K6_P95_MS`.
 
 ## Security Tests
 

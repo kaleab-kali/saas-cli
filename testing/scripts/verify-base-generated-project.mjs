@@ -90,6 +90,15 @@ function assertWorkspaceScripts() {
 	assert(webPackageJson.scripts?.format === "biome check --write .", "web workspace format uses Biome");
 }
 
+function assertPerformanceMockGateRuns() {
+	const performanceMock = readProjectFile("apps/performance/scripts/mock-k6.mjs");
+	assert(
+		performanceMock.includes("Running built-in mock HTTP load smoke instead."),
+		"performance mock gate has built-in fallback",
+	);
+	assert(!performanceMock.includes("Skipping k6 mock performance run"), "performance mock gate does not silently skip");
+}
+
 function assertOnboardingFirstEntry() {
 	const rootIndex = readProjectFile("apps/web/src/routes/index.tsx");
 	const loginPage = readProjectFile("apps/web/src/routes/login.tsx");
@@ -150,6 +159,7 @@ async function main() {
 	assertNoEimsScripts();
 	assertDeployGateBuilds();
 	assertWorkspaceScripts();
+	assertPerformanceMockGateRuns();
 	assertOnboardingFirstEntry();
 	assertGeneratedSecrets();
 
