@@ -6,9 +6,11 @@ import { runDoctor } from "./doctor.js";
 import {
 	addModule,
 	addStarterPack,
+	getStarterPackDetail,
 	listStarterPackDetails,
 	listStarterPacks,
 	uninstallStarterPack,
+	validateStarterPackNames,
 } from "./module-generator.js";
 import { runPrompts } from "./prompts.js";
 import { scaffold } from "./scaffold.js";
@@ -68,7 +70,16 @@ export const run = async (argv) => {
 		return;
 	}
 
+	let requestedStarters = [];
+	try {
+		requestedStarters = validateStarterPackNames(args.starters);
+	} catch (error) {
+		console.error(pc.red(error instanceof Error ? error.message : String(error)));
+		process.exit(1);
+	}
+
 	printWelcome();
+	printSelectedStarterPacks(requestedStarters);
 
 	if (!existsSync(TEMPLATE_DIR)) {
 		console.error(pc.red(`Template directory not found: ${TEMPLATE_DIR}`));
@@ -94,7 +105,7 @@ export const run = async (argv) => {
 			dbPush: args.dbPush,
 			seed: args.seed,
 			afterTemplate: async (createdDir) => {
-				for (const starterName of args.starters) {
+				for (const starterName of requestedStarters) {
 					await addStarterPack({ cwd: createdDir, starterName });
 				}
 			},
@@ -118,7 +129,7 @@ ${pc.bold("Usage:")}
 
 ${pc.bold("Options:")}
   --yes, -y        Accept all defaults (non-interactive)
-  --starter <pack> Add a starter pack during project creation (repeatable)
+  --starter <pack> Add starter packs during project creation (repeatable or comma-separated)
   --install        Run pnpm install after scaffold
   --db-push        Run pnpm db:push after scaffold
   --seed           Run pnpm db:seed after scaffold
@@ -130,6 +141,7 @@ ${pc.bold("Examples:")}
   create-vyllion-saas my-app
   create-vyllion-saas my-app --yes
   create-vyllion-saas my-app --starter eims
+  create-vyllion-saas my-app --starter eims,crm
   create-vyllion-saas my-app --yes --bootstrap
   create-vyllion-saas doctor
   create-vyllion-saas add module projects
@@ -154,5 +166,29 @@ const printStarterPacks = () => {
 		if (pack.manifest) {
 			console.log(pc.dim(`  Manifest: ${pack.manifest}`));
 		}
+		if (pack.envVars?.length) {
+			console.log(pc.dim(`  Env vars: ${pack.envVars.join(", ")}`));
+		}
+		if (pack.routes?.length) {
+			const routes = pack.routes.slice(0, 6).join(", ");
+			console.log(pc.dim(`  Routes: ${routes}${pack.routes.length > 6 ? ", ..." : ""}`));
+		}
+		if (pack.permissions?.length) {
+			const permissions = pack.permissions.slice(0, 6).join(", ");
+			console.log(pc.dim(`  Permissions: ${permissions}${pack.permissions.length > 6 ? ", ..." : ""}`));
+		}
 	}
+};
+
+const printSelectedStarterPacks = (starterNames) => {
+	if (!starterNames.length) return;
+	console.log(pc.bold("Starter packs selected"));
+	for (const starterName of starterNames) {
+		const pack = getStarterPackDetail(starterName);
+		console.log(`  ${pc.cyan(pack.name)} ${pc.dim(`- ${pack.description}`)}`);
+		if (pack.envVars?.length) {
+			console.log(pc.dim(`    Env vars added: ${pack.envVars.join(", ")}`));
+		}
+	}
+	console.log("");
 };

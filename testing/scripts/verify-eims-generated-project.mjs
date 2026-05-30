@@ -231,6 +231,12 @@ function assertGeneratedStructure() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	assert(packageJson.scripts["test:eims:mock"]?.includes("test:eims:ui"), "generated package has full EIMS mock gate");
 	assert(packageJson.scripts["test:eims:api"]?.includes("api-tests"), "generated package has EIMS API tests");
+	const scaffoldState = JSON.parse(readProjectFile(".scaffold-state.json"));
+	const eimsStarter = scaffoldState.starters?.find((starter) => starter.name === "eims");
+	assert(eimsStarter, "scaffold state records EIMS starter installation");
+	assert(eimsStarter.envVars?.includes("EIMS_ENV"), "scaffold state records EIMS env metadata");
+	assert(eimsStarter.routes?.includes("/eims/setup"), "scaffold state records EIMS route metadata");
+	assert(eimsStarter.permissions?.includes("eims-submission:*"), "scaffold state records EIMS permission metadata");
 	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
 	assert(
 		apiPackageJson.scripts?.["db:seed"]?.includes("seed-eims-onboarding-template.ts"),

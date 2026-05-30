@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "../src/args.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +41,7 @@ test("prints help for the CLI command surface", () => {
 	assert.match(output, /Usage:/);
 	assert.match(output, /create-vyllion-saas doctor/);
 	assert.match(output, /create-vyllion-saas add starter <pack>/);
+	assert.match(output, /comma-separated/);
 });
 
 test("lists starter pack metadata", () => {
@@ -49,6 +51,13 @@ test("lists starter pack metadata", () => {
 	assert.match(output, /Available starter packs/);
 	assert.match(output, /\beims\b/);
 	assert.match(output, /Manifest:/);
+	assert.match(output, /Env vars:/);
+	assert.match(output, /EIMS_ENV/);
+});
+
+test("parses repeated and comma-separated starter flags", () => {
+	const args = parseArgs(["my-app", "--starter", "eims,crm", "--starter=helpdesk"]);
+	assert.deepEqual(args.starters, ["eims", "crm", "helpdesk"]);
 });
 
 test("doctor command runs in advisory mode", () => {
@@ -57,6 +66,53 @@ test("doctor command runs in advisory mode", () => {
 	const output = outputOf(result);
 	assert.match(output, /create-vyllion-saas doctor/);
 	assert.match(output, /package\.json/);
+});
+
+test("doctor checks installed starter env vars from pack metadata", () => {
+	const targetDir = path.join(tmpRoot, `doctor-eims-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
+	rmSync(targetDir, { recursive: true, force: true });
+
+	try {
+		mkdirSync(path.join(targetDir, "apps/api"), { recursive: true });
+		writeFileSync(path.join(targetDir, "package.json"), JSON.stringify({ scripts: {} }), "utf8");
+		writeFileSync(
+			path.join(targetDir, ".scaffold-state.json"),
+			JSON.stringify({ version: 1, starters: [{ name: "eims" }] }),
+			"utf8",
+		);
+		writeFileSync(
+			path.join(targetDir, "apps/api/.env"),
+			[
+				"MASTER_KEY=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+				"BETTER_AUTH_SECRET=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+				"EIMS_ENV=sandbox",
+			].join("\n"),
+			"utf8",
+		);
+
+		const result = runCli(["doctor"], { cwd: targetDir });
+		assert.equal(result.status, 0, outputOf(result));
+		const output = outputOf(result);
+		assert.match(output, /starter state.*eims/);
+		assert.match(output, /starter:eims env/);
+		assert.match(output, /EIMS_BASE_URL_SANDBOX/);
+	} finally {
+		rmSync(targetDir, { recursive: true, force: true });
+	}
+});
+
+test("unknown starter fails before creating the target project", () => {
+	const targetDir = path.join(tmpRoot, `unknown-starter-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
+	rmSync(targetDir, { recursive: true, force: true });
+
+	try {
+		const result = runCli([targetDir, "--yes", "--starter", "missing-pack"], { timeout: 120_000 });
+		assert.notEqual(result.status, 0, outputOf(result));
+		assert.match(outputOf(result), /Unknown starter pack 'missing-pack'/);
+		assert.ok(!existsSync(targetDir), "target project should not be created when starter validation fails");
+	} finally {
+		rmSync(targetDir, { recursive: true, force: true });
+	}
 });
 
 test("scaffolds a base project through the bin entrypoint", () => {

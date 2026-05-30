@@ -76,6 +76,7 @@ create-vyllion-saas list starters
 | `--db-push` | `false` | Run `pnpm db:push` after scaffold. |
 | `--seed` | `false` | Run `pnpm db:seed` after scaffold. |
 | `--bootstrap` | `false` | Run install, db push, and seed after scaffold. |
+| `--starter <pack>` | none | Install one or more starter packs during scaffold. Repeat the flag or pass a comma-separated list. Unknown packs fail before files are created. |
 | `--production`, `--prod` | `false` | Make `doctor` fail on missing production prerequisites. |
 | `--help`, `-h` | -     | Show help |
 
@@ -111,7 +112,9 @@ Use `create-vyllion-saas doctor --production` or `pnpm doctor:production` in CI/
 - `helpdesk`
 - `eims`
 
-`create-vyllion-saas list starters` prints pack metadata, requirements, env variables, and generated modules.
+During project creation, `--starter eims,crm` and `--starter eims --starter crm` are equivalent. Starter names are validated before the target directory is created.
+
+`create-vyllion-saas list starters` prints pack metadata, generated modules, env variables, routes, and permissions.
 
 `create-vyllion-saas remove starter <pack>` removes starter packs that support automated uninstall. The EIMS starter supports uninstall because the base template must remain domain-neutral.
 

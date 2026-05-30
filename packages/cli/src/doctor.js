@@ -3,6 +3,7 @@ import path from "node:path";
 import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import pc from "picocolors";
+import { getStarterPackDetail } from "./module-generator.js";
 
 let failureCount = 0;
 const ok = (label, detail = "") => console.log(`${pc.green("OK")} ${label}${detail ? pc.dim(` - ${detail}`) : ""}`);
@@ -71,6 +72,35 @@ const requirePath = (file, label, production) => {
 	else production ? fail(label, "required for production readiness") : warn(label, "recommended");
 };
 
+const hasEnvKey = (env, key) => Object.prototype.hasOwnProperty.call(env, key);
+
+const checkStarterEnvVars = (starters, apiEnv, production) => {
+	for (const starter of starters) {
+		const name = starter?.name;
+		const detail = getStarterPackDetail(name);
+		const envVars = detail?.envVars ?? (Array.isArray(starter?.envVars) ? starter.envVars : []);
+		const label = detail?.name ?? name;
+		if (!detail && envVars.length === 0) {
+			const message = "pack metadata unavailable; cannot verify starter-specific env vars";
+			production ? fail(`starter:${label} metadata`, message) : warn(`starter:${label} metadata`, message);
+			continue;
+		}
+
+		if (!envVars.length) {
+			ok(`starter:${label} env`, "no starter-specific env vars declared");
+			continue;
+		}
+
+		const missing = envVars.filter((key) => !hasEnvKey(apiEnv, key));
+		if (missing.length === 0) {
+			ok(`starter:${label} env`, `${envVars.length} declared env var(s) present`);
+		} else {
+			const message = `missing ${missing.join(", ")}`;
+			production ? fail(`starter:${label} env`, message) : warn(`starter:${label} env`, message);
+		}
+	}
+};
+
 export const runDoctor = async (cwd, options = {}) => {
 	failureCount = 0;
 	const production = Boolean(options.production);
@@ -123,6 +153,7 @@ export const runDoctor = async (cwd, options = {}) => {
 
 	if (scaffoldState?.starters?.length) {
 		ok("starter state", scaffoldState.starters.map((starter) => starter.name).join(", "));
+		checkStarterEnvVars(scaffoldState.starters, apiEnv, production);
 	} else {
 		ok("starter state", "base scaffold has no optional starter packs installed");
 	}

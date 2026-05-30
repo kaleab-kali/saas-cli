@@ -150,14 +150,56 @@ const EIMS_REPLACEABLE_ARTIFACTS = new Set(["apps/api-tests/scripts/with-mock-ap
 
 export const listStarterPacks = () => Object.keys(STARTER_PACKS);
 
-export const listStarterPackDetails = () =>
-	Object.entries(STARTER_PACKS).map(([name, pack]) => ({
-		name,
-		label: pack.label,
-		description: pack.description ?? `${pack.label} starter pack`,
+const starterManifestPath = (slug) => path.join(STARTER_PACK_ROOT, slug, "pack.json");
+
+const readStarterManifest = (slug) => {
+	const file = starterManifestPath(slug);
+	if (!fs.existsSync(file)) return null;
+	try {
+		return fs.readJsonSync(file);
+	} catch {
+		return null;
+	}
+};
+
+export const getStarterPackDetail = (starterName) => {
+	const slug = resolveStarterPack(starterName);
+	const pack = STARTER_PACKS[slug];
+	if (!pack) return null;
+	const manifest = readStarterManifest(slug);
+	return {
+		name: slug,
+		label: manifest?.displayName ?? pack.label,
+		description: manifest?.description ?? pack.description ?? `${pack.label} starter pack`,
+		version: manifest?.version ?? pack.version ?? "0.1.0",
 		modules: pack.modules,
-		manifest: pack.manifest ?? null,
-	}));
+		manifest: fs.existsSync(starterManifestPath(slug))
+			? pack.manifest ?? `packages/cli/starters/${slug}/pack.json`
+			: null,
+		envVars: Array.isArray(manifest?.addsEnvVars) ? manifest.addsEnvVars : [],
+		routes: Array.isArray(manifest?.addsRoutes) ? manifest.addsRoutes : [],
+		permissions: Array.isArray(manifest?.addsPermissions) ? manifest.addsPermissions : [],
+		queues: Array.isArray(manifest?.addsQueues) ? manifest.addsQueues : [],
+		crons: Array.isArray(manifest?.addsCrons) ? manifest.addsCrons : [],
+	};
+};
+
+export const listStarterPackDetails = () =>
+	Object.keys(STARTER_PACKS).map((name) => getStarterPackDetail(name));
+
+export const validateStarterPackNames = (starterNames = []) => {
+	const normalized = [];
+	for (const starterName of starterNames) {
+		const slug = resolveStarterPack(starterName);
+		if (!STARTER_PACKS[slug]) {
+			throw new Error(
+				`Unknown starter pack '${starterName}'. Available packs: ${listStarterPacks().join(", ")}`,
+			);
+		}
+		if (!normalized.includes(slug)) normalized.push(slug);
+	}
+	return normalized;
+};
 
 const resolveStarterPack = (starterName) => {
 	const slug = slugify(starterName ?? "");
@@ -198,11 +240,15 @@ const recordStarterInstalled = async (cwd, slug, pack) => {
 	const state = await readScaffoldState(cwd);
 	const existing = state.starters.find((starter) => starter.name === slug);
 	const installedAt = new Date().toISOString();
+	const detail = getStarterPackDetail(slug);
 	const entry = {
 		name: slug,
-		label: pack.label,
-		version: pack.version ?? "0.1.0",
+		label: detail?.label ?? pack.label,
+		version: detail?.version ?? pack.version ?? "0.1.0",
 		modules: pack.modules,
+		envVars: detail?.envVars ?? [],
+		routes: detail?.routes ?? [],
+		permissions: detail?.permissions ?? [],
 		installedAt,
 	};
 	if (existing) Object.assign(existing, entry);

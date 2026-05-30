@@ -13,6 +13,13 @@ export const parseArgs = (argv) => {
 		starters: [],
 	};
 
+	const addStarterValues = (value) => {
+		for (const starter of String(value ?? "").split(",")) {
+			const trimmed = starter.trim();
+			if (trimmed) out.starters.push(trimmed);
+		}
+	};
+
 	const positional = [];
 	for (let i = 0; i < argv.length; i += 1) {
 		const a = argv[i];
@@ -25,9 +32,11 @@ export const parseArgs = (argv) => {
 		else if (a === "--starter") {
 			const starter = argv[i + 1];
 			if (starter && !starter.startsWith("-")) {
-				out.starters.push(starter);
+				addStarterValues(starter);
 				i += 1;
 			}
+		} else if (a.startsWith("--starter=")) {
+			addStarterValues(a.slice("--starter=".length));
 		} else if (a === "--bootstrap") {
 			out.install = true;
 			out.dbPush = true;

@@ -49,6 +49,12 @@ create-vyllion-saas my-app --yes
 
 `--yes` skips all prompts. Remove it to customize.
 
+To include optional starter packs at creation time, pass `--starter` repeatedly or as a comma-separated list:
+
+```bash
+create-vyllion-saas my-app --yes --starter eims,crm
+```
+
 For a one-command local setup after Postgres is available:
 
 ```bash
