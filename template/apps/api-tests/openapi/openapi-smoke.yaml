@@ -27,3 +27,41 @@ paths:
                     type: string
                     enum:
                       - ok
+  /health/live:
+    get:
+      operationId: getHealthLive
+      description: Returns process-level liveness without dependency checks.
+      tags:
+        - health
+      responses:
+        "200":
+          description: Liveness status.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - uptimeSeconds
+                  - timestamp
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+                  uptimeSeconds:
+                    type: integer
+                  timestamp:
+                    type: string
+                    format: date-time
+  /health/ready:
+    get:
+      operationId: getHealthReady
+      description: Returns readiness status for required runtime dependencies.
+      tags:
+        - health
+      responses:
+        "200":
+          description: Runtime dependencies are ready.
+        "503":
+          description: One or more required dependencies are unavailable.

@@ -20,6 +20,12 @@ Expose operational metrics through the metrics module:
 
 Keep the metrics endpoint private or protected by infrastructure controls.
 
+## Health Endpoints
+
+- `GET /health/live`: process liveness. Use this for container or process manager restart checks; it does not touch downstream dependencies.
+- `GET /health/ready`: readiness for traffic. It checks the database and checks Redis when `REDIS_URL` is configured. A failed dependency returns HTTP 503.
+- `GET /health`: compatibility health endpoint backed by Terminus.
+
 ## Alerts
 
 Minimum alerts before launch:

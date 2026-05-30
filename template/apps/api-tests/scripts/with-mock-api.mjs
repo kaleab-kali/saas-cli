@@ -69,6 +69,15 @@ const okAuth = {
 
 const handleCore = (url, res) => {
 	if (url.pathname.includes("__missing_api_test_route__")) return json(res, 404, { error: "not found" });
+	if (url.pathname.endsWith("/health/live")) {
+		return json(res, 200, { status: "ok", uptimeSeconds: 1, timestamp: new Date().toISOString() });
+	}
+	if (url.pathname.endsWith("/health/ready")) {
+		return json(res, 200, {
+			status: "ok",
+			dependencies: { database: { status: "up" }, redis: { status: "skipped" } },
+		});
+	}
 	if (url.pathname.endsWith("/health")) return json(res, 200, { status: "ok" });
 	if (url.pathname.includes("/sign-in/email")) return json(res, 200, okAuth);
 	if (url.pathname === "/api/auth/organization/set-active") return json(res, 200, { data: { ok: true } });

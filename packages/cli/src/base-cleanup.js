@@ -259,6 +259,15 @@ const server = http.createServer(async (req, res) => {
 \tconst method = req.method ?? "GET";
 
 \tif (url.pathname.includes("__missing_api_test_route__")) return json(res, 404, { error: "not found" });
+\tif (url.pathname.endsWith("/health/live")) {
+\t\treturn json(res, 200, { status: "ok", uptimeSeconds: 1, timestamp: new Date().toISOString() });
+\t}
+\tif (url.pathname.endsWith("/health/ready")) {
+\t\treturn json(res, 200, {
+\t\t\tstatus: "ok",
+\t\t\tdependencies: { database: { status: "up" }, redis: { status: "skipped" } },
+\t\t});
+\t}
 \tif (url.pathname.endsWith("/health")) return json(res, 200, { status: "ok" });
 \tif (url.pathname.includes("/sign-in/email")) return json(res, 200, { data: { user: { id: "user_1" }, session: { id: "sess_1" } } });
 \tif (url.pathname === "/api/auth/organization/set-active") return json(res, 200, { data: { ok: true } });
