@@ -111,8 +111,48 @@
 			"^.+\\.(t|j)s$": "ts-jest"
 		},
 		"collectCoverageFrom": [
-			"**/*.(t|j)s"
+			"**/*.(t|j)s",
+			"!generated/**",
+			"!**/*.module.ts",
+			"!**/*.dto.ts",
+			"!**/*.entity.ts",
+			"!**/*.events.ts",
+			"!**/*.repository.ts",
+			"!**/presentation/**",
+			"!**/infrastructure/mappers/**",
+			"!main.ts"
 		],
+		"coveragePathIgnorePatterns": [
+			"/node_modules/",
+			"/generated/",
+			"/dist/"
+		],
+		"coverageThreshold": {
+			"global": {
+				"statements": 5,
+				"branches": 4,
+				"functions": 5,
+				"lines": 5
+			},
+			"src/modules/billing/application/services/policy.service.ts": {
+				"statements": 100,
+				"branches": 100,
+				"functions": 100,
+				"lines": 100
+			},
+			"src/shared/crypto/cipher.service.ts": {
+				"statements": 85,
+				"branches": 80,
+				"functions": 100,
+				"lines": 85
+			},
+			"src/shared/rate-limit/tenant-throttler.guard.ts": {
+				"statements": 85,
+				"branches": 75,
+				"functions": 90,
+				"lines": 85
+			}
+		},
 		"coverageDirectory": "../coverage",
 		"testEnvironment": "node"
 	}

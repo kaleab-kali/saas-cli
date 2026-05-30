@@ -106,6 +106,7 @@ function assertDeployGateBuilds() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
 	const strykerConfig = readProjectFile("apps/api/stryker.conf.mjs");
+	const testingGuide = readProjectFile("docs/TESTING_GUIDE.md");
 	const deployCheck = packageJson.scripts?.["deploy:check"] ?? "";
 	const testCi = packageJson.scripts?.["test:ci"] ?? "";
 	const testSmoke = packageJson.scripts?.["test:smoke"] ?? "";
@@ -136,8 +137,26 @@ function assertDeployGateBuilds() {
 	assert(apiPackageJson.scripts?.["test:unit"] === "jest --runInBand", "API workspace exposes unit test command");
 	assert(apiPackageJson.scripts?.["test:integration"]?.includes("jest-e2e.json"), "API workspace exposes integration test command");
 	assert(apiPackageJson.scripts?.["test:coverage"]?.includes("--coverage"), "API workspace exposes coverage test command");
+	assert(apiPackageJson.jest?.collectCoverageFrom?.includes("!generated/**"), "coverage excludes generated Prisma output");
+	assert(apiPackageJson.jest?.collectCoverageFrom?.includes("!**/*.module.ts"), "coverage excludes Nest module wiring");
+	assert(apiPackageJson.jest?.coverageThreshold?.global?.statements >= 5, "coverage has a global scaffold baseline");
+	assert(apiPackageJson.jest?.coverageThreshold?.global?.branches >= 4, "coverage has a branch baseline");
+	assert(
+		apiPackageJson.jest?.coverageThreshold?.["src/modules/billing/application/services/policy.service.ts"]?.statements ===
+			100,
+		"coverage enforces strict billing policy threshold",
+	);
+	assert(
+		apiPackageJson.jest?.coverageThreshold?.["src/shared/crypto/cipher.service.ts"]?.branches >= 80,
+		"coverage enforces critical crypto threshold",
+	);
+	assert(
+		apiPackageJson.jest?.coverageThreshold?.["src/shared/rate-limit/tenant-throttler.guard.ts"]?.lines >= 85,
+		"coverage enforces tenant rate-limit threshold",
+	);
 	assert(strykerConfig.includes("testRunnerNodeArgs"), "mutation test config sets explicit test-runner Node args");
 	assert(strykerConfig.includes("--max-old-space-size=4096"), "mutation test runner has heap headroom");
+	assert(testingGuide.includes("excludes generated Prisma code"), "testing docs explain actionable coverage scope");
 	assert(packageJson.scripts?.["db:backup"]?.includes("backup-postgres.mjs"), "base package has Postgres backup script");
 	assert(packageJson.scripts?.["db:restore"]?.includes("restore-postgres.mjs"), "base package has Postgres restore script");
 }
