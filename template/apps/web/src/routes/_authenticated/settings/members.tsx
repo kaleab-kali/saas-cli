@@ -219,11 +219,11 @@ function MembersPage() {
 								</tr>
 							))}
 							{invitations.length === 0 && (
-									<tr>
-										<td colSpan={5} className="p-6 text-center text-muted-foreground">
-											{t("settings.membersPage.noInvitations")}
-										</td>
-									</tr>
+								<tr>
+									<td colSpan={5} className="p-6 text-center text-muted-foreground">
+										{t("settings.membersPage.noInvitations")}
+									</td>
+								</tr>
 							)}
 						</tbody>
 					</table>

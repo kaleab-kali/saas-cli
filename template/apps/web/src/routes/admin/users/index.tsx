@@ -31,12 +31,7 @@ const UserActions = React.memo(
 
 		return (
 			<div className="flex gap-1 justify-end">
-				<Button
-					size="sm"
-					variant="outline"
-					onClick={handleImpersonate}
-					title={t("admin.usersPage.impersonateTitle")}
-				>
+				<Button size="sm" variant="outline" onClick={handleImpersonate} title={t("admin.usersPage.impersonateTitle")}>
 					{t("admin.usersPage.impersonate")}
 				</Button>
 				<Button

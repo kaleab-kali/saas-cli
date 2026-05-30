@@ -49,9 +49,9 @@ const AdminTopBanner = React.memo(
 				<div className="flex min-w-0 items-center gap-2">
 					<SidebarTrigger />
 					<p className="min-w-0 text-xs font-medium text-destructive">
-					{t("admin.superAdminBanner", {
-						defaultValue: "SUPER ADMIN MODE — You are viewing platform-level data across all organizations",
-					})}
+						{t("admin.superAdminBanner", {
+							defaultValue: "SUPER ADMIN MODE — You are viewing platform-level data across all organizations",
+						})}
 					</p>
 				</div>
 				<AdminLanguageSwitcher />
