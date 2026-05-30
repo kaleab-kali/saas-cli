@@ -4,6 +4,7 @@ import { usePreferences, useUpsertPreference } from "#features/notifications/api
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/notifications/preferences")({ component: Page });
 
@@ -36,28 +37,30 @@ function Page() {
 					<CardTitle className="text-sm">{t("notifications.eventSubscriptions")}</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<table className="w-full text-sm">
-						<thead>
-							<tr className="text-left border-b">
-								<th className="py-2">{t("notifications.event")}</th>
-								<th className="py-2 text-center">{t("notifications.inApp")}</th>
-								<th className="py-2 text-center">{t("notifications.email")}</th>
-								<th className="py-2 text-center">{t("notifications.sms")}</th>
-							</tr>
-						</thead>
-						<tbody>
+					<Table className="w-full text-sm">
+						<TableHeader>
+							<TableRow className="text-left border-b">
+								<TableHead className="py-2">{t("notifications.event")}</TableHead>
+								<TableHead className="py-2 text-center">{t("notifications.inApp")}</TableHead>
+								<TableHead className="py-2 text-center">{t("notifications.email")}</TableHead>
+								<TableHead className="py-2 text-center">{t("notifications.sms")}</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
 							{EVENT_KEYS.map((k) => {
 								const p = getPref(k);
 								return (
-									<tr key={k} className="border-b">
-										<td className="py-2">{t(`notifications.preferencesPage.events.${k}`, { defaultValue: k })}</td>
-										<td className="py-2 text-center">
+									<TableRow key={k} className="border-b">
+										<TableCell className="py-2">
+											{t(`notifications.preferencesPage.events.${k}`, { defaultValue: k })}
+										</TableCell>
+										<TableCell className="py-2 text-center">
 											<Switch
 												checked={p?.inApp ?? true}
 												onCheckedChange={(v) => upsert.mutate({ eventKey: k, inApp: v })}
 											/>
-										</td>
-										<td className="py-2 text-center">
+										</TableCell>
+										<TableCell className="py-2 text-center">
 											<Select
 												value={p?.email ?? "instant"}
 												onValueChange={(v) => upsert.mutate({ eventKey: k, email: v })}
@@ -72,18 +75,18 @@ function Page() {
 													<SelectItem value="off">{t("notifications.digestOptions.off")}</SelectItem>
 												</SelectContent>
 											</Select>
-										</td>
-										<td className="py-2 text-center">
+										</TableCell>
+										<TableCell className="py-2 text-center">
 											<Switch
 												checked={p?.sms ?? false}
 												onCheckedChange={(v) => upsert.mutate({ eventKey: k, sms: v })}
 											/>
-										</td>
-									</tr>
+										</TableCell>
+									</TableRow>
 								);
 							})}
-						</tbody>
-					</table>
+						</TableBody>
+					</Table>
 				</CardContent>
 			</Card>
 		</div>

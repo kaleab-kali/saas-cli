@@ -313,6 +313,19 @@ function assertWebBundleImportPolicy() {
 	);
 }
 
+function assertWebTableMarkupPolicy() {
+	const sourceSecurity = readProjectFile("apps/security/scripts/source-security-check.mjs");
+	const webSourceFiles = listProjectFiles("apps/web/src").filter((relPath) => /\.[cm]?[tj]sx?$/.test(relPath));
+	const rawTableFiles = webSourceFiles.filter((relPath) => {
+		const normalizedPath = relPath.replaceAll("\\", "/");
+		if (normalizedPath === "apps/web/src/components/ui/table.tsx") return false;
+		return /<\/?(table|thead|tbody|tfoot|tr|th|td)\b/.test(readProjectFile(relPath));
+	});
+
+	assert(rawTableFiles.length === 0, "web source avoids raw table markup outside table primitive", rawTableFiles.join(", "));
+	assert(sourceSecurity.includes("renders raw table markup"), "source security gate enforces shared table primitives");
+}
+
 function readEnv(relPath) {
 	const out = {};
 	for (const line of readProjectFile(relPath).split(/\r?\n/)) {
@@ -375,6 +388,7 @@ async function main() {
 	assertFrontendImprovementSurface();
 	assertOnboardingServerTableQuery();
 	assertWebBundleImportPolicy();
+	assertWebTableMarkupPolicy();
 	assertGeneratedSecrets();
 
 	console.log(`Base generated-project verification passed: ${checks.length} checks`);

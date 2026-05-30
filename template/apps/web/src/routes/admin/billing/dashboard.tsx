@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n);
 const fmtMinor = (amountMinor: number, currency = "USD") =>
@@ -50,33 +51,33 @@ const PastDueTable = React.memo(
 			return <p className="text-sm text-muted-foreground py-4 text-center">No past-due invoices.</p>;
 		return (
 			<div className="overflow-x-auto">
-				<table className="w-full text-sm">
-					<thead className="bg-muted/40">
-						<tr>
-							<th className="text-left p-2">Invoice</th>
-							<th className="text-left p-2">Org</th>
-							<th className="text-right p-2">Days late</th>
-							<th className="text-right p-2">Outstanding</th>
-							<th className="text-left p-2" />
-						</tr>
-					</thead>
-					<tbody>
+				<Table className="w-full text-sm">
+					<TableHeader className="bg-muted/40">
+						<TableRow>
+							<TableHead className="text-left p-2">Invoice</TableHead>
+							<TableHead className="text-left p-2">Org</TableHead>
+							<TableHead className="text-right p-2">Days late</TableHead>
+							<TableHead className="text-right p-2">Outstanding</TableHead>
+							<TableHead className="text-left p-2" />
+						</TableRow>
+					</TableHeader>
+					<TableBody>
 						{data.map((inv) => {
 							const outstanding = inv.totalMinor - inv.amountPaidMinor;
 							return (
-								<tr key={inv.id} className="border-t">
-									<td className="p-2 font-medium">{inv.number}</td>
-									<td className="p-2">
+								<TableRow key={inv.id} className="border-t">
+									<TableCell className="p-2 font-medium">{inv.number}</TableCell>
+									<TableCell className="p-2">
 										<div className="text-sm">{inv.organizationName ?? "—"}</div>
 										<div className="text-[10px] text-muted-foreground font-mono">{inv.organizationId}</div>
-									</td>
-									<td className="p-2 text-right">
+									</TableCell>
+									<TableCell className="p-2 text-right">
 										<Badge variant="destructive">{inv.daysPastDue}d</Badge>
-									</td>
-									<td className="p-2 text-right font-mono text-destructive">
+									</TableCell>
+									<TableCell className="p-2 text-right font-mono text-destructive">
 										{fmtMinor(Math.round(outstanding), inv.currency)}
-									</td>
-									<td className="p-2">
+									</TableCell>
+									<TableCell className="p-2">
 										<Link
 											to="/admin/billing/$subscriptionId"
 											params={{ subscriptionId: inv.subscriptionId }}
@@ -84,12 +85,12 @@ const PastDueTable = React.memo(
 										>
 											manage →
 										</Link>
-									</td>
-								</tr>
+									</TableCell>
+								</TableRow>
 							);
 						})}
-					</tbody>
-				</table>
+					</TableBody>
+				</Table>
 			</div>
 		);
 	},
@@ -106,39 +107,41 @@ const PendingVerificationTable = React.memo(
 			return <p className="text-sm text-muted-foreground py-4 text-center">No pending verifications.</p>;
 		return (
 			<div className="overflow-x-auto">
-				<table className="w-full text-sm">
-					<thead className="bg-muted/40">
-						<tr>
-							<th className="text-left p-2">Invoice</th>
-							<th className="text-left p-2">Org</th>
-							<th className="text-left p-2">Method</th>
-							<th className="text-left p-2">Reference</th>
-							<th className="text-right p-2">Amount</th>
-							<th className="text-left p-2">Paid on</th>
-							<th className="text-right p-2" />
-						</tr>
-					</thead>
-					<tbody>
+				<Table className="w-full text-sm">
+					<TableHeader className="bg-muted/40">
+						<TableRow>
+							<TableHead className="text-left p-2">Invoice</TableHead>
+							<TableHead className="text-left p-2">Org</TableHead>
+							<TableHead className="text-left p-2">Method</TableHead>
+							<TableHead className="text-left p-2">Reference</TableHead>
+							<TableHead className="text-right p-2">Amount</TableHead>
+							<TableHead className="text-left p-2">Paid on</TableHead>
+							<TableHead className="text-right p-2" />
+						</TableRow>
+					</TableHeader>
+					<TableBody>
 						{data.map((p) => (
-							<tr key={p.id} className="border-t">
-								<td className="p-2 font-medium">{p.invoiceNumber ?? "—"}</td>
-								<td className="p-2">
+							<TableRow key={p.id} className="border-t">
+								<TableCell className="p-2 font-medium">{p.invoiceNumber ?? "—"}</TableCell>
+								<TableCell className="p-2">
 									<div className="text-sm">{p.organizationName ?? "—"}</div>
 									<div className="text-[10px] text-muted-foreground font-mono">{p.organizationId}</div>
-								</td>
-								<td className="p-2 capitalize">{p.method.replace("_", " ")}</td>
-								<td className="p-2 font-mono text-xs">{p.receiptNumber || p.bankReference || "—"}</td>
-								<td className="p-2 text-right font-mono">{fmtMinor(Math.round(p.amountMinor), p.currency)}</td>
-								<td className="p-2">{new Date(p.paidAt).toLocaleDateString()}</td>
-								<td className="p-2 text-right">
+								</TableCell>
+								<TableCell className="p-2 capitalize">{p.method.replace("_", " ")}</TableCell>
+								<TableCell className="p-2 font-mono text-xs">{p.receiptNumber || p.bankReference || "—"}</TableCell>
+								<TableCell className="p-2 text-right font-mono">
+									{fmtMinor(Math.round(p.amountMinor), p.currency)}
+								</TableCell>
+								<TableCell className="p-2">{new Date(p.paidAt).toLocaleDateString()}</TableCell>
+								<TableCell className="p-2 text-right">
 									<Button size="sm" onClick={() => verify.mutate(p.id)} disabled={verify.isPending}>
 										Verify
 									</Button>
-								</td>
-							</tr>
+								</TableCell>
+							</TableRow>
 						))}
-					</tbody>
-				</table>
+					</TableBody>
+				</Table>
 			</div>
 		);
 	},
@@ -249,26 +252,28 @@ const BillingDashboard = React.memo(
 							<CardTitle className="text-base">Revenue by plan</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<table className="w-full text-sm">
-								<thead>
-									<tr className="text-left text-muted-foreground border-b">
-										<th className="pb-2">Plan</th>
-										<th className="pb-2 text-right">Subs</th>
-										<th className="pb-2 text-right">MRR</th>
-									</tr>
-								</thead>
-								<tbody>
+							<Table className="w-full text-sm">
+								<TableHeader>
+									<TableRow className="text-left text-muted-foreground border-b">
+										<TableHead className="pb-2">Plan</TableHead>
+										<TableHead className="pb-2 text-right">Subs</TableHead>
+										<TableHead className="pb-2 text-right">MRR</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
 									{Object.entries(data.byPlan)
 										.sort(([, a], [, b]) => b.mrrMinor - a.mrrMinor)
 										.map(([slug, stats]) => (
-											<tr key={slug} className="border-b last:border-0">
-												<td className="py-2 font-mono">{slug}</td>
-												<td className="py-2 text-right">{stats.count}</td>
-												<td className="py-2 text-right font-mono">{fmtMinor(Math.round(stats.mrrMinor))}</td>
-											</tr>
+											<TableRow key={slug} className="border-b last:border-0">
+												<TableCell className="py-2 font-mono">{slug}</TableCell>
+												<TableCell className="py-2 text-right">{stats.count}</TableCell>
+												<TableCell className="py-2 text-right font-mono">
+													{fmtMinor(Math.round(stats.mrrMinor))}
+												</TableCell>
+											</TableRow>
 										))}
-								</tbody>
-							</table>
+								</TableBody>
+							</Table>
 						</CardContent>
 					</Card>
 				</div>

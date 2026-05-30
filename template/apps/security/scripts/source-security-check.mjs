@@ -84,6 +84,14 @@ for (const file of allSource) {
 	) {
 		fail(`${relative} performs fetch inside useEffect; use TanStack Query hooks`);
 	}
+
+	if (
+		relative.startsWith("apps/web/src/") &&
+		relative !== "apps/web/src/components/ui/table.tsx" &&
+		/<\/?(table|thead|tbody|tfoot|tr|th|td)\b/.test(text)
+	) {
+		fail(`${relative} renders raw table markup; use DataTable or the shared table primitives`);
+	}
 }
 
 if (failures.length > 0) {

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const statusVariant = {
 	running: "secondary" as const,
@@ -128,34 +129,34 @@ const JobsPage = React.memo(
 						{runs.length === 0 ? (
 							<p className="text-sm text-muted-foreground p-4 text-center">No runs yet.</p>
 						) : (
-							<table className="w-full text-sm">
-								<thead className="bg-muted/40">
-									<tr>
-										<th className="text-left p-2">Job</th>
-										<th className="text-left p-2">Status</th>
-										<th className="text-left p-2">Started</th>
-										<th className="text-right p-2">Duration</th>
-										<th className="text-left p-2">Trigger</th>
-										<th className="text-left p-2">Summary</th>
-									</tr>
-								</thead>
-								<tbody>
+							<Table className="w-full text-sm">
+								<TableHeader className="bg-muted/40">
+									<TableRow>
+										<TableHead className="text-left p-2">Job</TableHead>
+										<TableHead className="text-left p-2">Status</TableHead>
+										<TableHead className="text-left p-2">Started</TableHead>
+										<TableHead className="text-right p-2">Duration</TableHead>
+										<TableHead className="text-left p-2">Trigger</TableHead>
+										<TableHead className="text-left p-2">Summary</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
 									{runs.map((r) => (
-										<tr key={r.id} className="border-t">
-											<td className="p-2 font-mono text-xs">{r.jobName}</td>
-											<td className="p-2">
+										<TableRow key={r.id} className="border-t">
+											<TableCell className="p-2 font-mono text-xs">{r.jobName}</TableCell>
+											<TableCell className="p-2">
 												<Badge variant={statusVariant[r.status]}>{r.status}</Badge>
-											</td>
-											<td className="p-2">{new Date(r.startedAt).toLocaleString()}</td>
-											<td className="p-2 text-right font-mono">{r.durationMs ?? "—"} ms</td>
-											<td className="p-2 text-xs">{r.triggeredByUserId ? "manual" : "scheduled"}</td>
-											<td className="p-2 text-xs text-muted-foreground max-w-md truncate">
+											</TableCell>
+											<TableCell className="p-2">{new Date(r.startedAt).toLocaleString()}</TableCell>
+											<TableCell className="p-2 text-right font-mono">{r.durationMs ?? "—"} ms</TableCell>
+											<TableCell className="p-2 text-xs">{r.triggeredByUserId ? "manual" : "scheduled"}</TableCell>
+											<TableCell className="p-2 text-xs text-muted-foreground max-w-md truncate">
 												{r.summary || r.errorMessage || "—"}
-											</td>
-										</tr>
+											</TableCell>
+										</TableRow>
 									))}
-								</tbody>
-							</table>
+								</TableBody>
+							</Table>
 						)}
 					</CardContent>
 				</Card>

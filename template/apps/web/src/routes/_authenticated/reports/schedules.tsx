@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/reports/schedules")({ component: Page });
 
@@ -182,44 +183,46 @@ function Page() {
 					{schedules.length === 0 ? (
 						<p className="p-4 text-sm text-muted-foreground">{t("reports.schedulesPage.noSchedules")}</p>
 					) : (
-						<table className="w-full text-sm">
-							<thead>
-								<tr className="text-left border-b">
-									<th className="py-2 px-3">{t("reports.schedulesPage.columns.report")}</th>
-									<th className="py-2 px-3">{t("reports.schedulesPage.columns.frequency")}</th>
-									<th className="py-2 px-3">{t("reports.schedulesPage.columns.time")}</th>
-									<th className="py-2 px-3">{t("reports.schedulesPage.columns.format")}</th>
-									<th className="py-2 px-3">{t("reports.schedulesPage.columns.recipients")}</th>
-									<th className="py-2 px-3">{t("reports.schedulesPage.columns.nextRun")}</th>
-									<th className="py-2 px-3">{t("reports.schedulesPage.columns.status")}</th>
-									<th className="py-2 px-3"></th>
-								</tr>
-							</thead>
-							<tbody>
+						<Table className="w-full text-sm">
+							<TableHeader>
+								<TableRow className="text-left border-b">
+									<TableHead className="py-2 px-3">{t("reports.schedulesPage.columns.report")}</TableHead>
+									<TableHead className="py-2 px-3">{t("reports.schedulesPage.columns.frequency")}</TableHead>
+									<TableHead className="py-2 px-3">{t("reports.schedulesPage.columns.time")}</TableHead>
+									<TableHead className="py-2 px-3">{t("reports.schedulesPage.columns.format")}</TableHead>
+									<TableHead className="py-2 px-3">{t("reports.schedulesPage.columns.recipients")}</TableHead>
+									<TableHead className="py-2 px-3">{t("reports.schedulesPage.columns.nextRun")}</TableHead>
+									<TableHead className="py-2 px-3">{t("reports.schedulesPage.columns.status")}</TableHead>
+									<TableHead className="py-2 px-3"></TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{schedules.map((s) => (
-									<tr key={s.id} className="border-b">
-										<td className="py-2 px-3">{reportName(s.reportId)}</td>
-										<td className="py-2 px-3">
+									<TableRow key={s.id} className="border-b">
+										<TableCell className="py-2 px-3">{reportName(s.reportId)}</TableCell>
+										<TableCell className="py-2 px-3">
 											{t(`reports.scheduleDialog.${s.frequency}`, { defaultValue: s.frequency })}
-										</td>
-										<td className="py-2 px-3">{s.timeOfDay}</td>
-										<td className="py-2 px-3 uppercase">{s.format}</td>
-										<td className="py-2 px-3 text-xs">{s.recipients.join(", ")}</td>
-										<td className="py-2 px-3 text-xs">{s.nextRunAt ? new Date(s.nextRunAt).toLocaleString() : dash}</td>
-										<td className="py-2 px-3">
+										</TableCell>
+										<TableCell className="py-2 px-3">{s.timeOfDay}</TableCell>
+										<TableCell className="py-2 px-3 uppercase">{s.format}</TableCell>
+										<TableCell className="py-2 px-3 text-xs">{s.recipients.join(", ")}</TableCell>
+										<TableCell className="py-2 px-3 text-xs">
+											{s.nextRunAt ? new Date(s.nextRunAt).toLocaleString() : dash}
+										</TableCell>
+										<TableCell className="py-2 px-3">
 											<Badge variant={s.enabled ? "default" : "secondary"}>
 												{s.enabled ? t("reports.schedulesPage.enabled") : t("reports.schedulesPage.disabled")}
 											</Badge>
-										</td>
-										<td className="py-2 px-3 text-right">
+										</TableCell>
+										<TableCell className="py-2 px-3 text-right">
 											<Button size="sm" variant="ghost" onClick={() => cancel.mutate(s.id)}>
 												{t("reports.schedulesPage.cancelBtn")}
 											</Button>
-										</td>
-									</tr>
+										</TableCell>
+									</TableRow>
 								))}
-							</tbody>
-						</table>
+							</TableBody>
+						</Table>
 					)}
 				</CardContent>
 			</Card>

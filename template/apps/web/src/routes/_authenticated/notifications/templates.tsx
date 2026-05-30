@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/notifications/templates")({ component: Page });
 
@@ -124,36 +125,36 @@ function Page() {
 					{templates.length === 0 ? (
 						<p className="text-sm text-muted-foreground">{t("notifications.templatesPage.noTemplates")}</p>
 					) : (
-						<table className="w-full text-sm">
-							<thead>
-								<tr className="text-left border-b">
-									<th className="py-2">{t("notifications.templatesPage.columns.eventKey")}</th>
-									<th className="py-2">{t("notifications.templatesPage.columns.subject")}</th>
-									<th className="py-2">{t("notifications.templatesPage.columns.status")}</th>
-									<th className="py-2"></th>
-								</tr>
-							</thead>
-							<tbody>
+						<Table className="w-full text-sm">
+							<TableHeader>
+								<TableRow className="text-left border-b">
+									<TableHead className="py-2">{t("notifications.templatesPage.columns.eventKey")}</TableHead>
+									<TableHead className="py-2">{t("notifications.templatesPage.columns.subject")}</TableHead>
+									<TableHead className="py-2">{t("notifications.templatesPage.columns.status")}</TableHead>
+									<TableHead className="py-2"></TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{templates.map((tpl) => (
-									<tr key={tpl.id} className="border-b">
-										<td className="py-2 font-mono text-xs">{tpl.eventKey}</td>
-										<td className="py-2">{tpl.subject}</td>
-										<td className="py-2">
+									<TableRow key={tpl.id} className="border-b">
+										<TableCell className="py-2 font-mono text-xs">{tpl.eventKey}</TableCell>
+										<TableCell className="py-2">{tpl.subject}</TableCell>
+										<TableCell className="py-2">
 											<Badge variant={tpl.active ? "default" : "secondary"}>
 												{tpl.active
 													? t("notifications.templatesPage.active")
 													: t("notifications.templatesPage.inactive")}
 											</Badge>
-										</td>
-										<td className="py-2 text-right">
+										</TableCell>
+										<TableCell className="py-2 text-right">
 											<Button size="sm" variant="ghost" onClick={() => del.mutate(tpl.id)}>
 												{t("notifications.templatesPage.deleteBtn")}
 											</Button>
-										</td>
-									</tr>
+										</TableCell>
+									</TableRow>
 								))}
-							</tbody>
-						</table>
+							</TableBody>
+						</Table>
 					)}
 				</CardContent>
 			</Card>

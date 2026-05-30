@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/settings/audit-log")({ component: Page });
 
@@ -118,40 +119,40 @@ function Page() {
 					{rows.length === 0 ? (
 						<p className="p-4 text-sm text-muted-foreground">{t("settings.auditLog.noEntries")}</p>
 					) : (
-						<table className="w-full text-sm">
-							<thead>
-								<tr className="text-left border-b">
-									<th className="py-2 px-3">{t("settings.auditLogExt.whenCol")}</th>
-									<th className="py-2 px-3">{t("settings.auditLogExt.actionCol")}</th>
-									<th className="py-2 px-3">{t("settings.auditLogExt.resourceCol")}</th>
-									<th className="py-2 px-3">{t("settings.auditLogExt.idCol")}</th>
-									<th className="py-2 px-3">{t("settings.auditLogExt.userCol")}</th>
-									<th className="py-2 px-3">{t("settings.auditLogExt.ipCol")}</th>
-									<th className="py-2 px-3">{t("settings.auditLogExt.statusCol")}</th>
-								</tr>
-							</thead>
-							<tbody>
+						<Table className="w-full text-sm">
+							<TableHeader>
+								<TableRow className="text-left border-b">
+									<TableHead className="py-2 px-3">{t("settings.auditLogExt.whenCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.auditLogExt.actionCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.auditLogExt.resourceCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.auditLogExt.idCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.auditLogExt.userCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.auditLogExt.ipCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.auditLogExt.statusCol")}</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{rows.map((r) => (
-									<tr key={r.id} className="border-b">
-										<td className="py-2 px-3 text-xs">{new Date(r.createdAt).toLocaleString()}</td>
-										<td className="py-2 px-3 font-medium">{r.action}</td>
-										<td className="py-2 px-3">{r.resource}</td>
-										<td className="py-2 px-3 font-mono text-xs text-muted-foreground">
+									<TableRow key={r.id} className="border-b">
+										<TableCell className="py-2 px-3 text-xs">{new Date(r.createdAt).toLocaleString()}</TableCell>
+										<TableCell className="py-2 px-3 font-medium">{r.action}</TableCell>
+										<TableCell className="py-2 px-3">{r.resource}</TableCell>
+										<TableCell className="py-2 px-3 font-mono text-xs text-muted-foreground">
 											{r.resourceId ? `${r.resourceId.slice(0, 10)}…` : "—"}
-										</td>
-										<td className="py-2 px-3 text-xs">{r.userEmail ?? r.userId ?? "—"}</td>
-										<td className="py-2 px-3 text-xs font-mono">{r.ipAddress ?? "—"}</td>
-										<td className="py-2 px-3">
+										</TableCell>
+										<TableCell className="py-2 px-3 text-xs">{r.userEmail ?? r.userId ?? "—"}</TableCell>
+										<TableCell className="py-2 px-3 text-xs font-mono">{r.ipAddress ?? "—"}</TableCell>
+										<TableCell className="py-2 px-3">
 											<Badge variant={r.status === "success" ? "default" : "destructive"}>
 												{r.status === "success"
 													? t("settings.auditLogExt.statusSuccess")
 													: t("settings.auditLogExt.statusFailure")}
 											</Badge>
-										</td>
-									</tr>
+										</TableCell>
+									</TableRow>
 								))}
-							</tbody>
-						</table>
+							</TableBody>
+						</Table>
 					)}
 				</CardContent>
 			</Card>

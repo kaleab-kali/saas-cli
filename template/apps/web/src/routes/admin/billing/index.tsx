@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
 	active: "default",
@@ -90,49 +91,59 @@ const BillingIndex = React.memo(
 				) : (
 					<Card>
 						<CardContent className="p-0 overflow-x-auto">
-							<table className="w-full text-sm">
-								<thead className="bg-muted/40">
-									<tr>
-										<th className="text-left p-2">
+							<Table className="w-full text-sm">
+								<TableHeader className="bg-muted/40">
+									<TableRow>
+										<TableHead className="text-left p-2">
 											{t("admin.billing.col.organization", { defaultValue: "Organization" })}
-										</th>
-										<th className="text-left p-2">{t("admin.billing.col.plan", { defaultValue: "Plan" })}</th>
-										<th className="text-left p-2">{t("admin.billing.col.status", { defaultValue: "Status" })}</th>
-										<th className="text-left p-2">{t("admin.billing.col.interval", { defaultValue: "Interval" })}</th>
-										<th className="text-left p-2">
+										</TableHead>
+										<TableHead className="text-left p-2">
+											{t("admin.billing.col.plan", { defaultValue: "Plan" })}
+										</TableHead>
+										<TableHead className="text-left p-2">
+											{t("admin.billing.col.status", { defaultValue: "Status" })}
+										</TableHead>
+										<TableHead className="text-left p-2">
+											{t("admin.billing.col.interval", { defaultValue: "Interval" })}
+										</TableHead>
+										<TableHead className="text-left p-2">
 											{t("admin.billing.col.periodEnd", { defaultValue: "Period End" })}
-										</th>
-										<th className="text-right p-2">{t("admin.billing.col.credit", { defaultValue: "Credit" })}</th>
-										<th className="text-right p-2">{t("common.actions")}</th>
-									</tr>
-								</thead>
-								<tbody>
+										</TableHead>
+										<TableHead className="text-right p-2">
+											{t("admin.billing.col.credit", { defaultValue: "Credit" })}
+										</TableHead>
+										<TableHead className="text-right p-2">{t("common.actions")}</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
 									{subs.map((s) => (
-										<tr key={s.id} className="border-t">
-											<td className="p-2">
+										<TableRow key={s.id} className="border-t">
+											<TableCell className="p-2">
 												<div className="font-medium text-sm">{s.organizationName ?? "—"}</div>
 												<div className="text-[11px] text-muted-foreground font-mono">{s.organizationId}</div>
-											</td>
-											<td className="p-2">{s.plan.nameEn}</td>
-											<td className="p-2">
+											</TableCell>
+											<TableCell className="p-2">{s.plan.nameEn}</TableCell>
+											<TableCell className="p-2">
 												<Badge variant={STATUS_VARIANT[s.status] ?? "outline"} className="text-xs capitalize">
 													{t(`admin.billing.status.${s.status}`, { defaultValue: s.status.replace("_", " ") })}
 												</Badge>
-											</td>
-											<td className="p-2">{s.billingInterval}</td>
-											<td className="p-2">{new Date(s.currentPeriodEnd).toLocaleDateString()}</td>
-											<td className="p-2 text-right font-mono">{formatMinor(s.creditBalanceMinor, s.currency)}</td>
-											<td className="p-2 text-right">
+											</TableCell>
+											<TableCell className="p-2">{s.billingInterval}</TableCell>
+											<TableCell className="p-2">{new Date(s.currentPeriodEnd).toLocaleDateString()}</TableCell>
+											<TableCell className="p-2 text-right font-mono">
+												{formatMinor(s.creditBalanceMinor, s.currency)}
+											</TableCell>
+											<TableCell className="p-2 text-right">
 												<Link to="/admin/billing/$subscriptionId" params={{ subscriptionId: s.id }}>
 													<Button variant="outline" size="sm">
 														{t("admin.billing.manage", { defaultValue: "Manage" })}
 													</Button>
 												</Link>
-											</td>
-										</tr>
+											</TableCell>
+										</TableRow>
 									))}
-								</tbody>
-							</table>
+								</TableBody>
+							</Table>
 						</CardContent>
 					</Card>
 				)}

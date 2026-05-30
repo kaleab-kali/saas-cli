@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/settings/roles")({ component: Page });
 
@@ -295,25 +296,25 @@ const RoleRow = React.memo(
 		const { t } = useTranslation();
 		const permCount = Object.values(role.permissionsJson).reduce((s, a) => s + a.length, 0);
 		return (
-			<tr className="border-b">
-				<td className="py-2 px-3 font-medium">
+			<TableRow className="border-b">
+				<TableCell className="py-2 px-3 font-medium">
 					{role.nameEn}
 					{role.nameAm && <span className="text-muted-foreground ml-2">({role.nameAm})</span>}
-				</td>
-				<td className="py-2 px-3 font-mono text-xs">{role.slug}</td>
-				<td className="py-2 px-3 text-xs">
+				</TableCell>
+				<TableCell className="py-2 px-3 font-mono text-xs">{role.slug}</TableCell>
+				<TableCell className="py-2 px-3 text-xs">
 					{role.inheritsFromSlug
 						? t(`settings.roles.systemRoleNames.${role.inheritsFromSlug}`, { defaultValue: role.inheritsFromSlug })
 						: "—"}
-				</td>
-				<td className="py-2 px-3">{permCount}</td>
-				<td className="py-2 px-3">{role.memberCount}</td>
-				<td className="py-2 px-3">
+				</TableCell>
+				<TableCell className="py-2 px-3">{permCount}</TableCell>
+				<TableCell className="py-2 px-3">{role.memberCount}</TableCell>
+				<TableCell className="py-2 px-3">
 					<Badge variant={role.active ? "default" : "secondary"}>
 						{role.active ? t("settings.roles.statusActive") : t("settings.roles.statusInactive")}
 					</Badge>
-				</td>
-				<td className="py-2 px-3 text-right">
+				</TableCell>
+				<TableCell className="py-2 px-3 text-right">
 					<Button
 						size="sm"
 						variant="ghost"
@@ -324,8 +325,8 @@ const RoleRow = React.memo(
 					>
 						{t("common.delete")}
 					</Button>
-				</td>
-			</tr>
+				</TableCell>
+			</TableRow>
 		);
 	},
 	(a, b) => a.role.id === b.role.id && a.role.updatedAt === b.role.updatedAt,
@@ -353,34 +354,34 @@ function Page() {
 					<CardTitle className="text-sm">{t("settings.roles.systemRoles", { count: systemRoles.length })}</CardTitle>
 				</CardHeader>
 				<CardContent className="p-0">
-					<table className="w-full text-sm">
-						<thead>
-							<tr className="text-left border-b">
-								<th className="py-2 px-3">{t("settings.roles.nameCol")}</th>
-								<th className="py-2 px-3">{t("settings.roles.slugCol")}</th>
-								<th className="py-2 px-3">{t("settings.roles.permissionsCol")}</th>
-							</tr>
-						</thead>
-						<tbody>
+					<Table className="w-full text-sm">
+						<TableHeader>
+							<TableRow className="text-left border-b">
+								<TableHead className="py-2 px-3">{t("settings.roles.nameCol")}</TableHead>
+								<TableHead className="py-2 px-3">{t("settings.roles.slugCol")}</TableHead>
+								<TableHead className="py-2 px-3">{t("settings.roles.permissionsCol")}</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
 							{systemRoles.map((r) => {
 								const permCount = Object.values(r.statements ?? {}).reduce((s, a) => s + (a as string[]).length, 0);
 								const enLabel = t(`settings.roles.systemRoleNames.${r.slug}`, { defaultValue: r.slug });
 								const amLabel = SYSTEM_ROLE_AM[r.slug];
 								return (
-									<tr key={r.slug} className="border-b">
-										<td className="py-2 px-3 font-medium">
+									<TableRow key={r.slug} className="border-b">
+										<TableCell className="py-2 px-3 font-medium">
 											{enLabel}
 											{amLabel && i18n.language !== "am" && (
 												<span className="text-muted-foreground ml-2">({amLabel})</span>
 											)}
-										</td>
-										<td className="py-2 px-3 font-mono text-xs">{r.slug}</td>
-										<td className="py-2 px-3 text-xs">{permCount}</td>
-									</tr>
+										</TableCell>
+										<TableCell className="py-2 px-3 font-mono text-xs">{r.slug}</TableCell>
+										<TableCell className="py-2 px-3 text-xs">{permCount}</TableCell>
+									</TableRow>
 								);
 							})}
-						</tbody>
-					</table>
+						</TableBody>
+					</Table>
 				</CardContent>
 			</Card>
 
@@ -392,24 +393,24 @@ function Page() {
 					{customRoles.length === 0 ? (
 						<p className="p-4 text-sm text-muted-foreground">{t("settings.roles.noCustomRoles")}</p>
 					) : (
-						<table className="w-full text-sm">
-							<thead>
-								<tr className="text-left border-b">
-									<th className="py-2 px-3">{t("settings.roles.nameCol")}</th>
-									<th className="py-2 px-3">{t("settings.roles.slugCol")}</th>
-									<th className="py-2 px-3">{t("settings.roles.inherits")}</th>
-									<th className="py-2 px-3">{t("settings.roles.permsCol")}</th>
-									<th className="py-2 px-3">{t("settings.roles.membersCol")}</th>
-									<th className="py-2 px-3">{t("settings.roles.statusCol")}</th>
-									<th className="py-2 px-3"></th>
-								</tr>
-							</thead>
-							<tbody>
+						<Table className="w-full text-sm">
+							<TableHeader>
+								<TableRow className="text-left border-b">
+									<TableHead className="py-2 px-3">{t("settings.roles.nameCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.roles.slugCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.roles.inherits")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.roles.permsCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.roles.membersCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.roles.statusCol")}</TableHead>
+									<TableHead className="py-2 px-3"></TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{customRoles.map((r) => (
 									<RoleRow key={r.id} role={r} onDelete={(id) => del.mutate(id)} />
 								))}
-							</tbody>
-						</table>
+							</TableBody>
+						</Table>
 					)}
 				</CardContent>
 			</Card>

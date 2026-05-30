@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDeleteFile, useFiles, useUploadFile } from "../api/files.hooks";
 
 const formatSize = (bytes: number) => {
@@ -63,26 +64,26 @@ export const FileUploadPanel = React.memo(() => {
 					) : data.length === 0 ? (
 						<p className="p-4 text-sm text-muted-foreground">No files in this folder.</p>
 					) : (
-						<table className="w-full text-sm">
-							<thead className="bg-muted/50 text-muted-foreground">
-								<tr>
-									<th className="p-2 text-left">Name</th>
-									<th className="p-2 text-left">Type</th>
-									<th className="p-2 text-right">Size</th>
-									<th className="p-2 text-left">Storage</th>
-									<th className="p-2 text-left">Uploaded</th>
-									<th className="p-2 text-right">Actions</th>
-								</tr>
-							</thead>
-							<tbody>
+						<Table className="w-full text-sm">
+							<TableHeader className="bg-muted/50 text-muted-foreground">
+								<TableRow>
+									<TableHead className="p-2 text-left">Name</TableHead>
+									<TableHead className="p-2 text-left">Type</TableHead>
+									<TableHead className="p-2 text-right">Size</TableHead>
+									<TableHead className="p-2 text-left">Storage</TableHead>
+									<TableHead className="p-2 text-left">Uploaded</TableHead>
+									<TableHead className="p-2 text-right">Actions</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{data.map((item) => (
-									<tr key={item.id} className="border-t">
-										<td className="p-2 font-medium">{item.filename}</td>
-										<td className="p-2 text-xs">{item.mimeType}</td>
-										<td className="p-2 text-right font-mono">{formatSize(item.size)}</td>
-										<td className="p-2 text-xs">{item.storageDriver}</td>
-										<td className="p-2 text-xs">{new Date(item.createdAt).toLocaleString()}</td>
-										<td className="p-2 text-right space-x-1">
+									<TableRow key={item.id} className="border-t">
+										<TableCell className="p-2 font-medium">{item.filename}</TableCell>
+										<TableCell className="p-2 text-xs">{item.mimeType}</TableCell>
+										<TableCell className="p-2 text-right font-mono">{formatSize(item.size)}</TableCell>
+										<TableCell className="p-2 text-xs">{item.storageDriver}</TableCell>
+										<TableCell className="p-2 text-xs">{new Date(item.createdAt).toLocaleString()}</TableCell>
+										<TableCell className="p-2 text-right space-x-1">
 											<Button size="sm" variant="outline" asChild>
 												<a href={item.url} target="_blank" rel="noreferrer">
 													Open
@@ -91,11 +92,11 @@ export const FileUploadPanel = React.memo(() => {
 											<Button size="sm" variant="ghost" onClick={() => del.mutate(item.id)} disabled={del.isPending}>
 												Delete
 											</Button>
-										</td>
-									</tr>
+										</TableCell>
+									</TableRow>
 								))}
-							</tbody>
-						</table>
+							</TableBody>
+						</Table>
 					)}
 				</CardContent>
 			</Card>

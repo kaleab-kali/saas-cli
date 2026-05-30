@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/settings/members")({ component: MembersPage });
 
@@ -115,22 +116,22 @@ function MembersPage() {
 							<Skeleton className="h-40 w-full" />
 						</div>
 					) : (
-						<table className="w-full text-sm">
-							<thead className="bg-muted/50 text-muted-foreground">
-								<tr>
-									<th className="p-2 text-left">{t("common.name")}</th>
-									<th className="p-2 text-left">{t("common.email")}</th>
-									<th className="p-2 text-left">{t("common.role")}</th>
-									<th className="p-2 text-left">{t("settings.membersPage.joined")}</th>
-									<th className="p-2 text-right">{t("common.actions")}</th>
-								</tr>
-							</thead>
-							<tbody>
+						<Table className="w-full text-sm">
+							<TableHeader className="bg-muted/50 text-muted-foreground">
+								<TableRow>
+									<TableHead className="p-2 text-left">{t("common.name")}</TableHead>
+									<TableHead className="p-2 text-left">{t("common.email")}</TableHead>
+									<TableHead className="p-2 text-left">{t("common.role")}</TableHead>
+									<TableHead className="p-2 text-left">{t("settings.membersPage.joined")}</TableHead>
+									<TableHead className="p-2 text-right">{t("common.actions")}</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{members.map((member) => (
-									<tr key={member.id} className="border-t">
-										<td className="p-2 font-medium">{member.user.name}</td>
-										<td className="p-2">{member.user.email}</td>
-										<td className="p-2">
+									<TableRow key={member.id} className="border-t">
+										<TableCell className="p-2 font-medium">{member.user.name}</TableCell>
+										<TableCell className="p-2">{member.user.email}</TableCell>
+										<TableCell className="p-2">
 											<Select
 												value={member.role}
 												onValueChange={(value) => updateRole.mutate({ id: member.id, role: value as TeamRole })}
@@ -146,24 +147,24 @@ function MembersPage() {
 													))}
 												</SelectContent>
 											</Select>
-										</td>
-										<td className="p-2 text-xs">{new Date(member.createdAt).toLocaleDateString()}</td>
-										<td className="p-2 text-right">
+										</TableCell>
+										<TableCell className="p-2 text-xs">{new Date(member.createdAt).toLocaleDateString()}</TableCell>
+										<TableCell className="p-2 text-right">
 											<Button size="sm" variant="ghost" onClick={() => remove.mutate(member.id)}>
 												{t("settings.membersPage.remove")}
 											</Button>
-										</td>
-									</tr>
+										</TableCell>
+									</TableRow>
 								))}
 								{members.length === 0 && (
-									<tr>
-										<td colSpan={5} className="p-6 text-center text-muted-foreground">
+									<TableRow>
+										<TableCell colSpan={5} className="p-6 text-center text-muted-foreground">
 											{t("settings.membersPage.noMembers")}
-										</td>
-									</tr>
+										</TableCell>
+									</TableRow>
 								)}
-							</tbody>
-						</table>
+							</TableBody>
+						</Table>
 					)}
 				</CardContent>
 			</Card>
@@ -173,28 +174,30 @@ function MembersPage() {
 					<CardTitle className="text-base">{t("settings.membersPage.invitations")}</CardTitle>
 				</CardHeader>
 				<CardContent className="p-0 overflow-x-auto">
-					<table className="w-full text-sm">
-						<thead className="bg-muted/50 text-muted-foreground">
-							<tr>
-								<th className="p-2 text-left">{t("common.email")}</th>
-								<th className="p-2 text-left">{t("common.role")}</th>
-								<th className="p-2 text-left">{t("common.status")}</th>
-								<th className="p-2 text-left">{t("common.expires")}</th>
-								<th className="p-2 text-right">{t("common.actions")}</th>
-							</tr>
-						</thead>
-						<tbody>
+					<Table className="w-full text-sm">
+						<TableHeader className="bg-muted/50 text-muted-foreground">
+							<TableRow>
+								<TableHead className="p-2 text-left">{t("common.email")}</TableHead>
+								<TableHead className="p-2 text-left">{t("common.role")}</TableHead>
+								<TableHead className="p-2 text-left">{t("common.status")}</TableHead>
+								<TableHead className="p-2 text-left">{t("common.expires")}</TableHead>
+								<TableHead className="p-2 text-right">{t("common.actions")}</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
 							{invitations.map((invitation) => (
-								<tr key={invitation.id} className="border-t">
-									<td className="p-2 font-medium">{invitation.email}</td>
-									<td className="p-2">{t(`settings.membersPage.roles.${invitation.role ?? "member"}`)}</td>
-									<td className="p-2">
+								<TableRow key={invitation.id} className="border-t">
+									<TableCell className="p-2 font-medium">{invitation.email}</TableCell>
+									<TableCell className="p-2">
+										{t(`settings.membersPage.roles.${invitation.role ?? "member"}`)}
+									</TableCell>
+									<TableCell className="p-2">
 										<Badge variant={invitation.status === "pending" ? "secondary" : "outline"}>
 											{invitation.status}
 										</Badge>
-									</td>
-									<td className="p-2 text-xs">{new Date(invitation.expiresAt).toLocaleDateString()}</td>
-									<td className="p-2 text-right space-x-1">
+									</TableCell>
+									<TableCell className="p-2 text-xs">{new Date(invitation.expiresAt).toLocaleDateString()}</TableCell>
+									<TableCell className="p-2 text-right space-x-1">
 										<Button
 											size="sm"
 											variant="outline"
@@ -215,18 +218,18 @@ function MembersPage() {
 												{t("common.cancel")}
 											</Button>
 										)}
-									</td>
-								</tr>
+									</TableCell>
+								</TableRow>
 							))}
 							{invitations.length === 0 && (
-								<tr>
-									<td colSpan={5} className="p-6 text-center text-muted-foreground">
+								<TableRow>
+									<TableCell colSpan={5} className="p-6 text-center text-muted-foreground">
 										{t("settings.membersPage.noInvitations")}
-									</td>
-								</tr>
+									</TableCell>
+								</TableRow>
 							)}
-						</tbody>
-					</table>
+						</TableBody>
+					</Table>
 				</CardContent>
 			</Card>
 		</div>

@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/settings/api-keys")({ component: Page });
 
@@ -182,50 +183,50 @@ function Page() {
 					{keys.length === 0 ? (
 						<p className="p-4 text-sm text-muted-foreground">{t("settings.apiKeys.noKeys")}</p>
 					) : (
-						<table className="w-full text-sm">
-							<thead>
-								<tr className="text-left border-b">
-									<th className="py-2 px-3">{t("settings.apiKeysExt.nameCol")}</th>
-									<th className="py-2 px-3">{t("settings.apiKeysExt.prefixCol")}</th>
-									<th className="py-2 px-3">{t("settings.apiKeysExt.scopesCol")}</th>
-									<th className="py-2 px-3">{t("settings.apiKeysExt.expiresCol")}</th>
-									<th className="py-2 px-3">{t("settings.apiKeysExt.lastUsedCol")}</th>
-									<th className="py-2 px-3">{t("settings.apiKeysExt.usageCol")}</th>
-									<th className="py-2 px-3">RPM</th>
-									<th className="py-2 px-3">{t("settings.apiKeysExt.statusCol")}</th>
-									<th className="py-2 px-3"></th>
-								</tr>
-							</thead>
-							<tbody>
+						<Table className="w-full text-sm">
+							<TableHeader>
+								<TableRow className="text-left border-b">
+									<TableHead className="py-2 px-3">{t("settings.apiKeysExt.nameCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.apiKeysExt.prefixCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.apiKeysExt.scopesCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.apiKeysExt.expiresCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.apiKeysExt.lastUsedCol")}</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.apiKeysExt.usageCol")}</TableHead>
+									<TableHead className="py-2 px-3">RPM</TableHead>
+									<TableHead className="py-2 px-3">{t("settings.apiKeysExt.statusCol")}</TableHead>
+									<TableHead className="py-2 px-3"></TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{keys.map((k) => (
-									<tr key={k.id} className="border-b">
-										<td className="py-2 px-3 font-medium">{k.name}</td>
-										<td className="py-2 px-3 font-mono text-xs">{k.keyPrefix}…</td>
-										<td className="py-2 px-3 text-xs">{k.scopes.join(", ")}</td>
-										<td className="py-2 px-3 text-xs">
+									<TableRow key={k.id} className="border-b">
+										<TableCell className="py-2 px-3 font-medium">{k.name}</TableCell>
+										<TableCell className="py-2 px-3 font-mono text-xs">{k.keyPrefix}…</TableCell>
+										<TableCell className="py-2 px-3 text-xs">{k.scopes.join(", ")}</TableCell>
+										<TableCell className="py-2 px-3 text-xs">
 											{k.expiresAt ? new Date(k.expiresAt).toLocaleDateString() : t("settings.apiKeysExt.neverUsed")}
-										</td>
-										<td className="py-2 px-3 text-xs">
+										</TableCell>
+										<TableCell className="py-2 px-3 text-xs">
 											{k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString() : t("settings.apiKeysExt.neverUsed")}
-										</td>
-										<td className="py-2 px-3 text-xs">{k.usageCount}</td>
-										<td className="py-2 px-3 text-xs">{k.rateLimit ?? "plan"}</td>
-										<td className="py-2 px-3">
+										</TableCell>
+										<TableCell className="py-2 px-3 text-xs">{k.usageCount}</TableCell>
+										<TableCell className="py-2 px-3 text-xs">{k.rateLimit ?? "plan"}</TableCell>
+										<TableCell className="py-2 px-3">
 											<Badge variant={k.revokedAt ? "secondary" : "default"}>
 												{k.revokedAt ? t("settings.apiKeysExt.revokedStatus") : t("settings.apiKeysExt.activeStatus")}
 											</Badge>
-										</td>
-										<td className="py-2 px-3 text-right">
+										</TableCell>
+										<TableCell className="py-2 px-3 text-right">
 											{!k.revokedAt && (
 												<Button size="sm" variant="ghost" onClick={() => revoke.mutate(k.id)}>
 													{t("settings.apiKeysExt.revokeBtn")}
 												</Button>
 											)}
-										</td>
-									</tr>
+										</TableCell>
+									</TableRow>
 								))}
-							</tbody>
-						</table>
+							</TableBody>
+						</Table>
 					)}
 				</CardContent>
 			</Card>

@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const METHODS = ["manual_bank", "manual_other", "stripe_card", "chapa_telebirr", "chapa_cbe", "chapa_card"] as const;
@@ -299,30 +300,44 @@ const SubscriptionDetail = React.memo(
 
 						<Card>
 							<CardContent className="p-0 overflow-x-auto">
-								<table className="w-full text-sm">
-									<thead className="bg-muted/40">
-										<tr>
-											<th className="text-left p-2">{t("admin.billing.col.number", { defaultValue: "Number" })}</th>
-											<th className="text-left p-2">{t("admin.billing.col.status", { defaultValue: "Status" })}</th>
-											<th className="text-left p-2">{t("admin.billing.col.due", { defaultValue: "Due" })}</th>
-											<th className="text-right p-2">{t("admin.billing.col.total", { defaultValue: "Total" })}</th>
-											<th className="text-right p-2">{t("admin.billing.col.paid", { defaultValue: "Paid" })}</th>
-											<th className="text-right p-2">{t("common.actions")}</th>
-										</tr>
-									</thead>
-									<tbody>
+								<Table className="w-full text-sm">
+									<TableHeader className="bg-muted/40">
+										<TableRow>
+											<TableHead className="text-left p-2">
+												{t("admin.billing.col.number", { defaultValue: "Number" })}
+											</TableHead>
+											<TableHead className="text-left p-2">
+												{t("admin.billing.col.status", { defaultValue: "Status" })}
+											</TableHead>
+											<TableHead className="text-left p-2">
+												{t("admin.billing.col.due", { defaultValue: "Due" })}
+											</TableHead>
+											<TableHead className="text-right p-2">
+												{t("admin.billing.col.total", { defaultValue: "Total" })}
+											</TableHead>
+											<TableHead className="text-right p-2">
+												{t("admin.billing.col.paid", { defaultValue: "Paid" })}
+											</TableHead>
+											<TableHead className="text-right p-2">{t("common.actions")}</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
 										{sub.invoices.map((inv) => (
-											<tr key={inv.id} className="border-t">
-												<td className="p-2 font-medium">{inv.number}</td>
-												<td className="p-2">
+											<TableRow key={inv.id} className="border-t">
+												<TableCell className="p-2 font-medium">{inv.number}</TableCell>
+												<TableCell className="p-2">
 													<Badge variant="outline" className="capitalize text-xs">
 														{inv.status}
 													</Badge>
-												</td>
-												<td className="p-2">{new Date(inv.dueDate).toLocaleDateString()}</td>
-												<td className="p-2 text-right font-mono">{formatMinor(inv.totalMinor, inv.currency)}</td>
-												<td className="p-2 text-right font-mono">{formatMinor(inv.amountPaidMinor, inv.currency)}</td>
-												<td className="p-2 text-right space-x-1">
+												</TableCell>
+												<TableCell className="p-2">{new Date(inv.dueDate).toLocaleDateString()}</TableCell>
+												<TableCell className="p-2 text-right font-mono">
+													{formatMinor(inv.totalMinor, inv.currency)}
+												</TableCell>
+												<TableCell className="p-2 text-right font-mono">
+													{formatMinor(inv.amountPaidMinor, inv.currency)}
+												</TableCell>
+												<TableCell className="p-2 text-right space-x-1">
 													{inv.status === "draft" && (
 														<Button
 															size="sm"
@@ -443,18 +458,18 @@ const SubscriptionDetail = React.memo(
 															{t("admin.billing.void", { defaultValue: "Void" })}
 														</Button>
 													)}
-												</td>
-											</tr>
+												</TableCell>
+											</TableRow>
 										))}
 										{sub.invoices.length === 0 && (
-											<tr>
-												<td colSpan={6} className="p-4 text-center text-muted-foreground text-xs">
+											<TableRow>
+												<TableCell colSpan={6} className="p-4 text-center text-muted-foreground text-xs">
 													{t("admin.billing.noInvoices", { defaultValue: "No invoices" })}
-												</td>
-											</tr>
+												</TableCell>
+											</TableRow>
 										)}
-									</tbody>
-								</table>
+									</TableBody>
+								</Table>
 							</CardContent>
 						</Card>
 					</TabsContent>
@@ -647,30 +662,30 @@ const SubscriptionDetail = React.memo(
 								{dunningLog.length === 0 ? (
 									<p className="text-sm text-muted-foreground p-4 text-center">No dunning emails sent.</p>
 								) : (
-									<table className="w-full text-sm">
-										<thead className="bg-muted/40">
-											<tr>
-												<th className="text-left p-2">When</th>
-												<th className="text-left p-2">Type</th>
-												<th className="text-left p-2">Subject</th>
-												<th className="text-left p-2">To</th>
-												<th className="text-left p-2">Status</th>
-											</tr>
-										</thead>
-										<tbody>
+									<Table className="w-full text-sm">
+										<TableHeader className="bg-muted/40">
+											<TableRow>
+												<TableHead className="text-left p-2">When</TableHead>
+												<TableHead className="text-left p-2">Type</TableHead>
+												<TableHead className="text-left p-2">Subject</TableHead>
+												<TableHead className="text-left p-2">To</TableHead>
+												<TableHead className="text-left p-2">Status</TableHead>
+											</TableRow>
+										</TableHeader>
+										<TableBody>
 											{dunningLog.map((d) => (
-												<tr key={d.id} className="border-t">
-													<td className="p-2">{new Date(d.sentAt).toLocaleString()}</td>
-													<td className="p-2 capitalize">{d.type.replace("_", " ")}</td>
-													<td className="p-2">{d.subject}</td>
-													<td className="p-2 text-muted-foreground">{d.sentTo}</td>
-													<td className="p-2">
+												<TableRow key={d.id} className="border-t">
+													<TableCell className="p-2">{new Date(d.sentAt).toLocaleString()}</TableCell>
+													<TableCell className="p-2 capitalize">{d.type.replace("_", " ")}</TableCell>
+													<TableCell className="p-2">{d.subject}</TableCell>
+													<TableCell className="p-2 text-muted-foreground">{d.sentTo}</TableCell>
+													<TableCell className="p-2">
 														<Badge variant={d.status === "sent" ? "default" : "destructive"}>{d.status}</Badge>
-													</td>
-												</tr>
+													</TableCell>
+												</TableRow>
 											))}
-										</tbody>
-									</table>
+										</TableBody>
+									</Table>
 								)}
 							</CardContent>
 						</Card>
@@ -705,30 +720,30 @@ const UsageHistoryPanel = React.memo(
 					<CardTitle className="text-base">Daily usage snapshots (last 90)</CardTitle>
 				</CardHeader>
 				<CardContent className="p-0 overflow-x-auto">
-					<table className="w-full text-sm">
-						<thead className="bg-muted/40">
-							<tr>
-								<th className="text-left p-2">Date</th>
-								<th className="text-right p-2">Users</th>
-								<th className="text-right p-2">API calls</th>
-								<th className="text-right p-2">Emails</th>
-								<th className="text-left p-2">Metrics</th>
-							</tr>
-						</thead>
-						<tbody>
+					<Table className="w-full text-sm">
+						<TableHeader className="bg-muted/40">
+							<TableRow>
+								<TableHead className="text-left p-2">Date</TableHead>
+								<TableHead className="text-right p-2">Users</TableHead>
+								<TableHead className="text-right p-2">API calls</TableHead>
+								<TableHead className="text-right p-2">Emails</TableHead>
+								<TableHead className="text-left p-2">Metrics</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
 							{data.map((s) => (
-								<tr key={s.id} className="border-t">
-									<td className="p-2">{new Date(s.snapshotDate).toLocaleDateString()}</td>
-									<td className="p-2 text-right font-mono">{s.userCount}</td>
-									<td className="p-2 text-right font-mono">{s.apiCallCount}</td>
-									<td className="p-2 text-right font-mono">{s.emailCount}</td>
-									<td className="p-2 text-xs text-muted-foreground">
+								<TableRow key={s.id} className="border-t">
+									<TableCell className="p-2">{new Date(s.snapshotDate).toLocaleDateString()}</TableCell>
+									<TableCell className="p-2 text-right font-mono">{s.userCount}</TableCell>
+									<TableCell className="p-2 text-right font-mono">{s.apiCallCount}</TableCell>
+									<TableCell className="p-2 text-right font-mono">{s.emailCount}</TableCell>
+									<TableCell className="p-2 text-xs text-muted-foreground">
 										{s.metricsJson ? JSON.stringify(s.metricsJson) : "None"}
-									</td>
-								</tr>
+									</TableCell>
+								</TableRow>
 							))}
-						</tbody>
-					</table>
+						</TableBody>
+					</Table>
 				</CardContent>
 			</Card>
 		);

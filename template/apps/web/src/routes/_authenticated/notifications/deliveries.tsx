@@ -6,6 +6,7 @@ import { api } from "#shared/lib/api-client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/notifications/deliveries")({ component: Page });
 
@@ -86,27 +87,29 @@ function Page() {
 					{rows.length === 0 ? (
 						<p className="text-sm text-muted-foreground">{t("notifications.deliveriesPage.noEmails")}</p>
 					) : (
-						<table className="w-full text-sm">
-							<thead>
-								<tr className="text-left border-b">
-									<th className="py-2">{t("notifications.deliveriesPage.columns.time")}</th>
-									<th className="py-2">{t("notifications.deliveriesPage.columns.to")}</th>
-									<th className="py-2">{t("notifications.deliveriesPage.columns.subject")}</th>
-									<th className="py-2">{t("notifications.deliveriesPage.columns.source")}</th>
-									<th className="py-2">{t("notifications.deliveriesPage.columns.status")}</th>
-									<th className="py-2">{t("notifications.deliveriesPage.columns.error")}</th>
-								</tr>
-							</thead>
-							<tbody>
+						<Table className="w-full text-sm">
+							<TableHeader>
+								<TableRow className="text-left border-b">
+									<TableHead className="py-2">{t("notifications.deliveriesPage.columns.time")}</TableHead>
+									<TableHead className="py-2">{t("notifications.deliveriesPage.columns.to")}</TableHead>
+									<TableHead className="py-2">{t("notifications.deliveriesPage.columns.subject")}</TableHead>
+									<TableHead className="py-2">{t("notifications.deliveriesPage.columns.source")}</TableHead>
+									<TableHead className="py-2">{t("notifications.deliveriesPage.columns.status")}</TableHead>
+									<TableHead className="py-2">{t("notifications.deliveriesPage.columns.error")}</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{rows.map((r) => (
-									<tr key={r.id} className="border-b">
-										<td className="py-2 text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleString()}</td>
-										<td className="py-2">{r.toEmail}</td>
-										<td className="py-2 truncate max-w-[260px]">{r.subject}</td>
-										<td className="py-2">
+									<TableRow key={r.id} className="border-b">
+										<TableCell className="py-2 text-xs text-muted-foreground">
+											{new Date(r.createdAt).toLocaleString()}
+										</TableCell>
+										<TableCell className="py-2">{r.toEmail}</TableCell>
+										<TableCell className="py-2 truncate max-w-[260px]">{r.subject}</TableCell>
+										<TableCell className="py-2">
 											{t(`notifications.deliveriesPage.sourceFilters.${r.source}`, { defaultValue: r.source })}
-										</td>
-										<td className="py-2">
+										</TableCell>
+										<TableCell className="py-2">
 											<Badge
 												variant={
 													r.status === "delivered" || r.status === "sent"
@@ -118,12 +121,14 @@ function Page() {
 											>
 												{t(`notifications.deliveriesPage.statusFilters.${r.status}`, { defaultValue: r.status })}
 											</Badge>
-										</td>
-										<td className="py-2 text-xs text-destructive truncate max-w-[240px]">{r.error ?? ""}</td>
-									</tr>
+										</TableCell>
+										<TableCell className="py-2 text-xs text-destructive truncate max-w-[240px]">
+											{r.error ?? ""}
+										</TableCell>
+									</TableRow>
 								))}
-							</tbody>
-						</table>
+							</TableBody>
+						</Table>
 					)}
 				</CardContent>
 			</Card>

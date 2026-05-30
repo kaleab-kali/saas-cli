@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/settings/billing")({
 	component: BillingSettings,
@@ -242,17 +243,21 @@ const InvoiceRow = React.memo(
 	}) => {
 		const isOpen = inv.status === "sent" || inv.status === "overdue" || inv.status === "pending_payment";
 		return (
-			<tr className="border-t">
-				<td className="py-2 px-3 font-mono text-xs">{inv.number}</td>
-				<td className="py-2 px-3">
+			<TableRow className="border-t">
+				<TableCell className="py-2 px-3 font-mono text-xs">{inv.number}</TableCell>
+				<TableCell className="py-2 px-3">
 					<StatusBadge status={inv.status} />
-				</td>
-				<td className="py-2 px-3 text-right">{formatMoney(inv.subtotalMinor, inv.currency)}</td>
-				<td className="py-2 px-3 text-right text-xs">{formatMoney(inv.taxMinor, inv.currency)}</td>
-				<td className="py-2 px-3 text-right font-semibold">{formatMoney(inv.totalMinor, inv.currency)}</td>
-				<td className="py-2 px-3 text-right">{formatMoney(inv.amountPaidMinor, inv.currency)}</td>
-				<td className="py-2 px-3 text-xs text-muted-foreground">{new Date(inv.dueDate).toLocaleDateString()}</td>
-				<td className="py-2 px-3 text-right space-x-1">
+				</TableCell>
+				<TableCell className="py-2 px-3 text-right">{formatMoney(inv.subtotalMinor, inv.currency)}</TableCell>
+				<TableCell className="py-2 px-3 text-right text-xs">{formatMoney(inv.taxMinor, inv.currency)}</TableCell>
+				<TableCell className="py-2 px-3 text-right font-semibold">
+					{formatMoney(inv.totalMinor, inv.currency)}
+				</TableCell>
+				<TableCell className="py-2 px-3 text-right">{formatMoney(inv.amountPaidMinor, inv.currency)}</TableCell>
+				<TableCell className="py-2 px-3 text-xs text-muted-foreground">
+					{new Date(inv.dueDate).toLocaleDateString()}
+				</TableCell>
+				<TableCell className="py-2 px-3 text-right space-x-1">
 					{isOpen && (
 						<>
 							<ManualPaymentDialog inv={inv} onRecord={onRecordManualPayment} disabled={recordingManualPayment} />
@@ -271,8 +276,8 @@ const InvoiceRow = React.memo(
 							</a>
 						</Button>
 					)}
-				</td>
-			</tr>
+				</TableCell>
+			</TableRow>
 		);
 	},
 	(prev, next) =>
@@ -464,20 +469,20 @@ function BillingSettings() {
 				<h2 className="text-lg font-semibold mb-3">{t("billing.invoices", { defaultValue: "Invoices" })}</h2>
 				<Card>
 					<CardContent className="p-0 overflow-x-auto">
-						<table className="w-full text-sm">
-							<thead>
-								<tr className="text-xs text-muted-foreground bg-muted/50">
-									<th className="py-2 px-3 text-left">#</th>
-									<th className="py-2 px-3 text-left">Status</th>
-									<th className="py-2 px-3 text-right">Subtotal</th>
-									<th className="py-2 px-3 text-right">Tax</th>
-									<th className="py-2 px-3 text-right">Total</th>
-									<th className="py-2 px-3 text-right">Paid</th>
-									<th className="py-2 px-3 text-left">Due</th>
-									<th className="py-2 px-3 text-right">Actions</th>
-								</tr>
-							</thead>
-							<tbody>
+						<Table className="w-full text-sm">
+							<TableHeader>
+								<TableRow className="text-xs text-muted-foreground bg-muted/50">
+									<TableHead className="py-2 px-3 text-left">#</TableHead>
+									<TableHead className="py-2 px-3 text-left">Status</TableHead>
+									<TableHead className="py-2 px-3 text-right">Subtotal</TableHead>
+									<TableHead className="py-2 px-3 text-right">Tax</TableHead>
+									<TableHead className="py-2 px-3 text-right">Total</TableHead>
+									<TableHead className="py-2 px-3 text-right">Paid</TableHead>
+									<TableHead className="py-2 px-3 text-left">Due</TableHead>
+									<TableHead className="py-2 px-3 text-right">Actions</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{(invoicesRes?.data ?? []).map((inv) => (
 									<InvoiceRow
 										key={inv.id}
@@ -489,14 +494,14 @@ function BillingSettings() {
 									/>
 								))}
 								{(!invoicesRes?.data || invoicesRes.data.length === 0) && (
-									<tr>
-										<td colSpan={8} className="py-8 text-center text-muted-foreground">
+									<TableRow>
+										<TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
 											{t("billing.noInvoices", { defaultValue: "No invoices yet" })}
-										</td>
-									</tr>
+										</TableCell>
+									</TableRow>
 								)}
-							</tbody>
-						</table>
+							</TableBody>
+						</Table>
 					</CardContent>
 				</Card>
 			</div>

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface EntitlementRow {
 	featureKey: string;
@@ -233,26 +234,32 @@ const PlanDetail = React.memo(
 						</Button>
 					</CardHeader>
 					<CardContent className="p-0 overflow-x-auto">
-						<table className="w-full text-sm">
-							<thead className="bg-muted/40">
-								<tr>
-									<th className="text-left p-2">{t("admin.plans.feature", { defaultValue: "Feature Key" })}</th>
-									<th className="text-center p-2 w-24">{t("admin.plans.enabled", { defaultValue: "Enabled" })}</th>
-									<th className="text-right p-2 w-32">{t("admin.plans.limit", { defaultValue: "Limit" })}</th>
-								</tr>
-							</thead>
-							<tbody>
+						<Table className="w-full text-sm">
+							<TableHeader className="bg-muted/40">
+								<TableRow>
+									<TableHead className="text-left p-2">
+										{t("admin.plans.feature", { defaultValue: "Feature Key" })}
+									</TableHead>
+									<TableHead className="text-center p-2 w-24">
+										{t("admin.plans.enabled", { defaultValue: "Enabled" })}
+									</TableHead>
+									<TableHead className="text-right p-2 w-32">
+										{t("admin.plans.limit", { defaultValue: "Limit" })}
+									</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{rows.map((row) => (
-									<tr key={row.featureKey} className="border-t">
-										<td className="p-2 font-mono text-xs">{row.featureKey}</td>
-										<td className="p-2 text-center">
+									<TableRow key={row.featureKey} className="border-t">
+										<TableCell className="p-2 font-mono text-xs">{row.featureKey}</TableCell>
+										<TableCell className="p-2 text-center">
 											<input
 												type="checkbox"
 												checked={row.enabled}
 												onChange={(e) => updateRow(row.featureKey, { enabled: e.target.checked })}
 											/>
-										</td>
-										<td className="p-2 text-right">
+										</TableCell>
+										<TableCell className="p-2 text-right">
 											<Input
 												type="number"
 												value={row.limit ?? ""}
@@ -262,11 +269,11 @@ const PlanDetail = React.memo(
 												disabled={!row.enabled}
 												className="w-24 text-right font-mono"
 											/>
-										</td>
-									</tr>
+										</TableCell>
+									</TableRow>
 								))}
-							</tbody>
-						</table>
+							</TableBody>
+						</Table>
 					</CardContent>
 				</Card>
 			</div>

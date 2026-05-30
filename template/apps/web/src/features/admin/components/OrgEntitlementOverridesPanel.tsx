@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const OrgEntitlementOverridesPanel = React.memo(
 	({ organizationId }: { readonly organizationId: string }) => {
@@ -105,36 +106,38 @@ export const OrgEntitlementOverridesPanel = React.memo(
 					{data.length === 0 ? (
 						<p className="text-sm text-muted-foreground py-4 text-center">No overrides active.</p>
 					) : (
-						<table className="w-full text-sm">
-							<thead className="bg-muted/40">
-								<tr>
-									<th className="text-left p-2">Feature</th>
-									<th className="text-left p-2">Mode</th>
-									<th className="text-right p-2">Limit</th>
-									<th className="text-left p-2">Expires</th>
-									<th className="text-left p-2">Reason</th>
-									<th className="text-right p-2" />
-								</tr>
-							</thead>
-							<tbody>
+						<Table className="w-full text-sm">
+							<TableHeader className="bg-muted/40">
+								<TableRow>
+									<TableHead className="text-left p-2">Feature</TableHead>
+									<TableHead className="text-left p-2">Mode</TableHead>
+									<TableHead className="text-right p-2">Limit</TableHead>
+									<TableHead className="text-left p-2">Expires</TableHead>
+									<TableHead className="text-left p-2">Reason</TableHead>
+									<TableHead className="text-right p-2" />
+								</TableRow>
+							</TableHeader>
+							<TableBody>
 								{data.map((o) => (
-									<tr key={o.id} className="border-t">
-										<td className="p-2 font-mono text-xs">{o.featureKey}</td>
-										<td className="p-2">
+									<TableRow key={o.id} className="border-t">
+										<TableCell className="p-2 font-mono text-xs">{o.featureKey}</TableCell>
+										<TableCell className="p-2">
 											<Badge variant={o.enabled ? "default" : "destructive"}>{o.enabled ? "Grant" : "Block"}</Badge>
-										</td>
-										<td className="p-2 text-right font-mono">{o.limit ?? "∞"}</td>
-										<td className="p-2">{o.expiresAt ? new Date(o.expiresAt).toLocaleDateString() : "—"}</td>
-										<td className="p-2 text-muted-foreground">{o.reason || "—"}</td>
-										<td className="p-2 text-right">
+										</TableCell>
+										<TableCell className="p-2 text-right font-mono">{o.limit ?? "∞"}</TableCell>
+										<TableCell className="p-2">
+											{o.expiresAt ? new Date(o.expiresAt).toLocaleDateString() : "—"}
+										</TableCell>
+										<TableCell className="p-2 text-muted-foreground">{o.reason || "—"}</TableCell>
+										<TableCell className="p-2 text-right">
 											<Button variant="ghost" size="sm" onClick={() => del.mutate(o.id)} disabled={del.isPending}>
 												Remove
 											</Button>
-										</td>
-									</tr>
+										</TableCell>
+									</TableRow>
 								))}
-							</tbody>
-						</table>
+							</TableBody>
+						</Table>
 					)}
 				</CardContent>
 			</Card>
