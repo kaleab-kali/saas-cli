@@ -5,7 +5,7 @@ This template assumes every production deployment is multi-tenant and internet-f
 ## Required Secrets
 
 - `BETTER_AUTH_SECRET`: 32-byte hex value generated at scaffold time.
-- `MASTER_KEY`: 32-byte hex value generated at scaffold time. Used by shared crypto services and starter packs for encrypted secrets.
+- `MASTER_KEY`: 32-byte hex value generated at scaffold time. Used by `CipherService` for encrypted secrets.
 - Provider keys such as `STRIPE_SECRET_KEY`, `CHAPA_SECRET_KEY`, object storage keys, SMTP credentials, and webhook secrets must never be committed.
 
 Rotate secrets when a staff member with production env access leaves, when a deployment artifact leaks, or before a compliance audit if rotation history is unclear.
@@ -38,6 +38,12 @@ The gate runs Prisma generation, production doctor checks, lint/type checks, CI 
 ## Tenant Isolation
 
 Every query that reads tenant data must be scoped by `organizationId` or run through a shared tenant-aware repository/service. API tests must include tenant isolation and permission denial cases for new modules.
+
+## Secret Encryption
+
+Use `CipherService` from `#shared/crypto/cipher.service` for API keys, integration credentials, private tokens, and starter-pack secrets. It uses AES-256-GCM with a random IV per value and refuses to start when `MASTER_KEY` is missing or malformed.
+
+Do not add feature-local encryption helpers. Keep ciphertext values opaque to the frontend and redact them from logs, exports, and admin API responses.
 
 ## Security Tooling
 

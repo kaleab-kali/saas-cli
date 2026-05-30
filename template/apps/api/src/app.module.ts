@@ -22,6 +22,7 @@ import { RoleModule } from "#modules/role/role.module";
 import { SecuritySettingsModule } from "#modules/security-settings/security-settings.module";
 import { TeamModule } from "#modules/team/team.module";
 import { UploadModule } from "#modules/upload/upload.module";
+import { CryptoModule } from "#shared/crypto/crypto.module";
 import { PrismaModule } from "#shared/database/prisma.module";
 import { TenantContextModule } from "#shared/database/tenant-context";
 import { EmailModule } from "#shared/email/email.module";
@@ -51,6 +52,7 @@ import { StorageModule } from "#shared/storage/storage.module";
 		EventEmitterModule.forRoot(),
 		DomainEventBusModule,
 		ScheduleModule.forRoot(),
+		CryptoModule,
 		PrismaModule,
 		TenantContextModule,
 		MetricsModule,
