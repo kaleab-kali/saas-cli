@@ -180,6 +180,26 @@ function assertHealthObservabilitySurface() {
 	assert(observabilityDocs.includes("/api/v1/health/detailed"), "observability docs document detailed health endpoint");
 }
 
+function assertUploadHardeningSurface() {
+	const main = readProjectFile("apps/api/src/main.ts");
+	const uploadService = readProjectFile("apps/api/src/modules/upload/application/upload.service.ts");
+	const uploadSpec = readProjectFile("apps/api/src/modules/upload/application/upload.service.spec.ts");
+	const localDriver = readProjectFile("apps/api/src/shared/storage/local-storage.driver.ts");
+	const sourceSecurity = readProjectFile("apps/security/scripts/source-security-check.mjs");
+	const securityDocs = readProjectFile("docs/SECURITY.md");
+	assert(main.includes("X-Content-Type-Options"), "served upload assets set nosniff headers");
+	assert(main.includes("Content-Security-Policy"), "served upload assets set restrictive CSP");
+	assert(uploadService.includes("UPLOAD_TYPE_POLICIES"), "upload service has explicit MIME policies");
+	assert(uploadService.includes("UPLOAD_ALLOWED_MIME_TYPES"), "upload service supports configurable MIME allowlist");
+	assert(uploadService.includes("file content does not match declared type"), "upload service checks file signatures");
+	assert(uploadService.includes("text upload contains unsafe content"), "upload service rejects unsafe text uploads");
+	assert(uploadSpec.includes("rejects extension and content mismatches"), "upload tests cover spoofed file rejection");
+	assert(uploadSpec.includes("rejects SVG and HTML-style text uploads"), "upload tests cover active-content rejection");
+	assert(localDriver.includes("safeUploadsPath"), "local storage protects against path traversal");
+	assert(sourceSecurity.includes("uploads must validate binary signatures"), "source security gate enforces upload hardening");
+	assert(securityDocs.includes("UPLOAD_ALLOWED_MIME_TYPES"), "security docs document upload MIME allowlist configuration");
+}
+
 function assertOnboardingFirstEntry() {
 	const rootIndex = readProjectFile("apps/web/src/routes/index.tsx");
 	const loginPage = readProjectFile("apps/web/src/routes/login.tsx");
@@ -317,6 +337,7 @@ async function main() {
 	assertWorkspaceScripts();
 	assertPerformanceMockGateRuns();
 	assertHealthObservabilitySurface();
+	assertUploadHardeningSurface();
 	assertOnboardingFirstEntry();
 	assertFrontendImprovementSurface();
 	assertOnboardingServerTableQuery();

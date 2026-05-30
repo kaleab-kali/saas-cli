@@ -31,11 +31,11 @@ The gate runs Prisma generation, production doctor checks, lint/type checks, API
 
 ## Upload Safety
 
-- Enforce MIME and extension allowlists per upload use case.
+- Enforce MIME, extension, and file-signature allowlists per upload use case. Configure the allowed set with `UPLOAD_ALLOWED_MIME_TYPES` when a product needs a narrower policy.
 - Enforce `UPLOAD_MAX_BYTES` at the API and reverse proxy.
 - Store uploads outside the app source tree.
 - Prefer object storage with a dedicated public host for production.
-- Do not render user-uploaded HTML inline.
+- Do not render user-uploaded HTML inline. SVG and HTML uploads are rejected by default, and locally served uploads include `nosniff` plus a restrictive content security policy.
 
 ## Tenant Isolation
 

@@ -10,7 +10,20 @@ const MAX_FILENAME_LENGTH = 80;
 const safeName = (name: string): string => {
 	const parsed = path.parse(name);
 	const base = parsed.name.replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, MAX_FILENAME_LENGTH);
-	return `${base}${parsed.ext}`;
+	const ext = parsed.ext
+		.toLowerCase()
+		.replace(/[^.a-z0-9]/g, "")
+		.slice(0, 16);
+	return `${base || "file"}${ext}`;
+};
+
+const safeUploadsPath = (...parts: string[]) => {
+	const target = path.resolve(UPLOADS_DIR, ...parts);
+	const root = `${UPLOADS_DIR}${path.sep}`;
+	if (target !== UPLOADS_DIR && !target.startsWith(root)) {
+		throw new Error("upload path escaped storage root");
+	}
+	return target;
 };
 
 @Injectable()
@@ -24,7 +37,7 @@ export class LocalStorageDriver implements StorageDriver {
 	}): Promise<StoredFile> {
 		const filename = `${createId()}_${safeName(params.originalName)}`;
 		const relativePath = path.join(params.organizationId, params.folder, filename);
-		const fullPath = path.join(UPLOADS_DIR, relativePath);
+		const fullPath = safeUploadsPath(relativePath);
 
 		await fs.mkdir(path.dirname(fullPath), { recursive: true });
 		await fs.writeFile(fullPath, params.buffer);
@@ -40,7 +53,7 @@ export class LocalStorageDriver implements StorageDriver {
 	}
 
 	async delete(key: string): Promise<void> {
-		const fullPath = path.join(UPLOADS_DIR, key);
+		const fullPath = safeUploadsPath(key);
 		try {
 			await fs.unlink(fullPath);
 		} catch (err) {

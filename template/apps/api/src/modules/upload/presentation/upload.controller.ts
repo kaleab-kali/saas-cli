@@ -17,7 +17,7 @@ import { memoryStorage } from "multer";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequireFeature } from "#modules/billing/presentation/guards/require-entitlement.decorator";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
-import { UploadService } from "../application/upload.service";
+import { UploadService, uploadMaxBytes } from "../application/upload.service";
 
 interface AuthedReq {
 	organizationId: string;
@@ -46,7 +46,7 @@ export class UploadController {
 	@UseInterceptors(
 		FileInterceptor("file", {
 			storage: memoryStorage(),
-			limits: { fileSize: Number(process.env.UPLOAD_MAX_BYTES || 10 * 1024 * 1024) },
+			limits: { fileSize: uploadMaxBytes() },
 		}),
 	)
 	@ApiConsumes("multipart/form-data")

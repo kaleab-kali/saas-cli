@@ -38,6 +38,14 @@ assertIncludes(apiMain, "new ValidationPipe({", "API bootstrap must install a gl
 assertIncludes(apiMain, "whitelist: true", "ValidationPipe must strip unknown DTO properties");
 assertIncludes(apiMain, "forbidNonWhitelisted: true", "ValidationPipe must reject unknown DTO properties");
 assertIncludes(apiMain, 'process.env.NODE_ENV !== "production"', "Swagger/docs must stay development-only");
+assertIncludes(apiMain, "X-Content-Type-Options", "served uploads must set nosniff headers");
+assertIncludes(apiMain, "Content-Security-Policy", "served uploads must set a restrictive CSP");
+
+const uploadService = read("apps/api/src/modules/upload/application/upload.service.ts");
+assertIncludes(uploadService, "UPLOAD_TYPE_POLICIES", "uploads must use an explicit MIME and extension policy");
+assertIncludes(uploadService, "UPLOAD_ALLOWED_MIME_TYPES", "uploads must support configurable MIME allowlists");
+assertIncludes(uploadService, "file content does not match declared type", "uploads must validate binary signatures");
+assertIncludes(uploadService, "text upload contains unsafe content", "uploads must reject unsafe text/HTML payloads");
 
 const allSource = walkFiles(repoRoot, (file) => sourceExt.test(file));
 const unsafePrismaRaw = "$query" + "RawUnsafe";

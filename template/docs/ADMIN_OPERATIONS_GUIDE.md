@@ -74,6 +74,8 @@ Route: `/files`
 
 Uploads use local filesystem storage by default and store metadata in the `file_asset` table. For a VPS, this is usually enough if the `uploads` directory is backed up and served by the API.
 
+The API enforces `UPLOAD_MAX_BYTES`, exact MIME allowlists, safe extensions, and basic file-signature checks before storage. Use `UPLOAD_ALLOWED_MIME_TYPES=image/png,image/jpeg,application/pdf` when a product should accept only a narrower subset. Local upload responses set `X-Content-Type-Options: nosniff` and a restrictive CSP.
+
 For self-hosted object storage, set `STORAGE_DRIVER=object` and point the object-storage variables at a S3-compatible service such as MinIO, Garage, or SeaweedFS:
 
 ```env

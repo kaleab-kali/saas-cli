@@ -19,7 +19,11 @@ interface ObjectStorageConfig {
 const safeName = (name: string): string => {
 	const parsed = path.parse(name);
 	const base = parsed.name.replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, MAX_FILENAME_LENGTH);
-	return `${base}${parsed.ext}`;
+	const ext = parsed.ext
+		.toLowerCase()
+		.replace(/[^.a-z0-9]/g, "")
+		.slice(0, 16);
+	return `${base || "file"}${ext}`;
 };
 
 const sha256Hex = (input: Buffer | string) => createHash("sha256").update(input).digest("hex");

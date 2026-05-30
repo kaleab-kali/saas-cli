@@ -34,6 +34,11 @@ const bootstrap = async () => {
 	app.useStaticAssets(path.resolve(process.cwd(), "uploads"), {
 		prefix: "/uploads/",
 		index: false,
+		setHeaders: (res) => {
+			res.setHeader("X-Content-Type-Options", "nosniff");
+			res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+			res.setHeader("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; media-src 'self'; sandbox");
+		},
 	});
 
 	// Admin auth routes (separate Better Auth instance)
