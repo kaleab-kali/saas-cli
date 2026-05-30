@@ -205,10 +205,6 @@ const AdminOnboardingTaskIdRoute = AdminOnboardingTaskIdRouteImport.update({
   path: '/onboarding/$taskId',
   getParentRoute: () => AdminRoute,
 } as any)
-  getParentRoute: () => AdminRoute,
-} as any)
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminBillingDashboardRoute = AdminBillingDashboardRouteImport.update({
   id: '/billing/dashboard',
   path: '/billing/dashboard',
@@ -303,16 +299,6 @@ const AuthenticatedNotificationsDeliveriesRoute =
     path: '/notifications/deliveries',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedReportsDashboardMainRoute =
   AuthenticatedReportsDashboardMainRouteImport.update({
     id: '/reports/dashboard/main',

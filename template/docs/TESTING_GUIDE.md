@@ -44,10 +44,13 @@ pnpm db:generate
 pnpm typecheck
 pnpm lint
 pnpm test:smoke
+pnpm test:all
 pnpm deploy:check
 ```
 
 `test:smoke` validates the scaffold without requiring Postgres, Redis, k6, nuclei, or a running SaaS server.
+
+`test:all` is the full local quality gate. It adds lint, mutation testing, browser smoke, mock HTTP/Bruno API checks, performance, security, acceptance, and AI eval harnesses while still avoiding a required deployed environment.
 
 `deploy:check` is the pre-release gate. It runs Prisma generation, production doctor checks, CI lint/type/test scripts, security tooling smoke tests, and the mock k6 load check.
 
@@ -129,7 +132,7 @@ pnpm test:acceptance
 pnpm test:acceptance:dry
 ```
 
-They skip by default unless `ACCEPTANCE_BASE_URL` is set. Authenticated scenarios also require `ACCEPTANCE_SESSION_COOKIE`.
+Without `ACCEPTANCE_BASE_URL`, the runner starts a local deterministic API mock so Cucumber scenarios execute in a fresh scaffold. Set `ACCEPTANCE_BASE_URL` to point the same scenarios at a running API.
 
 ```bash
 ACCEPTANCE_BASE_URL=http://127.0.0.1:3000 \
@@ -191,8 +194,10 @@ Nuclei catches common HTTP/security misconfiguration. It does not understand bus
 ## AI Eval Scaffold
 
 AI evals are optional and skip unless `AI_TEST_ENDPOINT` is set.
+AI evals use a deterministic local harness when `AI_TEST_ENDPOINT` is not set, so the test type still executes in local and CI scaffold checks.
 
 ```bash
+pnpm test:ai
 AI_TEST_ENDPOINT=http://127.0.0.1:3000/api/ai/test pnpm test:ai
 ```
 

@@ -2,7 +2,7 @@
 
 This app owns free, local-first security checks.
 
-The default commands skip missing external tools unless `SECURITY_STRICT_TOOLS=1` is set. This keeps a fresh scaffold usable while still giving CI a strict mode.
+The default commands skip missing external tools unless `SECURITY_STRICT_TOOLS=1` is set. This keeps a fresh scaffold usable while still giving CI a strict mode. Runtime HTTP and API security checks run against local deterministic mock targets when no URL is provided.
 
 External tools:
 
@@ -25,12 +25,14 @@ pnpm --filter security test
 Runtime HTTP security scan:
 
 ```bash
+pnpm --filter security test:http
 NUCLEI_TARGET=http://127.0.0.1:3000 pnpm --filter security test:http
 ```
 
 Business/API security smoke:
 
 ```bash
+pnpm --filter security test:api
 SECURITY_API_BASE_URL=http://127.0.0.1:3000 pnpm --filter security test:api
 ```
 

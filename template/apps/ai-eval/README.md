@@ -6,4 +6,4 @@ Endpoint-based AI evaluation cases live here.
 pnpm --filter ai-eval test
 ```
 
-The runner skips unless `AI_TEST_ENDPOINT` is set.
+When `AI_TEST_ENDPOINT` is not set, the runner uses a local deterministic response harness so the eval pipeline still executes in CI and scaffold smoke tests. Set `AI_TEST_ENDPOINT` to run the same cases against a real service.

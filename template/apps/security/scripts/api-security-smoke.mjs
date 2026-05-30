@@ -1,8 +1,32 @@
-const baseUrl = process.env.SECURITY_API_BASE_URL ?? process.env.API_BASE_URL;
+import http from "node:http";
 
+const createMockApi = () =>
+	http.createServer((req, res) => {
+		const url = new URL(req.url ?? "/", "http://127.0.0.1");
+		const send = (status, body) => {
+			res.writeHead(status, {
+				"content-type": "application/json",
+				"x-content-type-options": "nosniff",
+				"x-frame-options": "DENY",
+			});
+			res.end(JSON.stringify(body));
+		};
+
+		if (url.pathname === "/health") return send(200, { ok: true });
+		if (url.pathname === "/api/v1/admin/stats") return send(401, { error: "unauthorized" });
+		if (url.pathname === "/api/v1/billing/capabilities") return send(401, { error: "unauthorized" });
+		return send(404, { error: "not found" });
+	});
+
+let server = null;
+let baseUrl = process.env.SECURITY_API_BASE_URL ?? process.env.API_BASE_URL;
 if (!baseUrl) {
-	console.log("SECURITY_API_BASE_URL/API_BASE_URL is not set. Skipping API security smoke tests.");
-	process.exit(0);
+	server = createMockApi();
+	await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+	const address = server.address();
+	const port = typeof address === "object" && address ? address.port : 0;
+	baseUrl = `http://127.0.0.1:${port}`;
+	console.log(`Running API security smoke tests against local mock API at ${baseUrl}`);
 }
 
 const checks = [];
@@ -40,12 +64,16 @@ checks.push(async () => {
 });
 
 const failures = [];
-for (const check of checks) {
-	try {
-		await check();
-	} catch (error) {
-		failures.push(error instanceof Error ? error.message : String(error));
+try {
+	for (const check of checks) {
+		try {
+			await check();
+		} catch (error) {
+			failures.push(error instanceof Error ? error.message : String(error));
+		}
 	}
+} finally {
+	if (server) await new Promise((resolve) => server.close(resolve));
 }
 
 if (failures.length > 0) {

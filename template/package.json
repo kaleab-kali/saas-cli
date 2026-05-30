@@ -46,7 +46,7 @@
 		"test:mutation": "pnpm --filter api test:mutation",
 		"test:smoke": "pnpm typecheck && pnpm test:api && pnpm test:property && pnpm test:api:http:mock && pnpm test:api:bruno:mock && pnpm test:api:contract && pnpm test:acceptance && pnpm test:load:k6:mock && pnpm test:security:tooling && pnpm test:ai",
 		"test:ci": "pnpm db:generate && pnpm typecheck && pnpm test:api && pnpm test:property && pnpm test:api:contract && pnpm test:acceptance && pnpm test:security:tooling && pnpm test:ai",
-		"test:all": "pnpm db:generate && pnpm typecheck && pnpm test:api && pnpm test:property && pnpm test:api:http && pnpm test:api:bruno && pnpm test:api:contract && pnpm test:e2e && pnpm test:acceptance && pnpm test:performance && pnpm test:security && pnpm test:ai",
+		"test:all": "pnpm db:generate && pnpm typecheck && pnpm lint && pnpm test:api && pnpm test:property && pnpm test:mutation && pnpm test:api:http:mock && pnpm test:api:bruno:mock && pnpm test:api:contract && pnpm test:e2e:smoke && pnpm test:acceptance && pnpm test:performance && pnpm test:security && pnpm test:ai",
 		"lint:ci": "pnpm db:generate && pnpm lint && pnpm typecheck",
 		"dev:api": "pnpm --filter api dev",
 		"dev:web": "pnpm --filter web dev",
@@ -72,13 +72,14 @@
 	"pnpm": {
 		"overrides": {
 			"@hono/node-server": "1.19.13",
-			"axios": "1.15.2",
+			"axios": "1.16.0",
 			"brace-expansion": "5.0.6",
 			"fast-uri": "3.1.2",
 			"hono": "4.12.18",
 			"ip-address": "10.1.1",
 			"kysely": "0.28.17",
 			"qs": "6.15.2",
+			"tmp": "0.2.6",
 			"uuid": "11.1.1",
 			"ws": "8.20.1"
 		}
