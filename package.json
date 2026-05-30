@@ -8,6 +8,7 @@
 	],
 	"scripts": {
 		"cli": "node packages/cli/bin/index.js",
+		"test:cli": "pnpm --filter create-vyllion-saas test",
 		"test:base:scaffold": "node testing/scripts/verify-base-generated-project.mjs",
 		"test:eims:scaffold": "node testing/scripts/verify-eims-generated-project.mjs",
 		"link:cli": "cd packages/cli && pnpm link --global",

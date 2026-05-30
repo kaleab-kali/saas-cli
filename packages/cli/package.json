@@ -15,7 +15,8 @@
 	"scripts": {
 		"prepack": "node scripts/prepare-package-template.mjs",
 		"postpack": "node scripts/clean-package-template.mjs",
-		"start": "node ./bin/index.js"
+		"start": "node ./bin/index.js",
+		"test": "node --test test/*.test.mjs"
 	},
 	"engines": {
 		"node": ">=20.0.0"

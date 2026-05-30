@@ -3,8 +3,12 @@
 Base scaffold proof:
 
 ```bash
+pnpm test:cli
 pnpm test:base:scaffold
 ```
+
+`test:cli` exercises the published bin entrypoint for help output, starter listing,
+doctor mode, and a real `--yes` base scaffold.
 
 That verifier creates a generated project in the OS temp directory, confirms the
 generic onboarding module is present, and confirms no EIMS routes, scripts,
