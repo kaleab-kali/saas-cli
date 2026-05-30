@@ -50,3 +50,4 @@ onSuccess: () => {
 - Feature code: `import { X } from "#features/projects/..."`
 - Shared code: `import { X } from "#shared/..."`
 - shadcn components: `import { Button } from "@/components/ui/button"`
+- Hugeicons: import individual icons from `@hugeicons/core-free-icons/IconName` instead of the package barrel to keep production bundles small

@@ -9,7 +9,7 @@
 		"lint:fix": "biome check --write .",
 		"doctor": "node scripts/doctor.mjs",
 		"doctor:production": "node scripts/doctor.mjs --production",
-		"deploy:check": "pnpm db:generate && pnpm doctor:production && pnpm lint:ci && pnpm build:api && pnpm build:web && pnpm test:ci && pnpm test:security:tooling && pnpm test:load:k6:mock",
+		"deploy:check": "pnpm db:generate && pnpm doctor:production && pnpm lint:ci && pnpm build:api && pnpm build:web && pnpm test:smoke",
 		"gen:module": "create-vyllion-saas add module",
 		"gen:starter": "create-vyllion-saas add starter",
 		"dev:test": "turbo dev --filter api --filter web",

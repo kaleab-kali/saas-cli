@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,6 +37,7 @@ const mustExist = [
 	"apps/web/src/shared/components/AuthShell.tsx",
 	"apps/web/src/shared/components/CommandPalette.tsx",
 	"apps/web/src/shared/components/PageShell.tsx",
+	"apps/web/src/types/hugeicons-core-free-icons.d.ts",
 	"apps/e2e/tests/smoke.spec.ts",
 	"apps/security/scripts/source-security-check.mjs",
 	"scripts/backup-postgres.mjs",
@@ -74,6 +75,21 @@ function pathExists(relPath) {
 	return existsSync(path.join(targetRoot, relPath));
 }
 
+function listProjectFiles(relPath) {
+	const root = path.join(targetRoot, relPath);
+	const entries = readdirSync(root, { withFileTypes: true });
+	const files = [];
+	for (const entry of entries) {
+		const childRelPath = path.join(relPath, entry.name);
+		if (entry.isDirectory()) {
+			files.push(...listProjectFiles(childRelPath));
+			continue;
+		}
+		files.push(childRelPath);
+	}
+	return files;
+}
+
 function assertNoEimsScripts() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	const eimsScripts = Object.keys(packageJson.scripts ?? {}).filter((scriptName) => scriptName.includes("eims"));
@@ -87,6 +103,8 @@ function assertDeployGateBuilds() {
 	const testSmoke = packageJson.scripts?.["test:smoke"] ?? "";
 	assert(deployCheck.includes("build:api"), "deploy gate includes API production build");
 	assert(deployCheck.includes("build:web"), "deploy gate includes web production build");
+	assert(deployCheck.includes("test:smoke"), "deploy gate runs broad smoke suite");
+	assert(!deployCheck.includes("test:ci &&"), "deploy gate does not bypass browser smoke via narrow CI gate");
 	assert(testCi.includes("test:api:http:mock"), "CI test gate includes mock HTTP API tests");
 	assert(testCi.includes("test:api:bruno:mock"), "CI test gate includes mock Bruno API tests");
 	assert(testCi.includes("test:security:source"), "CI test gate includes deterministic source security checks");
@@ -104,6 +122,8 @@ function assertCiWorkflows() {
 	assert(codeQuality.includes("push:"), "code quality workflow runs on pushes");
 	assert(codeQuality.includes("production-gate:"), "code quality workflow includes production gate job");
 	assert(codeQuality.includes("pnpm deploy:check"), "code quality workflow runs deploy readiness gate");
+	assert(codeQuality.includes("playwright install --with-deps chromium"), "production gate installs browser dependency");
+	assert(!codeQuality.includes("NODE_ENV: test"), "production gate does not force test-mode frontend builds");
 	assert(playwright.includes("pull_request:"), "Playwright workflow runs on pull requests");
 	assert(playwright.includes("push:"), "Playwright workflow runs on pushes");
 	assert(playwright.includes("pnpm test:e2e"), "Playwright workflow runs browser E2E tests");
@@ -152,6 +172,31 @@ function assertFrontendImprovementSurface() {
 	assert(onboarding.includes("TemplatePreview"), "new onboarding page previews selected templates");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
 	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
+}
+
+function assertWebBundleImportPolicy() {
+	const viteConfig = readProjectFile("apps/web/vite.config.ts");
+	const webSourceFiles = listProjectFiles("apps/web/src").filter((relPath) => /\.[cm]?[tj]sx?$/.test(relPath));
+	const barrelIconImports = [];
+	let hasDeepIconImport = false;
+
+	for (const relPath of webSourceFiles) {
+		const text = readProjectFile(relPath);
+		if (text.includes('from "@hugeicons/core-free-icons"')) barrelIconImports.push(relPath);
+		if (text.includes('from "@hugeicons/core-free-icons/')) hasDeepIconImport = true;
+	}
+
+	const iconTypes = readProjectFile("apps/web/src/types/hugeicons-core-free-icons.d.ts");
+	assert(barrelIconImports.length === 0, "web avoids Hugeicons barrel imports", barrelIconImports.join(", "));
+	assert(hasDeepIconImport, "web uses per-icon Hugeicons imports");
+	assert(
+		iconTypes.includes('declare module "@hugeicons/core-free-icons/*"'),
+		"web declares Hugeicons per-icon module types",
+	);
+	assert(
+		viteConfig.includes("INVALID_ANNOTATION") && viteConfig.includes("@hugeicons/core-free-icons"),
+		"web build suppresses known Hugeicons annotation noise",
+	);
 }
 
 function readEnv(relPath) {
@@ -211,6 +256,7 @@ async function main() {
 	assertPerformanceMockGateRuns();
 	assertOnboardingFirstEntry();
 	assertFrontendImprovementSurface();
+	assertWebBundleImportPolicy();
 	assertGeneratedSecrets();
 
 	console.log(`Base generated-project verification passed: ${checks.length} checks`);

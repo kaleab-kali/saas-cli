@@ -54,7 +54,7 @@ pnpm deploy:check
 
 Test apps live under `apps/api-tests`, `apps/e2e`, `apps/acceptance`, `apps/performance`, `apps/security`, and `apps/ai-eval`. API unit, property, and mutation tests stay in `apps/api`. See `docs/TESTING_GUIDE.md`.
 
-`pnpm deploy:check` runs Prisma generation, production doctor checks, CI lint/type/test scripts, security tooling smoke tests, and the mock k6 load check.
+`pnpm deploy:check` runs Prisma generation, production doctor checks, CI lint/type checks, API and web production builds, then the broad smoke suite. The generated CI production-gate job installs Playwright Chromium first so deploy readiness also covers browser smoke.
 
 The base scaffold is domain-neutral. Optional starter packs are documented in `docs/STARTER_PACKS.md` and `docs/DOMAIN_STARTER_PACKS.md`; EIMS is installed only when you run `pnpm gen:starter eims`.
 

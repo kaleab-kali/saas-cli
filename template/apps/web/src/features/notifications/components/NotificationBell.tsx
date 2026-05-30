@@ -1,4 +1,4 @@
-import { Megaphone01Icon } from "@hugeicons/core-free-icons";
+import Megaphone01Icon from "@hugeicons/core-free-icons/Megaphone01Icon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";

@@ -1,18 +1,16 @@
-import {
-	AiSecurity01Icon,
-	Building06Icon,
-	CreditCardIcon,
-	DashboardSquare01Icon,
-	FileValidationIcon,
-	FlagIcon,
-	Logout01Icon,
-	Mail01Icon,
-	PackageIcon,
-	Settings02Icon,
-	Timer02Icon,
-	UserIcon,
-	UserMultipleIcon,
-} from "@hugeicons/core-free-icons";
+import AiSecurity01Icon from "@hugeicons/core-free-icons/AiSecurity01Icon";
+import Building06Icon from "@hugeicons/core-free-icons/Building06Icon";
+import CreditCardIcon from "@hugeicons/core-free-icons/CreditCardIcon";
+import DashboardSquare01Icon from "@hugeicons/core-free-icons/DashboardSquare01Icon";
+import FileValidationIcon from "@hugeicons/core-free-icons/FileValidationIcon";
+import FlagIcon from "@hugeicons/core-free-icons/Flag03Icon";
+import Logout01Icon from "@hugeicons/core-free-icons/Logout01Icon";
+import Mail01Icon from "@hugeicons/core-free-icons/Mail01Icon";
+import PackageIcon from "@hugeicons/core-free-icons/PackageIcon";
+import Settings02Icon from "@hugeicons/core-free-icons/Settings02Icon";
+import Timer02Icon from "@hugeicons/core-free-icons/Timer02Icon";
+import UserIcon from "@hugeicons/core-free-icons/UserIcon";
+import UserMultipleIcon from "@hugeicons/core-free-icons/UserMultipleIcon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import React from "react";

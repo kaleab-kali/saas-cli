@@ -1,4 +1,6 @@
-import { Building06Icon, PlusSignIcon, Sorting01Icon } from "@hugeicons/core-free-icons";
+import Building06Icon from "@hugeicons/core-free-icons/Building06Icon";
+import PlusSignIcon from "@hugeicons/core-free-icons/PlusSignIcon";
+import Sorting01Icon from "@hugeicons/core-free-icons/Sorting01Icon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";

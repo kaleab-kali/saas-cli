@@ -1,4 +1,7 @@
-import { ChartLineData02Icon, DashboardSquare01Icon, Settings02Icon, Timer02Icon } from "@hugeicons/core-free-icons";
+import ChartLineData02Icon from "@hugeicons/core-free-icons/ChartLineData02Icon";
+import DashboardSquare01Icon from "@hugeicons/core-free-icons/DashboardSquare01Icon";
+import Settings02Icon from "@hugeicons/core-free-icons/Settings02Icon";
+import Timer02Icon from "@hugeicons/core-free-icons/Timer02Icon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type * as React from "react";
 import { LanguageSwitcher } from "#shared/components/LanguageSwitcher";

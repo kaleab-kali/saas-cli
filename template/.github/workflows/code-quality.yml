@@ -78,7 +78,6 @@ jobs:
       FRONTEND_URL: http://localhost:5173
       VITE_API_URL: http://localhost:3000
       VITE_APP_NAME: "{{projectName}} CI"
-      NODE_ENV: test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -91,6 +90,8 @@ jobs:
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: pnpm --filter e2e exec playwright install --with-deps chromium
       - name: Deploy readiness gate
         run: pnpm deploy:check
 

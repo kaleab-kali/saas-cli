@@ -35,6 +35,16 @@ export default defineConfig(({ mode }) => {
 			outDir: "dist",
 			sourcemap: mode !== "production",
 			rollupOptions: {
+				onwarn(warning, warn) {
+					if (
+						warning.code === "INVALID_ANNOTATION" &&
+						warning.message.includes("#__PURE__") &&
+						warning.id?.includes("@hugeicons/core-free-icons")
+					) {
+						return;
+					}
+					warn(warning);
+				},
 				output: {
 					manualChunks(id) {
 						const normalized = id.replaceAll("\\", "/");

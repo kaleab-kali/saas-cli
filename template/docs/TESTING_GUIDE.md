@@ -52,11 +52,11 @@ pnpm deploy:check
 
 `test:all` is the full local quality gate. It adds lint, mutation testing, browser smoke, mock HTTP/Bruno API checks, performance, security, acceptance, and AI eval harnesses while still avoiding a required deployed environment.
 
-`deploy:check` is the pre-release gate. It runs Prisma generation, production doctor checks, CI lint/type checks, API and web production builds, CI tests, mock HTTP and Bruno API checks, deterministic source/API security checks, security tooling smoke tests, and the mock k6 load check.
+`deploy:check` is the pre-release gate. It runs Prisma generation, production doctor checks, CI lint/type checks, API and web production builds, then the broad smoke suite. That means deploy readiness includes mock HTTP and Bruno API checks, browser smoke, acceptance, deterministic source/API security checks, security tooling smoke tests, AI eval harnesses, and the mock k6 load check.
 
 The generated GitHub workflows enforce these checks:
 
-- `.github/workflows/code-quality.yml` runs lint, type checks, API unit tests, then `pnpm deploy:check`.
+- `.github/workflows/code-quality.yml` runs lint, type checks, API unit tests, installs Playwright Chromium for the production gate, then runs `pnpm deploy:check` without forcing `NODE_ENV=test`, so the web build uses production defaults.
 - `.github/workflows/playwright.yml` runs browser E2E on pushes and pull requests to `main`.
 
 ## API Unit And Integration Tests

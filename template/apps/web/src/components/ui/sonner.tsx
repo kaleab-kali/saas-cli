@@ -1,10 +1,8 @@
-import {
-	Alert02Icon,
-	CheckmarkCircle02Icon,
-	InformationCircleIcon,
-	Loading03Icon,
-	MultiplicationSignCircleIcon,
-} from "@hugeicons/core-free-icons";
+import Alert02Icon from "@hugeicons/core-free-icons/Alert02Icon";
+import CheckmarkCircle02Icon from "@hugeicons/core-free-icons/CheckmarkCircle02Icon";
+import InformationCircleIcon from "@hugeicons/core-free-icons/InformationCircleIcon";
+import Loading03Icon from "@hugeicons/core-free-icons/Loading03Icon";
+import MultiplicationSignCircleIcon from "@hugeicons/core-free-icons/MultiplicationSignCircleIcon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";

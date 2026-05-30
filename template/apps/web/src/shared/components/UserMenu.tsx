@@ -1,4 +1,8 @@
-import { Logout01Icon, Moon02Icon, Settings02Icon, Sun03Icon, UserIcon } from "@hugeicons/core-free-icons";
+import Logout01Icon from "@hugeicons/core-free-icons/Logout01Icon";
+import Moon02Icon from "@hugeicons/core-free-icons/Moon02Icon";
+import Settings02Icon from "@hugeicons/core-free-icons/Settings02Icon";
+import Sun03Icon from "@hugeicons/core-free-icons/Sun03Icon";
+import UserIcon from "@hugeicons/core-free-icons/UserIcon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useNavigate } from "@tanstack/react-router";
 import React from "react";

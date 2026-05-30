@@ -1,10 +1,8 @@
-import {
-	ChartLineData02Icon,
-	DashboardSquare01Icon,
-	Home02Icon,
-	Megaphone01Icon,
-	Settings02Icon,
-} from "@hugeicons/core-free-icons";
+import ChartLineData02Icon from "@hugeicons/core-free-icons/ChartLineData02Icon";
+import DashboardSquare01Icon from "@hugeicons/core-free-icons/DashboardSquare01Icon";
+import Home02Icon from "@hugeicons/core-free-icons/Home02Icon";
+import Megaphone01Icon from "@hugeicons/core-free-icons/Megaphone01Icon";
+import Settings02Icon from "@hugeicons/core-free-icons/Settings02Icon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link, useLocation, useMatchRoute } from "@tanstack/react-router";
 import React from "react";

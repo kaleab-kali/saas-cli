@@ -1,4 +1,4 @@
-import { SidebarLeftIcon } from "@hugeicons/core-free-icons";
+import SidebarLeftIcon from "@hugeicons/core-free-icons/SidebarLeftIcon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Slot } from "radix-ui";
