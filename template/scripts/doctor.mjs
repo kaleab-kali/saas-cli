@@ -108,7 +108,16 @@ const main = async () => {
 			? status.fail("BETTER_AUTH_SECRET", "set a 32-byte hex secret with openssl rand -hex 32")
 			: status.warn("BETTER_AUTH_SECRET", "missing or weak");
 
-	for (const script of ["lint:ci", "test:ci", "test:smoke", "test:security", "test:load:k6:mock", "test:mutation"]) {
+	for (const script of [
+		"lint:ci",
+		"build:api",
+		"build:web",
+		"test:ci",
+		"test:smoke",
+		"test:security",
+		"test:load:k6:mock",
+		"test:mutation",
+	]) {
 		requireScript(pkg, script);
 	}
 	for (const [path, label] of [

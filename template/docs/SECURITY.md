@@ -20,7 +20,7 @@ Run this before deploy:
 pnpm deploy:check
 ```
 
-The gate runs Prisma generation, production doctor checks, lint/type checks, CI tests, security tooling smoke tests, and mock load checks.
+The gate runs Prisma generation, production doctor checks, lint/type checks, API and web production builds, CI tests, security tooling smoke tests, and mock load checks.
 
 ## Authentication And Sessions
 

@@ -129,6 +129,8 @@ export const runDoctor = async (cwd, options = {}) => {
 
 	if (rootPkg) {
 		requireScript(rootPkg, "lint:ci", production);
+		requireScript(rootPkg, "build:api", production);
+		requireScript(rootPkg, "build:web", production);
 		requireScript(rootPkg, "test:ci", production);
 		requireScript(rootPkg, "test:smoke", production);
 		requireScript(rootPkg, "test:security", production);

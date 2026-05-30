@@ -52,7 +52,7 @@ pnpm deploy:check
 
 `test:all` is the full local quality gate. It adds lint, mutation testing, browser smoke, mock HTTP/Bruno API checks, performance, security, acceptance, and AI eval harnesses while still avoiding a required deployed environment.
 
-`deploy:check` is the pre-release gate. It runs Prisma generation, production doctor checks, CI lint/type/test scripts, security tooling smoke tests, and the mock k6 load check.
+`deploy:check` is the pre-release gate. It runs Prisma generation, production doctor checks, CI lint/type checks, API and web production builds, CI tests, security tooling smoke tests, and the mock k6 load check.
 
 ## API Unit And Integration Tests
 

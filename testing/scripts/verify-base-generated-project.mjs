@@ -73,6 +73,13 @@ function assertNoEimsScripts() {
 	assert(eimsScripts.length === 0, "base package has no EIMS scripts", eimsScripts.join(", "));
 }
 
+function assertDeployGateBuilds() {
+	const packageJson = JSON.parse(readProjectFile("package.json"));
+	const deployCheck = packageJson.scripts?.["deploy:check"] ?? "";
+	assert(deployCheck.includes("build:api"), "deploy gate includes API production build");
+	assert(deployCheck.includes("build:web"), "deploy gate includes web production build");
+}
+
 function readEnv(relPath) {
 	const out = {};
 	for (const line of readProjectFile(relPath).split(/\r?\n/)) {
@@ -124,6 +131,7 @@ async function main() {
 	}
 
 	assertNoEimsScripts();
+	assertDeployGateBuilds();
 	assertGeneratedSecrets();
 
 	console.log(`Base generated-project verification passed: ${checks.length} checks`);
