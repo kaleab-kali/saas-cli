@@ -55,6 +55,8 @@
 		"db:generate": "pnpm --filter api db:generate",
 		"db:migrate": "pnpm --filter api db:migrate",
 		"db:push": "pnpm --filter api db:push",
+		"db:backup": "node scripts/backup-postgres.mjs",
+		"db:restore": "node scripts/restore-postgres.mjs",
 		"db:studio": "pnpm --filter api db:studio",
 		"db:seed": "pnpm --filter api db:seed",
 		"pm2:start": "pm2 start ecosystem.config.cjs",

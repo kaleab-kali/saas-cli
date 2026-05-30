@@ -34,6 +34,8 @@ const mustExist = [
 	"apps/web/src/routes/_authenticated/onboarding/index.tsx",
 	"apps/web/src/routes/admin/onboarding/index.tsx",
 	"apps/web/src/routes/admin/onboarding/new.tsx",
+	"scripts/backup-postgres.mjs",
+	"scripts/restore-postgres.mjs",
 ];
 
 const textFilesWithoutEims = [
@@ -78,6 +80,8 @@ function assertDeployGateBuilds() {
 	const deployCheck = packageJson.scripts?.["deploy:check"] ?? "";
 	assert(deployCheck.includes("build:api"), "deploy gate includes API production build");
 	assert(deployCheck.includes("build:web"), "deploy gate includes web production build");
+	assert(packageJson.scripts?.["db:backup"]?.includes("backup-postgres.mjs"), "base package has Postgres backup script");
+	assert(packageJson.scripts?.["db:restore"]?.includes("restore-postgres.mjs"), "base package has Postgres restore script");
 }
 
 function readEnv(relPath) {

@@ -131,6 +131,8 @@ export const runDoctor = async (cwd, options = {}) => {
 		requireScript(rootPkg, "lint:ci", production);
 		requireScript(rootPkg, "build:api", production);
 		requireScript(rootPkg, "build:web", production);
+		requireScript(rootPkg, "db:backup", production);
+		requireScript(rootPkg, "db:restore", production);
 		requireScript(rootPkg, "test:ci", production);
 		requireScript(rootPkg, "test:smoke", production);
 		requireScript(rootPkg, "test:security", production);
@@ -144,6 +146,8 @@ export const runDoctor = async (cwd, options = {}) => {
 	requirePath(path.join(cwd, "apps/performance/package.json"), "performance workspace", production);
 	requirePath(path.join(cwd, "apps/acceptance/package.json"), "acceptance workspace", production);
 	requirePath(path.join(cwd, "apps/api/stryker.conf.mjs"), "mutation testing config", production);
+	requirePath(path.join(cwd, "scripts/backup-postgres.mjs"), "Postgres backup script", production);
+	requirePath(path.join(cwd, "scripts/restore-postgres.mjs"), "Postgres restore script", production);
 	requirePath(path.join(cwd, ".gitleaks.toml"), "gitleaks config", production);
 
 	const postgresOpen = await canConnect(5432);

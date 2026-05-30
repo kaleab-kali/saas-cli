@@ -27,6 +27,7 @@ Use this checklist before moving a generated SaaS into production.
 
 - Migrations have been reviewed.
 - Backups are enabled and restore has been tested.
+- `pnpm db:backup --dry-run` and `pnpm db:restore --dry-run --file <latest.dump>` have been exercised with production-style environment variables.
 - Seed scripts are safe to rerun.
 - Tenant isolation checks pass.
 

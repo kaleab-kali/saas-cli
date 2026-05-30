@@ -19,6 +19,22 @@ For most early SaaS deployments, start with RPO under 24 hours and RTO under 4 h
 - Encrypt backups at rest.
 - Restrict backup access to production operators.
 
+Local backup command:
+
+```bash
+pnpm db:backup
+```
+
+By default this reads `DATABASE_URL` from `apps/api/.env` and writes a compressed custom-format dump to `backups/postgres`. For production, run it from cron with `DATABASE_URL` supplied by your secret manager and copy the resulting `.dump` file to encrypted off-server storage.
+
+Useful options:
+
+```bash
+DATABASE_URL="postgresql://..." BACKUP_DIR=/var/backups/{{projectSlug}} pnpm db:backup
+pnpm db:backup --output-dir /var/backups/{{projectSlug}} --retention-days 35
+pnpm db:backup --dry-run
+```
+
 ## Restore Drill
 
 Run a restore drill before launch and after any major schema change:
@@ -30,6 +46,14 @@ Run a restore drill before launch and after any major schema change:
 5. Run `pnpm test:smoke`.
 6. Verify admin login and tenant login.
 7. Record duration and any manual fixes.
+
+Restore command:
+
+```bash
+RESTORE_DATABASE_URL="postgresql://..." pnpm db:restore --file /var/backups/{{projectSlug}}/postgres-latest.dump --yes
+```
+
+Always restore into an empty or disposable database first. The restore command is destructive and requires `--yes` unless you use `--dry-run`.
 
 ## App Server Recovery
 
