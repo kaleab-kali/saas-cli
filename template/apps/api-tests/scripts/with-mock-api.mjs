@@ -69,6 +69,7 @@ const okAuth = {
 
 const handleCore = (url, res) => {
 	if (url.pathname.includes("__missing_api_test_route__")) return json(res, 404, { error: "not found" });
+	if (url.pathname.endsWith("/health/detailed")) return json(res, 401, { error: "Admin authentication required" });
 	if (url.pathname.endsWith("/health/live")) {
 		return json(res, 200, { status: "ok", uptimeSeconds: 1, timestamp: new Date().toISOString() });
 	}

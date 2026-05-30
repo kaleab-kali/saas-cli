@@ -62,6 +62,8 @@ const bootstrap = async () => {
 		exclude: [
 			{ path: "api/auth/*path", method: RequestMethod.ALL },
 			{ path: "health", method: RequestMethod.GET },
+			{ path: "health/live", method: RequestMethod.GET },
+			{ path: "health/ready", method: RequestMethod.GET },
 		],
 	});
 	// URI versioning; controllers can @Controller({ version: "2", path: "..." }) for new versions.

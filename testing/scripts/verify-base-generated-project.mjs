@@ -29,6 +29,8 @@ const mustNotExist = [
 
 const mustExist = [
 	"apps/api/src/modules/onboarding/onboarding.module.ts",
+	"apps/api/src/modules/health/detailed-health.controller.ts",
+	"apps/api/src/modules/health/health-diagnostics.service.ts",
 	"apps/api-tests/scripts/with-mock-api.mjs",
 	"apps/web/src/features/onboarding/components/onboarding-pages.tsx",
 	"apps/web/src/routes/_authenticated/onboarding/index.tsx",
@@ -150,6 +152,32 @@ function assertPerformanceMockGateRuns() {
 		"performance mock gate has built-in fallback",
 	);
 	assert(!performanceMock.includes("Skipping k6 mock performance run"), "performance mock gate does not silently skip");
+}
+
+function assertHealthObservabilitySurface() {
+	const healthModule = readProjectFile("apps/api/src/modules/health/health.module.ts");
+	const healthController = readProjectFile("apps/api/src/modules/health/health.controller.ts");
+	const detailedHealth = readProjectFile("apps/api/src/modules/health/detailed-health.controller.ts");
+	const diagnostics = readProjectFile("apps/api/src/modules/health/health-diagnostics.service.ts");
+	const main = readProjectFile("apps/api/src/main.ts");
+	const healthApiTest = readProjectFile("apps/api-tests/tests/health.spec.ts");
+	const openApiSmoke = readProjectFile("apps/api-tests/openapi/openapi-smoke.yaml");
+	const observabilityDocs = readProjectFile("docs/OBSERVABILITY.md");
+	assert(healthModule.includes("DetailedHealthController"), "health module registers detailed health controller");
+	assert(healthModule.includes("HealthDiagnosticsService"), "health module registers diagnostics service");
+	assert(main.includes('path: "health/live"'), "liveness endpoint is excluded from global API prefix");
+	assert(main.includes('path: "health/ready"'), "readiness endpoint is excluded from global API prefix");
+	assert(healthController.includes("this.diagnostics.readiness()"), "public readiness uses shared diagnostics service");
+	assert(detailedHealth.includes('@Controller("health")'), "detailed health keeps health route namespace");
+	assert(detailedHealth.includes("@UseGuards(SuperAdminGuard)"), "detailed health requires super-admin guard");
+	assert(detailedHealth.includes('@Get("detailed")'), "detailed health exposes /api/v1/health/detailed");
+	assert(diagnostics.includes("checkDisk"), "detailed health checks disk space");
+	assert(diagnostics.includes("checkMemory"), "detailed health checks memory pressure");
+	assert(diagnostics.includes("checkEimsReachability"), "detailed health checks optional EIMS reachability");
+	assert(diagnostics.includes("failedLast5m"), "detailed health reports recent job failures");
+	assert(healthApiTest.includes("/api/v1/health/detailed"), "HTTP API tests cover detailed health access control");
+	assert(openApiSmoke.includes("/api/v1/health/detailed"), "OpenAPI smoke contract includes detailed health endpoint");
+	assert(observabilityDocs.includes("/api/v1/health/detailed"), "observability docs document detailed health endpoint");
 }
 
 function assertOnboardingFirstEntry() {
@@ -288,6 +316,7 @@ async function main() {
 	assertCiWorkflows();
 	assertWorkspaceScripts();
 	assertPerformanceMockGateRuns();
+	assertHealthObservabilitySurface();
 	assertOnboardingFirstEntry();
 	assertFrontendImprovementSurface();
 	assertOnboardingServerTableQuery();

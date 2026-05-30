@@ -1,16 +1,29 @@
 import { HttpStatus } from "@nestjs/common";
 import { HealthController } from "./health.controller";
+import type { HealthDiagnosticsService } from "./health-diagnostics.service";
 
 jest.mock("@thallesp/nestjs-better-auth", () => ({
 	Public: () => () => undefined,
 }));
 
-const makeController = (queryRaw = jest.fn().mockResolvedValue([{ ok: 1 }])) =>
-	new HealthController(
-		{ check: jest.fn() } as never,
-		{ pingCheck: jest.fn() } as never,
-		{ $queryRaw: queryRaw } as never,
-	);
+const makeDiagnostics = (status: "ok" | "error" = "ok", databaseStatus = "up") =>
+	({
+		readiness: jest.fn().mockResolvedValue({
+			status,
+			timestamp: new Date().toISOString(),
+			dependencies: {
+				database: {
+					status: databaseStatus,
+					latencyMs: 1,
+					...(databaseStatus === "down" ? { error: "database offline" } : {}),
+				},
+				redis: { status: "skipped", latencyMs: 0, reason: "REDIS_URL is not set" },
+			},
+		}),
+	}) as unknown as HealthDiagnosticsService;
+
+const makeController = (diagnostics = makeDiagnostics()) =>
+	new HealthController({ check: jest.fn() } as never, { pingCheck: jest.fn() } as never, {} as never, diagnostics);
 
 describe("HealthController", () => {
 	const originalRedisUrl = process.env.REDIS_URL;
@@ -42,9 +55,8 @@ describe("HealthController", () => {
 	it("sets 503 readiness when the database is unavailable", async () => {
 		delete process.env.REDIS_URL;
 		const response = { status: jest.fn() };
-		const queryRaw = jest.fn().mockRejectedValue(new Error("database offline"));
 
-		const result = await makeController(queryRaw).ready(response as never);
+		const result = await makeController(makeDiagnostics("error", "down")).ready(response as never);
 
 		expect(response.status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
 		expect(result.status).toBe("error");

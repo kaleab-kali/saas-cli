@@ -56,6 +56,8 @@ Query params should stay explicit and typed, for example `?status=active&ownerId
 
 ## Health Check
 - `GET /health` returns DB ping status and is not prefixed with `/api/v1`
+- `GET /health/live` and `GET /health/ready` are public process-manager probes
+- `GET /api/v1/health/detailed` is super-admin only and may include runtime diagnostics
 - Used by PM2, load balancers, and monitoring
 
 ## Correlation IDs

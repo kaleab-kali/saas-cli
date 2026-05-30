@@ -65,3 +65,16 @@ paths:
           description: Runtime dependencies are ready.
         "503":
           description: One or more required dependencies are unavailable.
+  /api/v1/health/detailed:
+    get:
+      operationId: getDetailedHealth
+      description: Returns admin-only detailed runtime diagnostics.
+      tags:
+        - health
+      responses:
+        "200":
+          description: Detailed health status for authenticated super admins.
+        "401":
+          description: Admin authentication is required.
+        "503":
+          description: A critical dependency is unavailable.

@@ -28,6 +28,11 @@ test("readiness endpoint returns dependency status", async ({ request }) => {
 	expect(body.dependencies.database.status).toBeTruthy();
 });
 
+test("detailed health endpoint is not public", async ({ request }) => {
+	const response = await request.get("/api/v1/health/detailed");
+	expect(response.status()).toBe(401);
+});
+
 test("missing API route returns an HTTP error response", async ({ request }) => {
 	const response = await request.get("/api/v1/__missing_api_test_route__");
 	expect(response.status()).toBeGreaterThanOrEqual(400);

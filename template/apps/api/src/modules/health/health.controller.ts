@@ -4,17 +4,8 @@ import { HealthCheck, HealthCheckService, PrismaHealthIndicator } from "@nestjs/
 import { SkipThrottle } from "@nestjs/throttler";
 import { Public } from "@thallesp/nestjs-better-auth";
 import type { Response } from "express";
-import IORedis from "ioredis";
 import { PrismaService } from "#shared/database/prisma.service";
-
-type DependencyState = "up" | "down" | "skipped";
-
-interface DependencyCheck {
-	status: DependencyState;
-	latencyMs: number;
-	error?: string;
-	reason?: string;
-}
+import { HealthDiagnosticsService } from "./health-diagnostics.service";
 
 @ApiTags("Health")
 @Controller("health")
@@ -25,6 +16,7 @@ export class HealthController {
 		private readonly health: HealthCheckService,
 		private readonly prisma: PrismaHealthIndicator,
 		private readonly prismaService: PrismaService,
+		private readonly diagnostics: HealthDiagnosticsService,
 	) {}
 
 	@Get()
@@ -47,56 +39,8 @@ export class HealthController {
 	@Get("ready")
 	@ApiOperation({ summary: "Readiness check for required runtime dependencies" })
 	async ready(@Res({ passthrough: true }) res: Response) {
-		const [database, redis] = await Promise.all([this.checkDatabase(), this.checkRedis()]);
-		const status = [database, redis].some((dependency) => dependency.status === "down") ? "error" : "ok";
-		if (status !== "ok") res.status(HttpStatus.SERVICE_UNAVAILABLE);
-		return {
-			status,
-			timestamp: new Date().toISOString(),
-			dependencies: {
-				database,
-				redis,
-			},
-		};
-	}
-
-	private async checkDatabase(): Promise<DependencyCheck> {
-		const started = Date.now();
-		try {
-			await this.prismaService.$queryRaw`SELECT 1`;
-			return { status: "up", latencyMs: Date.now() - started };
-		} catch (error) {
-			return {
-				status: "down",
-				latencyMs: Date.now() - started,
-				error: error instanceof Error ? error.message : String(error),
-			};
-		}
-	}
-
-	private async checkRedis(): Promise<DependencyCheck> {
-		const started = Date.now();
-		const redisUrl = process.env.REDIS_URL;
-		if (!redisUrl) {
-			return { status: "skipped", latencyMs: 0, reason: "REDIS_URL is not set" };
-		}
-		const redis = new IORedis(redisUrl, {
-			connectTimeout: Number(process.env.HEALTH_REDIS_TIMEOUT_MS ?? 1000),
-			lazyConnect: true,
-			maxRetriesPerRequest: 0,
-		});
-		try {
-			await redis.connect();
-			await redis.ping();
-			return { status: "up", latencyMs: Date.now() - started };
-		} catch (error) {
-			return {
-				status: "down",
-				latencyMs: Date.now() - started,
-				error: error instanceof Error ? error.message : String(error),
-			};
-		} finally {
-			redis.disconnect();
-		}
+		const result = await this.diagnostics.readiness();
+		if (result.status !== "ok") res.status(HttpStatus.SERVICE_UNAVAILABLE);
+		return result;
 	}
 }
