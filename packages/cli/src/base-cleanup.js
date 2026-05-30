@@ -12,6 +12,7 @@ const EIMS_PATHS = [
 	"apps/api-tests/tests/eims-acceptance.spec.ts",
 	"apps/api-tests/tests/eims-v3-mock.spec.ts",
 	"apps/acceptance/features/eims.feature",
+	"apps/acceptance/steps/eims.steps.mjs",
 	"apps/e2e/playwright.eims.config.ts",
 	"apps/e2e/tests/eims-mock.spec.ts",
 	"apps/e2e/tests/eims-mock.reference.txt",

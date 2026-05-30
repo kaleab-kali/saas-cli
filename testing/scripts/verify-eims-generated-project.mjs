@@ -82,6 +82,8 @@ const requiredFiles = [
 	"apps/api-tests/bruno/EIMS-Phase0/collection.bru",
 	"apps/api-tests/scripts/eims-mock-api-server.mjs",
 	"apps/api-tests/tests/eims-v3-mock.spec.ts",
+	"apps/acceptance/features/eims.feature",
+	"apps/acceptance/steps/eims.steps.mjs",
 	"apps/e2e/tests/eims-mock.spec.ts",
 	"apps/performance/k6/eims-submit.js",
 	"apps/performance/scripts/eims-mock-load.mjs",
@@ -243,12 +245,20 @@ function assertGeneratedStructure() {
 		"generated package has EIMS performance smoke command",
 	);
 	assert(
+		packageJson.scripts["test:eims:acceptance"] === "pnpm --filter acceptance test:eims",
+		"generated package has EIMS acceptance command",
+	);
+	assert(
 		packageJson.scripts["test:eims:mock"]?.includes("test:eims:security"),
 		"generated EIMS mock gate includes security smoke",
 	);
 	assert(
 		packageJson.scripts["test:eims:mock"]?.includes("test:eims:performance"),
 		"generated EIMS mock gate includes performance smoke",
+	);
+	assert(
+		packageJson.scripts["test:eims:mock"]?.includes("test:eims:acceptance"),
+		"generated EIMS mock gate includes acceptance coverage",
 	);
 	const scaffoldState = JSON.parse(readProjectFile(".scaffold-state.json"));
 	const eimsStarter = scaffoldState.starters?.find((starter) => starter.name === "eims");
@@ -273,6 +283,13 @@ function assertGeneratedStructure() {
 	const webPackageJson = JSON.parse(readProjectFile("apps/web/package.json"));
 	assert(webPackageJson.scripts?.lint === "biome check .", "web workspace lint uses Biome");
 	assert(webPackageJson.scripts?.format === "biome check --write .", "web workspace format uses Biome");
+	const acceptancePackageJson = JSON.parse(readProjectFile("apps/acceptance/package.json"));
+	assert(
+		acceptancePackageJson.scripts?.["test:eims"]?.includes("features/eims.feature"),
+		"EIMS acceptance feature script is installed",
+	);
+	const eimsAcceptanceSteps = readProjectFile("apps/acceptance/steps/eims.steps.mjs");
+	assert(eimsAcceptanceSteps.includes("source system counter"), "EIMS acceptance steps verify source counter chain");
 	const performancePackageJson = JSON.parse(readProjectFile("apps/performance/package.json"));
 	assert(
 		performancePackageJson.scripts?.["test:eims"] === "node scripts/eims-mock-load.mjs",

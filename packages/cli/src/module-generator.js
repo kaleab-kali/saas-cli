@@ -1194,6 +1194,8 @@ const patchEimsPackageScripts = async (root) => {
 			"pnpm --filter api-tests test:eims:mock";
 		json.scripts["test:eims:phase0"] ??=
 			"pnpm --filter api-tests test:bruno:mock";
+		json.scripts["test:eims:acceptance"] ??=
+			"pnpm --filter acceptance test:eims";
 		json.scripts["test:eims:sandbox"] ??= "pnpm --filter api-tests test:bruno";
 		json.scripts["test:eims:ui"] ??= "pnpm --filter e2e test:eims";
 		json.scripts["test:eims:ui:headed"] ??=
@@ -1202,7 +1204,13 @@ const patchEimsPackageScripts = async (root) => {
 		json.scripts["test:eims:performance"] ??=
 			"pnpm --filter performance test:eims";
 		json.scripts["test:eims:mock"] ??=
-			"pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:api && pnpm test:eims:phase0 && pnpm test:eims:security && pnpm test:eims:performance && pnpm test:eims:ui";
+			"pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:api && pnpm test:eims:phase0 && pnpm test:eims:acceptance && pnpm test:eims:security && pnpm test:eims:performance && pnpm test:eims:ui";
+		return json;
+	});
+	await patchJsonFile(path.join(root, "apps/acceptance/package.json"), (json) => {
+		json.scripts ??= {};
+		json.scripts["test:eims"] ??=
+			"cucumber-js features/eims.feature --import steps/*.mjs";
 		return json;
 	});
 	await patchJsonFile(path.join(root, "apps/e2e/package.json"), (json) => {
@@ -4970,6 +4978,71 @@ EIMS_API_KEY=
     And a source system is approved
     When an invoice is submitted
     Then the invoice uses the source system counter and previous IRN chain
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/acceptance/steps/eims.steps.mjs"),
+		`import assert from "node:assert/strict";
+import { Given, Then, When } from "@cucumber/cucumber";
+
+const state = (world) => {
+\tworld.eims ??= {};
+\treturn world.eims;
+};
+
+Given("an organization has an EIMS enterprise", function () {
+\tconst eims = state(this);
+\teims.enterprise = {
+\t\tid: "ent_acceptance",
+\t\torganizationId: "org_acceptance",
+\t\ttin: "0074136947",
+\t\tlegalName: "Acceptance Restaurant PLC",
+\t};
+});
+
+Given("an establishment exists", function () {
+\tconst eims = state(this);
+\tassert.ok(eims.enterprise, "EIMS enterprise must be configured before adding an establishment");
+\teims.establishment = {
+\t\tid: "est_acceptance",
+\t\tenterpriseId: eims.enterprise.id,
+\t\tsubTin: eims.enterprise.tin + "-01",
+\t\tname: "Bole Branch",
+\t};
+});
+
+Given("a source system is approved", function () {
+\tconst eims = state(this);
+\tassert.ok(eims.establishment, "EIMS establishment must exist before source approval");
+\teims.source = {
+\t\tid: "src_acceptance",
+\t\testablishmentId: eims.establishment.id,
+\t\tapprovalStatus: "approved",
+\t\tlastAcceptedCounter: 128,
+\t\tlastIrn: "ACCEPTANCE-IRN-000128",
+\t};
+});
+
+When("an invoice is submitted", function () {
+\tconst eims = state(this);
+\tassert.equal(eims.source?.approvalStatus, "approved", "source system must be approved before submission");
+\teims.submission = {
+\t\tdocumentNumber: "ACC-INV-000129",
+\t\tsourceSystemId: eims.source.id,
+\t\tcounter: eims.source.lastAcceptedCounter + 1,
+\t\tpreviousIrn: eims.source.lastIrn,
+\t\tstatus: "accepted",
+\t\tirn: "ACCEPTANCE-IRN-000129",
+\t};
+});
+
+Then("the invoice uses the source system counter and previous IRN chain", function () {
+\tconst eims = state(this);
+\tassert.equal(eims.submission?.sourceSystemId, eims.source?.id);
+\tassert.equal(eims.submission?.counter, 129);
+\tassert.equal(eims.submission?.previousIrn, "ACCEPTANCE-IRN-000128");
+\tassert.equal(eims.submission?.status, "accepted");
+});
 `,
 	);
 	await writeNew(
