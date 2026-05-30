@@ -35,6 +35,7 @@ const mustExist = [
 	"apps/api/src/shared/rate-limit/tenant-throttler.guard.ts",
 	"apps/api/src/shared/rate-limit/tenant-throttler.guard.spec.ts",
 	"apps/api-tests/scripts/with-mock-api.mjs",
+	"apps/api-tests/tests/tenant-isolation.spec.ts",
 	"apps/web/src/features/onboarding/components/onboarding-pages.tsx",
 	"apps/web/src/routes/_authenticated/onboarding/index.tsx",
 	"apps/web/src/routes/admin/onboarding/index.tsx",
@@ -170,6 +171,20 @@ function assertPerformanceMockGateRuns() {
 		"performance mock gate has built-in fallback",
 	);
 	assert(!performanceMock.includes("Skipping k6 mock performance run"), "performance mock gate does not silently skip");
+}
+
+function assertTenantIsolationTestSurface() {
+	const tenantIsolationTest = readProjectFile("apps/api-tests/tests/tenant-isolation.spec.ts");
+	const mockApi = readProjectFile("apps/api-tests/scripts/with-mock-api.mjs");
+	const testingDocs = readProjectFile("docs/TESTING_GUIDE.md");
+	assert(tenantIsolationTest.includes("tenant isolation API smoke"), "API tests include tenant isolation smoke");
+	assert(tenantIsolationTest.includes('organizationId: "org_2"'), "tenant isolation test attempts cross-org writes");
+	assert(tenantIsolationTest.includes("crossTenantSettingsWrite.status()).toBe(403)"), "tenant isolation test denies settings takeover");
+	assert(tenantIsolationTest.includes("crossTenantInvite.status()).toBe(403)"), "tenant isolation test denies cross-org invites");
+	assert(mockApi.includes("membersByOrg"), "mock API models per-tenant members");
+	assert(mockApi.includes("orgSettingsByOrg"), "mock API models per-tenant settings");
+	assert(mockApi.includes("cross-tenant organization access denied"), "mock API rejects cross-tenant organization IDs");
+	assert(testingDocs.includes("tenant-isolation smoke test"), "testing docs describe tenant isolation smoke coverage");
 }
 
 function assertHealthObservabilitySurface() {
@@ -396,6 +411,7 @@ async function main() {
 	assertCiWorkflows();
 	assertWorkspaceScripts();
 	assertPerformanceMockGateRuns();
+	assertTenantIsolationTestSurface();
 	assertHealthObservabilitySurface();
 	assertUploadHardeningSurface();
 	assertTenantAwareRateLimitSurface();

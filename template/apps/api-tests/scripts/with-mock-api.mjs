@@ -4,10 +4,13 @@ import http from "node:http";
 const mode = process.argv[2] ?? "http";
 const requestedPort = Number(process.env.API_TEST_MOCK_PORT ?? 0);
 
-const members = [
-	{ id: "mem_owner", role: "owner", user: { email: "owner@example.com", name: "Owner" } },
-	{ id: "mem_admin", role: "admin", user: { email: "manager@example.com", name: "Manager" } },
-];
+const membersByOrg = {
+	org_1: [
+		{ id: "mem_owner", role: "owner", user: { email: "owner@example.com", name: "Owner" } },
+		{ id: "mem_admin", role: "admin", user: { email: "manager@example.com", name: "Manager" } },
+	],
+	org_2: [{ id: "mem_other_owner", role: "owner", user: { email: "other-owner@example.com", name: "Other Owner" } }],
+};
 const users = [
 	{
 		id: "admin_user_1",
@@ -23,15 +26,28 @@ const users = [
 	},
 	{ id: "admin_user_3", email: "unassigned@example.com", emailVerified: false, organizations: [] },
 ];
-const invitations = [];
+const invitationsByOrg = {
+	org_1: [],
+	org_2: [],
+};
 
-let orgSettings = {
-	legalName: "Acme Restaurant PLC",
-	timezone: "Africa/Addis_Ababa",
-	currency: "ETB",
-	taxId: "0074136947",
-	companyPhone: "+251911000000",
-	invoiceNumberPrefix: "INV",
+let orgSettingsByOrg = {
+	org_1: {
+		legalName: "Acme Restaurant PLC",
+		timezone: "Africa/Addis_Ababa",
+		currency: "ETB",
+		taxId: "0074136947",
+		companyPhone: "+251911000000",
+		invoiceNumberPrefix: "INV",
+	},
+	org_2: {
+		legalName: "Other Tenant PLC",
+		timezone: "Africa/Addis_Ababa",
+		currency: "ETB",
+		taxId: "0011223344",
+		companyPhone: "+251922000000",
+		invoiceNumberPrefix: "OTH",
+	},
 };
 let securitySettings = { force2fa: false, sessionTimeoutMinutes: 30 };
 let billingVatRate = "15";
@@ -45,6 +61,17 @@ let organization = {
 const json = (res, status, body) => {
 	res.writeHead(status, { "content-type": "application/json" });
 	res.end(JSON.stringify(body));
+	return true;
+};
+
+const activeOrgId = (req) => req.headers["x-test-org-id"] ?? "org_1";
+
+const assertTenantScope = (req, body, res) => {
+	const requestedOrgId = body?.organizationId;
+	if (requestedOrgId && requestedOrgId !== activeOrgId(req)) {
+		json(res, 403, { error: "cross-tenant organization access denied" });
+		return false;
+	}
 	return true;
 };
 
@@ -86,12 +113,16 @@ const handleCore = (url, res) => {
 };
 
 const handleTeam = async (url, method, req, res) => {
+	const orgId = activeOrgId(req);
+	const members = membersByOrg[orgId] ?? [];
 	if (url.pathname === "/api/v1/team/members" && method === "GET") return json(res, 200, { data: members });
 	if (url.pathname.startsWith("/api/v1/team/members/") && ["PATCH", "DELETE"].includes(method)) {
 		return json(res, 403, { error: "last owner is protected" });
 	}
 	if (url.pathname === "/api/v1/team/invitations" && method === "POST") {
 		const body = await readBody(req);
+		if (!assertTenantScope(req, body, res)) return true;
+		const invitations = invitationsByOrg[orgId] ?? [];
 		const invite = {
 			id: `inv_${invitations.length + 1}`,
 			email: body.email ?? "qa-member@example.com",
@@ -101,29 +132,41 @@ const handleTeam = async (url, method, req, res) => {
 		};
 		invite.acceptUrl = `/settings/members?invitationId=${invite.id}`;
 		invitations.push(invite);
+		invitationsByOrg[orgId] = invitations;
 		return json(res, 201, { data: invite });
 	}
 	if (url.pathname === "/api/v1/team/invitations" && method === "GET") {
-		return json(res, 200, { data: invitations });
+		return json(res, 200, { data: invitationsByOrg[orgId] ?? [] });
 	}
 	if (url.pathname.startsWith("/api/v1/team/invitations/") && method === "DELETE") {
 		const id = url.pathname.split("/").at(-1);
+		const invitations = invitationsByOrg[orgId] ?? [];
 		const index = invitations.findIndex((invite) => invite.id === id);
 		const [removed] = index >= 0 ? invitations.splice(index, 1) : [];
+		invitationsByOrg[orgId] = invitations;
 		return json(res, 200, { data: removed ?? { id, email: "qa-member@example.com" } });
 	}
 	return false;
 };
 
 const handleTenantSettings = async (url, method, req, res) => {
+	const orgId = activeOrgId(req);
 	if (url.pathname === "/api/v1/organization-settings" && method === "GET")
-		return json(res, 200, { data: orgSettings });
+		return json(res, 200, { data: orgSettingsByOrg[orgId] });
 	if (url.pathname === "/api/v1/organization-settings" && method === "PATCH") {
-		orgSettings = { ...orgSettings, ...(await readBody(req)) };
-		return json(res, 200, { data: orgSettings });
+		const body = await readBody(req);
+		if (!assertTenantScope(req, body, res)) return true;
+		const { organizationId: _organizationId, ...allowedBody } = body;
+		orgSettingsByOrg = {
+			...orgSettingsByOrg,
+			[orgId]: { ...orgSettingsByOrg[orgId], ...allowedBody },
+		};
+		return json(res, 200, { data: orgSettingsByOrg[orgId] });
 	}
 	if (url.pathname === "/api/v1/security-settings" && method === "PATCH") {
-		securitySettings = { ...securitySettings, ...(await readBody(req)) };
+		const body = await readBody(req);
+		if (!assertTenantScope(req, body, res)) return true;
+		securitySettings = { ...securitySettings, ...body };
 		return json(res, 200, { data: securitySettings });
 	}
 	return false;

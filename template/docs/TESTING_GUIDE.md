@@ -98,6 +98,8 @@ The mock command validates the Playwright API test toolchain:
 pnpm test:api:http:mock
 ```
 
+The mock HTTP suite includes a tenant-isolation smoke test. It verifies that tenant-scoped endpoints reject writes that try to name a different `organizationId` and that switching the active test organization returns only that tenant's settings and members.
+
 Authenticated capability checks can use a real session cookie:
 
 ```bash
