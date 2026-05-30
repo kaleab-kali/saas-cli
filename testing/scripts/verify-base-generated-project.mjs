@@ -78,10 +78,25 @@ function assertNoEimsScripts() {
 function assertDeployGateBuilds() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	const deployCheck = packageJson.scripts?.["deploy:check"] ?? "";
+	const testCi = packageJson.scripts?.["test:ci"] ?? "";
 	assert(deployCheck.includes("build:api"), "deploy gate includes API production build");
 	assert(deployCheck.includes("build:web"), "deploy gate includes web production build");
+	assert(testCi.includes("test:api:http:mock"), "CI test gate includes mock HTTP API tests");
+	assert(testCi.includes("test:api:bruno:mock"), "CI test gate includes mock Bruno API tests");
 	assert(packageJson.scripts?.["db:backup"]?.includes("backup-postgres.mjs"), "base package has Postgres backup script");
 	assert(packageJson.scripts?.["db:restore"]?.includes("restore-postgres.mjs"), "base package has Postgres restore script");
+}
+
+function assertCiWorkflows() {
+	const codeQuality = readProjectFile(".github/workflows/code-quality.yml");
+	const playwright = readProjectFile(".github/workflows/playwright.yml");
+	assert(codeQuality.includes("pull_request:"), "code quality workflow runs on pull requests");
+	assert(codeQuality.includes("push:"), "code quality workflow runs on pushes");
+	assert(codeQuality.includes("production-gate:"), "code quality workflow includes production gate job");
+	assert(codeQuality.includes("pnpm deploy:check"), "code quality workflow runs deploy readiness gate");
+	assert(playwright.includes("pull_request:"), "Playwright workflow runs on pull requests");
+	assert(playwright.includes("push:"), "Playwright workflow runs on pushes");
+	assert(playwright.includes("pnpm test:e2e"), "Playwright workflow runs browser E2E tests");
 }
 
 function assertWorkspaceScripts() {
@@ -158,6 +173,7 @@ async function main() {
 
 	assertNoEimsScripts();
 	assertDeployGateBuilds();
+	assertCiWorkflows();
 	assertWorkspaceScripts();
 	assertPerformanceMockGateRuns();
 	assertOnboardingFirstEntry();

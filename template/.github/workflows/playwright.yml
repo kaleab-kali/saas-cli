@@ -1,11 +1,10 @@
 name: Playwright Tests
-# Disabled — uncomment to enable on push
-# on:
-#   push:
-#     branches: [main]
-#   pull_request:
-#     branches: [main]
-on: workflow_dispatch
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 jobs:
   test:
     timeout-minutes: 60

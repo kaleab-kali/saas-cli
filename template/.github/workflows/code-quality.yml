@@ -1,5 +1,10 @@
 name: Code Quality
-on: ["push", "workflow_dispatch"]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 jobs:
   lint:
     name: Lint
@@ -60,6 +65,34 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Test API
         run: pnpm test:api
+
+  production-gate:
+    name: Production Gate
+    runs-on: ubuntu-latest
+    needs: [lint, types, unit-tests]
+    env:
+      DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+      BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      MASTER_KEY: abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
+      BETTER_AUTH_URL: http://localhost:3000
+      FRONTEND_URL: http://localhost:5173
+      VITE_API_URL: http://localhost:3000
+      VITE_APP_NAME: "{{projectName}} CI"
+      NODE_ENV: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Deploy readiness gate
+        run: pnpm deploy:check
 
   # Build job disabled per request. Re-enable by uncommenting.
   # build:
