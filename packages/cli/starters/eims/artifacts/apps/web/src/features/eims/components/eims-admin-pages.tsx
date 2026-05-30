@@ -141,6 +141,33 @@ const adminLaunchLanes = [
 	},
 ] as const;
 
+const authorityDeskLanes = [
+	{
+		title: "MoR approval desk",
+		sla: "1-5 business days",
+		signal: "Source registration waiting on authority approval",
+		next: "Follow up with tenant contact when OTP or portal evidence is missing",
+	},
+	{
+		title: "INSA certificate desk",
+		sla: "1-3 business days after CSR",
+		signal: "CSR sent but issued certificate has not been uploaded",
+		next: "Send follow-up package and keep request evidence attached to the tenant task",
+	},
+	{
+		title: "Sandbox proof desk",
+		sla: "Same day after certificate",
+		signal: "Credentials and certificate exist but test invoice has not returned IRN",
+		next: "Run the controlled invoice, record QR evidence, and classify failures before retry",
+	},
+	{
+		title: "Live switch desk",
+		sla: "After training",
+		signal: "Tenant can issue daily invoices only after first production IRN",
+		next: "Schedule cashier training and keep production launch blocked until the invoice is accepted",
+	},
+] as const;
+
 function AdminConciergeQueuePanel({ stats }: { readonly stats: readonly (readonly [string, string])[] }) {
 	const tenantsTotal = stats.find(([label]) => label === "Tenants")?.[1] ?? "0";
 	const blocked = stats.find(([label]) => label === "Blocked")?.[1] ?? "0";
@@ -177,6 +204,52 @@ function AdminConciergeQueuePanel({ stats }: { readonly stats: readonly (readonl
 							</div>
 							<span className="rounded-md border px-2 py-1 text-xs">{lane.status}</span>
 						</div>
+					</div>
+				))}
+			</div>
+		</section>
+	);
+}
+
+function AdminAuthorityDeskPanel({ stats }: { readonly stats: readonly (readonly [string, string])[] }) {
+	const pendingOffline = stats.find(([label]) => label === "Pending Offline")?.[1] ?? "0";
+	const unknown = stats.find(([label]) => label === "Unknown")?.[1] ?? "0";
+	const certAlerts = stats.find(([label]) => label === "Cert Alerts")?.[1] ?? "0";
+
+	return (
+		<section className="rounded-md border bg-background">
+			<div className="grid gap-4 border-b bg-muted/25 p-4 lg:grid-cols-[1fr_360px]">
+				<div>
+					<p className="text-sm font-semibold">MoR/INSA authority desk</p>
+					<h2 className="mt-1 text-xl font-semibold tracking-normal">Cross-tenant launch blockers</h2>
+					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+						Operations view for authority waits, certificate handoffs, sandbox proof, and the live invoice switch.
+					</p>
+				</div>
+				<div className="grid grid-cols-3 gap-2">
+					{[
+						["Pending sync", pendingOffline],
+						["Unknown", unknown],
+						["Cert alerts", certAlerts],
+					].map(([label, value]) => (
+						<div key={label} className="rounded-md border bg-background p-3">
+							<p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+							<p className="mt-1 text-xl font-semibold">{value}</p>
+						</div>
+					))}
+				</div>
+			</div>
+			<div className="grid gap-3 p-4 xl:grid-cols-4">
+				{authorityDeskLanes.map((lane) => (
+					<div key={lane.title} className="rounded-md border p-4">
+						<div className="flex items-start justify-between gap-3">
+							<p className="font-medium">{lane.title}</p>
+							<span className="rounded-md border px-2 py-1 text-xs">{lane.sla}</span>
+						</div>
+						<p className="mt-3 text-sm leading-6 text-muted-foreground">{lane.signal}</p>
+						<p className="mt-3 rounded-md border bg-muted/30 p-2 text-xs leading-5 text-muted-foreground">
+							{lane.next}
+						</p>
 					</div>
 				))}
 			</div>
@@ -378,6 +451,7 @@ export function AdminEimsOverviewPage() {
 		<div className="space-y-5">
 			<AdminOperationsHero stats={stats} />
 			<AdminConciergeQueuePanel stats={stats} />
+			<AdminAuthorityDeskPanel stats={stats} />
 			<div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
 				{stats.map(([label, value]) => (
 					<Card key={label}>

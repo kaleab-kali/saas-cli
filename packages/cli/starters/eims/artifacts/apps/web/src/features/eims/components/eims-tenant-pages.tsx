@@ -3,6 +3,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
 import {
 	type EimsOverview,
+	type EimsSetupState,
 	type EimsTenantWorkspace,
 	useCancelEimsInvoice,
 	useCreateEimsBulkBatch,
@@ -218,6 +219,45 @@ const setupJourney = [
 	["Go live", "Issue the first controlled invoice and prepare the tenant for daily use"],
 ] as const;
 
+const eimsLaunchWizardSteps = [
+	{
+		title: "Welcome and MoR registration",
+		lane: "Tenant with staff",
+		proof: "MoR portal account confirmed",
+		detail: "Confirm TIN, owner phone, OTP contact, payment proof, and portal signup readiness before credentials work.",
+	},
+	{
+		title: "Authority credentials",
+		lane: "Onboarding staff",
+		proof: "Client ID and API key stored",
+		detail: "Capture source system number, username, client secret, and API key through encrypted backend storage.",
+	},
+	{
+		title: "Generate CSR",
+		lane: "System assisted",
+		proof: "CSR and private key generated",
+		detail: "Create the RSA key pair, prepare the certificate signing request, and keep private material encrypted.",
+	},
+	{
+		title: "Submit to INSA",
+		lane: "Onboarding staff",
+		proof: "INSA email package sent",
+		detail: "Send the CSR package, request form, and business identity evidence to the certificate authority desk.",
+	},
+	{
+		title: "Upload certificate",
+		lane: "Onboarding staff",
+		proof: "Issued certificate validated",
+		detail: "Import the returned certificate, validate the key match, expiry, subject TIN, and production readiness.",
+	},
+	{
+		title: "Verify and go live",
+		lane: "Staff then tenant",
+		proof: "Sandbox IRN and first live invoice",
+		detail: "Run a controlled test invoice, capture QR evidence, train the cashier, then unlock live daily invoices.",
+	},
+] as const;
+
 const doneStatuses = new Set(["accepted", "active", "approved", "complete", "ready", "test_ready"]);
 
 const conciergeStages = [
@@ -370,6 +410,123 @@ function SetupJourneyPanel({ workspace }: { readonly workspace: EimsTenantWorksp
 						)}
 					</CardContent>
 				</Card>
+			</div>
+		</section>
+	);
+}
+
+function EimsLaunchWizardPanel({ workspace }: { readonly workspace: EimsTenantWorkspace }) {
+	const firstOpenStepIndex = workspace.readiness.steps.findIndex(
+		(step) => !doneStatuses.has(step.status.toLowerCase()),
+	);
+	const currentStepIndex =
+		firstOpenStepIndex === -1 ? Math.max(0, workspace.readiness.steps.length - 1) : firstOpenStepIndex;
+
+	return (
+		<section className="rounded-md border bg-background">
+			<div className="grid gap-4 border-b bg-muted/25 p-4 lg:grid-cols-[1fr_320px]">
+				<div>
+					<p className="text-sm font-semibold">EIMS six-step launch wizard</p>
+					<h2 className="mt-1 text-xl font-semibold tracking-normal">MoR/INSA setup path</h2>
+					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+						A dedicated launch screen for tax registration, source approval, certificate issuance, sandbox proof,
+						and the first production invoice.
+					</p>
+				</div>
+				<div className="rounded-md border bg-background p-3">
+					<p className="text-xs font-medium uppercase text-muted-foreground">Current launch state</p>
+					<p className="mt-1 text-lg font-semibold">
+						{workspace.readiness.readyForLive ? "Ready for live invoices" : "Authority setup in progress"}
+					</p>
+					<p className="mt-1 text-xs leading-5 text-muted-foreground">{workspace.supportNote}</p>
+				</div>
+			</div>
+			<div className="grid gap-3 p-4 lg:grid-cols-2 2xl:grid-cols-3">
+				{eimsLaunchWizardSteps.map((step, index) => {
+					const readinessStep = workspace.readiness.steps[index];
+					const status = readinessStep?.status ?? (index < currentStepIndex ? "complete" : "pending");
+					const isCurrent = index === Math.min(currentStepIndex, eimsLaunchWizardSteps.length - 1);
+					return (
+						<div
+							key={step.title}
+							className={`rounded-md border p-4 ${stepStatusTone(status)} ${isCurrent ? "ring-2 ring-primary/25" : ""}`}
+						>
+							<div className="flex items-start justify-between gap-3">
+								<div className="min-w-0">
+									<p className="text-xs font-medium uppercase text-muted-foreground">Step {index + 1}</p>
+									<h3 className="mt-1 text-base font-semibold tracking-normal">{step.title}</h3>
+								</div>
+								<StatusBadge status={status} />
+							</div>
+							<div className="mt-3 grid gap-2 text-sm">
+								<div className="rounded-md border bg-background/70 p-2">
+									<span className="font-medium">Owner: </span>
+									<span className="text-muted-foreground">{step.lane}</span>
+								</div>
+								<div className="rounded-md border bg-background/70 p-2">
+									<span className="font-medium">Proof: </span>
+									<span className="text-muted-foreground">{step.proof}</span>
+								</div>
+							</div>
+							<p className="mt-3 text-sm leading-6 text-muted-foreground">{step.detail}</p>
+						</div>
+					);
+				})}
+			</div>
+		</section>
+	);
+}
+
+function AuthorityHandoffPacketPanel({
+	setup,
+	workspace,
+}: {
+	readonly setup: EimsSetupState;
+	readonly workspace: EimsTenantWorkspace;
+}) {
+	const packetItems = [
+		["Taxpayer profile", `${setup.counts.enterprises} saved`, "TIN, VAT, legal name, and contact channel"],
+		[
+			"Branch and source",
+			`${setup.counts.establishments}/${setup.counts.sourceSystems}`,
+			"Branch address and register/POS approval trail",
+		],
+		["MoR credentials", "encrypted", "API key, username, password, client ID, and client secret"],
+		[
+			"INSA certificate",
+			workspace.readiness.readyForLive ? "validated" : "pending",
+			"CSR, issued PEM, expiry, and key-match evidence",
+		],
+		[
+			"Sandbox evidence",
+			workspace.readiness.readyForLive ? "accepted" : "required",
+			"Test invoice IRN, signed QR, and response payload",
+		],
+		[
+			"Live launch",
+			workspace.readiness.readyForLive ? "enabled" : "blocked",
+			"Cashier training and first production invoice checkpoint",
+		],
+	] as const;
+
+	return (
+		<section className="rounded-md border bg-background">
+			<div className="border-b p-4">
+				<p className="text-sm font-semibold">Authority handoff packet</p>
+				<p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
+					All artifacts staff must collect before a tenant can issue compliant EIMS invoices in production.
+				</p>
+			</div>
+			<div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
+				{packetItems.map(([title, status, detail]) => (
+					<div key={title} className="rounded-md border p-3">
+						<div className="flex items-start justify-between gap-3">
+							<p className="font-medium">{title}</p>
+							<Badge variant="outline">{status}</Badge>
+						</div>
+						<p className="mt-2 text-sm leading-6 text-muted-foreground">{detail}</p>
+					</div>
+				))}
 			</div>
 		</section>
 	);
@@ -1177,11 +1334,13 @@ export function EimsSetupPage() {
 	return (
 		<div className="space-y-5">
 			<EimsWorkspaceHeader
-				title="Guided tax setup"
-				description="Enter the business tax details, branch details, register/POS reference, API credentials, and issued certificate."
+				title="MoR/INSA launch wizard"
+				description="Move a tenant from taxpayer profile to source approval, encrypted credentials, issued certificate, sandbox IRN, and first live invoice."
 				mode={workspace.operationModeLabel}
 				overview={overview}
 			/>
+			<EimsLaunchWizardPanel workspace={workspace} />
+			<AuthorityHandoffPacketPanel setup={setup} workspace={workspace} />
 			<ConciergeOnboardingCockpit workspace={workspace} overview={overview} />
 			<SetupJourneyPanel workspace={workspace} />
 			<ReadinessSteps workspace={workspace} />

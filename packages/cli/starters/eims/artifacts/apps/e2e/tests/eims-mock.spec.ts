@@ -366,7 +366,9 @@ test.describe("tenant EIMS workflow is business-facing and backend-driven", () =
 		const branchHealth = (await branchHealthPromise).data;
 		const buyers = (await buyersPromise).data;
 
-		await expect(page.getByRole("heading", { name: "Guided tax setup" })).toBeVisible();
+		await expect(page.getByRole("heading", { name: "MoR/INSA launch wizard" })).toBeVisible();
+		await expect(page.getByText("EIMS six-step launch wizard", { exact: false })).toBeVisible();
+		await expect(page.getByText("Authority handoff packet", { exact: false })).toBeVisible();
 		await expect(page.getByText("Current staff handoff")).toBeVisible();
 		await expect(page.getByText("Tenant handoff dossier")).toBeVisible();
 		for (const blocker of workspace.readiness.blockers) await expectVisibleTexts(page, [blocker]);
@@ -611,6 +613,8 @@ test.describe("super-admin EIMS operations owns provider compliance and BSP evid
 			overview.data.unknownSubmissions,
 			overview.data.certificateAlerts,
 		]);
+		await expect(page.getByText("MoR/INSA authority desk", { exact: false })).toBeVisible();
+		await expect(page.getByText("Cross-tenant launch blockers", { exact: false })).toBeVisible();
 		for (const failure of overview.data.latestFailures) {
 			await expectRowContains(page, failure.tenant, [
 				failure.sourceSystem,
