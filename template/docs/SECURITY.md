@@ -20,7 +20,7 @@ Run this before deploy:
 pnpm deploy:check
 ```
 
-The gate runs Prisma generation, production doctor checks, lint/type checks, API and web production builds, CI tests, security tooling smoke tests, and mock load checks.
+The gate runs Prisma generation, production doctor checks, lint/type checks, API and web production builds, CI tests, deterministic source/API security checks, security tooling smoke tests, and mock load checks.
 
 ## Authentication And Sessions
 
@@ -54,6 +54,7 @@ The generated project includes:
 - `apps/security`: security smoke, dependency, Semgrep, gitleaks, and nuclei wrappers.
 - `.gitleaks.toml`: committed secret detection.
 - `pnpm test:security`: aggregate security checks.
+- `pnpm test:security:source`: deterministic source checks for core API/web hardening.
 - `pnpm test:security:tooling`: CI-safe tooling smoke.
 
 ## Reporting

@@ -36,6 +36,7 @@ const mustExist = [
 	"apps/web/src/routes/admin/onboarding/new.tsx",
 	"apps/web/src/shared/components/CommandPalette.tsx",
 	"apps/web/src/shared/components/PageShell.tsx",
+	"apps/security/scripts/source-security-check.mjs",
 	"scripts/backup-postgres.mjs",
 	"scripts/restore-postgres.mjs",
 ];
@@ -81,10 +82,14 @@ function assertDeployGateBuilds() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	const deployCheck = packageJson.scripts?.["deploy:check"] ?? "";
 	const testCi = packageJson.scripts?.["test:ci"] ?? "";
+	const testSmoke = packageJson.scripts?.["test:smoke"] ?? "";
 	assert(deployCheck.includes("build:api"), "deploy gate includes API production build");
 	assert(deployCheck.includes("build:web"), "deploy gate includes web production build");
 	assert(testCi.includes("test:api:http:mock"), "CI test gate includes mock HTTP API tests");
 	assert(testCi.includes("test:api:bruno:mock"), "CI test gate includes mock Bruno API tests");
+	assert(testCi.includes("test:security:source"), "CI test gate includes deterministic source security checks");
+	assert(testCi.includes("test:security:api"), "CI test gate includes deterministic API security checks");
+	assert(testSmoke.includes("test:security:source"), "smoke test gate includes deterministic source security checks");
 	assert(packageJson.scripts?.["db:backup"]?.includes("backup-postgres.mjs"), "base package has Postgres backup script");
 	assert(packageJson.scripts?.["db:restore"]?.includes("restore-postgres.mjs"), "base package has Postgres restore script");
 }
@@ -103,8 +108,10 @@ function assertCiWorkflows() {
 
 function assertWorkspaceScripts() {
 	const webPackageJson = JSON.parse(readProjectFile("apps/web/package.json"));
+	const securityPackageJson = JSON.parse(readProjectFile("apps/security/package.json"));
 	assert(webPackageJson.scripts?.lint === "biome check .", "web workspace lint uses Biome");
 	assert(webPackageJson.scripts?.format === "biome check --write .", "web workspace format uses Biome");
+	assert(securityPackageJson.scripts?.["test:source"]?.includes("source-security-check.mjs"), "security workspace has source hardening check");
 }
 
 function assertPerformanceMockGateRuns() {

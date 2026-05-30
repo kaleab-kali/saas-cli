@@ -10,6 +10,7 @@
 		"test:sast": "node scripts/run-semgrep.mjs",
 		"test:http": "node scripts/run-nuclei.mjs",
 		"test:api": "node scripts/api-security-smoke.mjs",
+		"test:source": "node scripts/source-security-check.mjs",
 		"test:tooling": "node scripts/tooling-smoke.mjs"
 	}
 }

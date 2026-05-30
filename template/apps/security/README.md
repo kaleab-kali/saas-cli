@@ -19,8 +19,17 @@ pnpm --filter security test:deps
 pnpm --filter security test:sast
 pnpm --filter security test:http
 pnpm --filter security test:api
+pnpm --filter security test:source
 pnpm --filter security test
 ```
+
+Source hardening check:
+
+```bash
+pnpm --filter security test:source
+```
+
+This deterministic check inspects the generated API and web source for core hardening drift: Helmet, strict validation, credentialed CORS, development-only Swagger, unsafe Prisma raw SQL, direct Axios imports, and fetch-in-effect patterns that bypass TanStack Query.
 
 Runtime HTTP security scan:
 

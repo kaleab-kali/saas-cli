@@ -1,0 +1,77 @@
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
+import { repoRoot } from "./lib.mjs";
+
+const failures = [];
+
+const read = (relPath) => readFileSync(path.join(repoRoot, relPath), "utf8");
+
+const fail = (message) => failures.push(message);
+
+const assertIncludes = (text, needle, message) => {
+	if (!text.includes(needle)) fail(message);
+};
+
+const walkFiles = (dir, predicate, out = []) => {
+	if (!existsSync(dir)) return out;
+	for (const entry of readdirSync(dir)) {
+		const fullPath = path.join(dir, entry);
+		const stat = statSync(fullPath);
+		if (stat.isDirectory()) {
+			if (["node_modules", "dist", "coverage", "generated"].includes(entry)) continue;
+			walkFiles(fullPath, predicate, out);
+		} else if (predicate(fullPath)) {
+			out.push(fullPath);
+		}
+	}
+	return out;
+};
+
+const rel = (fullPath) => path.relative(repoRoot, fullPath).replaceAll("\\", "/");
+const sourceExt = /\.(mjs|cjs|js|jsx|ts|tsx)$/;
+
+const apiMain = read("apps/api/src/main.ts");
+assertIncludes(apiMain, "app.use(helmet(", "API bootstrap must install Helmet security headers");
+assertIncludes(apiMain, "app.enableCors({", "API bootstrap must configure CORS explicitly");
+assertIncludes(apiMain, "credentials: true", "CORS must preserve credentialed auth cookies intentionally");
+assertIncludes(apiMain, "new ValidationPipe({", "API bootstrap must install a global ValidationPipe");
+assertIncludes(apiMain, "whitelist: true", "ValidationPipe must strip unknown DTO properties");
+assertIncludes(apiMain, "forbidNonWhitelisted: true", "ValidationPipe must reject unknown DTO properties");
+assertIncludes(apiMain, 'process.env.NODE_ENV !== "production"', "Swagger/docs must stay development-only");
+
+const allSource = walkFiles(repoRoot, (file) => sourceExt.test(file));
+const unsafePrismaRaw = "$query" + "RawUnsafe";
+
+for (const file of allSource) {
+	const relative = rel(file);
+	if (relative.includes("/node_modules/") || relative.includes("/dist/")) continue;
+	const text = readFileSync(file, "utf8");
+
+	if (text.includes(unsafePrismaRaw)) {
+		fail(`${relative} uses Prisma ${unsafePrismaRaw}`);
+	}
+
+	if (/\beval\s*\(/.test(text) || /\bnew\s+Function\s*\(/.test(text)) {
+		fail(`${relative} uses eval-like code execution`);
+	}
+
+	if (relative.startsWith("apps/web/src/") && /from\s+["']axios["']/.test(text)) {
+		fail(`${relative} imports axios directly; use the shared api client`);
+	}
+
+	if (
+		relative.startsWith("apps/web/src/") &&
+		relative !== "apps/web/src/shared/lib/api-client.ts" &&
+		/useEffect\s*\([^)]*=>[\s\S]{0,400}\bfetch\s*\(/.test(text)
+	) {
+		fail(`${relative} performs fetch inside useEffect; use TanStack Query hooks`);
+	}
+}
+
+if (failures.length > 0) {
+	console.error("Source security check failed:");
+	for (const failure of failures) console.error(`- ${failure}`);
+	process.exit(1);
+}
+
+console.log("Source security check passed");
