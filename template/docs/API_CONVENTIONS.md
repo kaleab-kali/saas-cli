@@ -50,7 +50,8 @@ Query params should stay explicit and typed, for example `?status=active&ownerId
 - `500` - server error
 
 ## Rate Limiting
-- Global: 60 requests per minute per IP with `@nestjs/throttler`
+- Global: `TenantThrottlerGuard` scopes authenticated traffic by `organizationId`, admin traffic by admin session/user, API-key traffic by key id when present, and anonymous traffic by client IP.
+- Defaults: `API_RATE_LIMIT_PER_TENANT=60`, `API_RATE_LIMIT_TTL_MS=60000`, `API_RATE_LIMIT_BLOCK_MS=60000`.
 - Override per route: `@Throttle({ default: { ttl: 1000, limit: 3 } })`
 - Skip for a route: `@SkipThrottle()`
 

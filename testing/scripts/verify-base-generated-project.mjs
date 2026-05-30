@@ -31,6 +31,9 @@ const mustExist = [
 	"apps/api/src/modules/onboarding/onboarding.module.ts",
 	"apps/api/src/modules/health/detailed-health.controller.ts",
 	"apps/api/src/modules/health/health-diagnostics.service.ts",
+	"apps/api/src/shared/rate-limit/rate-limit.config.ts",
+	"apps/api/src/shared/rate-limit/tenant-throttler.guard.ts",
+	"apps/api/src/shared/rate-limit/tenant-throttler.guard.spec.ts",
 	"apps/api-tests/scripts/with-mock-api.mjs",
 	"apps/web/src/features/onboarding/components/onboarding-pages.tsx",
 	"apps/web/src/routes/_authenticated/onboarding/index.tsx",
@@ -200,6 +203,35 @@ function assertUploadHardeningSurface() {
 	assert(securityDocs.includes("UPLOAD_ALLOWED_MIME_TYPES"), "security docs document upload MIME allowlist configuration");
 }
 
+function assertTenantAwareRateLimitSurface() {
+	const appModule = readProjectFile("apps/api/src/app.module.ts");
+	const tenantThrottler = readProjectFile("apps/api/src/shared/rate-limit/tenant-throttler.guard.ts");
+	const rateLimitConfig = readProjectFile("apps/api/src/shared/rate-limit/rate-limit.config.ts");
+	const rateLimitSpec = readProjectFile("apps/api/src/shared/rate-limit/tenant-throttler.guard.spec.ts");
+	const apiConventions = readProjectFile("docs/API_CONVENTIONS.md");
+	const securityDocs = readProjectFile("docs/SECURITY.md");
+	const sourceSecurity = readProjectFile("apps/security/scripts/source-security-check.mjs");
+	const envExample = readProjectFile(".env.example");
+	const envProduction = readProjectFile(".env.production.example");
+	assert(appModule.includes("TenantThrottlerGuard"), "global throttler uses tenant-aware guard");
+	assert(!appModule.includes("useClass: ThrottlerGuard"), "global throttler no longer uses raw IP-only guard");
+	assert(appModule.includes("apiRateLimitPerTenant()"), "global throttler uses configurable tenant limit");
+	assert(tenantThrottler.includes("tenant:"), "tenant throttler isolates organization buckets");
+	assert(tenantThrottler.includes("admin:"), "tenant throttler isolates admin buckets");
+	assert(tenantThrottler.includes("api-key:"), "tenant throttler supports API-key buckets when present");
+	assert(tenantThrottler.includes("auth.api.getSession"), "tenant throttler resolves tenant sessions before IP fallback");
+	assert(tenantThrottler.includes("adminAuth.api.getSession"), "tenant throttler resolves admin sessions before IP fallback");
+	assert(rateLimitConfig.includes("API_RATE_LIMIT_PER_TENANT"), "rate limit config exposes tenant limit env var");
+	assert(rateLimitSpec.includes("tenant:org_2"), "rate limit tests cover tenant session tracking");
+	assert(rateLimitSpec.includes("admin:admin_1"), "rate limit tests cover admin session tracking");
+	assert(rateLimitSpec.includes("ip:203.0.113.10"), "rate limit tests cover anonymous IP fallback");
+	assert(apiConventions.includes("TenantThrottlerGuard"), "API conventions document tenant-aware rate limiting");
+	assert(securityDocs.includes("API_RATE_LIMIT_PER_TENANT"), "security docs document rate limit env vars");
+	assert(sourceSecurity.includes("rate limiting must isolate tenant request buckets"), "source security gate enforces tenant rate limits");
+	assert(envExample.includes("API_RATE_LIMIT_PER_TENANT=60"), "env example includes rate limit tenant default");
+	assert(envProduction.includes("API_RATE_LIMIT_PER_TENANT=60"), "production env example includes rate limit tenant default");
+}
+
 function assertOnboardingFirstEntry() {
 	const rootIndex = readProjectFile("apps/web/src/routes/index.tsx");
 	const loginPage = readProjectFile("apps/web/src/routes/login.tsx");
@@ -338,6 +370,7 @@ async function main() {
 	assertPerformanceMockGateRuns();
 	assertHealthObservabilitySurface();
 	assertUploadHardeningSurface();
+	assertTenantAwareRateLimitSurface();
 	assertOnboardingFirstEntry();
 	assertFrontendImprovementSurface();
 	assertOnboardingServerTableQuery();

@@ -47,6 +47,16 @@ assertIncludes(uploadService, "UPLOAD_ALLOWED_MIME_TYPES", "uploads must support
 assertIncludes(uploadService, "file content does not match declared type", "uploads must validate binary signatures");
 assertIncludes(uploadService, "text upload contains unsafe content", "uploads must reject unsafe text/HTML payloads");
 
+const appModule = read("apps/api/src/app.module.ts");
+const tenantThrottler = read("apps/api/src/shared/rate-limit/tenant-throttler.guard.ts");
+const rateLimitConfig = read("apps/api/src/shared/rate-limit/rate-limit.config.ts");
+assertIncludes(appModule, "TenantThrottlerGuard", "global throttling must use tenant-aware tracker guard");
+assertIncludes(tenantThrottler, "tenant:", "rate limiting must isolate tenant request buckets");
+assertIncludes(tenantThrottler, "admin:", "rate limiting must isolate admin request buckets");
+assertIncludes(tenantThrottler, "auth.api.getSession", "tenant throttler must resolve Better Auth tenant sessions");
+assertIncludes(tenantThrottler, "adminAuth.api.getSession", "tenant throttler must resolve admin sessions separately");
+assertIncludes(rateLimitConfig, "API_RATE_LIMIT_PER_TENANT", "rate limit defaults must be configurable per deployment");
+
 const allSource = walkFiles(repoRoot, (file) => sourceExt.test(file));
 const unsafePrismaRaw = "$query" + "RawUnsafe";
 

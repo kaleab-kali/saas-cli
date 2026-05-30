@@ -41,6 +41,10 @@ The gate runs Prisma generation, production doctor checks, lint/type checks, API
 
 Every query that reads tenant data must be scoped by `organizationId` or run through a shared tenant-aware repository/service. API tests must include tenant isolation and permission denial cases for new modules.
 
+## Abuse Protection
+
+Authenticated API throttling is tenant-aware. `TenantThrottlerGuard` resolves the active organization before applying `@nestjs/throttler`, so tenants behind the same NAT do not share a single IP bucket and one tenant cannot consume another tenant's allowance. Configure the defaults with `API_RATE_LIMIT_PER_TENANT`, `API_RATE_LIMIT_TTL_MS`, and `API_RATE_LIMIT_BLOCK_MS`.
+
 ## Secret Encryption
 
 Use `CipherService` from `#shared/crypto/cipher.service` for API keys, integration credentials, private tokens, and starter-pack secrets. It uses AES-256-GCM with a random IV per value and refuses to start when `MASTER_KEY` is missing or malformed.

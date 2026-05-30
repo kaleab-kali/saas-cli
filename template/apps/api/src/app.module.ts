@@ -3,7 +3,7 @@ import { ConfigModule } from "@nestjs/config";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ScheduleModule } from "@nestjs/schedule";
-import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { AdminModule } from "#modules/admin/admin.module";
 import { ApiKeyModule } from "#modules/api-key/api-key.module";
 import { AuditLogModule } from "#modules/audit-log/audit-log.module";
@@ -34,6 +34,8 @@ import { LoggerModule } from "#shared/logger/logger.module";
 import { LookupModule } from "#shared/lookups/lookup.module";
 import { MetricsInterceptor } from "#shared/metrics/metrics.interceptor";
 import { MetricsModule } from "#shared/metrics/metrics.module";
+import { apiRateLimitBlockMs, apiRateLimitPerTenant, apiRateLimitTtlMs } from "#shared/rate-limit/rate-limit.config";
+import { TenantThrottlerGuard } from "#shared/rate-limit/tenant-throttler.guard";
 import { SavedViewModule } from "#shared/saved-views/saved-view.module";
 import { StorageModule } from "#shared/storage/storage.module";
 
@@ -44,7 +46,13 @@ import { StorageModule } from "#shared/storage/storage.module";
 			envFilePath: ".env",
 		}),
 		ThrottlerModule.forRoot({
-			throttlers: [{ ttl: 60_000, limit: 60 }],
+			throttlers: [
+				{
+					ttl: apiRateLimitTtlMs(),
+					limit: apiRateLimitPerTenant(),
+					blockDuration: apiRateLimitBlockMs(),
+				},
+			],
 		}),
 		LoggerModule,
 		EmailModule,
@@ -76,7 +84,7 @@ import { StorageModule } from "#shared/storage/storage.module";
 	],
 	providers: [
 		{ provide: APP_FILTER, useClass: GlobalExceptionFilter },
-		{ provide: APP_GUARD, useClass: ThrottlerGuard },
+		{ provide: APP_GUARD, useClass: TenantThrottlerGuard },
 		{ provide: APP_GUARD, useClass: SubscriptionStateGuard },
 		{ provide: APP_GUARD, useClass: PolicyGuard },
 		{ provide: APP_INTERCEPTOR, useClass: OrgContextInterceptor },
