@@ -178,9 +178,19 @@ export const getStarterPackDetail = (starterName) => {
 			: null,
 		envVars: Array.isArray(manifest?.addsEnvVars) ? manifest.addsEnvVars : [],
 		routes: Array.isArray(manifest?.addsRoutes) ? manifest.addsRoutes : [],
+		models: Array.isArray(manifest?.addsModels) ? manifest.addsModels : [],
 		permissions: Array.isArray(manifest?.addsPermissions) ? manifest.addsPermissions : [],
+		seedData: Array.isArray(manifest?.addsSeedData) ? manifest.addsSeedData : [],
 		queues: Array.isArray(manifest?.addsQueues) ? manifest.addsQueues : [],
 		crons: Array.isArray(manifest?.addsCrons) ? manifest.addsCrons : [],
+		dependencies:
+			manifest?.addsDependencies && typeof manifest.addsDependencies === "object"
+				? manifest.addsDependencies
+				: {},
+		devDependencies:
+			manifest?.addsDevDependencies && typeof manifest.addsDevDependencies === "object"
+				? manifest.addsDevDependencies
+				: {},
 	};
 };
 
@@ -248,7 +258,13 @@ const recordStarterInstalled = async (cwd, slug, pack) => {
 		modules: pack.modules,
 		envVars: detail?.envVars ?? [],
 		routes: detail?.routes ?? [],
+		models: detail?.models ?? [],
 		permissions: detail?.permissions ?? [],
+		seedData: detail?.seedData ?? [],
+		queues: detail?.queues ?? [],
+		crons: detail?.crons ?? [],
+		dependencies: detail?.dependencies ?? {},
+		devDependencies: detail?.devDependencies ?? {},
 		installedAt,
 	};
 	if (existing) Object.assign(existing, entry);

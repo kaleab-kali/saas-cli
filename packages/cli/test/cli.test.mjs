@@ -53,6 +53,14 @@ test("lists starter pack metadata", () => {
 	assert.match(output, /Manifest:/);
 	assert.match(output, /Env vars:/);
 	assert.match(output, /EIMS_ENV/);
+	assert.match(output, /Models:/);
+	assert.match(output, /EimsCredential/);
+	assert.match(output, /Seed data:/);
+	assert.match(output, /eims-entitlements/);
+	assert.match(output, /Queues:/);
+	assert.match(output, /eims-submission-retry/);
+	assert.match(output, /Crons:/);
+	assert.match(output, /certificate-expiry-daily/);
 });
 
 test("parses repeated and comma-separated starter flags", () => {

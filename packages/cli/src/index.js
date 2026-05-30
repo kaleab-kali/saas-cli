@@ -158,6 +158,11 @@ ${pc.bold("Starter packs:")}
 const printStarterPacks = () => {
 	console.log(pc.bold("Available starter packs"));
 	for (const pack of listStarterPackDetails()) {
+		const printLimitedList = (label, values, limit = 6) => {
+			if (!values?.length) return;
+			const preview = values.slice(0, limit).join(", ");
+			console.log(pc.dim(`  ${label}: ${preview}${values.length > limit ? ", ..." : ""}`));
+		};
 		console.log(`\n${pc.cyan(pack.name)} ${pc.dim(`(${pack.label})`)}`);
 		console.log(pc.dim(`  ${pack.description}`));
 		if (pack.modules?.length) {
@@ -169,14 +174,14 @@ const printStarterPacks = () => {
 		if (pack.envVars?.length) {
 			console.log(pc.dim(`  Env vars: ${pack.envVars.join(", ")}`));
 		}
-		if (pack.routes?.length) {
-			const routes = pack.routes.slice(0, 6).join(", ");
-			console.log(pc.dim(`  Routes: ${routes}${pack.routes.length > 6 ? ", ..." : ""}`));
-		}
-		if (pack.permissions?.length) {
-			const permissions = pack.permissions.slice(0, 6).join(", ");
-			console.log(pc.dim(`  Permissions: ${permissions}${pack.permissions.length > 6 ? ", ..." : ""}`));
-		}
+		printLimitedList("Routes", pack.routes);
+		printLimitedList("Models", pack.models);
+		printLimitedList("Permissions", pack.permissions);
+		printLimitedList("Seed data", pack.seedData);
+		printLimitedList("Queues", pack.queues);
+		printLimitedList("Crons", pack.crons);
+		printLimitedList("Dependencies", Object.keys(pack.dependencies ?? {}));
+		printLimitedList("Dev dependencies", Object.keys(pack.devDependencies ?? {}));
 	}
 };
 

@@ -255,7 +255,11 @@ function assertGeneratedStructure() {
 	assert(eimsStarter, "scaffold state records EIMS starter installation");
 	assert(eimsStarter.envVars?.includes("EIMS_ENV"), "scaffold state records EIMS env metadata");
 	assert(eimsStarter.routes?.includes("/eims/setup"), "scaffold state records EIMS route metadata");
+	assert(eimsStarter.models?.includes("EimsCredential"), "scaffold state records EIMS model metadata");
 	assert(eimsStarter.permissions?.includes("eims-submission:*"), "scaffold state records EIMS permission metadata");
+	assert(eimsStarter.seedData?.includes("eims-entitlements"), "scaffold state records EIMS seed metadata");
+	assert(eimsStarter.queues?.includes("eims-submission-retry"), "scaffold state records EIMS queue metadata");
+	assert(eimsStarter.crons?.includes("certificate-expiry-daily"), "scaffold state records EIMS cron metadata");
 	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
 	assert(
 		apiPackageJson.scripts?.["db:seed"]?.includes("seed-eims-onboarding-template.ts"),
