@@ -84,7 +84,7 @@ Use these for domain logic, billing rules, entitlement enforcement, and Nest ser
 
 Generated modules and starter-pack modules include a starter handler spec under each module's `application/commands` folder. Keep those tests close to the module and add deeper unit/property/mutation coverage for business rules as the module becomes real.
 
-`pnpm test:coverage` excludes generated Prisma code, DTOs, Nest modules, entity shape files, presentation controllers, and mapper boilerplate so the report stays focused on executable business logic. It enforces a low global scaffold baseline plus strict per-file thresholds for currently covered critical logic: billing policy decisions, tenant-scoped throttling, and encryption.
+`pnpm test:coverage` excludes generated Prisma code, DTOs, Nest modules, entity shape files, presentation controllers, and mapper boilerplate so the report stays focused on executable business logic. It enforces a low global scaffold baseline plus strict per-file thresholds for currently covered critical logic: billing policy decisions, concierge onboarding workflow state, tenant-scoped throttling, and encryption.
 
 `pnpm test:mutation` runs Stryker against the current high-signal billing policy target and writes the HTML report under `apps/api/reports/mutation/`. The Stryker test runner uses explicit Node heap headroom so the command can run as a reliable nightly/full gate instead of restarting under memory pressure on fresh scaffolds.
 

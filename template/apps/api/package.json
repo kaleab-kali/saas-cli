@@ -140,6 +140,12 @@
 				"functions": 100,
 				"lines": 100
 			},
+			"src/modules/onboarding/application/onboarding.service.ts": {
+				"statements": 70,
+				"branches": 55,
+				"functions": 65,
+				"lines": 75
+			},
 			"src/shared/crypto/cipher.service.ts": {
 				"statements": 85,
 				"branches": 80,

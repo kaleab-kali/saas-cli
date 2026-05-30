@@ -29,6 +29,7 @@ const mustNotExist = [
 
 const mustExist = [
 	"apps/api/src/modules/onboarding/onboarding.module.ts",
+	"apps/api/src/modules/onboarding/application/onboarding.service.spec.ts",
 	"apps/api/src/modules/health/detailed-health.controller.ts",
 	"apps/api/src/modules/health/health-diagnostics.service.ts",
 	"apps/api/src/shared/rate-limit/rate-limit.config.ts",
@@ -147,6 +148,10 @@ function assertDeployGateBuilds() {
 		"coverage enforces strict billing policy threshold",
 	);
 	assert(
+		apiPackageJson.jest?.coverageThreshold?.["src/modules/onboarding/application/onboarding.service.ts"]?.lines >= 75,
+		"coverage enforces onboarding workflow service threshold",
+	);
+	assert(
 		apiPackageJson.jest?.coverageThreshold?.["src/shared/crypto/cipher.service.ts"]?.branches >= 80,
 		"coverage enforces critical crypto threshold",
 	);
@@ -157,6 +162,10 @@ function assertDeployGateBuilds() {
 	assert(strykerConfig.includes("testRunnerNodeArgs"), "mutation test config sets explicit test-runner Node args");
 	assert(strykerConfig.includes("--max-old-space-size=4096"), "mutation test runner has heap headroom");
 	assert(testingGuide.includes("excludes generated Prisma code"), "testing docs explain actionable coverage scope");
+	assert(
+		testingGuide.includes("concierge onboarding workflow state"),
+		"testing docs explain onboarding coverage threshold",
+	);
 	assert(packageJson.scripts?.["db:backup"]?.includes("backup-postgres.mjs"), "base package has Postgres backup script");
 	assert(packageJson.scripts?.["db:restore"]?.includes("restore-postgres.mjs"), "base package has Postgres restore script");
 }
@@ -334,9 +343,13 @@ function assertFrontendImprovementSurface() {
 function assertOnboardingServerTableQuery() {
 	const dto = readProjectFile("apps/api/src/modules/onboarding/presentation/dtos/onboarding.dto.ts");
 	const service = readProjectFile("apps/api/src/modules/onboarding/application/onboarding.service.ts");
+	const serviceSpec = readProjectFile("apps/api/src/modules/onboarding/application/onboarding.service.spec.ts");
 	const hooks = readProjectFile("apps/web/src/features/onboarding/api/onboarding.hooks.ts");
 	assert(service.includes('key: "tenant-intake"'), "generic onboarding starts with staff tenant intake");
 	assert(service.includes('key: "first-workflow-check"'), "generic onboarding includes first workflow verification");
+	assert(serviceSpec.includes("prevents tenant self-service completion"), "onboarding service tests tenant self-service guardrails");
+	assert(serviceSpec.includes("builds filterable, sorted task queries"), "onboarding service tests queue filtering and sorting");
+	assert(serviceSpec.includes("marks the workflow complete"), "onboarding service tests workflow completion");
 	assert(dto.includes("search?: string"), "onboarding list DTO accepts search");
 	assert(dto.includes("sort?: string"), "onboarding list DTO accepts sort");
 	assert(dto.includes("staleDays?: number"), "onboarding list DTO accepts stale-day filtering");
