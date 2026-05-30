@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import React from "react";
 import {
 	type EimsOverview,
@@ -64,7 +65,7 @@ const businessStatusLabel = (status: string) => {
 		pending_mor_approval: "waiting for approval",
 		pending_offline: "pending sync",
 		ready: "ready",
-		test_ready: "ready",
+		test_ready: "test ready",
 		unknown_submission: "needs review",
 	};
 	return labels[normalized] ?? statusLabel(status);
@@ -101,6 +102,149 @@ function PageHeader({
 			</div>
 			{mode ? <Badge variant="outline">{mode}</Badge> : null}
 		</div>
+	);
+}
+
+function EimsWorkspaceHeader({
+	title,
+	description,
+	mode,
+	overview,
+}: {
+	readonly title: string;
+	readonly description: string;
+	readonly mode?: string;
+	readonly overview: EimsOverview;
+}) {
+	const metrics = [
+		["Accepted today", String(overview.stats.acceptedToday)],
+		["Pending sync", String(overview.stats.pendingOffline)],
+		["Needs review", String(overview.stats.unknownSubmissions)],
+		["Certificate alerts", String(overview.stats.certificatesExpiring)],
+	] as const;
+	const actions = [
+		["Continue setup", "/eims/setup"],
+		["Submit invoice", "/eims/submissions"],
+		["Export records", "/eims/compliance"],
+	] as const;
+
+	return (
+		<section className="rounded-md border bg-muted/20 p-5">
+			<div className="grid gap-5 xl:grid-cols-[1fr_0.7fr]">
+				<div className="min-w-0">
+					<div className="flex flex-wrap items-center gap-2">
+						<Badge variant="outline">Ethiopia tax workspace</Badge>
+						{mode ? <Badge variant="secondary">{mode}</Badge> : null}
+					</div>
+					<h1 className="mt-3 text-2xl font-semibold tracking-normal">{title}</h1>
+					<p className="mt-2 max-w-3xl text-sm text-muted-foreground">{description}</p>
+					<div className="mt-4 flex flex-wrap gap-2">
+						{actions.map(([label, to], index) => (
+							<Button key={to} asChild variant={index === 0 ? "default" : "outline"}>
+								<Link to={to}>{label}</Link>
+							</Button>
+						))}
+					</div>
+				</div>
+				<div className="grid gap-2 sm:grid-cols-2">
+					{metrics.map(([label, value]) => (
+						<div key={label} className="rounded-md border bg-background p-3">
+							<p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+							<p className="mt-1 text-2xl font-semibold">{value}</p>
+						</div>
+					))}
+				</div>
+			</div>
+		</section>
+	);
+}
+
+function AuthorityFlowPanel({ overview }: { readonly overview: EimsOverview }) {
+	const approvedSources = overview.sourceSystems.filter((source) => source.approvalStatus === "approved").length;
+	const flow = [
+		["1", "Tenant tax profile", `${overview.enterprises.length} business profile saved`],
+		["2", "Authority source approval", `${approvedSources}/${overview.sourceSystems.length} registers ready`],
+		["3", "INSA certificate", `${overview.stats.certificatesExpiring} certificate alerts`],
+		["4", "Live tax invoice", `${overview.stats.acceptedToday} accepted today`],
+	] as const;
+
+	return (
+		<div className="grid gap-3 lg:grid-cols-4">
+			{flow.map(([index, title, detail]) => (
+				<div key={title} className="rounded-md border bg-background p-4">
+					<div className="flex items-center gap-3">
+						<span className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+							{index}
+						</span>
+						<div className="min-w-0">
+							<div className="font-medium">{title}</div>
+							<div className="text-xs text-muted-foreground">{detail}</div>
+						</div>
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
+const setupJourney = [
+	["Welcome", "Confirm MoR portal registration and tenant contact details"],
+	["Credentials", "Capture client ID, username, API key, password, and client secret"],
+	["CSR", "Generate the certificate signing request and protected private key"],
+	["INSA request", "Send the prepared certificate request package"],
+	["Certificate", "Upload and validate the issued certificate"],
+	["Verify", "Run a test invoice before live operation"],
+] as const;
+
+function SetupJourneyPanel() {
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle className="text-base">EIMS setup path</CardTitle>
+			</CardHeader>
+			<CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+				{setupJourney.map(([title, description], index) => (
+					<div key={title} className="rounded-md border p-3">
+						<div className="flex items-center gap-3">
+							<span className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+								{index + 1}
+							</span>
+							<div className="font-medium">{title}</div>
+						</div>
+						<p className="mt-2 text-sm text-muted-foreground">{description}</p>
+					</div>
+				))}
+			</CardContent>
+		</Card>
+	);
+}
+
+function ComplianceReadinessPanel({
+	readiness,
+	readyCount,
+	missingCount,
+}: {
+	readonly readiness: number;
+	readonly readyCount: number;
+	readonly missingCount: number;
+}) {
+	return (
+		<Card>
+			<CardContent className="grid gap-4 p-4 md:grid-cols-3">
+				<div>
+					<p className="text-sm text-muted-foreground">Export readiness</p>
+					<p className="mt-1 text-3xl font-semibold">{readiness}%</p>
+				</div>
+				<div>
+					<p className="text-sm text-muted-foreground">Ready evidence sets</p>
+					<p className="mt-1 text-3xl font-semibold">{readyCount}</p>
+				</div>
+				<div>
+					<p className="text-sm text-muted-foreground">Needs attention</p>
+					<p className="mt-1 text-3xl font-semibold">{missingCount}</p>
+				</div>
+			</CardContent>
+		</Card>
 	);
 }
 
@@ -694,10 +838,11 @@ export function EimsOverviewPage() {
 
 	return (
 		<div className="space-y-5">
-			<PageHeader
+			<EimsWorkspaceHeader
 				title="Tax invoicing status"
 				description={workspace.plainLanguageSummary}
 				mode={workspace.operationModeLabel}
+				overview={overview}
 			/>
 			{workspace.alerts.map((alert) => (
 				<div key={alert.message} className="rounded-md border border-border bg-muted/30 p-3 text-sm">
@@ -705,6 +850,7 @@ export function EimsOverviewPage() {
 					{alert.message}
 				</div>
 			))}
+			<AuthorityFlowPanel overview={overview} />
 			<StatCards overview={overview} />
 			<RequiredInputsPanel workspace={workspace} />
 			<ReadinessSteps workspace={workspace} />
@@ -752,11 +898,13 @@ export function EimsSetupPage() {
 
 	return (
 		<div className="space-y-5">
-			<PageHeader
+			<EimsWorkspaceHeader
 				title="Guided tax setup"
 				description="Enter the business tax details, branch details, register/POS reference, API credentials, and issued certificate."
 				mode={workspace.operationModeLabel}
+				overview={overview}
 			/>
+			<SetupJourneyPanel />
 			<ReadinessSteps workspace={workspace} />
 			<Card>
 				<CardHeader>
@@ -1116,12 +1264,11 @@ export function EimsCompliancePage() {
 				description="Download invoice, receipt, cancellation, and account records for the selected period."
 			/>
 			<ExportAction />
-			<Card>
-				<CardContent className="p-4">
-					<p className="text-sm text-muted-foreground">Export readiness</p>
-					<p className="mt-1 text-3xl font-semibold">{evidence.data.data.readiness}%</p>
-				</CardContent>
-			</Card>
+			<ComplianceReadinessPanel
+				readiness={evidence.data.data.readiness}
+				readyCount={evidence.data.data.items.filter((item) => businessStatusLabel(item.status) === "ready").length}
+				missingCount={evidence.data.data.items.filter((item) => businessStatusLabel(item.status) !== "ready").length}
+			/>
 			<Card>
 				<CardContent className="p-0">
 					<DataTable

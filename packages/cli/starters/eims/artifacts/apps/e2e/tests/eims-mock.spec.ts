@@ -234,7 +234,7 @@ function businessStatusLabel(status: string) {
 		pending_mor_approval: "waiting for approval",
 		pending_offline: "pending sync",
 		ready: "ready",
-		test_ready: "ready",
+		test_ready: "test ready",
 		unknown_submission: "needs review",
 	};
 	return labels[status.toLowerCase()] ?? normalizeUiText(status);

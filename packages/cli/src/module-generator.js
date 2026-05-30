@@ -323,7 +323,153 @@ const patchPermissions = async (root, slug) => {
 	return true;
 };
 
+const patchLocaleEntries = async (localeFile, containerKey, entries) => {
+	if (!(await fs.pathExists(localeFile))) return;
+	let text = await fs.readFile(localeFile, "utf8");
+	const containerMatch = text.match(new RegExp(`^(\\t*)${containerKey}: \\{`, "m"));
+	const containerIndent = containerMatch?.[1] ?? "\t";
+	const entryIndent = `${containerIndent}\t`;
+	const entryIndentPattern = entryIndent.replace(/\t/g, "\\t");
+
+	for (const [key, label] of entries) {
+		const pattern = new RegExp(`(${entryIndentPattern}${key}: )"[^"]+",`);
+		if (pattern.test(text)) {
+			text = text.replace(pattern, `$1"${label}",`);
+		}
+	}
+
+	const missing = entries.filter(([key]) => !new RegExp(`\\b${key}:`).test(text));
+	if (missing.length > 0) {
+		const missingLines = missing.map(([key, label]) => `${entryIndent}${key}: "${label}",`).join("\n");
+		const containerPattern = new RegExp(`(${containerIndent.replace(/\t/g, "\\t")}${containerKey}: \\{\\r?\\n)`);
+		text = text.replace(containerPattern, `$1${missingLines}\n`);
+	}
+
+	await fs.writeFile(localeFile, text, "utf8");
+};
+
+const patchSidebarLocaleEntries = async (root, entries) => {
+	for (const locale of ["en", "am"]) {
+		await patchLocaleEntries(
+			path.join(root, `apps/web/src/shared/i18n/locales/${locale}.ts`),
+			"sidebar",
+			entries,
+		);
+	}
+};
+
+const patchAdminLocaleEntries = async (root, entries) => {
+	for (const locale of ["en", "am"]) {
+		await patchLocaleEntries(
+			path.join(root, `apps/web/src/shared/i18n/locales/${locale}.ts`),
+			"nav",
+			entries,
+		);
+	}
+};
+
+const patchEimsTenantSidebar = async (root) => {
+	const file = path.join(root, "apps/web/src/components/layout/AppSidebar.tsx");
+	if (!(await fs.pathExists(file))) return false;
+	let text = await fs.readFile(file, "utf8");
+	const navBlock = `\t{
+\t\tlabelKey: "sidebar.eims",
+\t\tto: "/eims",
+\t\ticon: DashboardSquare01Icon,
+\t\tchildren: [
+\t\t\t{ labelKey: "sidebar.eimsStatus", to: "/eims" },
+\t\t\t{ labelKey: "sidebar.eimsSetup", to: "/eims/setup" },
+\t\t\t{ labelKey: "sidebar.eimsInvoices", to: "/eims/submissions" },
+\t\t\t{ labelKey: "sidebar.eimsReceipts", to: "/eims/receipts" },
+\t\t\t{ labelKey: "sidebar.eimsCancellations", to: "/eims/bulk" },
+\t\t\t{ labelKey: "sidebar.eimsExports", to: "/eims/compliance" },
+\t\t],
+\t},`;
+
+	if (text.includes(`labelKey: "sidebar.eims"`)) {
+		text = text.replace(
+			/\n\t\{\n\t\tlabelKey: "sidebar\.eims",[\s\S]*?\n\t\},/,
+			`\n${navBlock}`,
+		);
+	} else {
+		text = text.replace(
+			/(const NAV_ITEMS: readonly NavItemDef\[] = \[\r?\n)/,
+			`$1${navBlock}\n`,
+		);
+	}
+
+	await fs.writeFile(file, text, "utf8");
+	await patchSidebarLocaleEntries(root, [
+		["eims", "Tax tools"],
+		["eimsStatus", "Status"],
+		["eimsSetup", "Setup"],
+		["eimsInvoices", "Tax invoices"],
+		["eimsReceipts", "Receipts"],
+		["eimsCancellations", "Cancellations"],
+		["eimsExports", "Records & exports"],
+	]);
+	return true;
+};
+
+const patchEimsAdminSidebar = async (root) => {
+	const file = path.join(root, "apps/web/src/components/layout/AdminSidebar.tsx");
+	if (!(await fs.pathExists(file))) return false;
+	let text = await fs.readFile(file, "utf8");
+
+	if (!text.includes("const EIMS_ADMIN_NAV =")) {
+		const navConst = `
+const EIMS_ADMIN_NAV = [
+\t{ labelKey: "admin.nav.eimsOverview", to: "/admin/eims", icon: DashboardSquare01Icon },
+\t{ labelKey: "admin.nav.eimsTenants", to: "/admin/eims/tenants", icon: Building06Icon },
+\t{ labelKey: "admin.nav.eimsFailures", to: "/admin/eims/failures", icon: FileValidationIcon },
+\t{ labelKey: "admin.nav.eimsCertificates", to: "/admin/eims/certificates", icon: AiSecurity01Icon },
+\t{ labelKey: "admin.nav.eimsResources", to: "/admin/eims/resources", icon: Settings02Icon },
+\t{ labelKey: "admin.nav.eimsCompliance", to: "/admin/eims/compliance", icon: FileValidationIcon },
+] as const;
+`;
+		text = text.replace("] as const;\nconst APP_NAME", `] as const;\n${navConst}const APP_NAME`);
+	}
+
+	if (!text.includes('admin.nav.eimsOperations')) {
+		const group = `\n\t\t\t\t\t<SidebarGroup>
+\t\t\t\t\t\t<SidebarGroupLabel>{t("admin.nav.eimsOperations")}</SidebarGroupLabel>
+\t\t\t\t\t\t<SidebarGroupContent>
+\t\t\t\t\t\t\t<SidebarMenu>
+\t\t\t\t\t\t\t\t{EIMS_ADMIN_NAV.map((item) => (
+\t\t\t\t\t\t\t\t\t<AdminNavItem
+\t\t\t\t\t\t\t\t\t\tkey={item.to}
+\t\t\t\t\t\t\t\t\t\tlabel={t(item.labelKey)}
+\t\t\t\t\t\t\t\t\t\tto={item.to}
+\t\t\t\t\t\t\t\t\t\ticon={item.icon}
+\t\t\t\t\t\t\t\t\t\tisActive={!!matchRoute({ to: item.to, fuzzy: true })}
+\t\t\t\t\t\t\t\t\t/>
+\t\t\t\t\t\t\t\t))}
+\t\t\t\t\t\t\t</SidebarMenu>
+\t\t\t\t\t\t</SidebarGroupContent>
+\t\t\t\t\t</SidebarGroup>`;
+		text = text.replace("</SidebarGroup>\n\t\t\t\t</SidebarContent>", `</SidebarGroup>${group}\n\t\t\t\t</SidebarContent>`);
+	}
+
+	await fs.writeFile(file, text, "utf8");
+	await patchAdminLocaleEntries(root, [
+		["eimsOperations", "EIMS operations"],
+		["eimsOverview", "Operations overview"],
+		["eimsTenants", "Tenant readiness"],
+		["eimsFailures", "Failure queue"],
+		["eimsCertificates", "Certificates"],
+		["eimsResources", "Runtime resources"],
+		["eimsCompliance", "Compliance evidence"],
+	]);
+	return true;
+};
+
 const patchSidebar = async (root, slug, name, varName) => {
+	if (slug === "eims") {
+		await patchEimsTenantSidebar(root);
+		await patchEimsAdminSidebar(root);
+		return true;
+	}
+
 	const file = path.join(root, "apps/web/src/components/layout/AppSidebar.tsx");
 	if (!(await fs.pathExists(file))) return false;
 	let text = await fs.readFile(file, "utf8");
@@ -951,8 +1097,8 @@ const patchJsonFile = async (file, patcher) => {
 	return true;
 };
 
-const patchEimsPackageScripts = async (root) =>
-	patchJsonFile(path.join(root, "package.json"), (json) => {
+const patchEimsPackageScripts = async (root) => {
+	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
 			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
@@ -970,6 +1116,14 @@ const patchEimsPackageScripts = async (root) =>
 			"pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:api && pnpm test:eims:phase0 && pnpm test:eims:ui";
 		return json;
 	});
+	await patchJsonFile(path.join(root, "apps/e2e/package.json"), (json) => {
+		json.scripts ??= {};
+		json.scripts["test:eims"] ??= "playwright test -c playwright.eims.config.ts tests/eims-mock.spec.ts";
+		json.scripts["test:eims:headed"] ??=
+			"playwright test -c playwright.eims.config.ts tests/eims-mock.spec.ts --headed --project=chromium";
+		return json;
+	});
+};
 
 const appendBlockIfMissing = async (file, marker, block) => {
 	if (!(await fs.pathExists(file))) return false;

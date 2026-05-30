@@ -84,6 +84,12 @@ function assertDeployGateBuilds() {
 	assert(packageJson.scripts?.["db:restore"]?.includes("restore-postgres.mjs"), "base package has Postgres restore script");
 }
 
+function assertWorkspaceScripts() {
+	const webPackageJson = JSON.parse(readProjectFile("apps/web/package.json"));
+	assert(webPackageJson.scripts?.lint === "biome check .", "web workspace lint uses Biome");
+	assert(webPackageJson.scripts?.format === "biome check --write .", "web workspace format uses Biome");
+}
+
 function readEnv(relPath) {
 	const out = {};
 	for (const line of readProjectFile(relPath).split(/\r?\n/)) {
@@ -136,6 +142,7 @@ async function main() {
 
 	assertNoEimsScripts();
 	assertDeployGateBuilds();
+	assertWorkspaceScripts();
 	assertGeneratedSecrets();
 
 	console.log(`Base generated-project verification passed: ${checks.length} checks`);

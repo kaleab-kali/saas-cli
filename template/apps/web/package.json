@@ -11,8 +11,8 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "vite build && tsc -b",
-		"lint": "eslint .",
-		"format": "prettier --write \"**/*.{ts,tsx}\"",
+		"lint": "biome check .",
+		"format": "biome check --write .",
 		"typecheck": "tsc --noEmit",
 		"preview": "vite preview"
 	},

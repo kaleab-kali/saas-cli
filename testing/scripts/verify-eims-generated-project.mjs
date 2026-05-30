@@ -201,6 +201,26 @@ function assertGeneratedStructure() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	assert(packageJson.scripts["test:eims:mock"]?.includes("test:eims:ui"), "generated package has full EIMS mock gate");
 	assert(packageJson.scripts["test:eims:api"]?.includes("api-tests"), "generated package has EIMS API tests");
+	const webPackageJson = JSON.parse(readProjectFile("apps/web/package.json"));
+	assert(webPackageJson.scripts?.lint === "biome check .", "web workspace lint uses Biome");
+	assert(webPackageJson.scripts?.format === "biome check --write .", "web workspace format uses Biome");
+	const e2ePackageJson = JSON.parse(readProjectFile("apps/e2e/package.json"));
+	assert(e2ePackageJson.scripts?.["test:eims"]?.includes("playwright.eims.config.ts"), "EIMS e2e test script is installed");
+
+	const appSidebar = readProjectFile("apps/web/src/components/layout/AppSidebar.tsx");
+	assert(appSidebar.includes('labelKey: "sidebar.eims"'), "tenant sidebar includes EIMS navigation group");
+	assert(appSidebar.includes('labelKey: "sidebar.eimsStatus"'), "tenant sidebar exposes EIMS status child route");
+	assert(appSidebar.includes('labelKey: "sidebar.eimsExports"'), "tenant sidebar exposes records export child route");
+	const adminSidebar = readProjectFile("apps/web/src/components/layout/AdminSidebar.tsx");
+	assert(adminSidebar.includes("const EIMS_ADMIN_NAV"), "admin sidebar includes EIMS operations group");
+	assert(adminSidebar.includes('admin.nav.eimsOperations'), "admin sidebar exposes EIMS operations label");
+	const englishLocale = readProjectFile("apps/web/src/shared/i18n/locales/en.ts");
+	assert(englishLocale.includes('eims: "Tax tools"'), "tenant EIMS nav is business-facing");
+	assert(englishLocale.includes('eimsCancellations: "Cancellations"'), "tenant EIMS nav labels include cancellations");
+	assert(englishLocale.includes('eimsOperations: "EIMS operations"'), "admin EIMS nav labels are installed");
+	const tenantPages = readProjectFile("apps/web/src/features/eims/components/eims-tenant-pages.tsx");
+	assert(tenantPages.includes("Ethiopia tax workspace"), "tenant EIMS UI has a domain-specific workspace header");
+	assert(tenantPages.includes("EIMS setup path"), "tenant EIMS UI has the guided six-step setup path");
 
 	const prismaSchema = readProjectFile("apps/api/prisma/schema.prisma");
 	for (const modelName of requiredPrismaModels) {
