@@ -25,5 +25,5 @@ function RootIndex() {
 		return <Navigate to="/create-org" />;
 	}
 
-	return <Navigate to="/reports/dashboard/main" />;
+	return <Navigate to="/onboarding" />;
 }

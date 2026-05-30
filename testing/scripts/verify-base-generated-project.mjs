@@ -90,6 +90,13 @@ function assertWorkspaceScripts() {
 	assert(webPackageJson.scripts?.format === "biome check --write .", "web workspace format uses Biome");
 }
 
+function assertOnboardingFirstEntry() {
+	const rootIndex = readProjectFile("apps/web/src/routes/index.tsx");
+	const loginPage = readProjectFile("apps/web/src/routes/login.tsx");
+	assert(rootIndex.includes('<Navigate to="/onboarding" />'), "tenant root opens onboarding first");
+	assert(loginPage.includes('window.location.href = "/onboarding";'), "tenant login opens onboarding first");
+}
+
 function readEnv(relPath) {
 	const out = {};
 	for (const line of readProjectFile(relPath).split(/\r?\n/)) {
@@ -143,6 +150,7 @@ async function main() {
 	assertNoEimsScripts();
 	assertDeployGateBuilds();
 	assertWorkspaceScripts();
+	assertOnboardingFirstEntry();
 	assertGeneratedSecrets();
 
 	console.log(`Base generated-project verification passed: ${checks.length} checks`);

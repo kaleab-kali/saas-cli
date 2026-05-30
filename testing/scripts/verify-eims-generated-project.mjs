@@ -201,6 +201,11 @@ function assertGeneratedStructure() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	assert(packageJson.scripts["test:eims:mock"]?.includes("test:eims:ui"), "generated package has full EIMS mock gate");
 	assert(packageJson.scripts["test:eims:api"]?.includes("api-tests"), "generated package has EIMS API tests");
+	const apiTestsPackageJson = JSON.parse(readProjectFile("apps/api-tests/package.json"));
+	assert(
+		apiTestsPackageJson.scripts?.["test:eims:mock"]?.includes("eims-http"),
+		"EIMS API mock test script is installed",
+	);
 	const webPackageJson = JSON.parse(readProjectFile("apps/web/package.json"));
 	assert(webPackageJson.scripts?.lint === "biome check .", "web workspace lint uses Biome");
 	assert(webPackageJson.scripts?.format === "biome check --write .", "web workspace format uses Biome");
@@ -221,6 +226,13 @@ function assertGeneratedStructure() {
 	const tenantPages = readProjectFile("apps/web/src/features/eims/components/eims-tenant-pages.tsx");
 	assert(tenantPages.includes("Ethiopia tax workspace"), "tenant EIMS UI has a domain-specific workspace header");
 	assert(tenantPages.includes("EIMS setup path"), "tenant EIMS UI has the guided six-step setup path");
+	const permissions = readProjectFile("apps/api/src/modules/auth/permissions.ts");
+	assert((permissions.match(/^\tinvoice:/gm) ?? []).length === 5, "EIMS permissions do not duplicate invoice keys");
+	assert(
+		(permissions.match(/invoice: \["create", "read", "update-draft", "submit", "verify", "cancel", "export"\]/g) ?? [])
+			.length === 3,
+		"EIMS owner/admin/statement invoice permissions include draft updates",
+	);
 
 	const prismaSchema = readProjectFile("apps/api/prisma/schema.prisma");
 	for (const modelName of requiredPrismaModels) {

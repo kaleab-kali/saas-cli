@@ -37,7 +37,7 @@ const LoginForm = React.memo(
 					return;
 				}
 
-				window.location.href = "/reports/dashboard/main";
+				window.location.href = "/onboarding";
 				return;
 			},
 			[email, password, t],

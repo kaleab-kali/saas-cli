@@ -881,14 +881,16 @@ const EIMS_PERMISSION_STATEMENTS = [
 	`"eims-submission": ["read", "create", "retry"],`,
 	`"eims-bulk": ["read", "create", "retry"],`,
 	`"eims-compliance": ["read", "export"],`,
-	`invoice: ["create", "read", "update-draft", "submit", "verify", "cancel", "export"],`,
-	`receipt: ["create", "read", "submit"],`,
 ];
 
 const patchEimsPermissions = async (root) => {
 	const file = path.join(root, "apps/api/src/modules/auth/permissions.ts");
 	if (!(await fs.pathExists(file))) return false;
 	let text = await fs.readFile(file, "utf8");
+	text = text.replaceAll(
+		`\tinvoice: ["create", "read", "submit", "cancel", "verify", "export"],`,
+		`\tinvoice: ["create", "read", "update-draft", "submit", "verify", "cancel", "export"],`,
+	);
 	for (const line of EIMS_PERMISSION_STATEMENTS) {
 		const statementLine = `\t${line}`;
 		if (!text.includes(statementLine.trim())) {
@@ -905,8 +907,6 @@ const patchEimsPermissions = async (root) => {
 		`\t"eims-submission": ["read", "create", "retry"],`,
 		`\t"eims-bulk": ["read", "create", "retry"],`,
 		`\t"eims-compliance": ["read", "export"],`,
-		`\tinvoice: ["create", "read", "update-draft", "submit", "verify", "cancel", "export"],`,
-		`\treceipt: ["create", "read", "submit"],`,
 	];
 	const adminLines = [
 		`\t"eims-enterprise": ["create", "read", "update"],`,
@@ -917,24 +917,18 @@ const patchEimsPermissions = async (root) => {
 		`\t"eims-submission": ["read", "create", "retry"],`,
 		`\t"eims-bulk": ["read", "create", "retry"],`,
 		`\t"eims-compliance": ["read", "export"],`,
-		`\tinvoice: ["create", "read", "update-draft", "submit", "verify", "cancel", "export"],`,
-		`\treceipt: ["create", "read", "submit"],`,
 	];
 	const memberLines = [
 		`\t"eims-enterprise": ["read"],`,
 		`\t"eims-establishment": ["read"],`,
 		`\t"eims-source": ["read"],`,
 		`\t"eims-submission": ["read"],`,
-		`\tinvoice: ["create", "read", "submit"],`,
-		`\treceipt: ["create", "read", "submit"],`,
 	];
 	const viewerLines = [
 		`\t"eims-enterprise": ["read"],`,
 		`\t"eims-establishment": ["read"],`,
 		`\t"eims-source": ["read"],`,
 		`\t"eims-submission": ["read"],`,
-		`\tinvoice: ["read"],`,
-		`\treceipt: ["read"],`,
 	];
 
 	for (const line of ownerLines)
@@ -1121,6 +1115,11 @@ const patchEimsPackageScripts = async (root) => {
 		json.scripts["test:eims"] ??= "playwright test -c playwright.eims.config.ts tests/eims-mock.spec.ts";
 		json.scripts["test:eims:headed"] ??=
 			"playwright test -c playwright.eims.config.ts tests/eims-mock.spec.ts --headed --project=chromium";
+		return json;
+	});
+	await patchJsonFile(path.join(root, "apps/api-tests/package.json"), (json) => {
+		json.scripts ??= {};
+		json.scripts["test:eims:mock"] ??= "node scripts/with-mock-api.mjs eims-http";
 		return json;
 	});
 };
@@ -3265,7 +3264,7 @@ function SetupProgress({ overview }: { readonly overview: EimsOverview }) {
 \treturn (
 \t\t<Card>
 \t\t\t<CardHeader>
-\t\t\t\t<CardTitle className="text-base">Setup Progress</CardTitle>
+\t\t\t\t<CardTitle className="text-base">EIMS setup path</CardTitle>
 \t\t\t</CardHeader>
 \t\t\t<CardContent>
 \t\t\t\t<div className="grid gap-2 md:grid-cols-2">
@@ -3317,8 +3316,8 @@ export function EimsOverviewPage() {
 \treturn (
 \t\t<div className="space-y-5">
 \t\t\t<PageHeader
-\t\t\t\ttitle="EIMS Control Center"
-\t\t\t\tdescription="Operational view for enterprise, branch, source, submission, receipt, and compliance readiness."
+\t\t\t\ttitle="Ethiopia tax workspace"
+\t\t\t\tdescription="Daily operator console for MoR source approval, INSA certificate readiness, EIMS submissions, receipts, and audit evidence."
 \t\t\t\tmode={overview.mode}
 \t\t\t/>
 \t\t\t<StatCards overview={overview} />
@@ -3718,7 +3717,7 @@ function SetupProgress({ overview }: { readonly overview: EimsOverview }) {
 \treturn (
 \t\t<Card>
 \t\t\t<CardHeader>
-\t\t\t\t<CardTitle className="text-base">Setup Progress</CardTitle>
+\t\t\t\t<CardTitle className="text-base">EIMS setup path</CardTitle>
 \t\t\t</CardHeader>
 \t\t\t<CardContent className="grid gap-2 md:grid-cols-2">
 \t\t\t\t{overview.setupProgress.map((step) => (
@@ -3750,8 +3749,8 @@ export function EimsOverviewPage() {
 \treturn (
 \t\t<div className="space-y-5">
 \t\t\t<PageHeader
-\t\t\t\ttitle="EIMS Control Center"
-\t\t\t\tdescription="Operational view for enterprise, branch, source, submission, receipt, and compliance readiness."
+\t\t\t\ttitle="Ethiopia tax workspace"
+\t\t\t\tdescription="Daily operator console for MoR source approval, INSA certificate readiness, EIMS submissions, receipts, and audit evidence."
 \t\t\t\tmode={overview.mode}
 \t\t\t/>
 \t\t\t<StatCards overview={overview} />
@@ -4442,9 +4441,9 @@ async function mockAdminSession(page: Page) {
 test("tenant EIMS mock flow is usable before sandbox access", async ({ page }) => {
 \tawait mockTenantSession(page);
 \tawait page.goto("/eims", { waitUntil: "domcontentloaded" });
-\tawait expect(page.getByRole("heading", { name: "EIMS Control Center" })).toBeVisible();
+\tawait expect(page.getByRole("heading", { name: "Ethiopia tax workspace" })).toBeVisible();
 \tawait expect(page.getByText("Mock Mode")).toBeVisible();
-\tawait expect(page.getByText("Setup Progress")).toBeVisible();
+\tawait expect(page.getByText("EIMS setup path")).toBeVisible();
 \tawait expect(page.getByText("INV-2026-000128")).toBeVisible();
 
 \tawait page.goto("/eims/submissions", { waitUntil: "domcontentloaded" });
@@ -4629,9 +4628,9 @@ async function mockAdminSession(page: Page) {
 test("tenant EIMS mock flow is usable before sandbox access", async ({ page }) => {
 \tawait mockTenantSession(page);
 \tawait page.goto("/eims", { waitUntil: "domcontentloaded" });
-\tawait expect(page.getByRole("heading", { name: "EIMS Control Center" })).toBeVisible();
+\tawait expect(page.getByRole("heading", { name: "Ethiopia tax workspace" })).toBeVisible();
 \tawait expect(page.getByText("Mock Mode")).toBeVisible();
-\tawait expect(page.getByText("Setup Progress")).toBeVisible();
+\tawait expect(page.getByText("EIMS setup path")).toBeVisible();
 \tawait expect(page.getByText("INV-2026-000128")).toBeVisible();
 
 \tawait page.goto("/eims/submissions", { waitUntil: "domcontentloaded" });
