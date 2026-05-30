@@ -1,5 +1,6 @@
 import React from "react";
 import { NotificationBell } from "#features/notifications/components/NotificationBell";
+import { CommandPalette } from "#shared/components/CommandPalette";
 import { LanguageSwitcher } from "#shared/components/LanguageSwitcher";
 import { authClient } from "#shared/lib/auth-client";
 import { Separator } from "@/components/ui/separator";
@@ -13,6 +14,7 @@ export const TopBar = React.memo(() => {
 			<SidebarTrigger className="-ml-1" />
 			<Separator orientation="vertical" className="h-5" />
 			<div className="flex-1" />
+			<CommandPalette />
 			<LanguageSwitcher />
 			<NotificationBell userId={userId} />
 		</header>

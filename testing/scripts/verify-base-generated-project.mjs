@@ -34,6 +34,8 @@ const mustExist = [
 	"apps/web/src/routes/_authenticated/onboarding/index.tsx",
 	"apps/web/src/routes/admin/onboarding/index.tsx",
 	"apps/web/src/routes/admin/onboarding/new.tsx",
+	"apps/web/src/shared/components/CommandPalette.tsx",
+	"apps/web/src/shared/components/PageShell.tsx",
 	"scripts/backup-postgres.mjs",
 	"scripts/restore-postgres.mjs",
 ];
@@ -121,6 +123,20 @@ function assertOnboardingFirstEntry() {
 	assert(loginPage.includes('window.location.href = "/onboarding";'), "tenant login opens onboarding first");
 }
 
+function assertFrontendImprovementSurface() {
+	const topBar = readProjectFile("apps/web/src/components/layout/TopBar.tsx");
+	const dataTable = readProjectFile("apps/web/src/shared/components/DataTable.tsx");
+	const onboarding = readProjectFile("apps/web/src/features/onboarding/components/onboarding-pages.tsx");
+	assert(topBar.includes("<CommandPalette />"), "top bar exposes command palette");
+	assert(dataTable.includes("useDebouncedValue"), "DataTable has debounced global search");
+	assert(dataTable.includes("DataTableColumnFilter"), "DataTable renders per-column filters");
+	assert(dataTable.includes("DropdownMenuCheckboxItem"), "DataTable has column visibility controls");
+	assert(onboarding.includes("Concierge onboarding"), "admin onboarding uses concierge operations copy");
+	assert(onboarding.includes("<DataTable"), "admin onboarding list uses shared DataTable");
+	assert(onboarding.includes("Current action"), "onboarding pages expose active workflow step");
+	assert(onboarding.includes("TemplatePreview"), "new onboarding page previews selected templates");
+}
+
 function readEnv(relPath) {
 	const out = {};
 	for (const line of readProjectFile(relPath).split(/\r?\n/)) {
@@ -177,6 +193,7 @@ async function main() {
 	assertWorkspaceScripts();
 	assertPerformanceMockGateRuns();
 	assertOnboardingFirstEntry();
+	assertFrontendImprovementSurface();
 	assertGeneratedSecrets();
 
 	console.log(`Base generated-project verification passed: ${checks.length} checks`);
