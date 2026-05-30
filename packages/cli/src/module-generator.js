@@ -418,10 +418,23 @@ const patchEimsTenantSidebar = async (root) => {
 	const file = path.join(root, "apps/web/src/components/layout/AppSidebar.tsx");
 	if (!(await fs.pathExists(file))) return false;
 	let text = await fs.readFile(file, "utf8");
+	if (!text.includes("FileValidationIcon")) {
+		if (text.includes('import DashboardSquare01Icon from "@hugeicons/core-free-icons/DashboardSquare01Icon";')) {
+			text = text.replace(
+				'import DashboardSquare01Icon from "@hugeicons/core-free-icons/DashboardSquare01Icon";',
+				'import DashboardSquare01Icon from "@hugeicons/core-free-icons/DashboardSquare01Icon";\nimport FileValidationIcon from "@hugeicons/core-free-icons/FileValidationIcon";',
+			);
+		} else {
+			text = text.replace(
+				/import \{\r?\n/,
+				"import {\n\tFileValidationIcon,\n",
+			);
+		}
+	}
 	const navBlock = `\t{
 \t\tlabelKey: "sidebar.eims",
 \t\tto: "/eims",
-\t\ticon: DashboardSquare01Icon,
+\t\ticon: FileValidationIcon,
 \t\tchildren: [
 \t\t\t{ labelKey: "sidebar.eimsStatus", to: "/eims" },
 \t\t\t{ labelKey: "sidebar.eimsSetup", to: "/eims/setup" },
@@ -443,6 +456,15 @@ const patchEimsTenantSidebar = async (root) => {
 			`$1${navBlock}\n`,
 		);
 	}
+
+	text = text
+		.replace("Tenant workspace", "EIMS tax workspace")
+		.replace("Launch status", "Tax launch status")
+		.replace("Concierge setup ready", "EIMS setup active")
+		.replace(
+			"Use onboarding first, then attach vertical packs.",
+			"MoR approval, certificates, source setup, and compliance evidence are available.",
+		);
 
 	await fs.writeFile(file, text, "utf8");
 	await patchSidebarLocaleEntries(root, [
@@ -495,6 +517,14 @@ const EIMS_ADMIN_NAV = [
 \t\t\t\t\t</SidebarGroup>`;
 		text = text.replace("</SidebarGroup>\n\t\t\t\t</SidebarContent>", `</SidebarGroup>${group}\n\t\t\t\t</SidebarContent>`);
 	}
+
+	text = text
+		.replace("Operations focus", "EIMS operations focus")
+		.replace("Tenant launch queue", "EIMS tenant launch queue")
+		.replace(
+			"Onboarding, jobs, billing, and audits are grouped for support staff.",
+			"Failures, certificates, queues, and compliance evidence stay grouped for support staff.",
+		);
 
 	await fs.writeFile(file, text, "utf8");
 	await patchAdminLocaleEntries(root, [

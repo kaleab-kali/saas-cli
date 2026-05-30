@@ -257,9 +257,15 @@ function assertGeneratedStructure() {
 	assert(appSidebar.includes('labelKey: "sidebar.eims"'), "tenant sidebar includes EIMS navigation group");
 	assert(appSidebar.includes('labelKey: "sidebar.eimsStatus"'), "tenant sidebar exposes EIMS status child route");
 	assert(appSidebar.includes('labelKey: "sidebar.eimsExports"'), "tenant sidebar exposes records export child route");
+	assert(appSidebar.includes("FileValidationIcon"), "tenant sidebar uses a tax/compliance icon for EIMS");
+	assert(appSidebar.includes("EIMS tax workspace"), "tenant shell is visibly EIMS-specific after installing the starter");
+	assert(appSidebar.includes("Tax launch status"), "tenant shell launch panel changes for EIMS installs");
+	assert(appSidebar.includes("EIMS setup active"), "tenant shell status panel names the EIMS setup");
 	const adminSidebar = readProjectFile("apps/web/src/components/layout/AdminSidebar.tsx");
 	assert(adminSidebar.includes("const EIMS_ADMIN_NAV"), "admin sidebar includes EIMS operations group");
 	assert(adminSidebar.includes('admin.nav.eimsOperations'), "admin sidebar exposes EIMS operations label");
+	assert(adminSidebar.includes("EIMS operations focus"), "admin shell is visibly EIMS-specific after installing the starter");
+	assert(adminSidebar.includes("EIMS tenant launch queue"), "admin shell status panel names the EIMS queue");
 	const englishLocale = readProjectFile("apps/web/src/shared/i18n/locales/en.ts");
 	assert(englishLocale.includes('eims: "Tax tools"'), "tenant EIMS nav is business-facing");
 	assert(englishLocale.includes('eimsCancellations: "Cancellations"'), "tenant EIMS nav labels include cancellations");
