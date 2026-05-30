@@ -83,6 +83,7 @@ const requiredFiles = [
 	"apps/api-tests/scripts/eims-mock-api-server.mjs",
 	"apps/api-tests/tests/eims-v3-mock.spec.ts",
 	"apps/e2e/tests/eims-mock.spec.ts",
+	"apps/api/prisma/seed-eims-onboarding-template.ts",
 ];
 
 const requiredPrismaModels = [
@@ -230,6 +231,11 @@ function assertGeneratedStructure() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	assert(packageJson.scripts["test:eims:mock"]?.includes("test:eims:ui"), "generated package has full EIMS mock gate");
 	assert(packageJson.scripts["test:eims:api"]?.includes("api-tests"), "generated package has EIMS API tests");
+	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
+	assert(
+		apiPackageJson.scripts?.["db:seed"]?.includes("seed-eims-onboarding-template.ts"),
+		"EIMS db seed installs onboarding task template",
+	);
 	const apiTestsPackageJson = JSON.parse(readProjectFile("apps/api-tests/package.json"));
 	assert(
 		apiTestsPackageJson.scripts?.["test:eims:mock"]?.includes("eims-http"),
@@ -273,6 +279,11 @@ function assertGeneratedStructure() {
 	for (const modelName of requiredPrismaModels) {
 		assert(prismaSchema.includes(modelName), `Prisma contains ${modelName}`);
 	}
+	const eimsOnboardingSeed = readProjectFile("apps/api/prisma/seed-eims-onboarding-template.ts");
+	assert(eimsOnboardingSeed.includes('"eims-restaurant"'), "EIMS onboarding template uses eims-restaurant key");
+	assert(eimsOnboardingSeed.includes('"mor-portal-signup"'), "EIMS onboarding template includes MoR signup step");
+	assert(eimsOnboardingSeed.includes('"certificate-upload"'), "EIMS onboarding template includes certificate upload step");
+	assert(eimsOnboardingSeed.includes('"production-ready"'), "EIMS onboarding template includes production-ready step");
 }
 
 async function assertBackendMockData() {

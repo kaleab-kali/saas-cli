@@ -4975,14 +4975,199 @@ main()
 \t.finally(() => prisma.$disconnect());
 `,
 	);
+	await writeNew(
+		path.join(root, "apps/api/prisma/seed-eims-onboarding-template.ts"),
+		`import "dotenv/config";
+import { prisma } from "../src/shared/database/prisma-instance";
+
+const EIMS_ONBOARDING_TEMPLATE_KEY = "eims-restaurant";
+
+const EIMS_ONBOARDING_STEPS = [
+\t{
+\t\tkey: "tenant-intake",
+\t\tstepOrder: 1,
+\t\ttitle: "Confirm tenant intake",
+\t\tdescription: "Collect legal name, trade name, TIN, VAT status, business address, owner, and manager contacts.",
+\t\tcategory: "setup",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: true,
+\t},
+\t{
+\t\tkey: "subscription-payment",
+\t\tstepOrder: 2,
+\t\ttitle: "Confirm subscription and payment",
+\t\tdescription: "Record plan, payment method, reference, amount, and receipt evidence before setup work starts.",
+\t\tcategory: "billing",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+\t{
+\t\tkey: "workspace-created",
+\t\tstepOrder: 3,
+\t\ttitle: "Create tenant workspace",
+\t\tdescription: "Create organization, owner account, roles, and initial staff access for the restaurant.",
+\t\tcategory: "setup",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+\t{
+\t\tkey: "mor-portal-signup",
+\t\tstepOrder: 4,
+\t\ttitle: "Complete MoR portal signup",
+\t\tdescription: "Use the tenant TIN and phone handoff to register or verify the MoR portal account.",
+\t\tcategory: "mor-portal",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+\t{
+\t\tkey: "mor-password-2fa",
+\t\tstepOrder: 5,
+\t\ttitle: "Secure MoR portal access",
+\t\tdescription: "Complete forced password change, TOTP setup, and backup-code capture in the encrypted credential store.",
+\t\tcategory: "mor-portal",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+\t{
+\t\tkey: "source-registration",
+\t\tstepOrder: 6,
+\t\ttitle: "Register source system",
+\t\tdescription: "Register POS or ERP source details, branch, system type, and expected counter sequence.",
+\t\tcategory: "mor-portal",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+\t{
+\t\tkey: "source-approval",
+\t\tstepOrder: 7,
+\t\ttitle: "Wait for MoR source approval",
+\t\tdescription: "Track approval status and follow up before credentials or certificates are connected.",
+\t\tcategory: "mor-portal",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+\t{
+\t\tkey: "credentials-capture",
+\t\tstepOrder: 8,
+\t\ttitle: "Capture EIMS credentials",
+\t\tdescription: "Store client ID, client secret, API key, system number, and source identifiers through encrypted backend APIs.",
+\t\tcategory: "credentials",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+\t{
+\t\tkey: "generate-csr",
+\t\tstepOrder: 9,
+\t\ttitle: "Generate certificate request",
+\t\tdescription: "Generate the CSR server-side with the configured signing provider and prepare the INSA request package.",
+\t\tcategory: "insa-cert",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+\t{
+\t\tkey: "insa-email",
+\t\tstepOrder: 10,
+\t\ttitle: "Send INSA certificate email",
+\t\tdescription: "Send CSR, forms, and supporting documents to INSA and track expected response window.",
+\t\tcategory: "insa-cert",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+\t{
+\t\tkey: "certificate-upload",
+\t\tstepOrder: 11,
+\t\ttitle: "Upload issued certificate",
+\t\tdescription: "Import the INSA-issued certificate, validate key match, expiry, key size, and subject data.",
+\t\tcategory: "insa-cert",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+\t{
+\t\tkey: "sandbox-test",
+\t\tstepOrder: 12,
+\t\ttitle: "Run sandbox invoice test",
+\t\tdescription: "Submit a minimal invoice to sandbox and capture IRN or the actionable EIMS error response.",
+\t\tcategory: "verification",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+\t{
+\t\tkey: "tenant-notification",
+\t\tstepOrder: 13,
+\t\ttitle: "Notify tenant",
+\t\tdescription: "Send SMS, email, or WhatsApp-ready message explaining readiness, next steps, and support contacts.",
+\t\tcategory: "training",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: true,
+\t},
+\t{
+\t\tkey: "staff-training",
+\t\tstepOrder: 14,
+\t\ttitle: "Complete staff training",
+\t\tdescription: "Train owner, manager, and cashiers on invoice issue, receipt print, cancellation, and support escalation.",
+\t\tcategory: "training",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+\t{
+\t\tkey: "production-ready",
+\t\tstepOrder: 15,
+\t\ttitle: "Mark production ready",
+\t\tdescription: "Confirm live endpoint, credentials, certificate, printer layout, and first production invoice readiness.",
+\t\tcategory: "launch",
+\t\tassigneeType: "STAFF",
+\t\tcanBeSelfService: false,
+\t},
+] as const;
+
+async function main() {
+\tawait prisma.onboardingTaskTemplate.upsert({
+\t\twhere: { key: EIMS_ONBOARDING_TEMPLATE_KEY },
+\t\tupdate: {
+\t\t\tname: "EIMS restaurant onboarding",
+\t\t\tdescription:
+\t\t\t\t"Concierge workflow for Ethiopian restaurants to complete MoR portal setup, INSA certificate issuance, EIMS credentials, sandbox testing, and production launch.",
+\t\t\tvertical: "restaurant",
+\t\t\testimatedDays: 10,
+\t\t\tstepDefinitions: EIMS_ONBOARDING_STEPS as never,
+\t\t\tcreatedByPack: "eims",
+\t\t\tisActive: true,
+\t\t},
+\t\tcreate: {
+\t\t\tkey: EIMS_ONBOARDING_TEMPLATE_KEY,
+\t\t\tname: "EIMS restaurant onboarding",
+\t\t\tdescription:
+\t\t\t\t"Concierge workflow for Ethiopian restaurants to complete MoR portal setup, INSA certificate issuance, EIMS credentials, sandbox testing, and production launch.",
+\t\t\tvertical: "restaurant",
+\t\t\testimatedDays: 10,
+\t\t\tstepDefinitions: EIMS_ONBOARDING_STEPS as never,
+\t\t\tcreatedByPack: "eims",
+\t\t},
+\t});
+
+\tconsole.log("EIMS onboarding task template seeded.");
+}
+
+main()
+\t.catch((error) => {
+\t\tconsole.error(error);
+\t\tprocess.exit(1);
+\t})
+\t.finally(() => prisma.$disconnect());
+`,
+	);
 };
 
 const patchEimsSeedScript = async (root) =>
 	patchJsonFile(path.join(root, "apps/api/package.json"), (json) => {
-		const seed = json.scripts?.["db:seed"];
-		if (seed && !seed.includes("seed-eims-entitlements.ts")) {
-			json.scripts["db:seed"] =
-				`${seed} && tsx prisma/seed-eims-entitlements.ts`;
+		let seed = json.scripts?.["db:seed"];
+		if (seed) {
+			for (const script of ["seed-eims-entitlements.ts", "seed-eims-onboarding-template.ts"]) {
+				if (!seed.includes(script)) {
+					seed = `${seed} && tsx prisma/${script}`;
+				}
+			}
+			json.scripts["db:seed"] = seed;
 		}
 		return json;
 	});

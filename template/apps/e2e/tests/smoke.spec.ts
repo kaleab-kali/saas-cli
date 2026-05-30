@@ -27,6 +27,22 @@ const onboardingTask = {
 	startedAt: now(),
 	completedAt: null,
 	blockedReason: null,
+	metadata: {
+		businessType: "restaurant",
+		legalName: "Demo Cafe PLC",
+		tradeName: "Demo Cafe",
+		taxId: "0011223344",
+		vatNumber: "VAT-0011223344",
+		region: "Addis Ababa",
+		subCity: "Bole",
+		woreda: "03",
+		managerPhone: "+251922000000",
+		preferredChannel: "WhatsApp",
+		plan: "pro",
+		paymentMethod: "telebirr",
+		paymentAmount: "4500",
+		paymentReference: "TX-DEMO-001",
+	},
 	organization: { id: "org_smoke", name: "Demo Cafe", slug: "demo-cafe", createdAt: now() },
 	assignedTo: { id: "staff_smoke", name: "Yordanos", email: "staff@example.test", image: null },
 	progress: { total: 4, completed: 1, currentStepKey: "company-profile", percent: 25 },
@@ -200,6 +216,43 @@ async function installAdminMocks(page: Page) {
 			);
 			return;
 		}
+		if (url.includes("/admin/organizations")) {
+			await route.fulfill(
+				ok({
+					data: [
+						{
+							id: "org_smoke",
+							name: "Demo Cafe",
+							slug: "demo-cafe",
+							logo: null,
+							createdAt: now(),
+							memberCount: 2,
+							ownerEmail: "owner@example.test",
+						},
+					],
+					meta: { page: 1, limit: 100, total: 1, totalPages: 1 },
+				}),
+			);
+			return;
+		}
+		if (url.includes("/admin/users")) {
+			await route.fulfill(
+				ok({
+					data: [
+						{
+							id: "staff_smoke",
+							name: "Yordanos",
+							email: "staff@example.test",
+							emailVerified: true,
+							createdAt: now(),
+							organizations: [],
+						},
+					],
+					meta: { page: 1, limit: 100, total: 1, totalPages: 1 },
+				}),
+			);
+			return;
+		}
 		if (url.includes("/admin/onboarding")) {
 			onboardingListRequests.push(url);
 			await route.fulfill(
@@ -276,6 +329,32 @@ test("admin onboarding smoke renders filterable operations table", async ({ page
 	await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe("Demo Cafe");
 	await expect(page.getByRole("cell", { name: /Demo Cafe/i })).toBeVisible();
 	await expect(page.getByText("1/4 steps")).toBeVisible();
+
+	assertNoErrors();
+});
+
+test("admin onboarding new tenant renders concierge intake workflow", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAdminMocks(page);
+
+	await page.goto("/admin/onboarding/new", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "New tenant onboarding" })).toBeVisible();
+	await expect(page.getByText("Concierge intake")).toBeVisible();
+	await expect(page.getByText("Existing organization", { exact: true })).toBeVisible();
+	await expect(page.getByText("TIN", { exact: true })).toBeVisible();
+
+	await page.getByRole("button", { name: "Contact" }).click();
+	await expect(page.getByText("Owner full name")).toBeVisible();
+	await expect(page.getByText("Preferred contact channel")).toBeVisible();
+
+	await page.getByRole("button", { name: "Subscription" }).click();
+	await expect(page.getByText("Payment method")).toBeVisible();
+	await expect(page.getByText("Reference number")).toBeVisible();
+
+	await page.getByRole("button", { name: "Setup" }).click();
+	await expect(page.getByText("Task template")).toBeVisible();
+	await expect(page.getByText("Assigned staff")).toBeVisible();
 
 	assertNoErrors();
 });

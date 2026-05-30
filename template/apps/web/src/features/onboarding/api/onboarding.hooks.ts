@@ -52,6 +52,7 @@ export interface OnboardingTask {
 	startedAt: string;
 	completedAt: string | null;
 	blockedReason: string | null;
+	metadata: Record<string, unknown> | null;
 	organization?: { id: string; name: string; slug: string | null; createdAt: string };
 	assignedTo?: { id: string; name: string; email: string; image: string | null } | null;
 	steps: OnboardingStep[];
@@ -126,6 +127,8 @@ export const useAdminOnboardingTasks = (params: {
 	mode?: OnboardingMode;
 	templateKey?: string;
 	vertical?: string;
+	assignedToUserId?: string;
+	staleDays?: number;
 	page?: number;
 	limit?: number;
 	search?: string;
@@ -162,6 +165,7 @@ export const useCreateOnboardingTask = () => {
 			contactPhone: string;
 			contactEmail: string;
 			assignedToUserId?: string;
+			metadata?: Record<string, unknown>;
 		}) => api.post<{ data: OnboardingTask }>("/admin/onboarding", dto),
 		onSuccess: () => qc.invalidateQueries({ queryKey: onboardingKeys.admin() }),
 		meta: { successMessage: "Onboarding task created" },

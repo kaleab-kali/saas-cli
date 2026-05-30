@@ -120,13 +120,19 @@ export class OnboardingService {
 		if (query.status) where.status = query.status;
 		if (query.mode) where.mode = query.mode;
 		if (query.templateKey) where.templateKey = query.templateKey;
-		if (query.assignedToUserId) where.assignedToUserId = query.assignedToUserId;
+		if (query.assignedToUserId) {
+			where.assignedToUserId = query.assignedToUserId === "UNASSIGNED" ? null : query.assignedToUserId;
+		}
 		if (query.vertical) {
 			const templates = await this.prisma.onboardingTaskTemplate.findMany({
 				where: { vertical: query.vertical, isActive: true },
 				select: { key: true },
 			});
 			where.templateKey = { in: templates.map((template) => template.key) };
+		}
+		if (query.staleDays) {
+			const staleCutoff = new Date(Date.now() - Math.max(1, query.staleDays) * 24 * 60 * 60 * 1000);
+			where.steps = { some: { status: "IN_PROGRESS", startedAt: { lt: staleCutoff } } };
 		}
 		const search = query.search?.trim();
 		if (search) {

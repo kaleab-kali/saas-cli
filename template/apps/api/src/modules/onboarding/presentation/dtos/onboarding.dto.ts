@@ -34,6 +34,12 @@ export class ListOnboardingTasksQueryDto {
 	@IsString()
 	vertical?: string;
 
+	@ApiProperty({ required: false, description: "Only tasks stuck in the current step for at least this many days" })
+	@IsOptional()
+	@IsInt()
+	@Min(1)
+	staleDays?: number;
+
 	@ApiProperty({ required: false })
 	@IsOptional()
 	@IsString()

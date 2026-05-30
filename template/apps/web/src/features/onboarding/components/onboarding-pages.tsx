@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
-import { useAdminOrgList } from "#features/admin/api/admin.queries";
+import { useAdminOrgList, useAdminUserList } from "#features/admin/api/admin.queries";
 import {
 	type OnboardingMode,
 	type OnboardingStep,
@@ -11,6 +11,7 @@ import {
 	type TenantOnboarding,
 	useAdminOnboardingTask,
 	useAdminOnboardingTasks,
+	useAssignOnboardingTask,
 	useBlockOnboardingTask,
 	useCancelOnboardingTask,
 	useCompleteAdminOnboardingStep,
@@ -39,6 +40,26 @@ const statusVariant = (status: string) => {
 const modeLabel = (mode: OnboardingMode) => mode.replace("_", " ");
 const statusFilters = ["ALL", "ACTIVE", "COMPLETED", "BLOCKED", "CANCELLED"] as const;
 const modeFilters = ["ALL", "CONCIERGE", "SELF_SERVICE", "HYBRID"] as const;
+const staleFilters = ["ALL", "5", "10", "15"] as const;
+
+interface OnboardingTaskMetadata {
+	readonly businessType?: string;
+	readonly legalName?: string;
+	readonly tradeName?: string;
+	readonly taxId?: string;
+	readonly vatNumber?: string;
+	readonly region?: string;
+	readonly subCity?: string;
+	readonly woreda?: string;
+	readonly houseNumber?: string;
+	readonly managerPhone?: string;
+	readonly preferredChannel?: string;
+	readonly plan?: string;
+	readonly paymentMethod?: string;
+	readonly paymentAmount?: string;
+	readonly paymentReference?: string;
+	readonly receiptReference?: string;
+}
 
 const isStatusFilter = (value: unknown): value is OnboardingTaskStatus | "ALL" =>
 	typeof value === "string" && statusFilters.includes(value as (typeof statusFilters)[number]);
@@ -46,11 +67,45 @@ const isStatusFilter = (value: unknown): value is OnboardingTaskStatus | "ALL" =
 const isModeFilter = (value: unknown): value is OnboardingMode | "ALL" =>
 	typeof value === "string" && modeFilters.includes(value as (typeof modeFilters)[number]);
 
+const isStaleFilter = (value: unknown): value is (typeof staleFilters)[number] =>
+	typeof value === "string" && staleFilters.includes(value as (typeof staleFilters)[number]);
+
+const taskMetadata = (task: OnboardingTask): OnboardingTaskMetadata =>
+	task.metadata && typeof task.metadata === "object" && !Array.isArray(task.metadata)
+		? (task.metadata as OnboardingTaskMetadata)
+		: {};
+
+const displayValue = (value: unknown, fallback = "-") => (typeof value === "string" && value.trim() ? value : fallback);
+
+const daysSince = (date: string | null | undefined) => {
+	if (!date) return 0;
+	const timestamp = Date.parse(date);
+	if (Number.isNaN(timestamp)) return 0;
+	return Math.max(0, Math.floor((Date.now() - timestamp) / 86_400_000));
+};
+
 const currentStep = (task: OnboardingTask) =>
 	task.steps.find((step) => step.stepKey === task.currentStepKey) ??
 	task.steps.find((step) => step.status === "IN_PROGRESS") ??
 	task.steps.find((step) => step.status !== "COMPLETED") ??
 	null;
+
+const currentStepDays = (task: OnboardingTask) => daysSince(currentStep(task)?.startedAt ?? task.startedAt);
+
+const averageCompletedDays = (tasks: readonly OnboardingTask[]) => {
+	const completed = tasks
+		.map((task) => {
+			if (!task.completedAt) return null;
+			const start = Date.parse(task.startedAt);
+			const end = Date.parse(task.completedAt);
+			if (Number.isNaN(start) || Number.isNaN(end)) return null;
+			return Math.max(1, Math.ceil((end - start) / 86_400_000));
+		})
+		.filter((value): value is number => typeof value === "number");
+	if (completed.length === 0) return "-";
+	const total = completed.reduce((sum, value) => sum + value, 0);
+	return `${Math.round(total / completed.length)}d`;
+};
 
 function ProgressBar({
 	completed,
@@ -260,6 +315,180 @@ function OnboardingConsoleBand({
 	);
 }
 
+function IntakeSummary({ task }: { readonly task: OnboardingTask }) {
+	const metadata = taskMetadata(task);
+	const items = [
+		["Legal name", metadata.legalName ?? task.organization?.name],
+		["Trade name", metadata.tradeName],
+		["TIN", metadata.taxId],
+		["VAT", metadata.vatNumber],
+		["Business type", metadata.businessType],
+		["Region", metadata.region],
+		["Sub-city", metadata.subCity],
+		["Woreda", metadata.woreda],
+	];
+
+	return (
+		<div className="grid gap-2 sm:grid-cols-2">
+			{items.map(([label, value]) => (
+				<div key={label} className="rounded-md border bg-muted/20 p-3">
+					<div className="text-xs uppercase text-muted-foreground">{label}</div>
+					<div className="mt-1 truncate text-sm font-medium">{displayValue(value)}</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
+function StepActionPanel({
+	task,
+	step,
+	notes,
+	onNotesChange,
+	onComplete,
+	isCompleting,
+}: {
+	readonly task: OnboardingTask;
+	readonly step: OnboardingStep | null;
+	readonly notes: string;
+	readonly onNotesChange: (value: string) => void;
+	readonly onComplete: (step: OnboardingStep) => void;
+	readonly isCompleting: boolean;
+}) {
+	const metadata = taskMetadata(task);
+	const checklist = React.useMemo(() => {
+		if (!step) return [];
+		if (step.stepKey.includes("mor")) {
+			return [
+				`Copy TIN ${displayValue(metadata.taxId)} into the MoR portal`,
+				`Use ${displayValue(task.contactPhone)} for OTP coordination`,
+				"Record portal status and any officer follow-up note",
+			];
+		}
+		if (step.stepKey.includes("credential")) {
+			return [
+				"Capture client ID, client secret, API key, and system number only in backend forms",
+				"Confirm the credential test succeeds before moving forward",
+				"Never paste raw secrets into notes or activity comments",
+			];
+		}
+		if (step.stepKey.includes("csr") || step.stepKey.includes("certificate") || step.stepKey.includes("insa")) {
+			return [
+				"Generate CSR server-side with the configured signing provider",
+				"Send CSR and supporting forms to INSA",
+				"Validate issued certificate expiry and key match before activation",
+			];
+		}
+		if (step.stepKey.includes("payment") || step.category === "billing") {
+			return [
+				`Plan: ${displayValue(metadata.plan)}`,
+				`Payment: ${displayValue(metadata.paymentMethod)} ${displayValue(metadata.paymentAmount, "")}`.trim(),
+				`Reference: ${displayValue(metadata.paymentReference)}`,
+			];
+		}
+		return [
+			"Confirm required evidence has been captured",
+			"Add a concise completion note for the next staff member",
+			"Complete the step only when the tenant can safely proceed",
+		];
+	}, [metadata, step, task.contactPhone]);
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle className="text-base">Current action panel</CardTitle>
+			</CardHeader>
+			<CardContent className="space-y-4">
+				<ProgressBar {...task.progress} />
+				{step ? (
+					<div className="space-y-4">
+						<div className="rounded-md border bg-primary/5 p-4">
+							<div className="flex flex-wrap items-center gap-2">
+								<h2 className="font-medium">{step.title}</h2>
+								<Badge variant="outline">{step.category}</Badge>
+								<Badge variant="secondary">{step.assigneeType}</Badge>
+								<Badge variant={statusVariant(step.status)}>{step.status.replace("_", " ")}</Badge>
+							</div>
+							{step.description && <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>}
+						</div>
+						<div className="grid gap-2">
+							{checklist.map((item) => (
+								<div key={item} className="flex gap-3 rounded-md border p-3 text-sm">
+									<span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+										-
+									</span>
+									<span>{item}</span>
+								</div>
+							))}
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="admin-step-note">Completion note</Label>
+							<Input
+								id="admin-step-note"
+								placeholder="What changed, what evidence was checked, or who confirmed it?"
+								value={notes}
+								onChange={(event) => onNotesChange(event.target.value)}
+							/>
+						</div>
+						<Button onClick={() => onComplete(step)} disabled={isCompleting || step.status === "COMPLETED"}>
+							{isCompleting ? "Completing..." : "Complete current step"}
+						</Button>
+					</div>
+				) : (
+					<EmptyState title="No active step" description="All steps have been completed or the task is paused." />
+				)}
+			</CardContent>
+		</Card>
+	);
+}
+
+function TenantContactCard({ task }: { readonly task: OnboardingTask }) {
+	const metadata = taskMetadata(task);
+	const phoneHref = `tel:${task.contactPhone}`;
+	const emailHref = `mailto:${task.contactEmail}`;
+	const whatsappHref = `https://wa.me/${task.contactPhone.replace(/\D/g, "")}`;
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle className="text-base">Tenant contact</CardTitle>
+			</CardHeader>
+			<CardContent className="space-y-4 text-sm">
+				<div className="grid gap-3">
+					<div>
+						<div className="text-muted-foreground">Owner</div>
+						<div className="font-medium">{task.contactName}</div>
+					</div>
+					<div>
+						<div className="text-muted-foreground">Manager phone</div>
+						<div className="font-medium">{displayValue(metadata.managerPhone)}</div>
+					</div>
+					<div>
+						<div className="text-muted-foreground">Preferred channel</div>
+						<div className="font-medium">{displayValue(metadata.preferredChannel, "Phone")}</div>
+					</div>
+				</div>
+				<div className="grid gap-2">
+					<Button variant="outline" asChild>
+						<a href={whatsappHref} target="_blank" rel="noreferrer">
+							Open WhatsApp
+						</a>
+					</Button>
+					<Button variant="outline" asChild>
+						<a href={phoneHref}>Call tenant</a>
+					</Button>
+					<Button variant="outline" asChild>
+						<a href={emailHref}>Send email</a>
+					</Button>
+				</div>
+				{task.blockedReason && (
+					<p className="rounded-md bg-destructive/10 p-3 text-destructive">{task.blockedReason}</p>
+				)}
+			</CardContent>
+		</Card>
+	);
+}
+
 export function TenantOnboardingPage() {
 	const { data, isLoading } = useTenantOnboarding();
 	const complete = useCompleteTenantOnboardingStep();
@@ -400,6 +629,10 @@ export function AdminOnboardingListPage() {
 	});
 	const status = isStatusFilter(tableState.urlSearch.status) ? tableState.urlSearch.status : "ACTIVE";
 	const mode = isModeFilter(tableState.urlSearch.mode) ? tableState.urlSearch.mode : "ALL";
+	const vertical = typeof tableState.urlSearch.vertical === "string" ? tableState.urlSearch.vertical : "ALL";
+	const assignedToUserId =
+		typeof tableState.urlSearch.assignedToUserId === "string" ? tableState.urlSearch.assignedToUserId : "ALL";
+	const staleDays = isStaleFilter(tableState.urlSearch.staleDays) ? tableState.urlSearch.staleDays : "ALL";
 	const setStatus = React.useCallback(
 		(value: OnboardingTaskStatus | "ALL") =>
 			tableState.setSearchParams({ status: value === "ALL" ? undefined : value, page: 1 }),
@@ -410,9 +643,27 @@ export function AdminOnboardingListPage() {
 			tableState.setSearchParams({ mode: value === "ALL" ? undefined : value, page: 1 }),
 		[tableState],
 	);
+	const setVertical = React.useCallback(
+		(value: string) => tableState.setSearchParams({ vertical: value === "ALL" ? undefined : value, page: 1 }),
+		[tableState],
+	);
+	const setAssignedToUserId = React.useCallback(
+		(value: string) => tableState.setSearchParams({ assignedToUserId: value === "ALL" ? undefined : value, page: 1 }),
+		[tableState],
+	);
+	const setStaleDays = React.useCallback(
+		(value: (typeof staleFilters)[number]) =>
+			tableState.setSearchParams({ staleDays: value === "ALL" ? undefined : value, page: 1 }),
+		[tableState],
+	);
+	const { data: users } = useAdminUserList({ limit: 100 });
+	const staffUsers = Array.isArray(users?.data) ? users.data : [];
 	const { data, isLoading, error, refetch } = useAdminOnboardingTasks({
 		status: status === "ALL" ? undefined : status,
 		mode: mode === "ALL" ? undefined : mode,
+		vertical: vertical === "ALL" ? undefined : vertical,
+		assignedToUserId: assignedToUserId === "ALL" ? undefined : assignedToUserId,
+		staleDays: staleDays === "ALL" ? undefined : Number(staleDays),
 		page: tableState.queryParams.page,
 		limit: tableState.queryParams.limit,
 		search: tableState.queryParams.search,
@@ -420,23 +671,29 @@ export function AdminOnboardingListPage() {
 	});
 	const tasks = data?.data ?? [];
 	const summary = data?.summary;
+	const avgCompletedDays = averageCompletedDays(tasks);
 
 	const columns = React.useMemo<ColumnDef<OnboardingTask, unknown>[]>(
 		() => [
 			{
 				id: "tenant",
 				accessorFn: (task) =>
-					`${task.organization?.name ?? task.organizationId} ${task.contactName} ${task.contactEmail} ${task.contactPhone}`,
+					`${task.organization?.name ?? task.organizationId} ${task.contactName} ${task.contactEmail} ${task.contactPhone} ${displayValue(taskMetadata(task).taxId, "")} ${displayValue(taskMetadata(task).businessType, "")}`,
 				header: "Tenant",
-				cell: ({ row }) => (
-					<div>
-						<div className="font-medium">{row.original.organization?.name ?? row.original.organizationId}</div>
-						<div className="text-xs text-muted-foreground">
-							{row.original.contactName} - {row.original.contactPhone}
+				cell: ({ row }) => {
+					const metadata = taskMetadata(row.original);
+					return (
+						<div>
+							<div className="font-medium">{row.original.organization?.name ?? row.original.organizationId}</div>
+							<div className="text-xs text-muted-foreground">
+								{displayValue(metadata.businessType, row.original.templateKey)} - TIN {displayValue(metadata.taxId)}
+							</div>
+							<div className="text-xs text-muted-foreground">
+								{row.original.contactName} - {row.original.contactPhone}
+							</div>
 						</div>
-						<div className="text-xs text-muted-foreground">{row.original.contactEmail}</div>
-					</div>
-				),
+					);
+				},
 				meta: { filter: { type: "text" } },
 			},
 			{
@@ -503,6 +760,21 @@ export function AdminOnboardingListPage() {
 				meta: { filter: { type: "text" } },
 			},
 			{
+				id: "daysInStep",
+				accessorFn: (task) => currentStepDays(task),
+				header: "Days in step",
+				cell: ({ row }) => {
+					const days = currentStepDays(row.original);
+					return (
+						<Badge variant={days > 5 ? "destructive" : "secondary"}>
+							{days}d{days > 5 ? " stuck" : ""}
+						</Badge>
+					);
+				},
+				enableSorting: false,
+				meta: { filter: { type: "number-range" } },
+			},
+			{
 				id: "actions",
 				header: "Actions",
 				enableSorting: false,
@@ -547,6 +819,43 @@ export function AdminOnboardingListPage() {
 					<SelectItem value="HYBRID">Hybrid</SelectItem>
 				</SelectContent>
 			</Select>
+			<Select value={vertical} onValueChange={setVertical}>
+				<SelectTrigger className="w-full md:w-44">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="ALL">All verticals</SelectItem>
+					<SelectItem value="generic">Generic</SelectItem>
+					<SelectItem value="restaurant">Restaurant</SelectItem>
+					<SelectItem value="hotel">Hotel</SelectItem>
+					<SelectItem value="retail">Retail</SelectItem>
+				</SelectContent>
+			</Select>
+			<Select value={assignedToUserId} onValueChange={setAssignedToUserId}>
+				<SelectTrigger className="w-full md:w-48">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="ALL">All staff</SelectItem>
+					<SelectItem value="UNASSIGNED">Unassigned</SelectItem>
+					{staffUsers.map((user) => (
+						<SelectItem key={user.id} value={user.id}>
+							{user.name}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+			<Select value={staleDays} onValueChange={(value) => setStaleDays(value as (typeof staleFilters)[number])}>
+				<SelectTrigger className="w-full md:w-44">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="ALL">Any age</SelectItem>
+					<SelectItem value="5">Stuck 5d+</SelectItem>
+					<SelectItem value="10">Stuck 10d+</SelectItem>
+					<SelectItem value="15">Stuck 15d+</SelectItem>
+				</SelectContent>
+			</Select>
 			<Link to="/admin/onboarding/new">
 				<Button>New tenant</Button>
 			</Link>
@@ -563,9 +872,14 @@ export function AdminOnboardingListPage() {
 
 			<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
 				<MetricCard label="Active" value={summary?.active ?? 0} />
-				<MetricCard label="Blocked" value={summary?.blocked ?? 0} />
-				<MetricCard label="Stale" value={summary?.stale ?? 0} helper="Needs staff follow-up" />
+				<MetricCard
+					label="Stuck >5d"
+					value={summary?.stale ?? 0}
+					helper="Needs staff follow-up"
+					className={summary?.stale ? "border-destructive/40 bg-destructive/5" : undefined}
+				/>
 				<MetricCard label="Done this month" value={summary?.completedThisMonth ?? 0} />
+				<MetricCard label="Avg completion" value={avgCompletedDays} helper="Visible for completed rows in view" />
 			</div>
 
 			<Card>
@@ -597,7 +911,10 @@ export function AdminOnboardingListPage() {
 
 export function AdminOnboardingDetailPage({ taskId }: { readonly taskId: string }) {
 	const { data: task, isLoading } = useAdminOnboardingTask(taskId);
+	const { data: users } = useAdminUserList({ limit: 100 });
+	const staffUsers = Array.isArray(users?.data) ? users.data : [];
 	const complete = useCompleteAdminOnboardingStep(taskId);
+	const assign = useAssignOnboardingTask(taskId);
 	const block = useBlockOnboardingTask(taskId);
 	const cancel = useCancelOnboardingTask(taskId);
 	const [notes, setNotes] = React.useState("");
@@ -623,18 +940,37 @@ export function AdminOnboardingDetailPage({ taskId }: { readonly taskId: string 
 	if (!task) return <EmptyState title="Onboarding task not found" />;
 
 	const step = currentStep(task);
+	const metadata = taskMetadata(task);
+	const daysInStep = currentStepDays(task);
 
 	return (
 		<div className="space-y-6">
 			<PageHeader
 				eyebrow="Concierge workflow"
 				title={task.organization?.name ?? "Tenant onboarding"}
-				description={`${task.contactName} - ${task.contactPhone} - ${task.contactEmail}`}
+				description={`${displayValue(metadata.businessType, "Tenant")} - ${displayValue(metadata.taxId, "TIN pending")} - ${task.contactName}`}
 				actions={
 					<>
 						<Link to="/admin/onboarding">
 							<Button variant="outline">Back</Button>
 						</Link>
+						<Select
+							value={task.assignedToUserId ?? "UNASSIGNED"}
+							onValueChange={(value) => assign.mutate(value === "UNASSIGNED" ? null : value)}
+							disabled={assign.isPending}
+						>
+							<SelectTrigger className="w-full md:w-48">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="UNASSIGNED">Unassigned</SelectItem>
+								{staffUsers.map((user) => (
+									<SelectItem key={user.id} value={user.id}>
+										{user.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 						<Button variant="outline" onClick={handleBlock} disabled={block.isPending}>
 							Block
 						</Button>
@@ -653,42 +989,30 @@ export function AdminOnboardingDetailPage({ taskId }: { readonly taskId: string 
 					value={`${task.progress.percent}%`}
 					helper={`${task.progress.completed}/${task.progress.total} steps`}
 				/>
-				<MetricCard label="Assigned" value={task.assignedTo?.name ?? "Unassigned"} />
+				<MetricCard
+					label="Days in step"
+					value={daysInStep}
+					helper={daysInStep > 5 ? "Needs staff follow-up" : "Within target"}
+					className={daysInStep > 5 ? "border-destructive/40 bg-destructive/5" : undefined}
+				/>
 			</div>
 
 			<div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
 				<div className="space-y-4">
-					<Card>
-						<CardHeader>
-							<CardTitle className="text-base">Current action</CardTitle>
-						</CardHeader>
-						<CardContent className="space-y-4">
-							<ProgressBar {...task.progress} />
-							{step ? (
-								<div className="rounded-md border bg-primary/5 p-4">
-									<div className="flex flex-wrap items-center gap-2">
-										<h2 className="font-medium">{step.title}</h2>
-										<Badge variant="outline">{step.category}</Badge>
-										<Badge variant="secondary">{step.assigneeType}</Badge>
-									</div>
-									{step.description && <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>}
-								</div>
-							) : (
-								<EmptyState title="No active step" description="All steps have been completed or cancelled." />
-							)}
-						</CardContent>
-					</Card>
+					<StepActionPanel
+						task={task}
+						step={step}
+						notes={notes}
+						onNotesChange={setNotes}
+						onComplete={handleComplete}
+						isCompleting={complete.isPending}
+					/>
 
 					<Card>
 						<CardHeader>
 							<CardTitle className="text-base">Step timeline</CardTitle>
 						</CardHeader>
 						<CardContent className="space-y-4">
-							<Input
-								placeholder="Optional completion note"
-								value={notes}
-								onChange={(event) => setNotes(event.target.value)}
-							/>
 							<CategoryBreakdown steps={task.steps} />
 							<StepList steps={task.steps} onComplete={handleComplete} isCompleting={complete.isPending} />
 						</CardContent>
@@ -698,26 +1022,34 @@ export function AdminOnboardingDetailPage({ taskId }: { readonly taskId: string 
 				<div className="space-y-4">
 					<Card>
 						<CardHeader>
-							<CardTitle className="text-base">Tenant contact</CardTitle>
+							<CardTitle className="text-base">Tenant intake</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<IntakeSummary task={task} />
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader>
+							<CardTitle className="text-base">Payment evidence</CardTitle>
 						</CardHeader>
 						<CardContent className="space-y-3 text-sm">
 							<div>
-								<div className="text-muted-foreground">Name</div>
-								<div className="font-medium">{task.contactName}</div>
+								<div className="text-muted-foreground">Plan</div>
+								<div className="font-medium">{displayValue(metadata.plan)}</div>
 							</div>
 							<div>
-								<div className="text-muted-foreground">Phone</div>
-								<div className="font-medium">{task.contactPhone}</div>
+								<div className="text-muted-foreground">Method</div>
+								<div className="font-medium">{displayValue(metadata.paymentMethod)}</div>
 							</div>
 							<div>
-								<div className="text-muted-foreground">Email</div>
-								<div className="font-medium">{task.contactEmail}</div>
+								<div className="text-muted-foreground">Reference</div>
+								<div className="font-medium">{displayValue(metadata.paymentReference)}</div>
 							</div>
-							{task.blockedReason && (
-								<p className="rounded-md bg-destructive/10 p-3 text-destructive">{task.blockedReason}</p>
-							)}
 						</CardContent>
 					</Card>
+
+					<TenantContactCard task={task} />
 
 					<Card>
 						<CardHeader>
@@ -742,22 +1074,44 @@ export function AdminOnboardingDetailPage({ taskId }: { readonly taskId: string 
 export function AdminOnboardingNewPage() {
 	const navigate = useNavigate();
 	const { data: orgs } = useAdminOrgList({ limit: 100 });
+	const { data: users } = useAdminUserList({ limit: 100 });
 	const { data: templates = [] } = useOnboardingTemplates();
+	const organizations = React.useMemo(() => (Array.isArray(orgs?.data) ? orgs.data : []), [orgs?.data]);
+	const staffUsers = React.useMemo(() => (Array.isArray(users?.data) ? users.data : []), [users?.data]);
 	const createTask = useCreateOnboardingTask();
 	const [organizationId, setOrganizationId] = React.useState("");
 	const [templateKey, setTemplateKey] = React.useState("");
 	const [mode, setMode] = React.useState<OnboardingMode>("CONCIERGE");
+	const [assignedToUserId, setAssignedToUserId] = React.useState("UNASSIGNED");
+	const [intakeStep, setIntakeStep] = React.useState("company");
+	const [legalName, setLegalName] = React.useState("");
+	const [tradeName, setTradeName] = React.useState("");
+	const [taxId, setTaxId] = React.useState("");
+	const [vatNumber, setVatNumber] = React.useState("");
+	const [businessType, setBusinessType] = React.useState("restaurant");
+	const [region, setRegion] = React.useState("");
+	const [subCity, setSubCity] = React.useState("");
+	const [woreda, setWoreda] = React.useState("");
+	const [houseNumber, setHouseNumber] = React.useState("");
 	const [contactName, setContactName] = React.useState("");
 	const [contactPhone, setContactPhone] = React.useState("");
 	const [contactEmail, setContactEmail] = React.useState("");
+	const [managerPhone, setManagerPhone] = React.useState("");
+	const [preferredChannel, setPreferredChannel] = React.useState("WhatsApp");
+	const [plan, setPlan] = React.useState("pro");
+	const [paymentMethod, setPaymentMethod] = React.useState("telebirr");
+	const [paymentAmount, setPaymentAmount] = React.useState("");
+	const [paymentReference, setPaymentReference] = React.useState("");
+	const [receiptReference, setReceiptReference] = React.useState("");
 
 	React.useEffect(() => {
-		if (!organizationId && orgs?.data[0]) setOrganizationId(orgs.data[0].id);
+		if (!organizationId && organizations[0]) setOrganizationId(organizations[0].id);
 		if (!templateKey && templates[0]) setTemplateKey(templates[0].key);
-	}, [organizationId, orgs, templateKey, templates]);
+	}, [organizationId, organizations, templateKey, templates]);
 
 	const selectedTemplate = templates.find((template) => template.key === templateKey);
 	const canSubmit = organizationId && templateKey && contactName.trim() && contactPhone.trim() && contactEmail.trim();
+	const selectedOrg = organizations.find((org) => org.id === organizationId);
 	const submit = React.useCallback(async () => {
 		if (!canSubmit) return;
 		const result = await createTask.mutateAsync({
@@ -767,9 +1121,63 @@ export function AdminOnboardingNewPage() {
 			contactName,
 			contactPhone,
 			contactEmail,
+			assignedToUserId: assignedToUserId === "UNASSIGNED" ? undefined : assignedToUserId,
+			metadata: {
+				businessType,
+				houseNumber,
+				legalName: legalName || selectedOrg?.name,
+				managerPhone,
+				paymentAmount,
+				paymentMethod,
+				paymentReference,
+				plan,
+				preferredChannel,
+				receiptReference,
+				region,
+				subCity,
+				taxId,
+				tradeName,
+				vatNumber,
+				woreda,
+			},
 		});
 		navigate({ to: "/admin/onboarding/$taskId", params: { taskId: result.data.id } });
-	}, [canSubmit, contactEmail, contactName, contactPhone, createTask, mode, navigate, organizationId, templateKey]);
+	}, [
+		assignedToUserId,
+		businessType,
+		canSubmit,
+		contactEmail,
+		contactName,
+		contactPhone,
+		createTask,
+		houseNumber,
+		legalName,
+		managerPhone,
+		mode,
+		navigate,
+		organizationId,
+		paymentAmount,
+		paymentMethod,
+		paymentReference,
+		plan,
+		preferredChannel,
+		receiptReference,
+		region,
+		selectedOrg?.name,
+		subCity,
+		taxId,
+		templateKey,
+		tradeName,
+		vatNumber,
+		woreda,
+	]);
+
+	const wizardSteps = [
+		{ key: "company", label: "Company" },
+		{ key: "contact", label: "Contact" },
+		{ key: "subscription", label: "Subscription" },
+		{ key: "setup", label: "Setup" },
+	] as const;
 
 	return (
 		<div className="space-y-6">
@@ -787,66 +1195,219 @@ export function AdminOnboardingNewPage() {
 			<div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem]">
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">Task details</CardTitle>
+						<CardTitle className="text-base">Concierge intake</CardTitle>
 					</CardHeader>
 					<CardContent className="grid gap-4">
-						<div className="grid gap-2">
-							<Label>Organization</Label>
-							<Select value={organizationId} onValueChange={setOrganizationId}>
-								<SelectTrigger>
-									<SelectValue placeholder="Select organization" />
-								</SelectTrigger>
-								<SelectContent>
-									{orgs?.data.map((org) => (
-										<SelectItem key={org.id} value={org.id}>
-											{org.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+						<div className="grid gap-2 sm:grid-cols-4">
+							{wizardSteps.map((step) => (
+								<Button
+									key={step.key}
+									type="button"
+									variant={intakeStep === step.key ? "default" : "outline"}
+									onClick={() => setIntakeStep(step.key)}
+								>
+									{step.label}
+								</Button>
+							))}
 						</div>
-						<div className="grid gap-2">
-							<Label>Template</Label>
-							<Select value={templateKey} onValueChange={setTemplateKey}>
-								<SelectTrigger>
-									<SelectValue placeholder="Select template" />
-								</SelectTrigger>
-								<SelectContent>
-									{templates.map((template) => (
-										<SelectItem key={template.key} value={template.key}>
-											{template.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-						<div className="grid gap-2">
-							<Label>Mode</Label>
-							<Select value={mode} onValueChange={(value) => setMode(value as OnboardingMode)}>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="CONCIERGE">Concierge</SelectItem>
-									<SelectItem value="SELF_SERVICE">Self service</SelectItem>
-									<SelectItem value="HYBRID">Hybrid</SelectItem>
-								</SelectContent>
-							</Select>
-						</div>
-						<div className="grid gap-3 md:grid-cols-3">
-							<div className="grid gap-2">
-								<Label>Contact name</Label>
-								<Input value={contactName} onChange={(event) => setContactName(event.target.value)} />
+
+						{intakeStep === "company" && (
+							<div className="grid gap-4">
+								<div className="grid gap-2">
+									<Label>Existing organization</Label>
+									<Select value={organizationId} onValueChange={setOrganizationId}>
+										<SelectTrigger>
+											<SelectValue placeholder="Select organization" />
+										</SelectTrigger>
+										<SelectContent>
+											{organizations.map((org) => (
+												<SelectItem key={org.id} value={org.id}>
+													{org.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="grid gap-3 md:grid-cols-2">
+									<div className="grid gap-2">
+										<Label>Legal name</Label>
+										<Input value={legalName} onChange={(event) => setLegalName(event.target.value)} />
+									</div>
+									<div className="grid gap-2">
+										<Label>Trade name</Label>
+										<Input value={tradeName} onChange={(event) => setTradeName(event.target.value)} />
+									</div>
+									<div className="grid gap-2">
+										<Label>TIN</Label>
+										<Input value={taxId} onChange={(event) => setTaxId(event.target.value)} />
+									</div>
+									<div className="grid gap-2">
+										<Label>VAT number</Label>
+										<Input value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} />
+									</div>
+								</div>
+								<div className="grid gap-3 md:grid-cols-4">
+									<div className="grid gap-2">
+										<Label>Business type</Label>
+										<Select value={businessType} onValueChange={setBusinessType}>
+											<SelectTrigger>
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="restaurant">Restaurant</SelectItem>
+												<SelectItem value="hotel">Hotel</SelectItem>
+												<SelectItem value="retail">Retail</SelectItem>
+												<SelectItem value="generic">Generic SaaS</SelectItem>
+											</SelectContent>
+										</Select>
+									</div>
+									<div className="grid gap-2">
+										<Label>Region</Label>
+										<Input value={region} onChange={(event) => setRegion(event.target.value)} />
+									</div>
+									<div className="grid gap-2">
+										<Label>Sub-city</Label>
+										<Input value={subCity} onChange={(event) => setSubCity(event.target.value)} />
+									</div>
+									<div className="grid gap-2">
+										<Label>Woreda</Label>
+										<Input value={woreda} onChange={(event) => setWoreda(event.target.value)} />
+									</div>
+								</div>
+								<div className="grid gap-2">
+									<Label>House number</Label>
+									<Input value={houseNumber} onChange={(event) => setHouseNumber(event.target.value)} />
+								</div>
 							</div>
-							<div className="grid gap-2">
-								<Label>Contact phone</Label>
-								<Input value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} />
+						)}
+
+						{intakeStep === "contact" && (
+							<div className="grid gap-3 md:grid-cols-2">
+								<div className="grid gap-2">
+									<Label>Owner full name</Label>
+									<Input value={contactName} onChange={(event) => setContactName(event.target.value)} />
+								</div>
+								<div className="grid gap-2">
+									<Label>Owner phone</Label>
+									<Input value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} />
+								</div>
+								<div className="grid gap-2">
+									<Label>Owner email</Label>
+									<Input type="email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} />
+								</div>
+								<div className="grid gap-2">
+									<Label>Manager phone</Label>
+									<Input value={managerPhone} onChange={(event) => setManagerPhone(event.target.value)} />
+								</div>
+								<div className="grid gap-2 md:col-span-2">
+									<Label>Preferred contact channel</Label>
+									<Select value={preferredChannel} onValueChange={setPreferredChannel}>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="WhatsApp">WhatsApp</SelectItem>
+											<SelectItem value="Phone call">Phone call</SelectItem>
+											<SelectItem value="Email">Email</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
 							</div>
-							<div className="grid gap-2">
-								<Label>Contact email</Label>
-								<Input type="email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} />
+						)}
+
+						{intakeStep === "subscription" && (
+							<div className="grid gap-3 md:grid-cols-2">
+								<div className="grid gap-2">
+									<Label>Plan</Label>
+									<Select value={plan} onValueChange={setPlan}>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="free">Free</SelectItem>
+											<SelectItem value="pro">Pro</SelectItem>
+											<SelectItem value="enterprise">Enterprise</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="grid gap-2">
+									<Label>Payment method</Label>
+									<Select value={paymentMethod} onValueChange={setPaymentMethod}>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="cash">Cash</SelectItem>
+											<SelectItem value="telebirr">Telebirr</SelectItem>
+											<SelectItem value="bank">Bank transfer</SelectItem>
+											<SelectItem value="trial">Trial</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="grid gap-2">
+									<Label>Amount</Label>
+									<Input value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} />
+								</div>
+								<div className="grid gap-2">
+									<Label>Reference number</Label>
+									<Input value={paymentReference} onChange={(event) => setPaymentReference(event.target.value)} />
+								</div>
+								<div className="grid gap-2 md:col-span-2">
+									<Label>Receipt reference</Label>
+									<Input value={receiptReference} onChange={(event) => setReceiptReference(event.target.value)} />
+								</div>
 							</div>
-						</div>
+						)}
+
+						{intakeStep === "setup" && (
+							<div className="grid gap-4">
+								<div className="grid gap-2">
+									<Label>Mode</Label>
+									<Select value={mode} onValueChange={(value) => setMode(value as OnboardingMode)}>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="CONCIERGE">Concierge</SelectItem>
+											<SelectItem value="SELF_SERVICE">Self service</SelectItem>
+											<SelectItem value="HYBRID">Hybrid</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="grid gap-2">
+									<Label>Task template</Label>
+									<Select value={templateKey} onValueChange={setTemplateKey}>
+										<SelectTrigger>
+											<SelectValue placeholder="Select template" />
+										</SelectTrigger>
+										<SelectContent>
+											{templates.map((template) => (
+												<SelectItem key={template.key} value={template.key}>
+													{template.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="grid gap-2">
+									<Label>Assigned staff</Label>
+									<Select value={assignedToUserId} onValueChange={setAssignedToUserId}>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="UNASSIGNED">Unassigned</SelectItem>
+											{staffUsers.map((user) => (
+												<SelectItem key={user.id} value={user.id}>
+													{user.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+							</div>
+						)}
+
 						<div className="flex justify-end">
 							<Button onClick={submit} disabled={!canSubmit || createTask.isPending}>
 								{createTask.isPending ? "Creating..." : "Create onboarding task"}

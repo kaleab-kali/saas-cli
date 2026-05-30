@@ -181,8 +181,15 @@ function assertFrontendImprovementSurface() {
 	assert(onboarding.includes("tableState.queryParams"), "admin onboarding table sends server-side table params");
 	assert(onboarding.includes("Current action"), "onboarding pages expose active workflow step");
 	assert(onboarding.includes("TemplatePreview"), "new onboarding page previews selected templates");
+	assert(onboarding.includes("Concierge intake"), "new onboarding page uses concierge intake workflow");
+	assert(onboarding.includes("preferredChannel"), "new onboarding page persists tenant contact channel metadata");
+	assert(onboarding.includes("staleDays"), "admin onboarding table exposes stuck-task filtering");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
 	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
+	assert(
+		e2eSmoke.includes("admin onboarding new tenant renders concierge intake workflow"),
+		"E2E smoke covers new tenant concierge intake",
+	);
 	assert(e2eSmoke.includes("search=Demo"), "E2E smoke covers bookmarkable admin table search");
 }
 
@@ -192,10 +199,13 @@ function assertOnboardingServerTableQuery() {
 	const hooks = readProjectFile("apps/web/src/features/onboarding/api/onboarding.hooks.ts");
 	assert(dto.includes("search?: string"), "onboarding list DTO accepts search");
 	assert(dto.includes("sort?: string"), "onboarding list DTO accepts sort");
+	assert(dto.includes("staleDays?: number"), "onboarding list DTO accepts stale-day filtering");
 	assert(service.includes("query.search?.trim()"), "onboarding list applies server-side search");
 	assert(service.includes("onboardingSort(query.sort)"), "onboarding list applies server-side sort");
+	assert(service.includes("query.staleDays"), "onboarding list applies server-side stale filtering");
 	assert(hooks.includes("search?: string"), "web onboarding hook sends search param");
 	assert(hooks.includes("sort?: string"), "web onboarding hook sends sort param");
+	assert(hooks.includes("staleDays?: number"), "web onboarding hook sends stale-day filter param");
 }
 
 function assertWebBundleImportPolicy() {
