@@ -83,6 +83,8 @@ const requiredFiles = [
 	"apps/api-tests/scripts/eims-mock-api-server.mjs",
 	"apps/api-tests/tests/eims-v3-mock.spec.ts",
 	"apps/e2e/tests/eims-mock.spec.ts",
+	"apps/performance/k6/eims-submit.js",
+	"apps/performance/scripts/eims-mock-load.mjs",
 	"apps/security/scripts/eims-security-smoke.mjs",
 	"apps/api/prisma/seed-eims-onboarding-template.ts",
 ];
@@ -237,8 +239,16 @@ function assertGeneratedStructure() {
 		"generated package has EIMS security smoke command",
 	);
 	assert(
+		packageJson.scripts["test:eims:performance"] === "pnpm --filter performance test:eims",
+		"generated package has EIMS performance smoke command",
+	);
+	assert(
 		packageJson.scripts["test:eims:mock"]?.includes("test:eims:security"),
 		"generated EIMS mock gate includes security smoke",
+	);
+	assert(
+		packageJson.scripts["test:eims:mock"]?.includes("test:eims:performance"),
+		"generated EIMS mock gate includes performance smoke",
 	);
 	const scaffoldState = JSON.parse(readProjectFile(".scaffold-state.json"));
 	const eimsStarter = scaffoldState.starters?.find((starter) => starter.name === "eims");
@@ -259,6 +269,31 @@ function assertGeneratedStructure() {
 	const webPackageJson = JSON.parse(readProjectFile("apps/web/package.json"));
 	assert(webPackageJson.scripts?.lint === "biome check .", "web workspace lint uses Biome");
 	assert(webPackageJson.scripts?.format === "biome check --write .", "web workspace format uses Biome");
+	const performancePackageJson = JSON.parse(readProjectFile("apps/performance/package.json"));
+	assert(
+		performancePackageJson.scripts?.["test:eims"] === "node scripts/eims-mock-load.mjs",
+		"EIMS performance smoke script is installed",
+	);
+	assert(
+		performancePackageJson.scripts?.["test:eims:k6"]?.includes("k6/eims-submit.js"),
+		"EIMS k6 scenario script is installed",
+	);
+	const eimsPerformanceSmoke = readProjectFile("apps/performance/scripts/eims-mock-load.mjs");
+	assert(
+		eimsPerformanceSmoke.includes("EIMS performance smoke:"),
+		"EIMS performance smoke reports request/error/latency metrics",
+	);
+	assert(
+		eimsPerformanceSmoke.includes("/api/v1/eims/submissions"),
+		"EIMS performance smoke exercises invoice submission endpoints",
+	);
+	assert(
+		eimsPerformanceSmoke.includes("/api/v1/eims/bulk/reconcile"),
+		"EIMS performance smoke exercises bulk reconciliation",
+	);
+	const eimsK6 = readProjectFile("apps/performance/k6/eims-submit.js");
+	assert(eimsK6.includes("http_req_failed"), "EIMS k6 scenario enforces error-rate threshold");
+	assert(eimsK6.includes("http_req_duration"), "EIMS k6 scenario enforces latency threshold");
 	const e2ePackageJson = JSON.parse(readProjectFile("apps/e2e/package.json"));
 	assert(e2ePackageJson.scripts?.["test:eims"]?.includes("playwright.eims.config.ts"), "EIMS e2e test script is installed");
 	const securityPackageJson = JSON.parse(readProjectFile("apps/security/package.json"));

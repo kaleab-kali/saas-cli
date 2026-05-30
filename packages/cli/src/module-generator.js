@@ -1183,8 +1183,10 @@ const patchEimsPackageScripts = async (root) => {
 		json.scripts["test:eims:ui:headed"] ??=
 			"pnpm --filter e2e test:eims:headed";
 		json.scripts["test:eims:security"] ??= "pnpm --filter security test:eims";
+		json.scripts["test:eims:performance"] ??=
+			"pnpm --filter performance test:eims";
 		json.scripts["test:eims:mock"] ??=
-			"pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:api && pnpm test:eims:phase0 && pnpm test:eims:security && pnpm test:eims:ui";
+			"pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:api && pnpm test:eims:phase0 && pnpm test:eims:security && pnpm test:eims:performance && pnpm test:eims:ui";
 		return json;
 	});
 	await patchJsonFile(path.join(root, "apps/e2e/package.json"), (json) => {
@@ -1202,6 +1204,12 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "apps/security/package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims"] ??= "node scripts/eims-security-smoke.mjs";
+		return json;
+	});
+	await patchJsonFile(path.join(root, "apps/performance/package.json"), (json) => {
+		json.scripts ??= {};
+		json.scripts["test:eims"] ??= "node scripts/eims-mock-load.mjs";
+		json.scripts["test:eims:k6"] ??= "node scripts/run-k6.mjs k6/eims-submit.js";
 		return json;
 	});
 };
@@ -4953,11 +4961,203 @@ EIMS_API_KEY=
 		`import { check } from "k6";
 import http from "k6/http";
 
-export const options = { vus: 1, duration: "5s" };
+export const options = {
+\tvus: Number(__ENV.K6_VUS || 2),
+\tduration: __ENV.K6_DURATION || "10s",
+\tthresholds: {
+\t\thttp_req_failed: ["rate<0.01"],
+\t\thttp_req_duration: ["p(95)<1000"],
+\t},
+};
+
+const baseUrl = __ENV.K6_TARGET || __ENV.API_BASE_URL || "http://127.0.0.1:3000";
+const endpoints = [
+\t"/api/v1/eims/overview",
+\t"/api/v1/eims/workspace",
+\t"/api/v1/eims/submissions",
+\t"/api/v1/eims/bulk",
+\t"/api/v1/eims/compliance/evidence",
+\t"/api/v1/admin/eims/overview",
+];
 
 export default function () {
-\tconst res = http.get(__ENV.API_BASE_URL || "http://127.0.0.1:3000/api/v1/health");
-\tcheck(res, { "health responds": (r) => r.status < 500 });
+\tfor (const endpoint of endpoints) {
+\t\tconst res = http.get(baseUrl + endpoint);
+\t\tcheck(res, {
+\t\t\t[endpoint + " responds"]: (r) => r.status >= 200 && r.status < 500,
+\t\t\t[endpoint + " returns json"]: (r) => String(r.headers["Content-Type"] || "").includes("application/json"),
+\t\t});
+\t}
+}
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/performance/scripts/eims-mock-load.mjs"),
+		`import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { performance } from "node:perf_hooks";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = path.resolve(__dirname, "../../..");
+const mockServerPath = path.join(workspaceRoot, "apps/api-tests/scripts/eims-mock-api-server.mjs");
+const port = Number(process.env.EIMS_PERFORMANCE_MOCK_PORT || 4317);
+const baseUrl = process.env.EIMS_PERFORMANCE_BASE_URL || "http://127.0.0.1:" + port;
+const requestCount = Number(process.env.EIMS_PERFORMANCE_REQUESTS || 48);
+const concurrency = Math.max(1, Number(process.env.EIMS_PERFORMANCE_CONCURRENCY || 8));
+const p95ThresholdMs = Number(process.env.EIMS_PERFORMANCE_P95_MS || 1000);
+const maxErrorRate = Number(process.env.EIMS_PERFORMANCE_MAX_ERROR_RATE || 0.01);
+
+let serverProcess = null;
+
+const percentile = (values, targetPercentile) => {
+\tif (values.length === 0) return 0;
+\tconst sorted = [...values].sort((a, b) => a - b);
+\tconst index = Math.ceil((targetPercentile / 100) * sorted.length) - 1;
+\treturn sorted[Math.max(0, Math.min(sorted.length - 1, index))];
+};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const startMockServer = async () => {
+\tif (process.env.EIMS_PERFORMANCE_BASE_URL) return;
+\tif (!existsSync(mockServerPath)) {
+\t\tthrow new Error("EIMS mock API server is missing at " + mockServerPath);
+\t}
+\tserverProcess = spawn(process.execPath, [mockServerPath], {
+\t\tcwd: workspaceRoot,
+\t\tstdio: ["ignore", "pipe", "pipe"],
+\t\tenv: { ...process.env, MOCK_API_PORT: String(port) },
+\t});
+\tserverProcess.stdout.on("data", (chunk) => process.stdout.write(chunk));
+\tserverProcess.stderr.on("data", (chunk) => process.stderr.write(chunk));
+};
+
+const waitForServer = async () => {
+\tfor (let attempt = 0; attempt < 40; attempt += 1) {
+\t\ttry {
+\t\t\tconst response = await fetch(baseUrl + "/api/v1/eims/overview");
+\t\t\tif (response.ok) return;
+\t\t} catch {
+\t\t\t// keep waiting for the local mock server
+\t\t}
+\t\tawait sleep(100);
+\t}
+\tthrow new Error("EIMS mock API did not become ready at " + baseUrl);
+};
+
+const scenarios = [
+\t{
+\t\tmethod: "GET",
+\t\tpath: "/api/v1/eims/overview",
+\t\tassert: (body) => body.data && body.data.stats && typeof body.data.stats.pendingOffline === "number",
+\t},
+\t{
+\t\tmethod: "GET",
+\t\tpath: "/api/v1/eims/workspace",
+\t\tassert: (body) => body.data && body.data.readiness && Array.isArray(body.data.readiness.steps),
+\t},
+\t{
+\t\tmethod: "GET",
+\t\tpath: "/api/v1/eims/submissions",
+\t\tassert: (body) => Array.isArray(body.data) && body.data.some((row) => row.documentNumber),
+\t},
+\t{
+\t\tmethod: "POST",
+\t\tpath: "/api/v1/eims/submissions",
+\t\tbody: { documentNumber: "PERF-MOCK-001", sourceSystemId: "src_mock_1", payload: { total: "100.00" } },
+\t\tassert: (body) => body.data && body.data.irn && body.data.status === "accepted",
+\t},
+\t{
+\t\tmethod: "GET",
+\t\tpath: "/api/v1/eims/bulk",
+\t\tassert: (body) => Array.isArray(body.data) && body.data[0].submitted === body.data[0].accepted + body.data[0].failed + body.data[0].pending,
+\t},
+\t{
+\t\tmethod: "POST",
+\t\tpath: "/api/v1/eims/bulk/reconcile",
+\t\tbody: { conversationId: "TEST-CONV-20260526-001" },
+\t\tassert: (body) => body.data && body.data.status === "scheduled" && body.data.reference === "TEST-CONV-20260526-001",
+\t},
+\t{
+\t\tmethod: "GET",
+\t\tpath: "/api/v1/eims/compliance/evidence",
+\t\tassert: (body) => body.data && body.data.readiness >= 0 && Array.isArray(body.data.items),
+\t},
+\t{
+\t\tmethod: "GET",
+\t\tpath: "/api/v1/admin/eims/overview",
+\t\tassert: (body) => body.data && body.data.tenantsTotal >= 1 && Array.isArray(body.data.latestFailures),
+\t},
+];
+
+const requestScenario = async (scenario) => {
+\tconst startedAt = performance.now();
+\tconst response = await fetch(baseUrl + scenario.path, {
+\t\tmethod: scenario.method,
+\t\theaders: scenario.body ? { "content-type": "application/json" } : undefined,
+\t\tbody: scenario.body ? JSON.stringify(scenario.body) : undefined,
+\t});
+\tconst text = await response.text();
+\tlet body = {};
+\ttry {
+\t\tbody = text ? JSON.parse(text) : {};
+\t} catch {
+\t\tthrow new Error(scenario.method + " " + scenario.path + " returned non-JSON response");
+\t}
+\tif (response.status < 200 || response.status >= 500) {
+\t\tthrow new Error(scenario.method + " " + scenario.path + " returned " + response.status);
+\t}
+\tif (!scenario.assert(body)) {
+\t\tthrow new Error(scenario.method + " " + scenario.path + " returned unexpected payload");
+\t}
+\treturn performance.now() - startedAt;
+};
+
+const runLoad = async () => {
+\tconst latencies = [];
+\tlet failed = 0;
+\tlet cursor = 0;
+
+\tconst worker = async () => {
+\t\twhile (cursor < requestCount) {
+\t\t\tconst index = cursor;
+\t\t\tcursor += 1;
+\t\t\tconst scenario = scenarios[index % scenarios.length];
+\t\t\ttry {
+\t\t\t\tlatencies.push(await requestScenario(scenario));
+\t\t\t} catch (error) {
+\t\t\t\tfailed += 1;
+\t\t\t\tconsole.error(error instanceof Error ? error.message : String(error));
+\t\t\t}
+\t\t}
+\t};
+
+\tawait Promise.all(Array.from({ length: Math.min(concurrency, requestCount) }, () => worker()));
+\tconst p95 = percentile(latencies, 95);
+\tconst errorRate = requestCount === 0 ? 1 : failed / requestCount;
+\tconsole.log(
+\t\t"EIMS performance smoke: requests=" +
+\t\t\trequestCount +
+\t\t\t" failed=" +
+\t\t\tfailed +
+\t\t\t" errorRate=" +
+\t\t\terrorRate.toFixed(3) +
+\t\t\t" p95=" +
+\t\t\tp95.toFixed(1) +
+\t\t\t"ms",
+\t);
+\tif (errorRate >= maxErrorRate) throw new Error("error rate " + errorRate.toFixed(3) + " exceeded max " + maxErrorRate);
+\tif (p95 >= p95ThresholdMs) throw new Error("p95 " + p95.toFixed(1) + "ms exceeded threshold " + p95ThresholdMs + "ms");
+};
+
+try {
+\tawait startMockServer();
+\tawait waitForServer();
+\tawait runLoad();
+} finally {
+\tif (serverProcess) serverProcess.kill();
 }
 `,
 	);
