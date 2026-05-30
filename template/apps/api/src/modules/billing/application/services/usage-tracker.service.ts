@@ -16,8 +16,27 @@ export interface UsageCurrent {
 	userCount: number;
 	apiCallCount: number;
 	emailCount: number;
-	caps: { users: number | null };
-	usagePct: { users: number };
+	apiKeyCount: number;
+	fileCount: number;
+	storageBytes: number;
+	savedReportCount: number;
+	reportScheduleCount: number;
+	caps: {
+		users: number | null;
+		apiKeys: number | null;
+		files: number | null;
+		storageBytes: number | null;
+		savedReports: number | null;
+		reportSchedules: number | null;
+	};
+	usagePct: {
+		users: number;
+		apiKeys: number;
+		files: number;
+		storageBytes: number;
+		savedReports: number;
+		reportSchedules: number;
+	};
 	metrics: Record<string, number>;
 }
 
@@ -31,24 +50,64 @@ export class UsageTrackerService {
 	) {}
 
 	async getCurrent(organizationId: string): Promise<UsageCurrent> {
-		const users = await this.prisma.member.count({ where: { organizationId, removedAt: null } });
+		const [users, apiKeys, files, storage, savedReports, reportSchedules] = await Promise.all([
+			this.prisma.member.count({ where: { organizationId, removedAt: null } }),
+			this.prisma.apiKey.count({ where: { organizationId, revokedAt: null } }),
+			this.prisma.fileAsset.count({ where: { organizationId } }),
+			this.prisma.fileAsset.aggregate({ where: { organizationId }, _sum: { size: true } }),
+			this.prisma.savedReport.count({ where: { organizationId } }),
+			this.prisma.reportSchedule.count({ where: { organizationId, enabled: true } }),
+		]);
 		const sub = await this.subRepo.findByOrg(organizationId);
-		let caps: UsageCurrent["caps"] = { users: null };
+		let caps: UsageCurrent["caps"] = {
+			users: null,
+			apiKeys: null,
+			files: null,
+			storageBytes: null,
+			savedReports: null,
+			reportSchedules: null,
+		};
 		if (sub) {
 			const plan = await this.planRepo.findById(sub.toPrimitives().planId);
 			if (plan) {
 				const p = plan.toPrimitives();
-				caps = { users: p.userCap };
+				caps = {
+					users: p.userCap,
+					apiKeys: plan.featureLimit("platform.api-keys"),
+					files: plan.featureLimit("platform.file-count"),
+					storageBytes: plan.featureLimit("platform.storage-bytes"),
+					savedReports: plan.featureLimit("reporting.custom-report-builder"),
+					reportSchedules: plan.featureLimit("reporting.schedule-delivery"),
+				};
 			}
 		}
 		const pct = (v: number, cap: number | null) => (cap ? Math.round((v / cap) * 100) : 0);
+		const storageBytes = storage._sum.size ?? 0;
 		return {
 			userCount: users,
 			apiCallCount: 0,
 			emailCount: 0,
+			apiKeyCount: apiKeys,
+			fileCount: files,
+			storageBytes,
+			savedReportCount: savedReports,
+			reportScheduleCount: reportSchedules,
 			caps,
-			usagePct: { users: pct(users, caps.users) },
-			metrics: {},
+			usagePct: {
+				users: pct(users, caps.users),
+				apiKeys: pct(apiKeys, caps.apiKeys),
+				files: pct(files, caps.files),
+				storageBytes: pct(storageBytes, caps.storageBytes),
+				savedReports: pct(savedReports, caps.savedReports),
+				reportSchedules: pct(reportSchedules, caps.reportSchedules),
+			},
+			metrics: {
+				apiKeys,
+				files,
+				storageBytes,
+				savedReports,
+				reportSchedules,
+			},
 		};
 	}
 

@@ -1,0 +1,23 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Generated local runtime secrets are intentionally ignored by git"
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)\.pnpm/''',
+  '''(^|/)\.turbo/''',
+  '''(^|/)dist/''',
+  '''(^|/)coverage/''',
+  '''(^|/)logs/''',
+  '''(^|/)apps/api/logs/''',
+  '''(^|/)playwright-report/''',
+  '''(^|/)test-results/''',
+  '''(^|/)apps/api/src/generated/''',
+  '''(^|/)apps/api/uploads/''',
+  '''(^|/)apps/.*/playwright-report/''',
+  '''(^|/)apps/.*/test-results/''',
+  '''(^|/)gitleaks-report\.json$''',
+  '''(^|/)apps/api/\.env$''',
+  '''(^|/)\.scaffold-credentials\.txt$''',
+]

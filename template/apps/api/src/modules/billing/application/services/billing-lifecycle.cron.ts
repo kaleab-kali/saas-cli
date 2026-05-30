@@ -83,8 +83,7 @@ export class BillingLifecycleCron {
 		for (const sub of expiring) {
 			try {
 				if (autoRenewInvoice) {
-					const amountMinor =
-						sub.billingInterval === "annual" ? sub.plan.priceAnnualMinor : sub.plan.priceMonthlyMinor;
+					const amountMinor = sub.billingInterval === "annual" ? sub.plan.priceAnnualMinor : sub.plan.priceMonthlyMinor;
 					await this.invoiceLifecycle.createRenewalInvoice({
 						subscriptionId: sub.id,
 						organizationId: sub.organizationId,

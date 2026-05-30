@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,7 +23,6 @@ const PlanDetail = React.memo(
 	() => {
 		const { t } = useTranslation();
 		const { planId } = Route.useParams();
-		const _navigate = useNavigate();
 		const { data: plan, isLoading } = useAdminPlan(planId);
 		const { data: featureKeys = [] } = useAdminFeatureKeys();
 		const updatePlan = useUpdatePlan();
@@ -33,11 +32,10 @@ const PlanDetail = React.memo(
 		const [form, setForm] = React.useState({
 			nameEn: "",
 			nameAm: "",
-			priceMonthlyEtb: 0,
-			priceAnnualEtb: 0,
-			priceCampaignDailyEtb: "" as string | number,
-			buildingCap: "" as string | number,
-			unitCap: "" as string | number,
+			description: "",
+			priceMonthlyMinor: 0,
+			priceAnnualMinor: 0,
+			currency: "USD",
 			userCap: "" as string | number,
 			supportSlaHours: 48,
 			sortOrder: 0,
@@ -49,24 +47,23 @@ const PlanDetail = React.memo(
 			setForm({
 				nameEn: plan.nameEn,
 				nameAm: plan.nameAm,
-				priceMonthlyEtb: plan.priceMonthlyEtb,
-				priceAnnualEtb: plan.priceAnnualEtb,
-				priceCampaignDailyEtb: plan.priceCampaignDailyEtb ?? "",
-				buildingCap: plan.buildingCap ?? "",
-				unitCap: plan.unitCap ?? "",
+				description: plan.description ?? "",
+				priceMonthlyMinor: plan.priceMonthlyMinor,
+				priceAnnualMinor: plan.priceAnnualMinor,
+				currency: plan.currency,
 				userCap: plan.userCap ?? "",
 				supportSlaHours: plan.supportSlaHours,
 				sortOrder: plan.sortOrder,
 				active: plan.active,
 			});
 			const byKey = new Map(plan.entitlements.map((e) => [e.featureKey, e] as const));
-			const allRows: EntitlementRow[] = (featureKeys.length ? featureKeys : plan.entitlements.map((e) => e.featureKey))
+			const allRows = (featureKeys.length ? featureKeys : plan.entitlements.map((e) => e.featureKey))
 				.slice()
 				.sort()
-				.map((k) => {
-					const existing = byKey.get(k);
+				.map((featureKey) => {
+					const existing = byKey.get(featureKey);
 					return {
-						featureKey: k,
+						featureKey,
 						enabled: existing?.enabled ?? false,
 						limit: existing?.limit ?? null,
 					};
@@ -76,23 +73,22 @@ const PlanDetail = React.memo(
 
 		const updateRow = React.useCallback(
 			(key: string, patch: Partial<EntitlementRow>) =>
-				setRows((prev) => prev.map((r) => (r.featureKey === key ? { ...r, ...patch } : r))),
+				setRows((prev) => prev.map((row) => (row.featureKey === key ? { ...row, ...patch } : row))),
 			[],
 		);
 
 		const handleSavePlan = React.useCallback(async () => {
 			if (!plan) return;
-			const toNum = (v: string | number) => (v === "" ? null : Number(v));
+			const userCap = form.userCap === "" ? null : Number(form.userCap);
 			await updatePlan.mutateAsync({
 				id: plan.id,
 				nameEn: form.nameEn,
 				nameAm: form.nameAm,
-				priceMonthlyEtb: Number(form.priceMonthlyEtb),
-				priceAnnualEtb: Number(form.priceAnnualEtb),
-				priceCampaignDailyEtb: toNum(form.priceCampaignDailyEtb),
-				buildingCap: toNum(form.buildingCap),
-				unitCap: toNum(form.unitCap),
-				userCap: toNum(form.userCap),
+				description: form.description || null,
+				priceMonthlyMinor: Number(form.priceMonthlyMinor),
+				priceAnnualMinor: Number(form.priceAnnualMinor),
+				currency: form.currency,
+				userCap,
 				supportSlaHours: Number(form.supportSlaHours),
 				sortOrder: Number(form.sortOrder),
 				active: form.active,
@@ -110,7 +106,7 @@ const PlanDetail = React.memo(
 			<div className="space-y-6">
 				<div>
 					<Link to="/admin/plans" className="text-sm text-muted-foreground hover:underline">
-						← {t("admin.plans.backToPlans", { defaultValue: "Back to Plans" })}
+						{"<-"} {t("admin.plans.backToPlans", { defaultValue: "Back to Plans" })}
 					</Link>
 					<h1 className="text-2xl font-semibold mt-2">
 						{t("admin.plans.editTitle", { defaultValue: "Edit Plan: {{name}}", name: plan.nameEn })}
@@ -127,75 +123,87 @@ const PlanDetail = React.memo(
 					<CardContent className="space-y-4">
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 							<div className="space-y-1">
-								<Label>{t("admin.plans.nameEn", { defaultValue: "Name (English)" })}</Label>
-								<Input value={form.nameEn} onChange={(e) => setForm((f) => ({ ...f, nameEn: e.target.value }))} />
+								<Label htmlFor="plan-name-en">{t("admin.plans.nameEn", { defaultValue: "Name (English)" })}</Label>
+								<Input
+									id="plan-name-en"
+									value={form.nameEn}
+									onChange={(e) => setForm((f) => ({ ...f, nameEn: e.target.value }))}
+								/>
 							</div>
 							<div className="space-y-1">
-								<Label>{t("admin.plans.nameAm", { defaultValue: "Name (Amharic)" })}</Label>
-								<Input value={form.nameAm} onChange={(e) => setForm((f) => ({ ...f, nameAm: e.target.value }))} />
+								<Label htmlFor="plan-name-am">{t("admin.plans.nameAm", { defaultValue: "Name (Amharic)" })}</Label>
+								<Input
+									id="plan-name-am"
+									value={form.nameAm}
+									onChange={(e) => setForm((f) => ({ ...f, nameAm: e.target.value }))}
+								/>
+							</div>
+						</div>
+						<div className="space-y-1">
+							<Label htmlFor="plan-description">{t("admin.plans.description", { defaultValue: "Description" })}</Label>
+							<Input
+								id="plan-description"
+								value={form.description}
+								onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+							/>
+						</div>
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+							<div className="space-y-1">
+								<Label htmlFor="plan-monthly">
+									{t("admin.plans.monthly", { defaultValue: "Monthly (minor units)" })}
+								</Label>
+								<Input
+									id="plan-monthly"
+									type="number"
+									value={form.priceMonthlyMinor}
+									onChange={(e) => setForm((f) => ({ ...f, priceMonthlyMinor: Number(e.target.value) }))}
+								/>
+							</div>
+							<div className="space-y-1">
+								<Label htmlFor="plan-annual">{t("admin.plans.annual", { defaultValue: "Annual (minor units)" })}</Label>
+								<Input
+									id="plan-annual"
+									type="number"
+									value={form.priceAnnualMinor}
+									onChange={(e) => setForm((f) => ({ ...f, priceAnnualMinor: Number(e.target.value) }))}
+								/>
+							</div>
+							<div className="space-y-1">
+								<Label htmlFor="plan-currency">{t("admin.plans.currency", { defaultValue: "Currency" })}</Label>
+								<Input
+									id="plan-currency"
+									value={form.currency}
+									onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value.toUpperCase() }))}
+								/>
 							</div>
 						</div>
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 							<div className="space-y-1">
-								<Label>{t("admin.plans.monthly", { defaultValue: "Monthly (ETB)" })}</Label>
+								<Label htmlFor="plan-user-cap">{t("admin.plans.userCap", { defaultValue: "User Cap" })}</Label>
 								<Input
-									type="number"
-									value={form.priceMonthlyEtb}
-									onChange={(e) => setForm((f) => ({ ...f, priceMonthlyEtb: Number(e.target.value) }))}
-								/>
-							</div>
-							<div className="space-y-1">
-								<Label>{t("admin.plans.annual", { defaultValue: "Annual (ETB)" })}</Label>
-								<Input
-									type="number"
-									value={form.priceAnnualEtb}
-									onChange={(e) => setForm((f) => ({ ...f, priceAnnualEtb: Number(e.target.value) }))}
-								/>
-							</div>
-							<div className="space-y-1">
-								<Label>{t("admin.plans.campaignDaily", { defaultValue: "Campaign / Day (ETB)" })}</Label>
-								<Input
-									type="number"
-									value={form.priceCampaignDailyEtb}
-									onChange={(e) => setForm((f) => ({ ...f, priceCampaignDailyEtb: e.target.value }))}
-									placeholder="blank = not campaign-eligible"
-								/>
-							</div>
-						</div>
-						<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-							<div className="space-y-1">
-								<Label>{t("admin.plans.buildingCap", { defaultValue: "Building Cap" })}</Label>
-								<Input
-									type="number"
-									value={form.buildingCap}
-									onChange={(e) => setForm((f) => ({ ...f, buildingCap: e.target.value }))}
-									placeholder="∞"
-								/>
-							</div>
-							<div className="space-y-1">
-								<Label>{t("admin.plans.unitCap", { defaultValue: "Unit Cap" })}</Label>
-								<Input
-									type="number"
-									value={form.unitCap}
-									onChange={(e) => setForm((f) => ({ ...f, unitCap: e.target.value }))}
-									placeholder="∞"
-								/>
-							</div>
-							<div className="space-y-1">
-								<Label>{t("admin.plans.userCap", { defaultValue: "User Cap" })}</Label>
-								<Input
+									id="plan-user-cap"
 									type="number"
 									value={form.userCap}
 									onChange={(e) => setForm((f) => ({ ...f, userCap: e.target.value }))}
-									placeholder="∞"
+									placeholder="unlimited"
 								/>
 							</div>
 							<div className="space-y-1">
-								<Label>{t("admin.plans.slaHours", { defaultValue: "SLA Hours" })}</Label>
+								<Label htmlFor="plan-sla-hours">{t("admin.plans.slaHours", { defaultValue: "SLA Hours" })}</Label>
 								<Input
+									id="plan-sla-hours"
 									type="number"
 									value={form.supportSlaHours}
 									onChange={(e) => setForm((f) => ({ ...f, supportSlaHours: Number(e.target.value) }))}
+								/>
+							</div>
+							<div className="space-y-1">
+								<Label htmlFor="plan-sort-order">{t("admin.plans.sortOrder", { defaultValue: "Sort Order" })}</Label>
+								<Input
+									id="plan-sort-order"
+									type="number"
+									value={form.sortOrder}
+									onChange={(e) => setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))}
 								/>
 							</div>
 						</div>
@@ -230,30 +238,28 @@ const PlanDetail = React.memo(
 								<tr>
 									<th className="text-left p-2">{t("admin.plans.feature", { defaultValue: "Feature Key" })}</th>
 									<th className="text-center p-2 w-24">{t("admin.plans.enabled", { defaultValue: "Enabled" })}</th>
-									<th className="text-right p-2 w-32">
-										{t("admin.plans.limit", { defaultValue: "Limit (∞ = blank)" })}
-									</th>
+									<th className="text-right p-2 w-32">{t("admin.plans.limit", { defaultValue: "Limit" })}</th>
 								</tr>
 							</thead>
 							<tbody>
-								{rows.map((r) => (
-									<tr key={r.featureKey} className="border-t">
-										<td className="p-2 font-mono text-xs">{r.featureKey}</td>
+								{rows.map((row) => (
+									<tr key={row.featureKey} className="border-t">
+										<td className="p-2 font-mono text-xs">{row.featureKey}</td>
 										<td className="p-2 text-center">
 											<input
 												type="checkbox"
-												checked={r.enabled}
-												onChange={(e) => updateRow(r.featureKey, { enabled: e.target.checked })}
+												checked={row.enabled}
+												onChange={(e) => updateRow(row.featureKey, { enabled: e.target.checked })}
 											/>
 										</td>
 										<td className="p-2 text-right">
 											<Input
 												type="number"
-												value={r.limit ?? ""}
+												value={row.limit ?? ""}
 												onChange={(e) =>
-													updateRow(r.featureKey, { limit: e.target.value === "" ? null : Number(e.target.value) })
+													updateRow(row.featureKey, { limit: e.target.value === "" ? null : Number(e.target.value) })
 												}
-												disabled={!r.enabled}
+												disabled={!row.enabled}
 												className="w-24 text-right font-mono"
 											/>
 										</td>

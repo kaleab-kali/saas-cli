@@ -3,7 +3,7 @@ import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class ApiKeyHasherService {
-	static readonly PLAIN_PREFIX = "pf_";
+	static readonly PLAIN_PREFIX = "sk_";
 
 	generate(): { plain: string; hash: string; prefix: string } {
 		const random = randomBytes(32).toString("hex");
@@ -11,7 +11,7 @@ export class ApiKeyHasherService {
 		return {
 			plain,
 			hash: this.hash(plain),
-			prefix: plain.slice(0, 11), // "pf_" + 8 hex chars
+			prefix: plain.slice(0, 11), // "sk_" + 8 hex chars
 		};
 	}
 

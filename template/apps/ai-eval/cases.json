@@ -1,0 +1,7 @@
+[
+	{
+		"id": "helpful-json",
+		"input": "Return a JSON object with a short project status summary.",
+		"expectedKeywords": ["summary"]
+	}
+]

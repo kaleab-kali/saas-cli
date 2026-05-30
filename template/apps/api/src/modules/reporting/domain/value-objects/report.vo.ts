@@ -1,16 +1,4 @@
-export const DATA_SOURCES = [
-	"property",
-	"unit",
-	"lease",
-	"invoice",
-	"payment",
-	"work_order",
-	"deal",
-	"listing",
-	"contact",
-	"purchase_order",
-	"journal",
-] as const;
+export const DATA_SOURCES = ["user", "member", "audit_log", "notification"] as const;
 export type DataSource = (typeof DATA_SOURCES)[number];
 
 export const CHART_TYPES = ["table", "bar", "line", "pie", "stacked_bar"] as const;

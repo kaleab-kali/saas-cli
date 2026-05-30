@@ -43,7 +43,7 @@ Chapa has **no native recurring API**. Recurring is layered via cron + email che
   - Signature header: `chapa-signature` and/or `x-chapa-signature` (HMAC-SHA256 of raw body)
   - Verifies either header against `CHAPA_WEBHOOK_SECRET` (or `CHAPA_SECRET_KEY` fallback)
   - Always re-verifies via `verify` endpoint before crediting
-- Currency: `ETB` or `USD`
+- Currency: configured per plan, stored as ISO currency codes and charged in minor units
 - Required env: `CHAPA_SECRET_KEY`, `CHAPA_PUBLIC_KEY`, `CHAPA_WEBHOOK_SECRET`, `CHAPA_BASE_URL` (default `https://api.chapa.co/v1`), `CHAPA_CALLBACK_BASE_URL`
 - Recurring flow:
   1. `BillingLifecycleCron.dailyLifecycle` (02:00 UTC) generates `SubscriptionInvoice` 7 days before period end

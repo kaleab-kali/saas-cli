@@ -24,6 +24,7 @@ import { DunningService } from "./application/services/dunning.service";
 import { EntitlementService } from "./application/services/entitlement.service";
 import { InvoiceLifecycleService } from "./application/services/invoice-lifecycle.service";
 import { InvoicePdfService } from "./application/services/invoice-pdf.service";
+import { PolicyService } from "./application/services/policy.service";
 import { StripeWebhookService } from "./application/services/stripe-webhook.service";
 import { SubscriptionLifecycleService } from "./application/services/subscription-lifecycle.service";
 import { UsageTrackerService } from "./application/services/usage-tracker.service";
@@ -44,6 +45,7 @@ import { BillingController } from "./presentation/controllers/billing.controller
 import { ChapaWebhookController } from "./presentation/controllers/chapa-webhook.controller";
 import { StripeWebhookController } from "./presentation/controllers/stripe-webhook.controller";
 import { EntitlementGuard } from "./presentation/guards/entitlement.guard";
+import { PolicyGuard } from "./presentation/guards/policy.guard";
 
 @Global()
 @Module({
@@ -58,11 +60,13 @@ import { EntitlementGuard } from "./presentation/guards/entitlement.guard";
 		ChapaClient,
 		StripeClient,
 		EntitlementService,
+		PolicyService,
 		UsageTrackerService,
 		InvoicePdfService,
 		ChapaWebhookService,
 		StripeWebhookService,
 		EntitlementGuard,
+		PolicyGuard,
 		ListPlansHandler,
 		GetSubscriptionHandler,
 		GetUsageHandler,
@@ -85,8 +89,10 @@ import { EntitlementGuard } from "./presentation/guards/entitlement.guard";
 	],
 	exports: [
 		EntitlementService,
+		PolicyService,
 		UsageTrackerService,
 		EntitlementGuard,
+		PolicyGuard,
 		SubscriptionLifecycleService,
 		InvoiceLifecycleService,
 		SubscriptionStateGuard,

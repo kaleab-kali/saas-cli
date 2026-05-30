@@ -46,8 +46,8 @@ export const OrgEntitlementOverridesPanel = React.memo(
 				<CardHeader>
 					<CardTitle className="text-base">Feature entitlement overrides</CardTitle>
 					<p className="text-xs text-muted-foreground">
-						Grant or block individual features for this org independent of plan. Overrides take priority over plan +
-						campaign.
+						Grant or block individual features for this organization independent of plan. Overrides take priority over
+						plan defaults.
 					</p>
 				</CardHeader>
 				<CardContent className="space-y-4">

@@ -14,6 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n);
+const fmtMinor = (amountMinor: number, currency = "USD") =>
+	new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amountMinor / 100);
 
 const RevenueTrendChart = React.memo(
 	() => {
@@ -28,9 +30,9 @@ const RevenueTrendChart = React.memo(
 						<YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => fmt(v)} />
 						<Tooltip
 							contentStyle={{ background: "var(--background)", border: "1px solid var(--border)" }}
-							formatter={(v: number) => [`${fmt(v)} ETB`, "Revenue"]}
+							formatter={(v) => [fmtMinor(Number(v ?? 0)), "Revenue"]}
 						/>
-						<Bar dataKey="revenueEtb" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+						<Bar dataKey="revenueMinor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
 					</BarChart>
 				</ResponsiveContainer>
 			</div>
@@ -60,7 +62,7 @@ const PastDueTable = React.memo(
 					</thead>
 					<tbody>
 						{data.map((inv) => {
-							const outstanding = inv.total - inv.amountPaid;
+							const outstanding = inv.totalMinor - inv.amountPaidMinor;
 							return (
 								<tr key={inv.id} className="border-t">
 									<td className="p-2 font-medium">{inv.number}</td>
@@ -72,7 +74,7 @@ const PastDueTable = React.memo(
 										<Badge variant="destructive">{inv.daysPastDue}d</Badge>
 									</td>
 									<td className="p-2 text-right font-mono text-destructive">
-										{fmt(Math.round(outstanding))} {inv.currency}
+										{fmtMinor(Math.round(outstanding), inv.currency)}
 									</td>
 									<td className="p-2">
 										<Link
@@ -126,9 +128,7 @@ const PendingVerificationTable = React.memo(
 								</td>
 								<td className="p-2 capitalize">{p.method.replace("_", " ")}</td>
 								<td className="p-2 font-mono text-xs">{p.receiptNumber || p.bankReference || "—"}</td>
-								<td className="p-2 text-right font-mono">
-									{fmt(Math.round(p.amount))} {p.currency}
-								</td>
+								<td className="p-2 text-right font-mono">{fmtMinor(Math.round(p.amountMinor), p.currency)}</td>
 								<td className="p-2">{new Date(p.paidAt).toLocaleDateString()}</td>
 								<td className="p-2 text-right">
 									<Button size="sm" onClick={() => verify.mutate(p.id)} disabled={verify.isPending}>
@@ -171,7 +171,7 @@ const BillingDashboard = React.memo(
 							<CardTitle className="text-xs uppercase text-muted-foreground">MRR</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold font-mono">{fmt(data.mrrEtb)} ETB</div>
+							<div className="text-2xl font-bold font-mono">{fmtMinor(data.mrrMinor)}</div>
 							<div className="text-xs text-muted-foreground">Monthly recurring revenue</div>
 						</CardContent>
 					</Card>
@@ -180,7 +180,7 @@ const BillingDashboard = React.memo(
 							<CardTitle className="text-xs uppercase text-muted-foreground">ARR</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold font-mono">{fmt(data.arrEtb)} ETB</div>
+							<div className="text-2xl font-bold font-mono">{fmtMinor(data.arrMinor)}</div>
 							<div className="text-xs text-muted-foreground">Annualized</div>
 						</CardContent>
 					</Card>
@@ -189,8 +189,8 @@ const BillingDashboard = React.memo(
 							<CardTitle className="text-xs uppercase text-muted-foreground">Outstanding</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<div className={`text-2xl font-bold font-mono ${data.outstandingEtb > 0 ? "text-destructive" : ""}`}>
-								{fmt(data.outstandingEtb)} ETB
+							<div className={`text-2xl font-bold font-mono ${data.outstandingMinor > 0 ? "text-destructive" : ""}`}>
+								{fmtMinor(data.outstandingMinor)}
 							</div>
 							<div className="text-xs text-muted-foreground">Unpaid invoices</div>
 						</CardContent>
@@ -200,7 +200,7 @@ const BillingDashboard = React.memo(
 							<CardTitle className="text-xs uppercase text-muted-foreground">Collected (30d)</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold font-mono">{fmt(data.paidLast30Etb)} ETB</div>
+							<div className="text-2xl font-bold font-mono">{fmtMinor(data.paidLast30Minor)}</div>
 							<div className="text-xs text-muted-foreground">Paid invoices</div>
 						</CardContent>
 					</Card>
@@ -254,17 +254,17 @@ const BillingDashboard = React.memo(
 									<tr className="text-left text-muted-foreground border-b">
 										<th className="pb-2">Plan</th>
 										<th className="pb-2 text-right">Subs</th>
-										<th className="pb-2 text-right">MRR (ETB)</th>
+										<th className="pb-2 text-right">MRR</th>
 									</tr>
 								</thead>
 								<tbody>
 									{Object.entries(data.byPlan)
-										.sort(([, a], [, b]) => b.mrrEtb - a.mrrEtb)
+										.sort(([, a], [, b]) => b.mrrMinor - a.mrrMinor)
 										.map(([slug, stats]) => (
 											<tr key={slug} className="border-b last:border-0">
 												<td className="py-2 font-mono">{slug}</td>
 												<td className="py-2 text-right">{stats.count}</td>
-												<td className="py-2 text-right font-mono">{fmt(Math.round(stats.mrrEtb))}</td>
+												<td className="py-2 text-right font-mono">{fmtMinor(Math.round(stats.mrrMinor))}</td>
 											</tr>
 										))}
 								</tbody>

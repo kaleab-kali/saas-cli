@@ -5,7 +5,7 @@ import ExcelJS from "exceljs";
 export class XlsxExporter {
 	async build(name: string, headers: string[], rows: Record<string, unknown>[]): Promise<Buffer> {
 		const wb = new ExcelJS.Workbook();
-		wb.creator = "PropFlow";
+		wb.creator = process.env.APP_NAME ?? "SaaS Platform";
 		wb.created = new Date();
 		const ws = wb.addWorksheet(name.slice(0, 30));
 		ws.columns = headers.map((h) => ({ header: h, key: h, width: Math.max(12, h.length + 2) }));

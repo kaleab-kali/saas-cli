@@ -6,7 +6,7 @@ Build your first business module on the skeleton.
 
 ## Overview
 
-The skeleton is **pure infra**. No domain (no Properties / Contacts / Orders / etc.). To add your domain:
+The skeleton is **pure infra**. It does not include a product-specific domain. To add yours:
 
 1. Add Prisma model(s)
 2. Migrate
@@ -16,6 +16,15 @@ The skeleton is **pure infra**. No domain (no Properties / Contacts / Orders / e
 6. Add web feature folder
 7. Add web routes
 8. Update sidebar nav
+
+For the common case, start with the generator instead of creating every file by hand:
+
+```bash
+create-vyllion-saas add module projects
+create-vyllion-saas add starter crm
+```
+
+Starter packs are documented in `docs/DOMAIN_STARTER_PACKS.md`.
 
 ---
 

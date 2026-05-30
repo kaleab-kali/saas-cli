@@ -1,12 +1,12 @@
 // Scope constraints applied on top of permissions.
-// Building-scoped: role only applies to selected buildings.
-// Approval limit: max ETB value for PR/PO approval actions.
+// Resource-scoped: role only applies to selected app-defined resources.
+// Approval limit: optional maximum value for approval actions.
 // Time window: active only during those dow/hours.
 // IP allowlist: role active only when request IP matches.
 
 export interface RoleScope {
-	buildings?: string[];
-	approvalLimitEtb?: number;
+	resourceIds?: string[];
+	approvalLimitMinor?: number;
 	timeWindow?: {
 		dow: number[]; // 0=Sun..6=Sat
 		startHour: number; // 0-23

@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { PolicyService } from "#modules/billing/application/services/policy.service";
 import { DomainEventBus } from "#shared/events/domain-event.bus";
 import { ApiKey } from "../../../domain/entities/api-key.entity";
 import { API_KEY_EVENTS } from "../../../domain/events/api-key.events";
@@ -12,9 +13,11 @@ export class CreateApiKeyHandler {
 		private readonly repo: ApiKeyRepository,
 		private readonly hasher: ApiKeyHasherService,
 		private readonly events: DomainEventBus,
+		private readonly policies: PolicyService,
 	) {}
 
 	async execute(organizationId: string, userId: string, dto: CreateApiKeyDto) {
+		await this.policies.assertWithinLimit(organizationId, "platform.api-keys");
 		const { plain, hash, prefix } = this.hasher.generate();
 		const entity = ApiKey.create({
 			id: "",

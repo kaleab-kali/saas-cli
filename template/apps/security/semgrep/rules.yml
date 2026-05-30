@@ -1,0 +1,28 @@
+rules:
+  - id: typescript-dangerous-eval
+    message: Avoid eval-like execution paths.
+    severity: ERROR
+    languages:
+      - typescript
+      - javascript
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+
+  - id: node-child-process-shell-true
+    message: Avoid shell=true with unsanitized input.
+    severity: WARNING
+    languages:
+      - typescript
+      - javascript
+    patterns:
+      - pattern: |
+          spawn($CMD, $ARGS, { ..., shell: true, ... })
+
+  - id: hardcoded-bearer-token
+    message: Possible hardcoded bearer token.
+    severity: ERROR
+    languages:
+      - typescript
+      - javascript
+    pattern-regex: 'Bearer\s+[A-Za-z0-9_\-\.]{20,}'

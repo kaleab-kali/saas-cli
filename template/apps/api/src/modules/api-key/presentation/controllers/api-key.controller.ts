@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } fro
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
+import { RequireFeature, RequireUsageLimit } from "#modules/billing/presentation/guards/require-entitlement.decorator";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
 import { CreateApiKeyHandler } from "../../application/commands/create-api-key/create-api-key.handler";
 import { RevokeApiKeyHandler } from "../../application/commands/revoke-api-key/revoke-api-key.handler";
@@ -34,6 +35,8 @@ export class ApiKeyController {
 
 	@Post()
 	@RequirePermissions("api-key:create")
+	@RequireFeature("platform.api-keys")
+	@RequireUsageLimit("platform.api-keys")
 	@ApiOperation({ summary: "Create new api key (plain key returned once)" })
 	@ApiResponse({ status: 201 })
 	async createKey(@Body() dto: CreateApiKeyDto, @Req() req: AuthedRequest) {

@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useAdminOrgList } from "#features/admin/api/admin.queries";
-import { useFeatureFlags, useToggleFlagForOrg, useToggleFlagGlobal } from "#features/admin/api/admin-flags.hooks";
+import {
+	type FeatureFlagRow,
+	useFeatureFlags,
+	useToggleFlagForOrg,
+	useToggleFlagGlobal,
+} from "#features/admin/api/admin-flags.hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,19 +75,7 @@ const OrgOverrideDialog = React.memo(
 OrgOverrideDialog.displayName = "OrgOverrideDialog";
 
 const FlagRow = React.memo(
-	({
-		flag,
-		orgNameMap,
-	}: {
-		readonly flag: ReturnType<typeof Object> & {
-			id: string;
-			name: string;
-			description: string | null;
-			enabledGlobal: boolean;
-			overrides: Array<{ id: string; organizationId: string; enabled: boolean }>;
-		};
-		readonly orgNameMap: Map<string, string>;
-	}) => {
+	({ flag, orgNameMap }: { readonly flag: FeatureFlagRow; readonly orgNameMap: Map<string, string> }) => {
 		const toggleGlobal = useToggleFlagGlobal();
 		const toggleForOrg = useToggleFlagForOrg();
 		return (

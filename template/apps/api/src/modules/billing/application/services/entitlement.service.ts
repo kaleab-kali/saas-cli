@@ -71,6 +71,15 @@ export class EntitlementService {
 		for (const e of plan.toPrimitives().entitlements) {
 			map[e.featureKey] = { enabled: e.enabled, limit: e.limit };
 		}
+		const overrides = await this.prisma.orgEntitlementOverride.findMany({
+			where: {
+				organizationId,
+				OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+			},
+		});
+		for (const override of overrides) {
+			map[override.featureKey] = { enabled: override.enabled, limit: override.limit };
+		}
 		return map;
 	}
 }

@@ -49,8 +49,8 @@ export class DunningService {
 			? await this.prisma.subscriptionInvoice.findUnique({ where: { id: payload.invoiceId } })
 			: null;
 
-		const supportEmail = await this.settings.getString("platform.supportEmail", "support@propflow.et");
-		const companyName = await this.settings.getString("platform.companyName", "PropFlow");
+		const supportEmail = await this.settings.getString("platform.supportEmail", "support@example.com");
+		const companyName = await this.settings.getString("platform.companyName", process.env.APP_NAME ?? "SaaS Platform");
 
 		const templateKey = `dunning_${payload.type}`;
 		const dbTemplate = await this.prisma.systemEmailTemplate.findUnique({ where: { key: templateKey } });
@@ -130,7 +130,7 @@ ${bodyHtml}
 			case "renewal":
 				return `Your ${planName} renewal invoice`;
 			default:
-				return `PropFlow billing notification`;
+				return `${planName} billing notification`;
 		}
 	}
 

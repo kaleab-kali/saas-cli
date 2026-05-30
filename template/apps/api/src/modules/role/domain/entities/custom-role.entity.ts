@@ -43,8 +43,8 @@ export class CustomRole {
 		}
 		if (p.scopeJson) {
 			const s = p.scopeJson;
-			if (s.approvalLimitEtb !== undefined && s.approvalLimitEtb < 0) {
-				throw new BadRequestException("approvalLimitEtb must be >= 0");
+			if (s.approvalLimitMinor !== undefined && s.approvalLimitMinor < 0) {
+				throw new BadRequestException("approvalLimitMinor must be >= 0");
 			}
 			if (s.timeWindow) {
 				if (!s.timeWindow.dow.every(isValidDow)) throw new BadRequestException("invalid dow (0-6)");

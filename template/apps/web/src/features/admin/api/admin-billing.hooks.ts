@@ -16,8 +16,7 @@ export interface AdminSubscriptionSummary {
 	readonly gracePeriodEndsAt: string | null;
 	readonly readOnlyModeEndsAt: string | null;
 	readonly lockedAt: string | null;
-	readonly manualPaymentMode: boolean;
-	readonly creditBalanceEtb: number;
+	readonly creditBalanceMinor: number;
 }
 
 export interface AdminSubscriptionDetail extends AdminSubscriptionSummary {
@@ -31,20 +30,21 @@ export interface AdminSubscriptionDetail extends AdminSubscriptionSummary {
 		periodStart: string;
 		periodEnd: string;
 		currency: string;
-		subtotal: number;
-		vatAmount: number;
-		total: number;
-		amountPaid: number;
+		subtotalMinor: number;
+		taxMinor: number;
+		totalMinor: number;
+		amountPaidMinor: number;
 		lineType: string;
 		description: string | null;
 		payments: Array<{
 			id: string;
-			amount: number;
+			amountMinor: number;
 			method: string;
 			paidAt: string;
 			receiptNumber: string | null;
 			bankReference: string | null;
-			chapaReference: string | null;
+			chapaTxRef: string | null;
+			chapaRefId: string | null;
 			verified: boolean;
 			note: string | null;
 		}>;
@@ -95,7 +95,7 @@ export const useCreateManualInvoice = () => {
 			...body
 		}: {
 			subscriptionId: string;
-			amountEtb: number;
+			amountMinor: number;
 			periodStart: string;
 			periodEnd: string;
 			description?: string;
@@ -130,10 +130,11 @@ export const useRecordManualPayment = () => {
 			...body
 		}: {
 			invoiceId: string;
-			amount: number;
+			amountMinor: number;
 			method: string;
 			paidAt?: string;
-			chapaReference?: string;
+			chapaTxRef?: string;
+			chapaRefId?: string;
 			bankReference?: string;
 			receiptNumber?: string;
 			note?: string;
@@ -151,20 +152,11 @@ export const useExtendSubscription = () => {
 	});
 };
 
-export const useToggleManualMode = () => {
-	const qc = useQueryClient();
-	return useMutation({
-		mutationFn: ({ id, manualMode }: { id: string; manualMode: boolean }) =>
-			api.put(`/admin/billing/subscriptions/${id}/manual-mode`, { manualMode }),
-		onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: k.sub(v.id) }),
-	});
-};
-
 export const useCreditAccount = () => {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: ({ id, amountEtb, note }: { id: string; amountEtb: number; note?: string }) =>
-			api.post(`/admin/billing/subscriptions/${id}/credit`, { amountEtb, note }),
+		mutationFn: ({ id, amountMinor, note }: { id: string; amountMinor: number; note?: string }) =>
+			api.post(`/admin/billing/subscriptions/${id}/credit`, { amountMinor, note }),
 		onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: k.sub(v.id) }),
 	});
 };

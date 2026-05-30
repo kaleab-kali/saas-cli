@@ -1,5 +1,6 @@
 import { forwardRef, Module } from "@nestjs/common";
 import { BillingModule } from "#modules/billing/billing.module";
+import { MetricsModule } from "#shared/metrics/metrics.module";
 import {
 	ChangeSubscriptionPlanHandler,
 	CreditAccountHandler,
@@ -26,6 +27,7 @@ import { ListOrganizationsHandler } from "./application/queries/list-organizatio
 import { ListPlatformAuditLogsHandler } from "./application/queries/list-platform-audit-logs.handler";
 import { ListUsersHandler } from "./application/queries/list-users.handler";
 import { PlatformSettingsService } from "./application/services/platform-settings.service";
+import { QueueMonitorService } from "./application/services/queue-monitor.service";
 import { AdminPermissionsGuard } from "./guards/admin-permissions.guard";
 import { SuperAdminGuard } from "./guards/super-admin.guard";
 import { AdminAuditController } from "./presentation/controllers/admin-audit.controller";
@@ -35,13 +37,14 @@ import { AdminEntitlementOverridesController } from "./presentation/controllers/
 import { AdminJobsController } from "./presentation/controllers/admin-jobs.controller";
 import { AdminOrganizationsController } from "./presentation/controllers/admin-organizations.controller";
 import { AdminPlansController } from "./presentation/controllers/admin-plans.controller";
+import { AdminServerController } from "./presentation/controllers/admin-server.controller";
 import { AdminSettingsController } from "./presentation/controllers/admin-settings.controller";
 import { AdminStatsController } from "./presentation/controllers/admin-stats.controller";
 import { AdminSystemTemplatesController } from "./presentation/controllers/admin-system-templates.controller";
 import { AdminUsersController } from "./presentation/controllers/admin-users.controller";
 
 @Module({
-	imports: [forwardRef(() => BillingModule)],
+	imports: [forwardRef(() => BillingModule), MetricsModule],
 	controllers: [
 		AdminAuthController,
 		AdminOrganizationsController,
@@ -54,6 +57,7 @@ import { AdminUsersController } from "./presentation/controllers/admin-users.con
 		AdminSystemTemplatesController,
 		AdminEntitlementOverridesController,
 		AdminJobsController,
+		AdminServerController,
 	],
 	providers: [
 		SuperAdminGuard,
@@ -69,6 +73,7 @@ import { AdminUsersController } from "./presentation/controllers/admin-users.con
 		UpdatePlatformSettingHandler,
 		ToggleFeatureFlagHandler,
 		PlatformSettingsService,
+		QueueMonitorService,
 		CreatePlanHandler,
 		UpdatePlanHandler,
 		ArchivePlanHandler,

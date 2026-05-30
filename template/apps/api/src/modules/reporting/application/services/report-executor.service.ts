@@ -4,17 +4,18 @@ import type { SavedReport } from "../../domain/entities/saved-report.entity";
 import type { DataSource, ReportFilter } from "../../domain/value-objects/report.vo";
 
 const MODEL_MAP: Record<DataSource, string> = {
-	property: "building",
-	unit: "unit",
-	lease: "lease",
-	invoice: "invoice",
-	payment: "payment",
-	work_order: "workOrder",
-	deal: "deal",
-	listing: "listing",
-	contact: "contact",
-	purchase_order: "purchaseOrder",
-	journal: "journalEntry",
+	user: "user",
+	member: "member",
+	audit_log: "auditLog",
+	notification: "notification",
+};
+
+type FindManyModel = {
+	findMany(args: {
+		where: Record<string, unknown>;
+		take: number;
+		orderBy?: Array<Record<string, string>>;
+	}): Promise<Record<string, unknown>[]>;
 };
 
 @Injectable()
@@ -75,7 +76,7 @@ export class ReportExecutorService {
 		const p = report.toPrimitives();
 		const modelKey = MODEL_MAP[p.dataSource];
 		if (!modelKey) throw new BadRequestException(`Unsupported dataSource ${p.dataSource}`);
-		const model = (this.prisma as unknown as Record<string, { findMany: Function }>)[modelKey];
+		const model = (this.prisma as unknown as Record<string, FindManyModel | undefined>)[modelKey];
 		if (!model?.findMany) throw new BadRequestException(`Model ${modelKey} not available`);
 		const where = this.buildWhere(organizationId, p.filters);
 		const orderBy = p.sort.map((s) => ({ [s.field]: s.dir }));
@@ -101,7 +102,8 @@ export class ReportExecutorService {
 					init.__count = 0;
 					groups.set(key, init);
 				}
-				const g = groups.get(key)!;
+				const g = groups.get(key);
+				if (!g) throw new BadRequestException(`Unable to build report group ${key}`);
 				g.__count = (g.__count as number) + 1;
 				for (const c of p.columns) {
 					if (!c.agg) continue;

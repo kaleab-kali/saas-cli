@@ -1,0 +1,268 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]:
+          - img [ref=e10]
+          - generic [ref=e12]: vyllion-eims-v3-data-ui-proof
+        - button "Acme Inc Workspace" [ref=e13]:
+          - img [ref=e15]
+          - generic [ref=e20]:
+            - generic [ref=e21]: Acme Inc
+            - generic [ref=e22]: Workspace
+          - img [ref=e23]
+      - generic [ref=e27]:
+        - generic [ref=e28]: Workspace
+        - list [ref=e30]:
+          - listitem [ref=e31]:
+            - link "Files" [ref=e32] [cursor=pointer]:
+              - /url: /files
+              - img [ref=e33]
+              - generic [ref=e38]: Files
+          - listitem [ref=e39]:
+            - button "Reports ›" [ref=e40]:
+              - generic [ref=e41]:
+                - img [ref=e42]
+                - generic [ref=e48]: Reports
+              - generic [ref=e49]: ›
+          - listitem [ref=e50]:
+            - button "Notifications ›" [ref=e51]:
+              - generic [ref=e52]:
+                - img [ref=e53]
+                - generic [ref=e56]: Notifications
+              - generic [ref=e57]: ›
+          - listitem [ref=e58]:
+            - button "Tax tools ›" [ref=e59]:
+              - generic [ref=e60]:
+                - img [ref=e61]
+                - generic [ref=e66]: Tax tools
+              - generic [ref=e67]: ›
+            - list [ref=e68]:
+              - listitem [ref=e69]:
+                - link "Status" [ref=e70] [cursor=pointer]:
+                  - /url: /eims
+              - listitem [ref=e71]:
+                - link "Setup" [active] [ref=e72] [cursor=pointer]:
+                  - /url: /eims/setup
+              - listitem [ref=e73]:
+                - link "Tax invoices" [ref=e74] [cursor=pointer]:
+                  - /url: /eims/submissions
+              - listitem [ref=e75]:
+                - link "Receipts" [ref=e76] [cursor=pointer]:
+                  - /url: /eims/receipts
+              - listitem [ref=e77]:
+                - link "Cancellations" [ref=e78] [cursor=pointer]:
+                  - /url: /eims/bulk
+              - listitem [ref=e79]:
+                - link "Records & exports" [ref=e80] [cursor=pointer]:
+                  - /url: /eims/compliance
+      - generic [ref=e81]:
+        - list [ref=e82]:
+          - listitem [ref=e83]:
+            - link "Settings" [ref=e84] [cursor=pointer]:
+              - /url: /settings
+              - img [ref=e85]
+              - generic [ref=e88]: Settings
+        - button "Sample Owner owner@example.com" [ref=e89]:
+          - img [ref=e91]
+          - generic [ref=e94]:
+            - generic [ref=e95]: Sample Owner
+            - generic [ref=e96]: owner@example.com
+    - main [ref=e97]:
+      - generic [ref=e98]:
+        - button "Toggle Sidebar" [ref=e99]:
+          - img
+          - generic [ref=e100]: Toggle Sidebar
+        - button "topbar.language" [ref=e101]: English
+        - button [ref=e102]:
+          - img
+      - main [ref=e103]:
+        - generic [ref=e216]:
+          - generic [ref=e217]:
+            - generic [ref=e218]:
+              - heading "Guided tax setup" [level=1] [ref=e219]
+              - paragraph [ref=e220]: Enter the business tax details, branch details, approved register/POS number, API credentials, and issued certificate.
+            - generic [ref=e221]: Setup in progress
+          - generic [ref=e222]:
+            - generic [ref=e224]: Setup checklist
+            - generic [ref=e225]:
+              - generic [ref=e226]:
+                - generic [ref=e227]:
+                  - generic [ref=e228]:
+                    - generic [ref=e229]: Business tax profile
+                    - generic [ref=e230]: TIN, Legal business name, VAT number if VAT registered, Business contact phone/email
+                  - generic [ref=e231]: complete
+                - generic [ref=e232]: "Next action: Save business profile"
+              - generic [ref=e233]:
+                - generic [ref=e234]:
+                  - generic [ref=e235]:
+                    - generic [ref=e236]: Branch and address
+                    - generic [ref=e237]: Branch name, Region/city/woreda/kebele, Branch Sub-TIN when available
+                  - generic [ref=e238]: complete
+                - generic [ref=e239]: "Next action: Save branch details"
+              - generic [ref=e240]:
+                - generic [ref=e241]:
+                  - generic [ref=e242]:
+                    - generic [ref=e243]: Register/POS details
+                    - generic [ref=e244]: Approved system number, Register type such as POS or ERP
+                  - generic [ref=e245]: attention
+                - generic [ref=e246]: "Next action: Save register/POS details"
+              - generic [ref=e247]:
+                - generic [ref=e248]:
+                  - generic [ref=e249]:
+                    - generic [ref=e250]: Secure tax connection
+                    - generic [ref=e251]: API credentials, Issued certificate or certificate request file
+                  - generic [ref=e252]: pending
+                - generic [ref=e253]: "Next action: Save connection details"
+          - generic [ref=e254]:
+            - generic [ref=e256]: Current blockers
+            - generic [ref=e257]:
+              - generic [ref=e258]: Approved register/POS number is missing for one register
+              - generic [ref=e259]: API credentials and certificate still need to be added
+          - generic [ref=e260]:
+            - generic [ref=e262]: Business tax profile
+            - generic [ref=e264]:
+              - generic [ref=e265]:
+                - generic [ref=e266]:
+                  - generic [ref=e267]: TIN
+                  - textbox "TIN" [ref=e268]: "0074136947"
+                - generic [ref=e269]:
+                  - generic [ref=e270]: Legal business name
+                  - textbox "Legal business name" [ref=e271]: Habesha Restaurant PLC
+                - generic [ref=e272]:
+                  - generic [ref=e273]: Trade name
+                  - textbox "Trade name" [ref=e274]: Habesha Restaurant
+                - generic [ref=e275]:
+                  - generic [ref=e276]: VAT number
+                  - textbox "VAT number" [ref=e277]: REGVAT123456789
+                - generic [ref=e278]:
+                  - generic [ref=e279]: Finance email
+                  - textbox "Finance email" [ref=e280]: finance@habesha.example
+                - generic [ref=e281]:
+                  - generic [ref=e282]: Business phone
+                  - textbox "Business phone" [ref=e283]: "+251911000111"
+              - generic [ref=e284]:
+                - button "Save business profile" [ref=e285]
+                - generic [ref=e286]: TIN is checked before tax sync
+          - generic [ref=e287]:
+            - generic [ref=e289]: Branch details
+            - generic [ref=e291]:
+              - generic [ref=e292]:
+                - generic [ref=e293]:
+                  - generic [ref=e294]: Branch name
+                  - textbox "Branch name" [ref=e295]: Bole Branch
+                - generic [ref=e296]:
+                  - generic [ref=e297]: Branch code
+                  - textbox "Branch code" [ref=e298]: BOL
+                - generic [ref=e299]:
+                  - generic [ref=e300]: Branch Sub-TIN (optional)
+                  - textbox "Branch Sub-TIN (optional)" [ref=e301]: 0074136947-01
+                - generic [ref=e302]:
+                  - generic [ref=e303]: Region code
+                  - textbox "Region code" [ref=e304]: "14"
+                - generic [ref=e305]:
+                  - generic [ref=e306]: City
+                  - textbox "City" [ref=e307]: Addis Ababa
+              - button "Save branch details" [ref=e308]
+          - generic [ref=e309]:
+            - generic [ref=e311]: Register/POS details
+            - generic [ref=e312]:
+              - paragraph [ref=e313]: Enter the approved register or POS number for this branch. Your onboarding specialist can help if you do not have it yet.
+              - generic [ref=e314]:
+                - generic [ref=e315]:
+                  - generic [ref=e316]:
+                    - generic [ref=e317]: Register/POS name
+                    - textbox "Register/POS name" [ref=e318]: Front POS
+                  - generic [ref=e319]:
+                    - generic [ref=e320]: Register type
+                    - combobox "Register type" [ref=e321]:
+                      - option "POS" [selected]
+                      - option "ERP"
+                      - option "CRM"
+                      - option "SYS"
+                      - option "MAN"
+                      - option "EFD"
+                  - generic [ref=e322]:
+                    - generic [ref=e323]: Approved system number
+                    - textbox "Approved system number" [ref=e324]: 329D03B6F0
+                  - generic [ref=e325]:
+                    - generic [ref=e326]: Software version
+                    - textbox "Software version" [ref=e327]: restaurant-saas-v3.0.0
+                  - generic [ref=e328]:
+                    - checkbox "Managed by this SaaS" [checked] [ref=e329]
+                    - text: Managed by this SaaS
+                - button "Save register/POS details" [ref=e330]
+          - generic [ref=e331]:
+            - generic [ref=e333]: Secure tax connection
+            - generic [ref=e334]:
+              - paragraph [ref=e335]: Add the API credentials and issued certificate. Most tenants complete this step with an onboarding specialist.
+              - generic [ref=e336]:
+                - generic [ref=e337]:
+                  - generic [ref=e338]:
+                    - generic [ref=e339]: Client ID
+                    - textbox "Client ID" [ref=e340]
+                  - generic [ref=e341]:
+                    - generic [ref=e342]: Username
+                    - textbox "Username" [ref=e343]: owner@example.com
+                  - generic [ref=e344]:
+                    - generic [ref=e345]: API key
+                    - textbox "API key" [ref=e346]
+                  - generic [ref=e347]:
+                    - generic [ref=e348]: Password
+                    - textbox "Password" [ref=e349]: 84QduqbvyNJ7#tnCpV7q
+                  - generic [ref=e350]:
+                    - generic [ref=e351]: Client secret
+                    - textbox "Client secret" [ref=e352]
+                - generic [ref=e353]:
+                  - button "Save connection details" [ref=e354]
+                  - button "Test connection" [ref=e355]
+              - generic [ref=e356]:
+                - button "Generate certificate request" [ref=e358]
+                - generic [ref=e359]:
+                  - generic [ref=e360]: Issued certificate
+                  - textbox "Issued certificate" [ref=e361]:
+                    - /placeholder: Paste the issued certificate
+                - button "Save issued certificate" [ref=e362]
+          - generic [ref=e363]:
+            - generic [ref=e365]: Branch health
+            - table [ref=e368]:
+              - rowgroup [ref=e369]:
+                - row "Branch Status Today Pending sync Registers/POS Alerts" [ref=e370]:
+                  - columnheader "Branch" [ref=e371]
+                  - columnheader "Status" [ref=e372]
+                  - columnheader "Today" [ref=e373]
+                  - columnheader "Pending sync" [ref=e374]
+                  - columnheader "Registers/POS" [ref=e375]
+                  - columnheader "Alerts" [ref=e376]
+              - rowgroup [ref=e377]:
+                - row "Bole Branch attention 96 1 1 active / 1 pending Bar POS awaiting approved system number; Certificate expires within 60 days" [ref=e378]:
+                  - cell "Bole Branch" [ref=e379]
+                  - cell "attention" [ref=e380]
+                  - cell "96" [ref=e381]
+                  - cell "1" [ref=e382]
+                  - cell "1 active / 1 pending" [ref=e383]
+                  - cell "Bar POS awaiting approved system number; Certificate expires within 60 days" [ref=e384]
+          - generic [ref=e385]:
+            - generic [ref=e387]: Frequent customers and government buyers
+            - table [ref=e390]:
+              - rowgroup [ref=e391]:
+                - row "Customer TIN Type Government City" [ref=e392]:
+                  - columnheader "Customer" [ref=e393]
+                  - columnheader "TIN" [ref=e394]
+                  - columnheader "Type" [ref=e395]
+                  - columnheader "Government" [ref=e396]
+                  - columnheader "City" [ref=e397]
+              - rowgroup [ref=e398]:
+                - row "Habesha Trading PLC 0089238373 business no Addis Ababa" [ref=e399]:
+                  - cell "Habesha Trading PLC" [ref=e400]
+                  - cell "0089238373" [ref=e401]
+                  - cell "business" [ref=e402]
+                  - cell "no" [ref=e403]
+                  - cell "Addis Ababa" [ref=e404]
+                - row "Ministry of Finance 0999930000 government yes Addis Ababa" [ref=e405]:
+                  - cell "Ministry of Finance" [ref=e406]
+                  - cell "0999930000" [ref=e407]
+                  - cell "government" [ref=e408]
+                  - cell "yes" [ref=e409]
+                  - cell "Addis Ababa" [ref=e410]
+  - region "Notifications alt+T"

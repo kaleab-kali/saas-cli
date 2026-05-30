@@ -189,8 +189,6 @@ docker run -d --name {{projectSlug}} \
   {{projectSlug}}:latest
 ```
 
-Or use docker-compose — `docker-compose.yml` example in `examples/` (add later).
-
 ---
 
 ## Scaling

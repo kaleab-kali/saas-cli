@@ -1,0 +1,24 @@
+id: vyllion-exposed-package-files
+
+info:
+  name: Exposed package metadata
+  author: vyllion
+  severity: medium
+  description: Detects package metadata served from the web root.
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/package.json"
+      - "{{BaseURL}}/pnpm-lock.yaml"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        part: body
+        condition: or
+        words:
+          - "\"dependencies\""
+          - "lockfileVersion:"

@@ -2,8 +2,6 @@ import { ForbiddenException, Injectable } from "@nestjs/common";
 import { statement } from "#modules/auth/permissions";
 import type { PermissionsMap } from "../value-objects/scope.vo";
 
-type Statement = typeof statement;
-
 @Injectable()
 export class PermissionValidatorService {
 	/**
@@ -22,7 +20,7 @@ export class PermissionValidatorService {
 	}
 
 	/**
-	 * Escalation guard — creator cannot grant permissions they don't already hold.
+	 * Escalation guard: creator cannot grant permissions they do not already hold.
 	 * `creatorPermissions` is a flat set of "resource:action" strings derived from their role.
 	 */
 	assertNoEscalation(creatorPermissions: Set<string>, newPermissions: PermissionsMap): void {
@@ -30,7 +28,7 @@ export class PermissionValidatorService {
 			for (const action of actions) {
 				const key = `${resource}:${action}`;
 				if (!creatorPermissions.has(key)) {
-					throw new ForbiddenException(`cannot grant '${key}' — you don't hold this permission`);
+					throw new ForbiddenException(`cannot grant '${key}' because you do not hold this permission`);
 				}
 			}
 		}

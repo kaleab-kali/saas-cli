@@ -3,7 +3,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { PrismaService } from "#shared/database/prisma.service";
 import type { Prisma } from "../../generated/prisma/client";
 
-const ALLOWED_ENTITIES = ["contact", "building", "unit", "lease", "work_order"] as const;
+const ALLOWED_ENTITIES = ["user", "member", "report", "notification"] as const;
 type Entity = (typeof ALLOWED_ENTITIES)[number];
 
 const ALLOWED_VIEW_MODES = ["table", "cards", "kanban", "map"] as const;

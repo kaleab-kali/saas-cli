@@ -1,0 +1,160 @@
+- generic [ref=e2]:
+  - generic [ref=e9]:
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - img [ref=e15]
+          - generic [ref=e17]: vyllion-eims-v3-data-ui-proof
+        - button "common.selectOrganization Workspace" [ref=e18]:
+          - img [ref=e20]
+          - generic [ref=e25]:
+            - generic [ref=e26]: common.selectOrganization
+            - generic [ref=e27]: Workspace
+          - img [ref=e28]
+      - generic [ref=e32]:
+        - generic [ref=e33]: Workspace
+        - list [ref=e35]:
+          - listitem [ref=e36]:
+            - link "Files" [ref=e37] [cursor=pointer]:
+              - /url: /files
+              - img [ref=e38]
+              - generic [ref=e43]: Files
+          - listitem [ref=e44]:
+            - button "Reports ›" [ref=e45]:
+              - generic [ref=e46]:
+                - img [ref=e47]
+                - generic [ref=e53]: Reports
+              - generic [ref=e54]: ›
+          - listitem [ref=e55]:
+            - button "Notifications ›" [ref=e56]:
+              - generic [ref=e57]:
+                - img [ref=e58]
+                - generic [ref=e61]: Notifications
+              - generic [ref=e62]: ›
+          - listitem [ref=e63]:
+            - button "EIMS ›" [ref=e64]:
+              - generic [ref=e65]:
+                - img [ref=e66]
+                - generic [ref=e71]: EIMS
+              - generic [ref=e72]: ›
+            - list [ref=e157]:
+              - listitem [ref=e158]:
+                - link "Overview" [ref=e159] [cursor=pointer]:
+                  - /url: /eims
+              - listitem [ref=e160]:
+                - link "Setup" [ref=e161] [cursor=pointer]:
+                  - /url: /eims/setup
+              - listitem [ref=e162]:
+                - link "Enterprises" [ref=e163] [cursor=pointer]:
+                  - /url: /eims/enterprises
+              - listitem [ref=e164]:
+                - link "Branches" [ref=e165] [cursor=pointer]:
+                  - /url: /eims/establishments
+              - listitem [ref=e166]:
+                - link "Source Systems" [ref=e167] [cursor=pointer]:
+                  - /url: /eims/sources
+              - listitem [ref=e168]:
+                - link "Credentials" [ref=e169] [cursor=pointer]:
+                  - /url: /eims/credentials
+              - listitem [ref=e170]:
+                - link "Certificates" [ref=e171] [cursor=pointer]:
+                  - /url: /eims/certificates
+              - listitem [ref=e172]:
+                - link "Submissions" [ref=e173] [cursor=pointer]:
+                  - /url: /eims/submissions
+              - listitem [ref=e174]:
+                - link "Receipts" [ref=e175] [cursor=pointer]:
+                  - /url: /eims/receipts
+              - listitem [ref=e176]:
+                - link "Bulk" [ref=e177] [cursor=pointer]:
+                  - /url: /eims/bulk
+              - listitem [ref=e178]:
+                - link "Compliance" [active] [ref=e179] [cursor=pointer]:
+                  - /url: /eims/compliance
+      - generic [ref=e73]:
+        - list [ref=e74]:
+          - listitem [ref=e75]:
+            - link "Settings" [ref=e76] [cursor=pointer]:
+              - /url: /settings
+              - img [ref=e77]
+              - generic [ref=e80]: Settings
+        - button "Owner owner@example.com" [ref=e81]:
+          - img [ref=e83]
+          - generic [ref=e86]:
+            - generic [ref=e87]: Owner
+            - generic [ref=e88]: owner@example.com
+    - main [ref=e89]:
+      - generic [ref=e90]:
+        - button "Toggle Sidebar" [ref=e91]:
+          - img
+          - generic [ref=e92]: Toggle Sidebar
+        - button "topbar.language" [ref=e93]: English
+        - button [ref=e94]:
+          - img
+      - main [ref=e95]:
+        - generic [ref=e573]:
+          - generic [ref=e575]:
+            - heading "EIMS Compliance" [level=1] [ref=e576]
+            - paragraph [ref=e577]: Continuously generated evidence package readiness against V3 controls.
+          - generic [ref=e579]:
+            - paragraph [ref=e580]: Readiness
+            - paragraph [ref=e581]: 72%
+          - table [ref=e585]:
+            - rowgroup [ref=e586]:
+              - row "Evidence Status" [ref=e587]:
+                - columnheader "Evidence" [ref=e588]
+                - columnheader "Status" [ref=e589]
+            - rowgroup [ref=e590]:
+              - row "Phase 0 Layer A local report ready" [ref=e591]:
+                - cell "Phase 0 Layer A local report" [ref=e592]
+                - cell "ready" [ref=e593]
+              - row "Targeted EIMS RLS policy export planned" [ref=e594]:
+                - cell "Targeted EIMS RLS policy export" [ref=e595]
+                - cell "planned" [ref=e596]
+              - row "Thermal and A4 print evidence mocked" [ref=e597]:
+                - cell "Thermal and A4 print evidence" [ref=e598]
+                - cell "mocked" [ref=e599]
+          - generic [ref=e600]:
+            - generic [ref=e602]: Print Layout Compliance
+            - table [ref=e605]:
+              - rowgroup [ref=e606]:
+                - row "Layout Paper QR Source Required Fields" [ref=e607]:
+                  - columnheader "Layout" [ref=e608]
+                  - columnheader "Paper" [ref=e609]
+                  - columnheader "QR Source" [ref=e610]
+                  - columnheader "Required Fields" [ref=e611]
+              - rowgroup [ref=e612]:
+                - row "compact 80mm thermal EIMS accepted signedQR only IRN, QR, seller TIN, document number, total value" [ref=e613]:
+                  - cell "compact" [ref=e614]
+                  - cell "80mm thermal" [ref=e615]
+                  - cell "EIMS accepted signedQR only" [ref=e616]
+                  - cell "IRN, QR, seller TIN, document number, total value" [ref=e617]
+                - row "a4 A4 office printer EIMS accepted signedQR only IRN, QR, buyer details, seller details, item lines" [ref=e618]:
+                  - cell "a4" [ref=e619]
+                  - cell "A4 office printer" [ref=e620]
+                  - cell "EIMS accepted signedQR only" [ref=e621]
+                  - cell "IRN, QR, buyer details, seller details, item lines" [ref=e622]
+          - generic [ref=e623]:
+            - generic [ref=e625]: Buyer Notifications
+            - table [ref=e628]:
+              - rowgroup [ref=e629]:
+                - row "Channel Provider Status IRN Retries" [ref=e630]:
+                  - columnheader "Channel" [ref=e631]
+                  - columnheader "Provider" [ref=e632]
+                  - columnheader "Status" [ref=e633]
+                  - columnheader "IRN" [ref=e634]
+                  - columnheader "Retries" [ref=e635]
+              - rowgroup [ref=e636]:
+                - row "sms Africa's Talking sent MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74 0" [ref=e637]:
+                  - cell "sms" [ref=e638]
+                  - cell "Africa's Talking" [ref=e639]
+                  - cell "sent" [ref=e640]
+                  - cell "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74" [ref=e641]
+                  - cell "0" [ref=e642]
+                - row "email AWS SES queued MOCK-IRN-B2B-0002 1" [ref=e643]:
+                  - cell "email" [ref=e644]
+                  - cell "AWS SES" [ref=e645]
+                  - cell "queued" [ref=e646]
+                  - cell "MOCK-IRN-B2B-0002" [ref=e647]
+                  - cell "1" [ref=e648]
+  - region "Notifications alt+T"

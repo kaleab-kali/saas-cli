@@ -53,7 +53,282 @@ export type Member = Prisma.MemberModel
  */
 export type Invitation = Prisma.InvitationModel
 /**
- * Model Building
+ * Model OrganizationRole
  * 
  */
-export type Building = Prisma.BuildingModel
+export type OrganizationRole = Prisma.OrganizationRoleModel
+/**
+ * Model CustomFieldDefinition
+ * 
+ */
+export type CustomFieldDefinition = Prisma.CustomFieldDefinitionModel
+/**
+ * Model CustomFieldValue
+ * 
+ */
+export type CustomFieldValue = Prisma.CustomFieldValueModel
+/**
+ * Model AdminUser
+ * 
+ */
+export type AdminUser = Prisma.AdminUserModel
+/**
+ * Model AdminSession
+ * 
+ */
+export type AdminSession = Prisma.AdminSessionModel
+/**
+ * Model AdminAccount
+ * 
+ */
+export type AdminAccount = Prisma.AdminAccountModel
+/**
+ * Model AdminVerification
+ * 
+ */
+export type AdminVerification = Prisma.AdminVerificationModel
+/**
+ * Model PlatformAuditLog
+ * 
+ */
+export type PlatformAuditLog = Prisma.PlatformAuditLogModel
+/**
+ * Model PlatformSettings
+ * 
+ */
+export type PlatformSettings = Prisma.PlatformSettingsModel
+/**
+ * Model CronJobRun
+ * 
+ */
+export type CronJobRun = Prisma.CronJobRunModel
+/**
+ * Model OrgEntitlementOverride
+ * 
+ */
+export type OrgEntitlementOverride = Prisma.OrgEntitlementOverrideModel
+/**
+ * Model SystemEmailTemplate
+ * 
+ */
+export type SystemEmailTemplate = Prisma.SystemEmailTemplateModel
+/**
+ * Model FeatureFlag
+ * 
+ */
+export type FeatureFlag = Prisma.FeatureFlagModel
+/**
+ * Model FeatureFlagOverride
+ * 
+ */
+export type FeatureFlagOverride = Prisma.FeatureFlagOverrideModel
+/**
+ * Model Broadcast
+ * 
+ */
+export type Broadcast = Prisma.BroadcastModel
+/**
+ * Model Lookup
+ * 
+ */
+export type Lookup = Prisma.LookupModel
+/**
+ * Model SavedView
+ * 
+ */
+export type SavedView = Prisma.SavedViewModel
+/**
+ * Model FileAsset
+ * 
+ */
+export type FileAsset = Prisma.FileAssetModel
+/**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel
+/**
+ * Model NotificationPreference
+ * 
+ */
+export type NotificationPreference = Prisma.NotificationPreferenceModel
+/**
+ * Model NotificationTemplate
+ * 
+ */
+export type NotificationTemplate = Prisma.NotificationTemplateModel
+/**
+ * Model BulkCommunication
+ * 
+ */
+export type BulkCommunication = Prisma.BulkCommunicationModel
+/**
+ * Model EmailDelivery
+ * 
+ */
+export type EmailDelivery = Prisma.EmailDeliveryModel
+/**
+ * Model SavedReport
+ * 
+ */
+export type SavedReport = Prisma.SavedReportModel
+/**
+ * Model ReportSchedule
+ * 
+ */
+export type ReportSchedule = Prisma.ReportScheduleModel
+/**
+ * Model ReportExecution
+ * 
+ */
+export type ReportExecution = Prisma.ReportExecutionModel
+/**
+ * Model OrganizationSettings
+ * 
+ */
+export type OrganizationSettings = Prisma.OrganizationSettingsModel
+/**
+ * Model SecuritySettings
+ * 
+ */
+export type SecuritySettings = Prisma.SecuritySettingsModel
+/**
+ * Model ApiKey
+ * 
+ */
+export type ApiKey = Prisma.ApiKeyModel
+/**
+ * Model AuditLog
+ * 
+ */
+export type AuditLog = Prisma.AuditLogModel
+/**
+ * Model Plan
+ * 
+ */
+export type Plan = Prisma.PlanModel
+/**
+ * Model FeatureEntitlement
+ * 
+ */
+export type FeatureEntitlement = Prisma.FeatureEntitlementModel
+/**
+ * Model Subscription
+ * 
+ */
+export type Subscription = Prisma.SubscriptionModel
+/**
+ * Model DunningEmail
+ * 
+ */
+export type DunningEmail = Prisma.DunningEmailModel
+/**
+ * Model SubscriptionInvoice
+ * 
+ */
+export type SubscriptionInvoice = Prisma.SubscriptionInvoiceModel
+/**
+ * Model SubscriptionPayment
+ * 
+ */
+export type SubscriptionPayment = Prisma.SubscriptionPaymentModel
+/**
+ * Model UsageSnapshot
+ * 
+ */
+export type UsageSnapshot = Prisma.UsageSnapshotModel
+/**
+ * Model CustomRole
+ * 
+ */
+export type CustomRole = Prisma.CustomRoleModel
+/**
+ * Model CustomRoleAssignment
+ * 
+ */
+export type CustomRoleAssignment = Prisma.CustomRoleAssignmentModel
+/**
+ * Model EimsEnterprise
+ * 
+ */
+export type EimsEnterprise = Prisma.EimsEnterpriseModel
+/**
+ * Model EimsEstablishment
+ * 
+ */
+export type EimsEstablishment = Prisma.EimsEstablishmentModel
+/**
+ * Model EimsSourceSystem
+ * 
+ */
+export type EimsSourceSystem = Prisma.EimsSourceSystemModel
+/**
+ * Model EimsCredential
+ * 
+ */
+export type EimsCredential = Prisma.EimsCredentialModel
+/**
+ * Model EimsCertificate
+ * 
+ */
+export type EimsCertificate = Prisma.EimsCertificateModel
+/**
+ * Model EimsSourceSystemCounter
+ * 
+ */
+export type EimsSourceSystemCounter = Prisma.EimsSourceSystemCounterModel
+/**
+ * Model EimsCounterReservation
+ * 
+ */
+export type EimsCounterReservation = Prisma.EimsCounterReservationModel
+/**
+ * Model UserEstablishmentAssignment
+ * 
+ */
+export type UserEstablishmentAssignment = Prisma.UserEstablishmentAssignmentModel
+/**
+ * Model UserSourceSystemAssignment
+ * 
+ */
+export type UserSourceSystemAssignment = Prisma.UserSourceSystemAssignmentModel
+/**
+ * Model TenantBuyer
+ * 
+ */
+export type TenantBuyer = Prisma.TenantBuyerModel
+/**
+ * Model TaxInvoice
+ * 
+ */
+export type TaxInvoice = Prisma.TaxInvoiceModel
+/**
+ * Model TaxInvoiceLine
+ * 
+ */
+export type TaxInvoiceLine = Prisma.TaxInvoiceLineModel
+/**
+ * Model EimsSubmission
+ * 
+ */
+export type EimsSubmission = Prisma.EimsSubmissionModel
+/**
+ * Model EimsReceipt
+ * 
+ */
+export type EimsReceipt = Prisma.EimsReceiptModel
+/**
+ * Model EimsCancellation
+ * 
+ */
+export type EimsCancellation = Prisma.EimsCancellationModel
+/**
+ * Model EimsAuditEvent
+ * 
+ */
+export type EimsAuditEvent = Prisma.EimsAuditEventModel
+/**
+ * Model EimsNotificationLog
+ * 
+ */
+export type EimsNotificationLog = Prisma.EimsNotificationLogModel

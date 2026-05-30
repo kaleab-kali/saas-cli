@@ -1,0 +1,124 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e7]:
+      - button "vyllion-eims-v3-data-ui-proof Admin Platform Management" [ref=e9]:
+        - img [ref=e11]
+        - generic [ref=e14]:
+          - generic [ref=e15]: vyllion-eims-v3-data-ui-proof Admin
+          - generic [ref=e16]: Platform Management
+      - generic [ref=e18]:
+        - generic [ref=e19]: Administration
+        - list [ref=e21]:
+          - listitem [ref=e22]:
+            - link "Overview" [ref=e23] [cursor=pointer]:
+              - /url: /admin
+              - img [ref=e24]
+              - generic [ref=e29]: Overview
+          - listitem [ref=e30]:
+            - link "Organizations" [ref=e31] [cursor=pointer]:
+              - /url: /admin/organizations
+              - img [ref=e32]
+              - generic [ref=e37]: Organizations
+          - listitem [ref=e38]:
+            - link "Users" [ref=e39] [cursor=pointer]:
+              - /url: /admin/users
+              - img [ref=e40]
+              - generic [ref=e45]: Users
+          - listitem [ref=e46]:
+            - link "Plans" [ref=e47] [cursor=pointer]:
+              - /url: /admin/plans
+              - img [ref=e48]
+              - generic [ref=e53]: Plans
+          - listitem [ref=e54]:
+            - link "Billing" [ref=e55] [cursor=pointer]:
+              - /url: /admin/billing
+              - img [ref=e56]
+              - generic [ref=e58]: Billing
+          - listitem [ref=e59]:
+            - link "Feature Flags" [ref=e60] [cursor=pointer]:
+              - /url: /admin/feature-flags
+              - img [ref=e61]
+              - generic [ref=e63]: Feature Flags
+          - listitem [ref=e64]:
+            - link "Email Templates" [ref=e65] [cursor=pointer]:
+              - /url: /admin/system-templates
+              - img [ref=e66]
+              - generic [ref=e69]: Email Templates
+          - listitem [ref=e70]:
+            - link "Jobs" [ref=e71] [cursor=pointer]:
+              - /url: /admin/jobs
+              - img [ref=e72]
+              - generic [ref=e75]: Jobs
+          - listitem [ref=e76]:
+            - link "Server" [ref=e77] [cursor=pointer]:
+              - /url: /admin/server
+              - img [ref=e78]
+              - generic [ref=e81]: Server
+          - listitem [ref=e82]:
+            - link "EIMS" [ref=e83] [cursor=pointer]:
+              - /url: /admin/eims
+              - img [ref=e84]
+              - generic [ref=e89]: EIMS
+          - listitem [ref=e90]:
+            - link "Audit Logs" [ref=e91] [cursor=pointer]:
+              - /url: /admin/audit-logs
+              - img [ref=e92]
+              - generic [ref=e97]: Audit Logs
+          - listitem [ref=e98]:
+            - link "Settings" [ref=e99] [cursor=pointer]:
+              - /url: /admin/settings
+              - img [ref=e100]
+              - generic [ref=e103]: Settings
+      - button "Super Admin admin@example.com" [ref=e105]:
+        - img [ref=e107]
+        - generic [ref=e110]:
+          - generic [ref=e111]: Super Admin
+          - generic [ref=e112]: admin@example.com
+    - main [ref=e113]:
+      - generic [ref=e114]:
+        - paragraph [ref=e115]: SUPER ADMIN MODE — You are viewing platform-level data across all organizations
+        - button "English" [ref=e116]
+      - main [ref=e117]:
+        - generic [ref=e118]:
+          - generic [ref=e119]:
+            - heading "EIMS Resources" [level=1] [ref=e120]
+            - paragraph [ref=e121]: Queue, signing provider, Vault, and MoR endpoint status for operations.
+          - generic [ref=e122]:
+            - generic [ref=e124]: Queues
+            - table [ref=e127]:
+              - rowgroup [ref=e128]:
+                - row "Name Depth Status" [ref=e129]:
+                  - columnheader "Name" [ref=e130]
+                  - columnheader "Depth" [ref=e131]
+                  - columnheader "Status" [ref=e132]
+              - rowgroup [ref=e133]:
+                - row "eims:submission:src_mock_1 0 running" [ref=e134]:
+                  - cell "eims:submission:src_mock_1" [ref=e135]
+                  - cell "0" [ref=e136]
+                  - cell "running" [ref=e137]
+                - row "eims:submission:src_mock_2 4 paused_pending_approval" [ref=e138]:
+                  - cell "eims:submission:src_mock_2" [ref=e139]
+                  - cell "4" [ref=e140]
+                  - cell "paused_pending_approval" [ref=e141]
+          - generic [ref=e142]:
+            - generic [ref=e144]: Signing and MoR Connectivity
+            - table [ref=e147]:
+              - rowgroup [ref=e148]:
+                - row "Control Status Detail" [ref=e149]:
+                  - columnheader "Control" [ref=e150]
+                  - columnheader "Status" [ref=e151]
+                  - columnheader "Detail" [ref=e152]
+              - rowgroup [ref=e153]:
+                - row "Vault mocked local" [ref=e154]:
+                  - cell "Vault" [ref=e155]
+                  - cell "mocked" [ref=e156]
+                  - cell "local" [ref=e157]
+                - row "MoR sandbox mocked sandbox" [ref=e158]:
+                  - cell "MoR sandbox" [ref=e159]
+                  - cell "mocked" [ref=e160]
+                  - cell "sandbox" [ref=e161]
+                - row "MoR production not_configured production" [ref=e162]:
+                  - cell "MoR production" [ref=e163]
+                  - cell "not_configured" [ref=e164]
+                  - cell "production" [ref=e165]
+  - region "Notifications alt+T"

@@ -2,6 +2,7 @@ import { Controller, Get, Req, UnauthorizedException } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import { fromNodeHeaders } from "better-auth/node";
+import type { Request } from "express";
 import { adminAuth } from "#modules/admin/auth/admin-auth.config";
 
 @ApiTags("Admin Auth")
@@ -10,7 +11,7 @@ import { adminAuth } from "#modules/admin/auth/admin-auth.config";
 export class AdminAuthController {
 	@Get("me")
 	@ApiOperation({ summary: "Get current admin session" })
-	async me(@Req() req: any) {
+	async me(@Req() req: Request) {
 		const session = await adminAuth.api.getSession({
 			headers: fromNodeHeaders(req.headers),
 		});

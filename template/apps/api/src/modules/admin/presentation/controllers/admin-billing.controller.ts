@@ -210,8 +210,7 @@ export class AdminBillingController {
 					s.status === "read_only",
 			)
 			.reduce((sum, s) => {
-				const price =
-					s.billingInterval === "annual" ? s.plan.priceAnnualMinor / 12 : s.plan.priceMonthlyMinor;
+				const price = s.billingInterval === "annual" ? s.plan.priceAnnualMinor / 12 : s.plan.priceMonthlyMinor;
 				return sum + price;
 			}, 0);
 		const arr = mrr * 12;
@@ -233,8 +232,7 @@ export class AdminBillingController {
 			if (!byPlan[key]) byPlan[key] = { count: 0, mrrMinor: 0 };
 			byPlan[key].count += 1;
 			if (s.status === "active" || s.status === "trialing") {
-				const price =
-					s.billingInterval === "annual" ? s.plan.priceAnnualMinor / 12 : s.plan.priceMonthlyMinor;
+				const price = s.billingInterval === "annual" ? s.plan.priceAnnualMinor / 12 : s.plan.priceMonthlyMinor;
 				byPlan[key].mrrMinor += price;
 			}
 		}

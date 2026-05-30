@@ -19,7 +19,7 @@ export class CreateErrorReportDto {
 	@MaxLength(5000)
 	componentStack?: string;
 
-	@ApiProperty({ example: "http://localhost:5173/properties" })
+	@ApiProperty({ example: "http://localhost:5173/reports" })
 	@IsString()
 	@MaxLength(2000)
 	url: string;

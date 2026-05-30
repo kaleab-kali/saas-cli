@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import { SuperAdminGuard } from "#modules/admin/guards/super-admin.guard";
 import { EimsAdminService } from "../application/eims-admin.service";
@@ -38,4 +38,10 @@ export class EimsAdminController {
 	compliance() {
 		return this.admin.compliance();
 	}
+
+	@Post("actions/run")
+	runAction(@Body() body: { action?: string; targetId?: string }) {
+		return this.admin.runAction(body.action ?? "unknown", body.targetId);
+	}
+
 }

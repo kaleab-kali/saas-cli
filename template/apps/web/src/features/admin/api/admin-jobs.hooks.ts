@@ -18,6 +18,24 @@ export interface JobInfo {
 	readonly lastRun: JobRun | null;
 }
 
+export interface QueueInfo {
+	readonly name: string;
+	readonly counts: Record<string, number>;
+	readonly failed: Array<{
+		readonly id: string;
+		readonly name: string;
+		readonly failedReason: string | null;
+		readonly attemptsMade: number;
+		readonly timestamp: number;
+	}>;
+}
+
+export interface QueueMonitor {
+	readonly enabled: boolean;
+	readonly reason: string | null;
+	readonly queues: QueueInfo[];
+}
+
 const k = { all: ["admin-jobs"] as const };
 
 export const useJobs = () =>
@@ -36,6 +54,14 @@ export const useJobRuns = (jobName?: string) =>
 				params: jobName ? { jobName } : undefined,
 			}),
 		select: (r) => r.data,
+	});
+
+export const useJobQueues = () =>
+	useQuery({
+		queryKey: [...k.all, "queues"],
+		queryFn: () => api.get<{ data: QueueMonitor }>("/admin/jobs/queues"),
+		select: (r) => r.data,
+		refetchInterval: 5000,
 	});
 
 export const useTriggerJob = () => {

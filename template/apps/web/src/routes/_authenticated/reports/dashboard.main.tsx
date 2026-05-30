@@ -14,7 +14,11 @@ function Page() {
 	const k = (data?.kpis as Record<string, number | undefined> | undefined) ?? {};
 
 	const kpiCards = [
-		{ key: "memberCount", label: t("reports.kpi.members", { defaultValue: "Active members" }), value: num(k.memberCount) },
+		{
+			key: "memberCount",
+			label: t("reports.kpi.members", { defaultValue: "Active members" }),
+			value: num(k.memberCount),
+		},
 		{
 			key: "notificationCount",
 			label: t("reports.kpi.notifications", { defaultValue: "Notifications" }),

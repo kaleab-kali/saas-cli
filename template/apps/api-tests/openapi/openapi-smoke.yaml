@@ -1,0 +1,29 @@
+openapi: 3.0.3
+info:
+  title: API smoke contract
+  description: Minimal local OpenAPI document used to validate the contract linting toolchain.
+  version: 1.0.0
+tags:
+  - name: health
+    description: Service health endpoints.
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      description: Returns the current service health state.
+      tags:
+        - health
+      responses:
+        "200":
+          description: Health status.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok

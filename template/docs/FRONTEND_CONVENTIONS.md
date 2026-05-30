@@ -1,62 +1,52 @@
 # Frontend Conventions
 
 ## Route Files
-Route files are thin — just `createFileRoute` with component:
+Route files should stay thin:
 ```typescript
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute('/properties')({
-  component: PropertiesPage,
+export const Route = createFileRoute("/projects")({
+  component: ProjectsPage,
 });
 
-function PropertiesPage() {
-  return <PropertyList />;
+function ProjectsPage() {
+  return <ProjectList />;
 }
 ```
 
 ## Feature Structure
-Each feature has:
-- `api/` — query keys factory, useQuery wrappers, useMutation wrappers
-- `components/` — UI components specific to this feature
-- `types/` — TypeScript type definitions
+Each feature should keep this shape:
+- `api/` - query keys, `useQuery` wrappers, `useMutation` wrappers
+- `components/` - feature-specific UI components
+- `types/` - TypeScript type definitions
 
-## Query Keys Factory Pattern
+## Query Keys
 ```typescript
-export const propertyKeys = {
-  all: ['properties'] as const,
-  lists: () => [...propertyKeys.all, 'list'] as const,
-  list: (params: Record<string, unknown>) => [...propertyKeys.lists(), params] as const,
-  details: () => [...propertyKeys.all, 'detail'] as const,
-  detail: (id: string) => [...propertyKeys.details(), id] as const,
+export const projectKeys = {
+  all: ["projects"] as const,
+  lists: () => [...projectKeys.all, "list"] as const,
+  list: (params: Record<string, unknown>) => [...projectKeys.lists(), params] as const,
+  details: () => [...projectKeys.all, "detail"] as const,
+  detail: (id: string) => [...projectKeys.details(), id] as const,
 };
 ```
 
-## Mutations Always Invalidate
+## Mutations
 ```typescript
 onSuccess: () => {
-  queryClient.invalidateQueries({ queryKey: propertyKeys.lists() });
+  queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
 }
 ```
 
-## DataTable
-Wrap TanStack Table + TanStack Virtual for virtualized, sortable, filterable tables.
+## Shared Rules
+- Wrap tables with the shared TanStack Table/DataTable utilities
+- Use shadcn form components with zod validation schemas
+- Route all HTTP calls through `#shared/lib/api-client.ts`
+- Use `#shared/lib/auth-client.ts` for Better Auth hooks
+- Use skeleton components for loading states
+- Use sonner toast notifications for recoverable errors
 
-## Forms
-Use shadcn form components + zod validation schemas.
-
-## API Calls
-All API calls go through `#shared/lib/api-client.ts` — never use `fetch` directly.
-
-## Auth State
-Use `#shared/lib/auth-client.ts` — Better Auth React hooks (`useSession`, `signIn`, `signUp`, `signOut`).
-
-## Loading States
-Use skeleton components from shadcn/ui.
-
-## Error States
-Use sonner toast notifications from shadcn/ui.
-
-## Import Rules
-- Feature code: `import { X } from '#features/properties/...'`
-- Shared code: `import { X } from '#shared/...'`
-- shadcn components: `import { Button } from '@/components/ui/button'` (keep @ alias)
+## Imports
+- Feature code: `import { X } from "#features/projects/..."`
+- Shared code: `import { X } from "#shared/..."`
+- shadcn components: `import { Button } from "@/components/ui/button"`

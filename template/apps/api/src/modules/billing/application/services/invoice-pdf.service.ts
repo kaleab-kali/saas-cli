@@ -36,7 +36,11 @@ export class InvoicePdfService {
 	 * Generate a PDF buffer for the given invoice. Uses generic line-item formatting,
 	 * computed `taxMinor` from the invoice itself (org tax rate already applied).
 	 */
-	async generate(invoice: SubscriptionInvoice, customer: CustomerInfo, issuer: CompanyInfo = DEFAULT_ISSUER): Promise<Buffer> {
+	async generate(
+		invoice: SubscriptionInvoice,
+		customer: CustomerInfo,
+		issuer: CompanyInfo = DEFAULT_ISSUER,
+	): Promise<Buffer> {
 		const p = invoice.toPrimitives();
 		return new Promise((resolve, reject) => {
 			try {

@@ -6,6 +6,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { toNodeHandler } from "better-auth/node";
 import * as compression from "compression";
 import * as cookieParser from "cookie-parser";
+import type { NextFunction, Request, Response } from "express";
 import helmet from "helmet";
 import { Logger } from "nestjs-pino";
 import { adminAuth } from "#modules/admin/auth/admin-auth.config";
@@ -37,9 +38,9 @@ const bootstrap = async () => {
 
 	// Admin auth routes (separate Better Auth instance)
 	// Mounted here so Better Auth handles its own cookie/session lifecycle.
-	// Only /api/admin-auth/* routes are handled — all other routes pass through to NestJS.
+	// Only /api/admin-auth/* routes are handled; all other routes pass through to NestJS.
 	const adminHandler = toNodeHandler(adminAuth);
-	app.use("/api/admin-auth", (req: any, res: any, next: () => void) => {
+	app.use("/api/admin-auth", (req: Request, res: Response, next: NextFunction) => {
 		adminHandler(req, res).catch(next);
 	});
 
@@ -63,7 +64,7 @@ const bootstrap = async () => {
 			{ path: "health", method: RequestMethod.GET },
 		],
 	});
-	// URI versioning — controllers can @Controller({ version: "2", path: "..." }) for new versions.
+	// URI versioning; controllers can @Controller({ version: "2", path: "..." }) for new versions.
 	// Existing controllers use the static "v1" path prefix above; versioning opt-in for future breaks.
 	app.enableVersioning({
 		type: VersioningType.URI,
@@ -84,8 +85,8 @@ const bootstrap = async () => {
 	// Swagger (development only)
 	if (process.env.NODE_ENV !== "production") {
 		const config = new DocumentBuilder()
-			.setTitle("PropFlow API")
-			.setDescription("Property Management + CRM SaaS API")
+			.setTitle(`${process.env.APP_NAME ?? "SaaS"} API`)
+			.setDescription("Multi-tenant SaaS API")
 			.setVersion("1.0")
 			.addCookieAuth("better-auth.session_token")
 			.build();

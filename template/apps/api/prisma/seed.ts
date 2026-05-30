@@ -23,6 +23,18 @@ const seed = async () => {
 	console.log("Seeding database...");
 
 	console.log("Clearing existing data...");
+	await prisma.subscriptionPayment.deleteMany();
+	await prisma.subscriptionInvoice.deleteMany();
+	await prisma.dunningEmail.deleteMany();
+	await prisma.usageSnapshot.deleteMany();
+	await prisma.subscription.deleteMany();
+	await prisma.customRoleAssignment.deleteMany();
+	await prisma.customRole.deleteMany();
+	await prisma.apiKey.deleteMany();
+	await prisma.auditLog.deleteMany();
+	await prisma.notification.deleteMany();
+	await prisma.orgEntitlementOverride.deleteMany();
+	await prisma.cronJobRun.deleteMany();
 	await prisma.adminSession.deleteMany();
 	await prisma.adminAccount.deleteMany();
 	await prisma.adminVerification.deleteMany();

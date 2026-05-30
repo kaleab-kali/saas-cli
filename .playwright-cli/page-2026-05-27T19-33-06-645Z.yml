@@ -1,0 +1,112 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]:
+          - img [ref=e10]
+          - generic [ref=e12]: vyllion-eims-v3-data-ui-proof
+        - button "Acme Inc Workspace" [ref=e13]:
+          - img [ref=e15]
+          - generic [ref=e20]:
+            - generic [ref=e21]: Acme Inc
+            - generic [ref=e22]: Workspace
+          - img [ref=e23]
+      - generic [ref=e27]:
+        - generic [ref=e28]: Workspace
+        - list [ref=e30]:
+          - listitem [ref=e31]:
+            - link "Files" [ref=e32] [cursor=pointer]:
+              - /url: /files
+              - img [ref=e33]
+              - generic [ref=e38]: Files
+          - listitem [ref=e39]:
+            - button "Reports ›" [ref=e40]:
+              - generic [ref=e41]:
+                - img [ref=e42]
+                - generic [ref=e48]: Reports
+              - generic [ref=e49]: ›
+            - list [ref=e50]:
+              - listitem [ref=e51]:
+                - link "Main Dashboard" [ref=e52] [cursor=pointer]:
+                  - /url: /reports/dashboard/main
+              - listitem [ref=e53]:
+                - link "Saved Reports" [ref=e54] [cursor=pointer]:
+                  - /url: /reports/saved
+              - listitem [ref=e55]:
+                - link "New Custom Report" [ref=e56] [cursor=pointer]:
+                  - /url: /reports/new
+              - listitem [ref=e57]:
+                - link "Schedules" [ref=e58] [cursor=pointer]:
+                  - /url: /reports/schedules
+          - listitem [ref=e59]:
+            - button "Notifications ›" [ref=e60]:
+              - generic [ref=e61]:
+                - img [ref=e62]
+                - generic [ref=e65]: Notifications
+              - generic [ref=e66]: ›
+          - listitem [ref=e67]:
+            - button "EIMS ›" [ref=e68]:
+              - generic [ref=e69]:
+                - img [ref=e70]
+                - generic [ref=e75]: EIMS
+              - generic [ref=e76]: ›
+            - list [ref=e77]:
+              - listitem [ref=e78]:
+                - link "Status" [ref=e79] [cursor=pointer]:
+                  - /url: /eims
+              - listitem [ref=e80]:
+                - link "Setup" [ref=e81] [cursor=pointer]:
+                  - /url: /eims/setup
+              - listitem [ref=e82]:
+                - link "Tax invoices" [ref=e83] [cursor=pointer]:
+                  - /url: /eims/submissions
+              - listitem [ref=e84]:
+                - link "Receipts" [ref=e85] [cursor=pointer]:
+                  - /url: /eims/receipts
+              - listitem [ref=e86]:
+                - link "Cancellations" [ref=e87] [cursor=pointer]:
+                  - /url: /eims/bulk
+              - listitem [ref=e88]:
+                - link "Records & exports" [ref=e89] [cursor=pointer]:
+                  - /url: /eims/compliance
+      - generic [ref=e90]:
+        - list [ref=e91]:
+          - listitem [ref=e92]:
+            - link "Settings" [ref=e93] [cursor=pointer]:
+              - /url: /settings
+              - img [ref=e94]
+              - generic [ref=e97]: Settings
+        - button "Sample Owner owner@example.com" [ref=e98]:
+          - img [ref=e100]
+          - generic [ref=e103]:
+            - generic [ref=e104]: Sample Owner
+            - generic [ref=e105]: owner@example.com
+    - main [ref=e106]:
+      - generic [ref=e107]:
+        - button "Toggle Sidebar" [ref=e108]:
+          - img
+          - generic [ref=e109]: Toggle Sidebar
+        - button "topbar.language" [ref=e110]: English
+        - button [ref=e111]:
+          - img
+      - main [ref=e112]:
+        - generic [ref=e113]:
+          - generic [ref=e114]:
+            - heading "Main Dashboard" [level=1] [ref=e115]
+            - generic [ref=e116]:
+              - button "CSV" [ref=e117]
+              - button "Excel" [ref=e118]
+              - button "PDF" [ref=e119]
+          - generic [ref=e120]:
+            - generic [ref=e121]:
+              - generic [ref=e123]: Active members
+              - generic [ref=e125]: "1"
+            - generic [ref=e126]:
+              - generic [ref=e128]: Notifications
+              - generic [ref=e130]: "0"
+          - generic [ref=e131]:
+            - generic [ref=e133]: Welcome to your workspace
+            - generic [ref=e134]:
+              - paragraph [ref=e135]: This is your starter dashboard. Build your domain modules, then plug their KPIs into this page.
+              - paragraph [ref=e136]: See docs/ADDING_DOMAIN.md to scaffold your first feature module.
+  - region "Notifications alt+T"

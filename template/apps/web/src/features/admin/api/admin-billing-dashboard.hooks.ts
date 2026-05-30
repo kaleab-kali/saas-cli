@@ -3,7 +3,7 @@ import { api } from "#shared/lib/api-client";
 
 export interface RevenueTrendPoint {
 	readonly month: string;
-	readonly revenueEtb: number;
+	readonly revenueMinor: number;
 }
 
 export interface PastDueInvoice {
@@ -13,8 +13,8 @@ export interface PastDueInvoice {
 	readonly organizationId: string;
 	readonly organizationName: string | null;
 	readonly dueDate: string;
-	readonly total: number;
-	readonly amountPaid: number;
+	readonly totalMinor: number;
+	readonly amountPaidMinor: number;
 	readonly currency: string;
 	readonly daysPastDue: number;
 }
@@ -25,7 +25,7 @@ export interface PendingPayment {
 	readonly invoiceNumber: string | null;
 	readonly organizationId: string;
 	readonly organizationName: string | null;
-	readonly amount: number;
+	readonly amountMinor: number;
 	readonly currency: string;
 	readonly method: string;
 	readonly receiptNumber: string | null;
@@ -71,9 +71,10 @@ export const useUsageHistory = (subscriptionId: string) =>
 				data: Array<{
 					id: string;
 					snapshotDate: string;
-					buildingCount: number;
-					unitCount: number;
 					userCount: number;
+					apiCallCount: number;
+					emailCount: number;
+					metricsJson: Record<string, number> | null;
 				}>;
 			}>(`/admin/billing/subscriptions/${subscriptionId}/usage-history`),
 		select: (r) => r.data,
@@ -81,13 +82,13 @@ export const useUsageHistory = (subscriptionId: string) =>
 	});
 
 export interface BillingDashboard {
-	readonly mrrEtb: number;
-	readonly arrEtb: number;
-	readonly outstandingEtb: number;
-	readonly paidLast30Etb: number;
+	readonly mrrMinor: number;
+	readonly arrMinor: number;
+	readonly outstandingMinor: number;
+	readonly paidLast30Minor: number;
 	readonly countsByStatus: Record<string, number>;
 	readonly upcomingRenewals30d: number;
-	readonly byPlan: Record<string, { count: number; mrrEtb: number }>;
+	readonly byPlan: Record<string, { count: number; mrrMinor: number }>;
 	readonly totalSubs: number;
 }
 

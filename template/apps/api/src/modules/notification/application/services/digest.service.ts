@@ -55,13 +55,14 @@ export class DigestService {
 			const list = notifications
 				.map((n) => `<li><strong>${n.title}</strong> — ${new Date(n.createdAt).toLocaleString()}</li>`)
 				.join("");
-			const html = `<p>Hi ${user.name ?? "there"},</p><p>Your ${frequency} PropFlow digest (${notifications.length} events):</p><ul>${list}</ul>`;
+			const appName = process.env.APP_NAME ?? "SaaS Platform";
+			const html = `<p>Hi ${user.name ?? "there"},</p><p>Your ${frequency} ${appName} digest (${notifications.length} events):</p><ul>${list}</ul>`;
 			const text = notifications.map((n) => `- ${n.title} (${new Date(n.createdAt).toLocaleString()})`).join("\n");
 
 			await this.dispatcher.dispatch({
 				organizationId: orgId,
 				to: user.email,
-				subject: `PropFlow ${frequency} digest (${notifications.length} events)`,
+				subject: `${appName} ${frequency} digest (${notifications.length} events)`,
 				html,
 				text,
 				source: "digest",

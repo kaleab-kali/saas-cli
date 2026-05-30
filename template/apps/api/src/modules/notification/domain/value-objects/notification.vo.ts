@@ -1,15 +1,10 @@
 export const NOTIFICATION_CATEGORIES = [
-	"invoice",
-	"payment",
-	"lease",
-	"work_order",
-	"lead",
-	"deal",
-	"purchase_request",
-	"purchase_order",
-	"listing",
-	"viewing",
 	"system",
+	"billing",
+	"reporting",
+	"security",
+	"user",
+	"integration",
 	"bulk",
 ] as const;
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
@@ -23,7 +18,7 @@ export type EmailFrequency = (typeof EMAIL_FREQUENCIES)[number];
 export const BULK_STATUSES = ["draft", "scheduled", "sending", "sent", "failed"] as const;
 export type BulkStatus = (typeof BULK_STATUSES)[number];
 
-export const AUDIENCE_TYPES = ["segment", "building", "custom", "all_renters", "all_owners"] as const;
+export const AUDIENCE_TYPES = ["segment", "role", "custom", "all_users"] as const;
 export type AudienceType = (typeof AUDIENCE_TYPES)[number];
 
 export const EMAIL_STATUSES = ["queued", "sent", "delivered", "failed", "bounced"] as const;

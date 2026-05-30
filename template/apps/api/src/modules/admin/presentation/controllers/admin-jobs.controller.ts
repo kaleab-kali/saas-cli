@@ -1,7 +1,7 @@
 import { BadRequestException, Controller, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
-
+import { QueueMonitorService } from "#modules/admin/application/services/queue-monitor.service";
 import { SuperAdminGuard } from "#modules/admin/guards/super-admin.guard";
 import { BillingLifecycleCron } from "#modules/billing/application/services/billing-lifecycle.cron";
 import { PrismaService } from "#shared/database/prisma.service";
@@ -21,6 +21,7 @@ export class AdminJobsController {
 	constructor(
 		private readonly prisma: PrismaService,
 		private readonly billingCron: BillingLifecycleCron,
+		private readonly queues: QueueMonitorService,
 	) {}
 
 	@Get()
@@ -49,6 +50,12 @@ export class AdminJobsController {
 				take,
 			}),
 		};
+	}
+
+	@Get("queues")
+	@ApiOperation({ summary: "Inspect configured BullMQ queues" })
+	async listQueues() {
+		return { data: await this.queues.listQueues() };
 	}
 
 	@Post(":name/trigger")

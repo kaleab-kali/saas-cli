@@ -1,0 +1,175 @@
+- generic [ref=e2]:
+  - generic [ref=e9]:
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - img [ref=e15]
+          - generic [ref=e17]: vyllion-eims-v3-data-ui-proof
+        - button "common.selectOrganization Workspace" [ref=e18]:
+          - img [ref=e20]
+          - generic [ref=e25]:
+            - generic [ref=e26]: common.selectOrganization
+            - generic [ref=e27]: Workspace
+          - img [ref=e28]
+      - generic [ref=e32]:
+        - generic [ref=e33]: Workspace
+        - list [ref=e35]:
+          - listitem [ref=e36]:
+            - link "Files" [ref=e37] [cursor=pointer]:
+              - /url: /files
+              - img [ref=e38]
+              - generic [ref=e43]: Files
+          - listitem [ref=e44]:
+            - button "Reports ›" [ref=e45]:
+              - generic [ref=e46]:
+                - img [ref=e47]
+                - generic [ref=e53]: Reports
+              - generic [ref=e54]: ›
+          - listitem [ref=e55]:
+            - button "Notifications ›" [ref=e56]:
+              - generic [ref=e57]:
+                - img [ref=e58]
+                - generic [ref=e61]: Notifications
+              - generic [ref=e62]: ›
+          - listitem [ref=e63]:
+            - button "EIMS ›" [ref=e64]:
+              - generic [ref=e65]:
+                - img [ref=e66]
+                - generic [ref=e71]: EIMS
+              - generic [ref=e72]: ›
+            - list [ref=e157]:
+              - listitem [ref=e158]:
+                - link "Overview" [active] [ref=e159] [cursor=pointer]:
+                  - /url: /eims
+              - listitem [ref=e160]:
+                - link "Setup" [ref=e161] [cursor=pointer]:
+                  - /url: /eims/setup
+              - listitem [ref=e162]:
+                - link "Enterprises" [ref=e163] [cursor=pointer]:
+                  - /url: /eims/enterprises
+              - listitem [ref=e164]:
+                - link "Branches" [ref=e165] [cursor=pointer]:
+                  - /url: /eims/establishments
+              - listitem [ref=e166]:
+                - link "Source Systems" [ref=e167] [cursor=pointer]:
+                  - /url: /eims/sources
+              - listitem [ref=e168]:
+                - link "Credentials" [ref=e169] [cursor=pointer]:
+                  - /url: /eims/credentials
+              - listitem [ref=e170]:
+                - link "Certificates" [ref=e171] [cursor=pointer]:
+                  - /url: /eims/certificates
+              - listitem [ref=e172]:
+                - link "Submissions" [ref=e173] [cursor=pointer]:
+                  - /url: /eims/submissions
+              - listitem [ref=e174]:
+                - link "Receipts" [ref=e175] [cursor=pointer]:
+                  - /url: /eims/receipts
+              - listitem [ref=e176]:
+                - link "Bulk" [ref=e177] [cursor=pointer]:
+                  - /url: /eims/bulk
+              - listitem [ref=e178]:
+                - link "Compliance" [ref=e179] [cursor=pointer]:
+                  - /url: /eims/compliance
+      - generic [ref=e73]:
+        - list [ref=e74]:
+          - listitem [ref=e75]:
+            - link "Settings" [ref=e76] [cursor=pointer]:
+              - /url: /settings
+              - img [ref=e77]
+              - generic [ref=e80]: Settings
+        - button "Owner owner@example.com" [ref=e81]:
+          - img [ref=e83]
+          - generic [ref=e86]:
+            - generic [ref=e87]: Owner
+            - generic [ref=e88]: owner@example.com
+    - main [ref=e89]:
+      - generic [ref=e90]:
+        - button "Toggle Sidebar" [ref=e91]:
+          - img
+          - generic [ref=e92]: Toggle Sidebar
+        - button "topbar.language" [ref=e93]: English
+        - button [ref=e94]:
+          - img
+      - main [ref=e95]:
+        - generic [ref=e180]:
+          - generic [ref=e181]:
+            - generic [ref=e182]:
+              - heading "EIMS Control Center" [level=1] [ref=e183]
+              - paragraph [ref=e184]: Operational view for enterprise, branch, source, submission, receipt, and compliance readiness.
+            - generic [ref=e185]: Mock Mode
+          - generic [ref=e186]:
+            - generic [ref=e188]:
+              - paragraph [ref=e189]: Accepted Today
+              - paragraph [ref=e190]: "1"
+            - generic [ref=e192]:
+              - paragraph [ref=e193]: Pending Offline
+              - paragraph [ref=e194]: "1"
+            - generic [ref=e196]:
+              - paragraph [ref=e197]: Unknown
+              - paragraph [ref=e198]: "1"
+            - generic [ref=e200]:
+              - paragraph [ref=e201]: Cert Alerts
+              - paragraph [ref=e202]: "1"
+          - generic [ref=e203]:
+            - generic [ref=e205]: Setup Progress
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - generic [ref=e208]: 2FA enforced for EIMS users
+                - generic [ref=e209]: complete
+              - generic [ref=e210]:
+                - generic [ref=e211]: Enterprise profile
+                - generic [ref=e212]: complete
+              - generic [ref=e213]:
+                - generic [ref=e214]: Primary establishment and sub-TIN
+                - generic [ref=e215]: complete
+              - generic [ref=e216]:
+                - generic [ref=e217]: Source system approval
+                - generic [ref=e218]: attention
+              - generic [ref=e219]:
+                - generic [ref=e220]: Sandbox certificate
+                - generic [ref=e221]: pending
+              - generic [ref=e222]:
+                - generic [ref=e223]: Phase 0 Layer B sandbox verification
+                - generic [ref=e224]: blocked
+          - generic [ref=e225]:
+            - generic [ref=e227]: Recent Submissions
+            - table [ref=e230]:
+              - rowgroup [ref=e231]:
+                - row "Document Type Status Source Total IRN" [ref=e232]:
+                  - columnheader "Document" [ref=e233]
+                  - columnheader "Type" [ref=e234]
+                  - columnheader "Status" [ref=e235]
+                  - columnheader "Source" [ref=e236]
+                  - columnheader "Total" [ref=e237]
+                  - columnheader "IRN" [ref=e238]
+              - rowgroup [ref=e239]:
+                - row "INV-2026-000128 INV / B2C accepted Front POS 517.50 ETB MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74" [ref=e240]:
+                  - cell "INV-2026-000128" [ref=e241]
+                  - cell "INV / B2C" [ref=e242]
+                  - cell "accepted" [ref=e243]
+                  - cell "Front POS" [ref=e244]
+                  - cell "517.50 ETB" [ref=e245]
+                  - cell "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74" [ref=e246]
+                - row "INV-2026-000129 INV / B2B pending_offline Front POS 3200.00 ETB Pending EIMS acceptance" [ref=e247]:
+                  - cell "INV-2026-000129" [ref=e248]
+                  - cell "INV / B2B" [ref=e249]
+                  - cell "pending_offline" [ref=e250]
+                  - cell "Front POS" [ref=e251]
+                  - cell "3200.00 ETB" [ref=e252]
+                  - cell "Pending EIMS acceptance" [ref=e253]
+                - row "INV-2026-000130 CRE / B2C failed_retryable Front POS 120.00 ETB Pending EIMS acceptance" [ref=e254]:
+                  - cell "INV-2026-000130" [ref=e255]
+                  - cell "CRE / B2C" [ref=e256]
+                  - cell "failed_retryable" [ref=e257]
+                  - cell "Front POS" [ref=e258]
+                  - cell "120.00 ETB" [ref=e259]
+                  - cell "Pending EIMS acceptance" [ref=e260]
+                - row "INV-2026-000131 INV / B2C unknown_submission Front POS 780.00 ETB Pending EIMS acceptance" [ref=e261]:
+                  - cell "INV-2026-000131" [ref=e262]
+                  - cell "INV / B2C" [ref=e263]
+                  - cell "unknown_submission" [ref=e264]
+                  - cell "Front POS" [ref=e265]
+                  - cell "780.00 ETB" [ref=e266]
+                  - cell "Pending EIMS acceptance" [ref=e267]
+  - region "Notifications alt+T"

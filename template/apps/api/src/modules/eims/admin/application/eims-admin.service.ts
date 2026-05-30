@@ -1,31 +1,35 @@
-import { Injectable } from "@nestjs/common";
-import { EimsMockService } from "../../shared/mock/eims-mock.service";
+import { Inject, Injectable } from "@nestjs/common";
+import { EIMS_BACKEND_REPOSITORY, type EimsBackendRepository } from "../../shared/mock/eims-backend.repository";
 
 @Injectable()
 export class EimsAdminService {
-	constructor(private readonly fixtures: EimsMockService) {}
+	constructor(@Inject(EIMS_BACKEND_REPOSITORY) private readonly repository: EimsBackendRepository) {}
 
 	overview() {
-		return this.fixtures.adminOverview();
+		return this.repository.adminOverview();
 	}
 
 	tenants() {
-		return this.fixtures.adminTenants();
+		return this.repository.adminTenants();
 	}
 
 	failures() {
-		return this.fixtures.adminFailures();
+		return this.repository.adminFailures();
 	}
 
 	certificates() {
-		return this.fixtures.adminCertificates();
+		return this.repository.adminCertificates();
 	}
 
 	resources() {
-		return this.fixtures.adminResources();
+		return this.repository.adminResources();
 	}
 
 	compliance() {
-		return this.fixtures.adminCompliance();
+		return this.repository.adminCompliance();
+	}
+
+	runAction(action: string, targetId?: string) {
+		return this.repository.adminRunAction(action, targetId);
 	}
 }

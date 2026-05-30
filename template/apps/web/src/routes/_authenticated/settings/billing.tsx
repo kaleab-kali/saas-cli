@@ -1,14 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import {
 	type Plan,
 	type SubscriptionInvoice,
+	useCancelSubscription,
 	useChangePlan,
 	useInitiateChapa,
 	useInitiateStripe,
 	usePlans,
+	useRecordManualPayment,
+	useResumeSubscription,
 	useStartSubscription,
+	useStripePortal,
 	useSubscription,
 	useSubscriptionInvoices,
 	useUsage,
@@ -16,6 +21,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_authenticated/settings/billing")({
@@ -37,6 +45,126 @@ const StatusBadge = React.memo(({ status }: { readonly status: string }) => {
 	return <Badge variant={variant}>{status}</Badge>;
 });
 StatusBadge.displayName = "StatusBadge";
+
+const ManualPaymentDialog = React.memo(
+	({
+		inv,
+		onRecord,
+		disabled,
+	}: {
+		readonly inv: SubscriptionInvoice;
+		readonly onRecord: (
+			invoiceId: string,
+			dto: {
+				amountMinor: number;
+				method: string;
+				receiptNumber?: string;
+				bankReference?: string;
+				note?: string;
+				paidAt?: string;
+			},
+		) => void;
+		readonly disabled: boolean;
+	}) => {
+		const [open, setOpen] = React.useState(false);
+		const outstandingMinor = Math.max(inv.totalMinor - inv.amountPaidMinor, 0);
+		const [amountMinor, setAmountMinor] = React.useState(String(outstandingMinor));
+		const [receiptNumber, setReceiptNumber] = React.useState("");
+		const [bankReference, setBankReference] = React.useState("");
+		const [note, setNote] = React.useState("");
+
+		React.useEffect(() => {
+			if (open) setAmountMinor(String(outstandingMinor));
+		}, [open, outstandingMinor]);
+
+		const submit = React.useCallback(() => {
+			const amount = Number(amountMinor);
+			if (!amount || amount <= 0) {
+				toast.error("Payment amount is required");
+				return;
+			}
+			if (!receiptNumber.trim() && !bankReference.trim()) {
+				toast.error("Add a receipt number or bank reference");
+				return;
+			}
+			onRecord(inv.id, {
+				amountMinor: amount,
+				method: "manual_bank",
+				receiptNumber: receiptNumber.trim() || undefined,
+				bankReference: bankReference.trim() || undefined,
+				note: note.trim() || undefined,
+				paidAt: new Date().toISOString(),
+			});
+			setOpen(false);
+			setReceiptNumber("");
+			setBankReference("");
+			setNote("");
+		}, [amountMinor, bankReference, inv.id, note, onRecord, receiptNumber]);
+
+		return (
+			<Dialog open={open} onOpenChange={setOpen}>
+				<DialogTrigger asChild>
+					<Button size="sm" variant="outline" disabled={disabled}>
+						Manual
+					</Button>
+				</DialogTrigger>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Record manual payment</DialogTitle>
+					</DialogHeader>
+					<div className="space-y-3">
+						<div className="grid gap-3 md:grid-cols-2">
+							<div className="space-y-1">
+								<Label htmlFor={`manual-payment-amount-${inv.id}`}>Amount (minor units)</Label>
+								<Input
+									id={`manual-payment-amount-${inv.id}`}
+									type="number"
+									min={1}
+									value={amountMinor}
+									onChange={(e) => setAmountMinor(e.target.value)}
+								/>
+							</div>
+							<div className="space-y-1">
+								<Label htmlFor={`manual-payment-receipt-${inv.id}`}>Receipt number</Label>
+								<Input
+									id={`manual-payment-receipt-${inv.id}`}
+									value={receiptNumber}
+									onChange={(e) => setReceiptNumber(e.target.value)}
+								/>
+							</div>
+						</div>
+						<div className="space-y-1">
+							<Label htmlFor={`manual-payment-bank-${inv.id}`}>Bank reference</Label>
+							<Input
+								id={`manual-payment-bank-${inv.id}`}
+								value={bankReference}
+								onChange={(e) => setBankReference(e.target.value)}
+							/>
+						</div>
+						<div className="space-y-1">
+							<Label htmlFor={`manual-payment-note-${inv.id}`}>Note</Label>
+							<Input id={`manual-payment-note-${inv.id}`} value={note} onChange={(e) => setNote(e.target.value)} />
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setOpen(false)}>
+							Cancel
+						</Button>
+						<Button onClick={submit} disabled={disabled}>
+							Submit payment
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		);
+	},
+	(prev, next) =>
+		prev.inv.id === next.inv.id &&
+		prev.inv.totalMinor === next.inv.totalMinor &&
+		prev.inv.amountPaidMinor === next.inv.amountPaidMinor &&
+		prev.disabled === next.disabled,
+);
+ManualPaymentDialog.displayName = "ManualPaymentDialog";
 
 const PlanCard = React.memo(
 	({
@@ -65,9 +193,7 @@ const PlanCard = React.memo(
 					<div className="text-xs text-muted-foreground">/{interval === "annual" ? "yr" : "mo"}</div>
 					{plan.description && <p className="text-sm text-muted-foreground">{plan.description}</p>}
 					<ul className="text-sm space-y-1">
-						{plan.userCap !== null && (
-							<li>{t("billing.userCap", { defaultValue: "{{n}} users", n: plan.userCap })}</li>
-						)}
+						{plan.userCap !== null && <li>{t("billing.userCap", { defaultValue: "{{n}} users", n: plan.userCap })}</li>}
 						<li>SLA: {plan.supportSlaHours}h</li>
 						<li>
 							{t("billing.gateways", { defaultValue: "Pay via" })}:{" "}
@@ -95,10 +221,24 @@ const InvoiceRow = React.memo(
 		inv,
 		onPayChapa,
 		onPayStripe,
+		onRecordManualPayment,
+		recordingManualPayment,
 	}: {
 		readonly inv: SubscriptionInvoice;
 		readonly onPayChapa: (id: string) => void;
 		readonly onPayStripe: (id: string) => void;
+		readonly onRecordManualPayment: (
+			id: string,
+			dto: {
+				amountMinor: number;
+				method: string;
+				receiptNumber?: string;
+				bankReference?: string;
+				note?: string;
+				paidAt?: string;
+			},
+		) => void;
+		readonly recordingManualPayment: boolean;
 	}) => {
 		const isOpen = inv.status === "sent" || inv.status === "overdue" || inv.status === "pending_payment";
 		return (
@@ -115,6 +255,7 @@ const InvoiceRow = React.memo(
 				<td className="py-2 px-3 text-right space-x-1">
 					{isOpen && (
 						<>
+							<ManualPaymentDialog inv={inv} onRecord={onRecordManualPayment} disabled={recordingManualPayment} />
 							<Button size="sm" variant="default" onClick={() => onPayStripe(inv.id)}>
 								Stripe
 							</Button>
@@ -134,7 +275,11 @@ const InvoiceRow = React.memo(
 			</tr>
 		);
 	},
-	(prev, next) => prev.inv.id === next.inv.id && prev.inv.status === next.inv.status,
+	(prev, next) =>
+		prev.inv.id === next.inv.id &&
+		prev.inv.status === next.inv.status &&
+		prev.inv.amountPaidMinor === next.inv.amountPaidMinor &&
+		prev.recordingManualPayment === next.recordingManualPayment,
 );
 InvoiceRow.displayName = "InvoiceRow";
 
@@ -146,8 +291,12 @@ function BillingSettings() {
 	const { data: invoicesRes } = useSubscriptionInvoices();
 	const startSub = useStartSubscription();
 	const changePlan = useChangePlan();
+	const cancelSubscription = useCancelSubscription();
+	const resumeSubscription = useResumeSubscription();
+	const recordManualPayment = useRecordManualPayment();
 	const initiateChapa = useInitiateChapa();
 	const initiateStripe = useInitiateStripe();
+	const stripePortal = useStripePortal();
 
 	const [interval, setIntervalState] = React.useState<"monthly" | "annual">("monthly");
 
@@ -164,6 +313,26 @@ function BillingSettings() {
 
 	const handlePayChapa = React.useCallback((invoiceId: string) => initiateChapa.mutate(invoiceId), [initiateChapa]);
 	const handlePayStripe = React.useCallback((invoiceId: string) => initiateStripe.mutate(invoiceId), [initiateStripe]);
+	const handleRecordManualPayment = React.useCallback(
+		(
+			invoiceId: string,
+			dto: {
+				amountMinor: number;
+				method: string;
+				receiptNumber?: string;
+				bankReference?: string;
+				note?: string;
+				paidAt?: string;
+			},
+		) => recordManualPayment.mutate({ invoiceId, ...dto }),
+		[recordManualPayment],
+	);
+	const handleCancelAtPeriodEnd = React.useCallback(() => {
+		if (window.confirm("Cancel this subscription at the end of the current billing period?")) {
+			cancelSubscription.mutate(false);
+		}
+	}, [cancelSubscription]);
+	const handleResumeSubscription = React.useCallback(() => resumeSubscription.mutate(), [resumeSubscription]);
 
 	if (plansLoading || subLoading) return <Skeleton className="h-96" />;
 
@@ -199,10 +368,44 @@ function BillingSettings() {
 							<Badge variant="outline">{sub.gateway}</Badge>
 						</div>
 						<div>
-							<div className="text-xs text-muted-foreground">
-								{t("billing.renewsOn", { defaultValue: "Renews" })}
-							</div>
+							<div className="text-xs text-muted-foreground">{t("billing.renewsOn", { defaultValue: "Renews" })}</div>
 							<div className="font-medium">{new Date(sub.currentPeriodEnd).toLocaleDateString()}</div>
+						</div>
+						<div className="md:col-span-4 flex flex-wrap gap-2 items-center">
+							{sub.cancelAtPeriodEnd ? (
+								<>
+									<Badge variant="secondary">Cancels at period end</Badge>
+									<Button
+										size="sm"
+										variant="outline"
+										onClick={handleResumeSubscription}
+										disabled={resumeSubscription.isPending}
+									>
+										{resumeSubscription.isPending ? "Resuming..." : "Resume subscription"}
+									</Button>
+								</>
+							) : (
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={handleCancelAtPeriodEnd}
+									disabled={cancelSubscription.isPending}
+								>
+									{cancelSubscription.isPending ? "Canceling..." : "Cancel at period end"}
+								</Button>
+							)}
+							{sub.gateway === "stripe" && (
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={() => stripePortal.mutate()}
+									disabled={stripePortal.isPending}
+								>
+									{stripePortal.isPending
+										? t("billing.openingPortal", { defaultValue: "Opening..." })
+										: t("billing.customerPortal", { defaultValue: "Billing portal" })}
+								</Button>
+							)}
 						</div>
 					</CardContent>
 				</Card>
@@ -276,7 +479,14 @@ function BillingSettings() {
 							</thead>
 							<tbody>
 								{(invoicesRes?.data ?? []).map((inv) => (
-									<InvoiceRow key={inv.id} inv={inv} onPayChapa={handlePayChapa} onPayStripe={handlePayStripe} />
+									<InvoiceRow
+										key={inv.id}
+										inv={inv}
+										onPayChapa={handlePayChapa}
+										onPayStripe={handlePayStripe}
+										onRecordManualPayment={handleRecordManualPayment}
+										recordingManualPayment={recordManualPayment.isPending}
+									/>
 								))}
 								{(!invoicesRes?.data || invoicesRes.data.length === 0) && (
 									<tr>

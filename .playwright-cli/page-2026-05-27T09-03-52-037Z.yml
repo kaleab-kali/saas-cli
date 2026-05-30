@@ -1,0 +1,143 @@
+- generic [ref=e2]:
+  - generic [ref=e9]:
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - img [ref=e15]
+          - generic [ref=e17]: vyllion-eims-v3-data-ui-proof
+        - button "common.selectOrganization Workspace" [ref=e18]:
+          - img [ref=e20]
+          - generic [ref=e25]:
+            - generic [ref=e26]: common.selectOrganization
+            - generic [ref=e27]: Workspace
+          - img [ref=e28]
+      - generic [ref=e32]:
+        - generic [ref=e33]: Workspace
+        - list [ref=e35]:
+          - listitem [ref=e36]:
+            - link "Files" [ref=e37] [cursor=pointer]:
+              - /url: /files
+              - img [ref=e38]
+              - generic [ref=e43]: Files
+          - listitem [ref=e44]:
+            - button "Reports ›" [ref=e45]:
+              - generic [ref=e46]:
+                - img [ref=e47]
+                - generic [ref=e53]: Reports
+              - generic [ref=e54]: ›
+          - listitem [ref=e55]:
+            - button "Notifications ›" [ref=e56]:
+              - generic [ref=e57]:
+                - img [ref=e58]
+                - generic [ref=e61]: Notifications
+              - generic [ref=e62]: ›
+          - listitem [ref=e63]:
+            - button "EIMS ›" [ref=e64]:
+              - generic [ref=e65]:
+                - img [ref=e66]
+                - generic [ref=e71]: EIMS
+              - generic [ref=e72]: ›
+            - list [ref=e157]:
+              - listitem [ref=e158]:
+                - link "Overview" [ref=e159] [cursor=pointer]:
+                  - /url: /eims
+              - listitem [ref=e160]:
+                - link "Setup" [ref=e161] [cursor=pointer]:
+                  - /url: /eims/setup
+              - listitem [ref=e162]:
+                - link "Enterprises" [ref=e163] [cursor=pointer]:
+                  - /url: /eims/enterprises
+              - listitem [ref=e164]:
+                - link "Branches" [ref=e165] [cursor=pointer]:
+                  - /url: /eims/establishments
+              - listitem [ref=e166]:
+                - link "Source Systems" [ref=e167] [cursor=pointer]:
+                  - /url: /eims/sources
+              - listitem [ref=e168]:
+                - link "Credentials" [ref=e169] [cursor=pointer]:
+                  - /url: /eims/credentials
+              - listitem [ref=e170]:
+                - link "Certificates" [ref=e171] [cursor=pointer]:
+                  - /url: /eims/certificates
+              - listitem [ref=e172]:
+                - link "Submissions" [ref=e173] [cursor=pointer]:
+                  - /url: /eims/submissions
+              - listitem [ref=e174]:
+                - link "Receipts" [ref=e175] [cursor=pointer]:
+                  - /url: /eims/receipts
+              - listitem [ref=e176]:
+                - link "Bulk" [active] [ref=e177] [cursor=pointer]:
+                  - /url: /eims/bulk
+              - listitem [ref=e178]:
+                - link "Compliance" [ref=e179] [cursor=pointer]:
+                  - /url: /eims/compliance
+      - generic [ref=e73]:
+        - list [ref=e74]:
+          - listitem [ref=e75]:
+            - link "Settings" [ref=e76] [cursor=pointer]:
+              - /url: /settings
+              - img [ref=e77]
+              - generic [ref=e80]: Settings
+        - button "Owner owner@example.com" [ref=e81]:
+          - img [ref=e83]
+          - generic [ref=e86]:
+            - generic [ref=e87]: Owner
+            - generic [ref=e88]: owner@example.com
+    - main [ref=e89]:
+      - generic [ref=e90]:
+        - button "Toggle Sidebar" [ref=e91]:
+          - img
+          - generic [ref=e92]: Toggle Sidebar
+        - button "topbar.language" [ref=e93]: English
+        - button [ref=e94]:
+          - img
+      - main [ref=e95]:
+        - generic [ref=e518]:
+          - generic [ref=e520]:
+            - heading "EIMS Bulk" [level=1] [ref=e521]
+            - paragraph [ref=e522]: Bulk conversations, callback idempotency, and reconciliation polling are ready for sandbox wiring.
+          - generic [ref=e523]:
+            - generic [ref=e525]: Bulk Conversations
+            - table [ref=e528]:
+              - rowgroup [ref=e529]:
+                - row "Conversation Endpoint Status Submitted Accepted Failed Pending Callback Reconciliation" [ref=e530]:
+                  - columnheader "Conversation" [ref=e531]
+                  - columnheader "Endpoint" [ref=e532]
+                  - columnheader "Status" [ref=e533]
+                  - columnheader "Submitted" [ref=e534]
+                  - columnheader "Accepted" [ref=e535]
+                  - columnheader "Failed" [ref=e536]
+                  - columnheader "Pending" [ref=e537]
+                  - columnheader "Callback" [ref=e538]
+                  - columnheader "Reconciliation" [ref=e539]
+              - rowgroup [ref=e540]:
+                - row "MOCK-CONV-20260526-001 /api/v1/bulkInvoice processing 12 10 1 1 awaiting_callback scheduled after 15m" [ref=e541]:
+                  - cell "MOCK-CONV-20260526-001" [ref=e542]
+                  - cell "/api/v1/bulkInvoice" [ref=e543]
+                  - cell "processing" [ref=e544]
+                  - cell "12" [ref=e545]
+                  - cell "10" [ref=e546]
+                  - cell "1" [ref=e547]
+                  - cell "1" [ref=e548]
+                  - cell "awaiting_callback" [ref=e549]
+                  - cell "scheduled after 15m" [ref=e550]
+          - generic [ref=e551]:
+            - generic [ref=e553]: Cancellation Controls
+            - table [ref=e556]:
+              - rowgroup [ref=e557]:
+                - row "IRN Reason Remark Status Usage Warning" [ref=e558]:
+                  - columnheader "IRN" [ref=e559]
+                  - columnheader "Reason" [ref=e560]
+                  - columnheader "Remark" [ref=e561]
+                  - columnheader "Status" [ref=e562]
+                  - columnheader "Usage" [ref=e563]
+                  - columnheader "Warning" [ref=e564]
+              - rowgroup [ref=e565]:
+                - row "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74 4 - Others Customer returned the order accepted 3/10 daily 75%" [ref=e566]:
+                  - cell "MOCK-IRN-51fa3144ae45d2a06873a1e81c59ab74" [ref=e567]
+                  - cell "4 - Others" [ref=e568]
+                  - cell "Customer returned the order" [ref=e569]
+                  - cell "accepted" [ref=e570]
+                  - cell "3/10 daily" [ref=e571]
+                  - cell "75%" [ref=e572]
+  - region "Notifications alt+T"

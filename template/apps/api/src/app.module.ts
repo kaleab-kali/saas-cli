@@ -10,6 +10,7 @@ import { AuditLogModule } from "#modules/audit-log/audit-log.module";
 import { AuthModule } from "#modules/auth/auth.module";
 import { BillingModule } from "#modules/billing/billing.module";
 import { SubscriptionStateGuard } from "#modules/billing/guards/subscription-state.guard";
+import { PolicyGuard } from "#modules/billing/presentation/guards/policy.guard";
 import { EimsModule } from "#modules/eims/eims.module";
 import { ErrorReportingModule } from "#modules/error-reporting/error-reporting.module";
 import { HealthModule } from "#modules/health/health.module";
@@ -20,6 +21,7 @@ import { ReportingModule } from "#modules/reporting/reporting.module";
 import { RoleModule } from "#modules/role/role.module";
 import { SecuritySettingsModule } from "#modules/security-settings/security-settings.module";
 import { TeamModule } from "#modules/team/team.module";
+import { UploadModule } from "#modules/upload/upload.module";
 import { PrismaModule } from "#shared/database/prisma.module";
 import { TenantContextModule } from "#shared/database/tenant-context";
 import { EmailModule } from "#shared/email/email.module";
@@ -30,6 +32,8 @@ import { OrgContextInterceptor } from "#shared/interceptors/org-context.intercep
 import { CorrelationIdMiddleware } from "#shared/logger/correlation-id.middleware";
 import { LoggerModule } from "#shared/logger/logger.module";
 import { LookupModule } from "#shared/lookups/lookup.module";
+import { MetricsInterceptor } from "#shared/metrics/metrics.interceptor";
+import { MetricsModule } from "#shared/metrics/metrics.module";
 import { SavedViewModule } from "#shared/saved-views/saved-view.module";
 import { StorageModule } from "#shared/storage/storage.module";
 
@@ -49,6 +53,7 @@ import { StorageModule } from "#shared/storage/storage.module";
 		ScheduleModule.forRoot(),
 		PrismaModule,
 		TenantContextModule,
+		MetricsModule,
 		StorageModule,
 		LookupModule,
 		SavedViewModule,
@@ -66,13 +71,16 @@ import { StorageModule } from "#shared/storage/storage.module";
 		EimsModule,
 		RoleModule,
 		TeamModule,
+		UploadModule,
 		ErrorReportingModule,
 	],
 	providers: [
 		{ provide: APP_FILTER, useClass: GlobalExceptionFilter },
 		{ provide: APP_GUARD, useClass: ThrottlerGuard },
 		{ provide: APP_GUARD, useClass: SubscriptionStateGuard },
+		{ provide: APP_GUARD, useClass: PolicyGuard },
 		{ provide: APP_INTERCEPTOR, useClass: OrgContextInterceptor },
+		{ provide: APP_INTERCEPTOR, useClass: MetricsInterceptor },
 		{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
 	],
 })

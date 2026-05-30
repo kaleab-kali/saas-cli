@@ -99,6 +99,7 @@ model Organization {
   members     Member[]
   invitations Invitation[]
   lookups     Lookup[]
+  fileAssets  FileAsset[]
 
   @@map("organization")
 }
@@ -424,6 +425,30 @@ model SavedView {
   @@unique([organizationId, entity, name])
   @@index([organizationId, entity])
   @@map("saved_view")
+}
+
+// ============================================================
+// FILE ASSETS
+// ============================================================
+
+model FileAsset {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  uploadedByUserId String?
+  folder           String       @default("general")
+  key              String       @unique
+  url              String
+  filename         String
+  mimeType         String
+  size             Int
+  storageDriver    String       @default("local")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, folder])
+  @@map("file_asset")
 }
 
 // ============================================================
@@ -899,7 +924,7 @@ model UsageSnapshot {
   userCount      Int          @default(0)
   apiCallCount   Int          @default(0)
   emailCount     Int          @default(0)
-  // Free-form per-app metrics: { "buildings": 12, "leads": 240, ... }
+  // Free-form per-app metrics: { "apiCalls": 1200, "emails": 45, ... }
   metricsJson    Json?
   createdAt      DateTime     @default(now())
 
@@ -1348,3 +1373,4 @@ model EimsNotificationLog {
   @@index([organizationId, status])
   @@map("eims_notification_log")
 }
+

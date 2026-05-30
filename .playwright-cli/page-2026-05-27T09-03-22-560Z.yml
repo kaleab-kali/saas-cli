@@ -1,0 +1,126 @@
+- generic [ref=e2]:
+  - generic [ref=e9]:
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - img [ref=e15]
+          - generic [ref=e17]: vyllion-eims-v3-data-ui-proof
+        - button "common.selectOrganization Workspace" [ref=e18]:
+          - img [ref=e20]
+          - generic [ref=e25]:
+            - generic [ref=e26]: common.selectOrganization
+            - generic [ref=e27]: Workspace
+          - img [ref=e28]
+      - generic [ref=e32]:
+        - generic [ref=e33]: Workspace
+        - list [ref=e35]:
+          - listitem [ref=e36]:
+            - link "Files" [ref=e37] [cursor=pointer]:
+              - /url: /files
+              - img [ref=e38]
+              - generic [ref=e43]: Files
+          - listitem [ref=e44]:
+            - button "Reports ›" [ref=e45]:
+              - generic [ref=e46]:
+                - img [ref=e47]
+                - generic [ref=e53]: Reports
+              - generic [ref=e54]: ›
+          - listitem [ref=e55]:
+            - button "Notifications ›" [ref=e56]:
+              - generic [ref=e57]:
+                - img [ref=e58]
+                - generic [ref=e61]: Notifications
+              - generic [ref=e62]: ›
+          - listitem [ref=e63]:
+            - button "EIMS ›" [ref=e64]:
+              - generic [ref=e65]:
+                - img [ref=e66]
+                - generic [ref=e71]: EIMS
+              - generic [ref=e72]: ›
+            - list [ref=e157]:
+              - listitem [ref=e158]:
+                - link "Overview" [ref=e159] [cursor=pointer]:
+                  - /url: /eims
+              - listitem [ref=e160]:
+                - link "Setup" [ref=e161] [cursor=pointer]:
+                  - /url: /eims/setup
+              - listitem [ref=e162]:
+                - link "Enterprises" [ref=e163] [cursor=pointer]:
+                  - /url: /eims/enterprises
+              - listitem [ref=e164]:
+                - link "Branches" [ref=e165] [cursor=pointer]:
+                  - /url: /eims/establishments
+              - listitem [ref=e166]:
+                - link "Source Systems" [ref=e167] [cursor=pointer]:
+                  - /url: /eims/sources
+              - listitem [ref=e168]:
+                - link "Credentials" [ref=e169] [cursor=pointer]:
+                  - /url: /eims/credentials
+              - listitem [ref=e170]:
+                - link "Certificates" [ref=e171] [cursor=pointer]:
+                  - /url: /eims/certificates
+              - listitem [ref=e172]:
+                - link "Submissions" [ref=e173] [cursor=pointer]:
+                  - /url: /eims/submissions
+              - listitem [ref=e174]:
+                - link "Receipts" [active] [ref=e175] [cursor=pointer]:
+                  - /url: /eims/receipts
+              - listitem [ref=e176]:
+                - link "Bulk" [ref=e177] [cursor=pointer]:
+                  - /url: /eims/bulk
+              - listitem [ref=e178]:
+                - link "Compliance" [ref=e179] [cursor=pointer]:
+                  - /url: /eims/compliance
+      - generic [ref=e73]:
+        - list [ref=e74]:
+          - listitem [ref=e75]:
+            - link "Settings" [ref=e76] [cursor=pointer]:
+              - /url: /settings
+              - img [ref=e77]
+              - generic [ref=e80]: Settings
+        - button "Owner owner@example.com" [ref=e81]:
+          - img [ref=e83]
+          - generic [ref=e86]:
+            - generic [ref=e87]: Owner
+            - generic [ref=e88]: owner@example.com
+    - main [ref=e89]:
+      - generic [ref=e90]:
+        - button "Toggle Sidebar" [ref=e91]:
+          - img
+          - generic [ref=e92]: Toggle Sidebar
+        - button "topbar.language" [ref=e93]: English
+        - button [ref=e94]:
+          - img
+      - main [ref=e95]:
+        - generic [ref=e483]:
+          - generic [ref=e485]:
+            - heading "EIMS Receipts" [level=1] [ref=e486]
+            - paragraph [ref=e487]: Sales and withholding receipt states linked to accepted invoice IRNs.
+          - table [ref=e491]:
+            - rowgroup [ref=e492]:
+              - row "Receipt Type Withholding Status Payment Amount RRN" [ref=e493]:
+                - columnheader "Receipt" [ref=e494]
+                - columnheader "Type" [ref=e495]
+                - columnheader "Withholding" [ref=e496]
+                - columnheader "Status" [ref=e497]
+                - columnheader "Payment" [ref=e498]
+                - columnheader "Amount" [ref=e499]
+                - columnheader "RRN" [ref=e500]
+            - rowgroup [ref=e501]:
+              - row "RCPT-2026-00044 sales none accepted CASH 517.50 MOCK-RRN-00044" [ref=e502]:
+                - cell "RCPT-2026-00044" [ref=e503]
+                - cell "sales" [ref=e504]
+                - cell "none" [ref=e505]
+                - cell "accepted" [ref=e506]
+                - cell "CASH" [ref=e507]
+                - cell "517.50" [ref=e508]
+                - cell "MOCK-RRN-00044" [ref=e509]
+              - row "WHT-2026-00002 withholding TWHT draft Local Bank Transfer 600.00 Pending" [ref=e510]:
+                - cell "WHT-2026-00002" [ref=e511]
+                - cell "withholding" [ref=e512]
+                - cell "TWHT" [ref=e513]
+                - cell "draft" [ref=e514]
+                - cell "Local Bank Transfer" [ref=e515]
+                - cell "600.00" [ref=e516]
+                - cell "Pending" [ref=e517]
+  - region "Notifications alt+T"

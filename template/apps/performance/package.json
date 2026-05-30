@@ -1,0 +1,13 @@
+{
+	"name": "performance",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "pnpm test:k6:mock",
+		"test:k6": "node scripts/run-k6.mjs k6/health.js",
+		"test:k6:api": "node scripts/run-k6.mjs k6/tenant-api.js",
+		"test:k6:mock": "node scripts/mock-k6.mjs",
+		"test:load": "pnpm test:k6"
+	}
+}

@@ -1,0 +1,119 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e7]:
+      - button "vyllion-eims-v3-data-ui-proof Admin Platform Management" [ref=e9]:
+        - img [ref=e11]
+        - generic [ref=e14]:
+          - generic [ref=e15]: vyllion-eims-v3-data-ui-proof Admin
+          - generic [ref=e16]: Platform Management
+      - generic [ref=e18]:
+        - generic [ref=e19]: Administration
+        - list [ref=e21]:
+          - listitem [ref=e22]:
+            - link "Overview" [ref=e23] [cursor=pointer]:
+              - /url: /admin
+              - img [ref=e24]
+              - generic [ref=e29]: Overview
+          - listitem [ref=e30]:
+            - link "Organizations" [ref=e31] [cursor=pointer]:
+              - /url: /admin/organizations
+              - img [ref=e32]
+              - generic [ref=e37]: Organizations
+          - listitem [ref=e38]:
+            - link "Users" [ref=e39] [cursor=pointer]:
+              - /url: /admin/users
+              - img [ref=e40]
+              - generic [ref=e45]: Users
+          - listitem [ref=e46]:
+            - link "Plans" [ref=e47] [cursor=pointer]:
+              - /url: /admin/plans
+              - img [ref=e48]
+              - generic [ref=e53]: Plans
+          - listitem [ref=e54]:
+            - link "Billing" [ref=e55] [cursor=pointer]:
+              - /url: /admin/billing
+              - img [ref=e56]
+              - generic [ref=e58]: Billing
+          - listitem [ref=e59]:
+            - link "Feature Flags" [ref=e60] [cursor=pointer]:
+              - /url: /admin/feature-flags
+              - img [ref=e61]
+              - generic [ref=e63]: Feature Flags
+          - listitem [ref=e64]:
+            - link "Email Templates" [ref=e65] [cursor=pointer]:
+              - /url: /admin/system-templates
+              - img [ref=e66]
+              - generic [ref=e69]: Email Templates
+          - listitem [ref=e70]:
+            - link "Jobs" [ref=e71] [cursor=pointer]:
+              - /url: /admin/jobs
+              - img [ref=e72]
+              - generic [ref=e75]: Jobs
+          - listitem [ref=e76]:
+            - link "Server" [ref=e77] [cursor=pointer]:
+              - /url: /admin/server
+              - img [ref=e78]
+              - generic [ref=e81]: Server
+          - listitem [ref=e82]:
+            - link "EIMS" [ref=e83] [cursor=pointer]:
+              - /url: /admin/eims
+              - img [ref=e84]
+              - generic [ref=e89]: EIMS
+          - listitem [ref=e90]:
+            - link "Audit Logs" [ref=e91] [cursor=pointer]:
+              - /url: /admin/audit-logs
+              - img [ref=e92]
+              - generic [ref=e97]: Audit Logs
+          - listitem [ref=e98]:
+            - link "Settings" [ref=e99] [cursor=pointer]:
+              - /url: /admin/settings
+              - img [ref=e100]
+              - generic [ref=e103]: Settings
+      - button "Super Admin admin@example.com" [ref=e105]:
+        - img [ref=e107]
+        - generic [ref=e110]:
+          - generic [ref=e111]: Super Admin
+          - generic [ref=e112]: admin@example.com
+    - main [ref=e113]:
+      - generic [ref=e114]:
+        - paragraph [ref=e115]: SUPER ADMIN MODE — You are viewing platform-level data across all organizations
+        - button "English" [ref=e116]
+      - main [ref=e117]:
+        - generic [ref=e118]:
+          - generic [ref=e119]:
+            - heading "EIMS Compliance" [level=1] [ref=e120]
+            - paragraph [ref=e121]: Platform evidence readiness for INSA/MoR paperwork and audits.
+          - generic [ref=e123]:
+            - paragraph [ref=e124]: Readiness
+            - paragraph [ref=e125]: 68%
+          - table [ref=e129]:
+            - rowgroup [ref=e130]:
+              - row "Evidence Status" [ref=e131]:
+                - columnheader "Evidence" [ref=e132]
+                - columnheader "Status" [ref=e133]
+            - rowgroup [ref=e134]:
+              - row "V3 architecture plan ready" [ref=e135]:
+                - cell "V3 architecture plan" [ref=e136]
+                - cell "ready" [ref=e137]
+              - row "Layer A local test assets ready" [ref=e138]:
+                - cell "Layer A local test assets" [ref=e139]
+                - cell "ready" [ref=e140]
+              - row "Tenant onboarding runbook ready" [ref=e141]:
+                - cell "Tenant onboarding runbook" [ref=e142]
+                - cell "ready" [ref=e143]
+              - row "Targeted EIMS RLS policy export ready" [ref=e144]:
+                - cell "Targeted EIMS RLS policy export" [ref=e145]
+                - cell "ready" [ref=e146]
+              - row "Vault operational runbook ready" [ref=e147]:
+                - cell "Vault operational runbook" [ref=e148]
+                - cell "ready" [ref=e149]
+              - row "Phase 0 Layer B sandbox report missing" [ref=e150]:
+                - cell "Phase 0 Layer B sandbox report" [ref=e151]
+                - cell "missing" [ref=e152]
+              - row "Bank guarantee scanned copy missing" [ref=e153]:
+                - cell "Bank guarantee scanned copy" [ref=e154]
+                - cell "missing" [ref=e155]
+              - row "Data residency legal opinion missing" [ref=e156]:
+                - cell "Data residency legal opinion" [ref=e157]
+                - cell "missing" [ref=e158]
+  - region "Notifications alt+T"

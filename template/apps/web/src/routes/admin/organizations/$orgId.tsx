@@ -89,7 +89,7 @@ function OrgDetailPage() {
 				</Card>
 			)}
 
-			<div className="grid grid-cols-3 gap-4">
+			<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 				<Card>
 					<CardHeader className="pb-2">
 						<CardTitle className="text-sm text-muted-foreground">{t("admin.membersStat")}</CardTitle>
@@ -104,6 +104,98 @@ function OrgDetailPage() {
 					</CardHeader>
 					<CardContent>
 						<p className="text-2xl font-bold">{org.stats.invitationCount}</p>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-sm text-muted-foreground">API keys</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<p className="text-2xl font-bold">{org.stats.apiKeyCount}</p>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-sm text-muted-foreground">Reports</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<p className="text-2xl font-bold">{org.stats.savedReportCount}</p>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-sm text-muted-foreground">Notifications</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<p className="text-2xl font-bold">{org.stats.notificationCount}</p>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-sm text-muted-foreground">Audit events</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<p className="text-2xl font-bold">{org.stats.auditLogCount}</p>
+					</CardContent>
+				</Card>
+			</div>
+
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">Subscription</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-2 text-sm">
+						{org.subscription ? (
+							<>
+								<div className="flex justify-between">
+									<span className="text-muted-foreground">Plan</span>
+									<span>{org.subscription.plan.nameEn}</span>
+								</div>
+								<div className="flex justify-between">
+									<span className="text-muted-foreground">Status</span>
+									<Badge>{org.subscription.status.replace("_", " ")}</Badge>
+								</div>
+								<div className="flex justify-between">
+									<span className="text-muted-foreground">Renews</span>
+									<span>{new Date(org.subscription.currentPeriodEnd).toLocaleDateString()}</span>
+								</div>
+								<Link
+									to="/admin/billing/$subscriptionId"
+									params={{ subscriptionId: org.subscription.id }}
+									className="text-sm text-primary hover:underline"
+								>
+									Manage billing
+								</Link>
+							</>
+						) : (
+							<p className="text-muted-foreground">No subscription found.</p>
+						)}
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-base">Latest usage</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-2 text-sm">
+						{org.usage ? (
+							<>
+								<div className="flex justify-between">
+									<span className="text-muted-foreground">Users</span>
+									<span className="font-mono">{org.usage.userCount}</span>
+								</div>
+								<div className="flex justify-between">
+									<span className="text-muted-foreground">API calls</span>
+									<span className="font-mono">{org.usage.apiCallCount}</span>
+								</div>
+								<div className="flex justify-between">
+									<span className="text-muted-foreground">Emails</span>
+									<span className="font-mono">{org.usage.emailCount}</span>
+								</div>
+							</>
+						) : (
+							<p className="text-muted-foreground">No usage snapshot yet.</p>
+						)}
 					</CardContent>
 				</Card>
 			</div>

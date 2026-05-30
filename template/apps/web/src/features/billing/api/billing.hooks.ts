@@ -95,10 +95,7 @@ export const usePlans = () =>
 export const useSubscription = () =>
 	useQuery({
 		queryKey: K.subscription,
-		queryFn: () =>
-			api.get<{ data: { subscription: Subscription | null; plan: Plan | null } }>(
-				"/billing/subscription",
-			),
+		queryFn: () => api.get<{ data: { subscription: Subscription | null; plan: Plan | null } }>("/billing/subscription"),
 		select: (r) => r.data,
 	});
 
@@ -209,3 +206,11 @@ export const useInitiateStripe = () => {
 		},
 	});
 };
+
+export const useStripePortal = () =>
+	useMutation({
+		mutationFn: () => api.post<{ data: { portalUrl: string } }>("/billing/stripe/portal", {}),
+		onSuccess: (res) => {
+			if (res.data.portalUrl) window.location.href = res.data.portalUrl;
+		},
+	});

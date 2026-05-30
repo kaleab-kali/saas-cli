@@ -1,92 +1,69 @@
-# PropFlow
+# {{projectName}}
 
-Multi-tenant SaaS for property management + CRM with RBAC.
+Production-ready multi-tenant SaaS starter.
+
+Dependencies are pinned to exact versions for reproducible local installs.
 
 ## Stack
 
-- **Backend:** NestJS 11 + PostgreSQL 16 + Prisma + Better Auth + BullMQ + Redis
-- **Frontend:** React 19 + Vite + TanStack Router + TanStack Query + shadcn/ui
-- **Monorepo:** pnpm workspaces + Turborepo
-- **Deployment:** PM2 + Caddy (no Docker)
-
-## Structure
-
-```
-apps/
-  api/          # NestJS backend (Clean Architecture)
-  web/          # React frontend
-docs/           # Architecture, conventions, guides
-```
+- NestJS + PostgreSQL + Prisma + Better Auth + BullMQ + Redis
+- React + Vite + TanStack Router + TanStack Query + shadcn/ui
+- pnpm workspaces + Turborepo
+- Stripe, Chapa, and manual billing foundations
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 20+
-- pnpm 9+
-- PostgreSQL 16
-- Redis 7+
-
-### Setup
-
 ```bash
-# Install dependencies
 pnpm install
-
-# Copy environment files
-cp .env.example .env
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
-
-# Set up database
-pnpm db:push
-pnpm db:generate
-
-# Start development
+pnpm db:migrate
+pnpm db:seed
 pnpm dev
 ```
 
-### Commands
+Open `http://localhost:5173`.
+
+## Local Workflow
 
 ```bash
-pnpm dev              # Both API + Web (Turborepo)
-pnpm dev:api          # API only (port 3000)
-pnpm dev:web          # Web only (port 5173)
-pnpm build            # Build all
-pnpm lint             # Lint all
-
-# Database
-pnpm db:generate      # Generate Prisma client
-pnpm db:migrate       # Run migrations
-pnpm db:push          # Push schema (dev)
-pnpm db:studio        # Prisma Studio GUI
+pnpm doctor
+pnpm gen:module customers
+pnpm gen:starter crm
 ```
 
-## Modules
+`pnpm doctor` checks env files, Prisma client state, database/Redis ports, and app ports. `pnpm gen:module <name>` creates one generic API module and web feature route. `pnpm gen:starter <pack>` creates several modules for CRM, marketplace, project management, AI SaaS, booking, or helpdesk.
+
+## Quality Gates
+
+```bash
+pnpm typecheck
+pnpm test:api
+pnpm test:property
+pnpm test:e2e
+pnpm test:acceptance
+pnpm test:ai
+pnpm test:load
+pnpm test:mutation
+```
+
+Test apps live under `apps/api-tests`, `apps/e2e`, `apps/acceptance`, `apps/performance`, `apps/security`, and `apps/ai-eval`. API unit, property, and mutation tests stay in `apps/api`. See `docs/TESTING_GUIDE.md`.
+
+Domain starter packs are documented in `docs/DOMAIN_STARTER_PACKS.md`.
+
+## Included Modules
 
 | Module | Description |
-|--------|-------------|
-| Auth | Better Auth + RBAC + multi-tenancy |
-| Property | Buildings, floors, units |
-| Lease | Residential + commercial lease lifecycle |
-| CRM | Unified contacts, activity tracking, automation |
-| Maintenance | Work orders, preventive maintenance, inspections |
-| Procurement | Purchase requests, approvals, POs |
-| Sales | Listings, pipeline, deals, commissions |
-| Finance | Invoicing, payments, reporting |
-| Notifications | In-app + email notifications |
-| Reporting | Dashboards + custom reports |
+| --- | --- |
+| Auth | Better Auth, organization tenancy, RBAC |
+| Admin | Platform admin users, organizations, plans, jobs, audit |
+| Billing | Plans, subscriptions, invoices, payments, dunning |
+| Notifications | In-app, email, templates, bulk messages |
+| Reporting | Saved reports, schedules, exports |
+| Settings | Organization, security, lookups, API keys |
 
-## Documentation
+## Admin Operations
 
-- [Architecture](docs/ARCHITECTURE.md) - Full feature map, flows, domain model
-- [Coding Standards](docs/CODING_STANDARDS.md) - Naming, patterns, function signatures
-- [Module Guide](docs/MODULE_GUIDE.md) - How to create a new backend module
-- [API Conventions](docs/API_CONVENTIONS.md) - Endpoint patterns, response format
-- [Frontend Conventions](docs/FRONTEND_CONVENTIONS.md) - React, TanStack patterns
-- [Database Guide](docs/DATABASE_GUIDE.md) - Prisma schema rules, multi-tenancy
-- [Permissions Guide](docs/PERMISSIONS_GUIDE.md) - RBAC system, roles, adding permissions
+The platform admin side includes organization detail, billing/subscription visibility, usage snapshots, resource counts, background jobs, and a server dashboard for runtime/database/host health. See `docs/ADMIN_OPERATIONS_GUIDE.md`.
 
-## License
-
-Proprietary - NOVEK ICT Solutions
+Add your business domain modules under `apps/api/src/modules` and `apps/web/src/features`.

@@ -8,11 +8,11 @@ import { prisma } from "../src/shared/database/prisma-instance";
  * then the Better Auth admin plugin issues the impersonation session for target.
  *
  * Env:
- *   IMPERSONATE_BRIDGE_EMAIL (default: impersonation-bridge@propflow.internal)
+ *   IMPERSONATE_BRIDGE_EMAIL (default: impersonation-bridge@example.internal)
  *   IMPERSONATE_BRIDGE_PASSWORD (required)
  */
 const seed = async () => {
-	const email = process.env.IMPERSONATE_BRIDGE_EMAIL ?? "impersonation-bridge@propflow.internal";
+	const email = process.env.IMPERSONATE_BRIDGE_EMAIL ?? "impersonation-bridge@example.internal";
 	const password = process.env.IMPERSONATE_BRIDGE_PASSWORD;
 	if (!password) {
 		console.error("IMPERSONATE_BRIDGE_PASSWORD env var required");

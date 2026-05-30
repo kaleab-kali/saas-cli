@@ -1,0 +1,185 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]:
+          - img [ref=e10]
+          - generic [ref=e12]: vyllion-eims-v3-data-ui-proof
+        - button "Acme Inc Workspace" [ref=e13]:
+          - img [ref=e15]
+          - generic [ref=e20]:
+            - generic [ref=e21]: Acme Inc
+            - generic [ref=e22]: Workspace
+          - img [ref=e23]
+      - generic [ref=e27]:
+        - generic [ref=e28]: Workspace
+        - list [ref=e30]:
+          - listitem [ref=e31]:
+            - link "Files" [ref=e32] [cursor=pointer]:
+              - /url: /files
+              - img [ref=e33]
+              - generic [ref=e38]: Files
+          - listitem [ref=e39]:
+            - button "Reports ›" [ref=e40]:
+              - generic [ref=e41]:
+                - img [ref=e42]
+                - generic [ref=e48]: Reports
+              - generic [ref=e49]: ›
+          - listitem [ref=e50]:
+            - button "Notifications ›" [ref=e51]:
+              - generic [ref=e52]:
+                - img [ref=e53]
+                - generic [ref=e56]: Notifications
+              - generic [ref=e57]: ›
+          - listitem [ref=e58]:
+            - button "Tax tools ›" [ref=e59]:
+              - generic [ref=e60]:
+                - img [ref=e61]
+                - generic [ref=e66]: Tax tools
+              - generic [ref=e67]: ›
+            - list [ref=e68]:
+              - listitem [ref=e69]:
+                - link "Status" [ref=e70] [cursor=pointer]:
+                  - /url: /eims
+              - listitem [ref=e71]:
+                - link "Setup" [ref=e72] [cursor=pointer]:
+                  - /url: /eims/setup
+              - listitem [ref=e73]:
+                - link "Tax invoices" [ref=e74] [cursor=pointer]:
+                  - /url: /eims/submissions
+              - listitem [ref=e75]:
+                - link "Receipts" [ref=e76] [cursor=pointer]:
+                  - /url: /eims/receipts
+              - listitem [ref=e77]:
+                - link "Cancellations" [ref=e78] [cursor=pointer]:
+                  - /url: /eims/bulk
+              - listitem [ref=e79]:
+                - link "Records & exports" [ref=e80] [cursor=pointer]:
+                  - /url: /eims/compliance
+      - generic [ref=e81]:
+        - list [ref=e82]:
+          - listitem [ref=e83]:
+            - link "Settings" [ref=e84] [cursor=pointer]:
+              - /url: /settings
+              - img [ref=e85]
+              - generic [ref=e88]: Settings
+        - button "Sample Owner owner@example.com" [ref=e89]:
+          - img [ref=e91]
+          - generic [ref=e94]:
+            - generic [ref=e95]: Sample Owner
+            - generic [ref=e96]: owner@example.com
+    - main [ref=e97]:
+      - generic [ref=e98]:
+        - button "Toggle Sidebar" [ref=e99]:
+          - img
+          - generic [ref=e100]: Toggle Sidebar
+        - button "topbar.language" [ref=e101]: English
+        - button [ref=e102]:
+          - img
+      - main [ref=e103]:
+        - generic [ref=e104]:
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - heading "Tax invoicing status" [level=1] [ref=e107]
+              - paragraph [ref=e108]: Complete tax setup once. After that, normal sales, receipts, cancellations, prints, and exports can sync automatically.
+            - generic [ref=e109]: Setup in progress
+          - generic [ref=e110]:
+            - generic [ref=e111]: "next step:"
+            - text: Add the approved system number for one register.
+          - generic [ref=e112]:
+            - generic [ref=e113]: "note:"
+            - text: Pending invoices receive a final tax reference after acceptance.
+          - generic [ref=e114]:
+            - generic [ref=e116]:
+              - paragraph [ref=e117]: Accepted today
+              - paragraph [ref=e118]: "1"
+            - generic [ref=e120]:
+              - paragraph [ref=e121]: Pending sync
+              - paragraph [ref=e122]: "1"
+            - generic [ref=e124]:
+              - paragraph [ref=e125]: Needs review
+              - paragraph [ref=e126]: "1"
+            - generic [ref=e128]:
+              - paragraph [ref=e129]: Certificate alerts
+              - paragraph [ref=e130]: "1"
+          - generic [ref=e131]:
+            - generic [ref=e133]: Required documents and details
+            - generic [ref=e134]:
+              - list [ref=e135]:
+                - listitem [ref=e136]: TIN, legal name, VAT number, and contact information
+                - listitem [ref=e137]: Branch address and branch Sub-TIN when available
+                - listitem [ref=e138]: Approved register/POS system number
+                - listitem [ref=e139]: API credentials and issued certificate
+              - paragraph [ref=e140]: If the tenant does not have these yet, onboarding staff can help collect the details during setup.
+          - generic [ref=e141]:
+            - generic [ref=e143]: Setup checklist
+            - generic [ref=e144]:
+              - generic [ref=e145]:
+                - generic [ref=e146]:
+                  - generic [ref=e147]:
+                    - generic [ref=e148]: Business tax profile
+                    - generic [ref=e149]: TIN, Legal business name, VAT number if VAT registered, Business contact phone/email
+                  - generic [ref=e150]: complete
+                - generic [ref=e151]: "Next action: Save business profile"
+              - generic [ref=e152]:
+                - generic [ref=e153]:
+                  - generic [ref=e154]:
+                    - generic [ref=e155]: Branch and address
+                    - generic [ref=e156]: Branch name, Region/city/woreda/kebele, Branch Sub-TIN when available
+                  - generic [ref=e157]: complete
+                - generic [ref=e158]: "Next action: Save branch details"
+              - generic [ref=e159]:
+                - generic [ref=e160]:
+                  - generic [ref=e161]:
+                    - generic [ref=e162]: Register/POS details
+                    - generic [ref=e163]: Approved system number, Register type such as POS or ERP
+                  - generic [ref=e164]: attention
+                - generic [ref=e165]: "Next action: Save register/POS details"
+              - generic [ref=e166]:
+                - generic [ref=e167]:
+                  - generic [ref=e168]:
+                    - generic [ref=e169]: Secure tax connection
+                    - generic [ref=e170]: API credentials, Issued certificate or certificate request file
+                  - generic [ref=e171]: pending
+                - generic [ref=e172]: "Next action: Save connection details"
+          - generic [ref=e173]:
+            - generic [ref=e175]: Recent tax invoices
+            - table [ref=e178]:
+              - rowgroup [ref=e179]:
+                - row "Document Type Status Branch Total Tax reference" [ref=e180]:
+                  - columnheader "Document" [ref=e181]
+                  - columnheader "Type" [ref=e182]
+                  - columnheader "Status" [ref=e183]
+                  - columnheader "Branch" [ref=e184]
+                  - columnheader "Total" [ref=e185]
+                  - columnheader "Tax reference" [ref=e186]
+              - rowgroup [ref=e187]:
+                - row "INV-2026-000128 INV / B2C accepted Bole Branch 517.50 ETB IRN-51fa3144ae45d2a06873a1e81c59ab74" [ref=e188]:
+                  - cell "INV-2026-000128" [ref=e189]
+                  - cell "INV / B2C" [ref=e190]
+                  - cell "accepted" [ref=e191]
+                  - cell "Bole Branch" [ref=e192]
+                  - cell "517.50 ETB" [ref=e193]
+                  - cell "IRN-51fa3144ae45d2a06873a1e81c59ab74" [ref=e194]
+                - row "INV-2026-000129 INV / B2B pending offline Bole Branch 3200.00 ETB Pending acceptance" [ref=e195]:
+                  - cell "INV-2026-000129" [ref=e196]
+                  - cell "INV / B2B" [ref=e197]
+                  - cell "pending offline" [ref=e198]
+                  - cell "Bole Branch" [ref=e199]
+                  - cell "3200.00 ETB" [ref=e200]
+                  - cell "Pending acceptance" [ref=e201]
+                - row "INV-2026-000130 CRE / B2C failed retryable Bole Branch 120.00 ETB Pending acceptance" [ref=e202]:
+                  - cell "INV-2026-000130" [ref=e203]
+                  - cell "CRE / B2C" [ref=e204]
+                  - cell "failed retryable" [ref=e205]
+                  - cell "Bole Branch" [ref=e206]
+                  - cell "120.00 ETB" [ref=e207]
+                  - cell "Pending acceptance" [ref=e208]
+                - row "INV-2026-000131 INV / B2C unknown submission Bole Branch 780.00 ETB Pending acceptance" [ref=e209]:
+                  - cell "INV-2026-000131" [ref=e210]
+                  - cell "INV / B2C" [ref=e211]
+                  - cell "unknown submission" [ref=e212]
+                  - cell "Bole Branch" [ref=e213]
+                  - cell "780.00 ETB" [ref=e214]
+                  - cell "Pending acceptance" [ref=e215]
+  - region "Notifications alt+T"

@@ -51,7 +51,10 @@ function LookupsPage() {
 	const deleteLookup = useDeleteLookup(kind);
 
 	const addKind = React.useCallback(() => {
-		const trimmed = newKindInput.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_");
+		const trimmed = newKindInput
+			.trim()
+			.toLowerCase()
+			.replace(/[^a-z0-9_]/g, "_");
 		if (!trimmed) return;
 		const next = Array.from(new Set([...kinds, trimmed]));
 		setKinds(next);
@@ -163,7 +166,12 @@ function LookupsPage() {
 						>
 							{row.original.archived ? "Unarchive" : "Archive"}
 						</Button>
-						<Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(row.original.id)}>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="text-destructive"
+							onClick={() => handleDelete(row.original.id)}
+						>
 							{t("common.delete", { defaultValue: "Delete" })}
 						</Button>
 					</div>
@@ -193,9 +201,7 @@ function LookupsPage() {
 			<div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4">
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">
-							{t("settings.lookups.catalogs", { defaultValue: "Catalogs" })}
-						</CardTitle>
+						<CardTitle className="text-base">{t("settings.lookups.catalogs", { defaultValue: "Catalogs" })}</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-3 p-4">
 						{kinds.length === 0 && (
@@ -292,9 +298,7 @@ function LookupsPage() {
 
 							<div className="space-y-3">
 								<div className="flex items-center justify-between">
-									<h2 className="text-lg font-semibold">
-										{t("settings.lookups.values", { defaultValue: "Values" })}
-									</h2>
+									<h2 className="text-lg font-semibold">{t("settings.lookups.values", { defaultValue: "Values" })}</h2>
 									<label className="flex items-center gap-2 text-sm cursor-pointer">
 										<input
 											type="checkbox"

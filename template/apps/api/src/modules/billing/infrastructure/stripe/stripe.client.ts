@@ -22,11 +22,7 @@ export class StripeClient {
 		return this._stripe;
 	}
 
-	async getOrCreateCustomer(input: {
-		organizationId: string;
-		email: string;
-		name?: string;
-	}): Promise<Stripe.Customer> {
+	async getOrCreateCustomer(input: { organizationId: string; email: string; name?: string }): Promise<Stripe.Customer> {
 		const existing = await this.stripe.customers.search({
 			query: `metadata['organizationId']:'${input.organizationId}'`,
 			limit: 1,

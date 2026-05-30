@@ -11,8 +11,51 @@
       "env": ["NODE_ENV", "DATABASE_URL", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "FRONTEND_URL"]
     },
     "lint": {},
-    "test": {
-      "dependsOn": ["build"]
+    "test": {},
+    "test:e2e": {
+      "cache": false
+    },
+    "test:smoke": {
+      "cache": false
+    },
+    "test:property": {},
+    "test:mutation": {
+      "cache": false
+    },
+    "test:load": {
+      "cache": false
+    },
+    "test:k6": {
+      "cache": false
+    },
+    "test:k6:api": {
+      "cache": false
+    },
+    "test:k6:mock": {
+      "cache": false
+    },
+    "test:dry": {},
+    "test:http": {
+      "cache": false
+    },
+    "test:bruno": {
+      "cache": false
+    },
+    "test:contract": {},
+    "test:secrets": {
+      "cache": false
+    },
+    "test:deps": {
+      "cache": false
+    },
+    "test:sast": {
+      "cache": false
+    },
+    "test:api": {
+      "cache": false
+    },
+    "test:tooling": {
+      "cache": false
     }
   }
 }

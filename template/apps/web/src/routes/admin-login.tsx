@@ -81,7 +81,7 @@ const AdminLoginForm = React.memo(
 							<Input
 								id="admin-password"
 								type="password"
-								placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+								placeholder="Password"
 								value={password}
 								onChange={handlePasswordChange}
 								required

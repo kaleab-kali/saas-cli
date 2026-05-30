@@ -57,14 +57,14 @@ export class LookupController {
 		return { data };
 	}
 
-	@Patch(":id")
+	@Patch("items/:id")
 	@ApiOperation({ summary: "Update a lookup value (label/description/archived)" })
 	async update(@Param("id") id: string, @Body() body: UpdateLookupBody, @Req() req: { organizationId: string }) {
 		const data = await this.lookups.update(req.organizationId, id, body);
 		return { data };
 	}
 
-	@Delete(":id")
+	@Delete("items/:id")
 	@ApiOperation({ summary: "Delete a custom lookup value (built-ins cannot be deleted)" })
 	async remove(@Param("id") id: string, @Req() req: { organizationId: string }) {
 		await this.lookups.remove(req.organizationId, id);

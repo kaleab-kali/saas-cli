@@ -54,7 +54,8 @@ describe("EimsSubmissionService", () => {
 		const overview = service.getOverview(organizationId);
 
 		expect(overview.data.organizationId).toBe(organizationId);
-		expect(overview.data.setupProgress).toContainEqual(expect.objectContaining({ key: "phase0", status: "blocked" }));
+		expect(overview.data.setupProgress).toContainEqual(expect.objectContaining({ key: "source", status: "attention" }));
+		expect(overview.data.setupProgress).not.toContainEqual(expect.objectContaining({ key: "phase0" }));
 		expect(overview.data.sourceSystems).toContainEqual(
 			expect.objectContaining({ id: "src_mock_1", approvalStatus: "approved" }),
 		);

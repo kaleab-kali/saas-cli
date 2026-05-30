@@ -1,0 +1,125 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]:
+          - img [ref=e10]
+          - generic [ref=e12]: vyllion-eims-v3-data-ui-proof
+        - button "Acme Inc Workspace" [ref=e13]:
+          - img [ref=e15]
+          - generic [ref=e20]:
+            - generic [ref=e21]: Acme Inc
+            - generic [ref=e22]: Workspace
+          - img [ref=e23]
+      - generic [ref=e27]:
+        - generic [ref=e28]: Workspace
+        - list [ref=e30]:
+          - listitem [ref=e31]:
+            - link "Files" [ref=e32] [cursor=pointer]:
+              - /url: /files
+              - img [ref=e33]
+              - generic [ref=e38]: Files
+          - listitem [ref=e39]:
+            - button "Reports ›" [ref=e40]:
+              - generic [ref=e41]:
+                - img [ref=e42]
+                - generic [ref=e48]: Reports
+              - generic [ref=e49]: ›
+          - listitem [ref=e50]:
+            - button "Notifications ›" [ref=e51]:
+              - generic [ref=e52]:
+                - img [ref=e53]
+                - generic [ref=e56]: Notifications
+              - generic [ref=e57]: ›
+          - listitem [ref=e58]:
+            - button "EIMS ›" [ref=e59]:
+              - generic [ref=e60]:
+                - img [ref=e61]
+                - generic [ref=e66]: EIMS
+              - generic [ref=e67]: ›
+            - list [ref=e68]:
+              - listitem [ref=e69]:
+                - link "Status" [ref=e70] [cursor=pointer]:
+                  - /url: /eims
+              - listitem [ref=e71]:
+                - link "Setup" [ref=e72] [cursor=pointer]:
+                  - /url: /eims/setup
+              - listitem [ref=e73]:
+                - link "Tax invoices" [ref=e74] [cursor=pointer]:
+                  - /url: /eims/submissions
+              - listitem [ref=e75]:
+                - link "Receipts" [ref=e76] [cursor=pointer]:
+                  - /url: /eims/receipts
+              - listitem [ref=e77]:
+                - link "Cancellations" [ref=e78] [cursor=pointer]:
+                  - /url: /eims/bulk
+              - listitem [ref=e79]:
+                - link "Records & exports" [ref=e80] [cursor=pointer]:
+                  - /url: /eims/compliance
+      - generic [ref=e81]:
+        - list [ref=e82]:
+          - listitem [ref=e83]:
+            - link "Settings" [ref=e84] [cursor=pointer]:
+              - /url: /settings
+              - img [ref=e85]
+              - generic [ref=e88]: Settings
+        - button "Sample Owner owner@example.com" [ref=e89]:
+          - img [ref=e91]
+          - generic [ref=e94]:
+            - generic [ref=e95]: Sample Owner
+            - generic [ref=e96]: owner@example.com
+    - main [ref=e97]:
+      - generic [ref=e98]:
+        - button "Toggle Sidebar" [ref=e99]:
+          - img
+          - generic [ref=e100]: Toggle Sidebar
+        - button "topbar.language" [ref=e101]: English
+        - button [ref=e102]:
+          - img
+      - main [ref=e103]:
+        - generic [ref=e104]:
+          - generic [ref=e106]:
+            - heading "Tax invoices" [level=1] [ref=e107]
+            - paragraph [ref=e108]: Accepted invoices have official IRN/QR. Invoices waiting for sync show pending status until EIMS accepts them.
+          - generic [ref=e109]:
+            - button "Submit sample invoice" [ref=e110]
+            - generic [ref=e152]: TEST-IRN-1779910428632
+          - table [ref=e114]:
+            - rowgroup [ref=e115]:
+              - row "Document Type Status Branch Total IRN" [ref=e116]:
+                - columnheader "Document" [ref=e117]
+                - columnheader "Type" [ref=e118]
+                - columnheader "Status" [ref=e119]
+                - columnheader "Branch" [ref=e120]
+                - columnheader "Total" [ref=e121]
+                - columnheader "IRN" [ref=e122]
+            - rowgroup [ref=e123]:
+              - row "INV-2026-000128 INV / B2C accepted Bole Branch 517.50 ETB TEST-IRN-51fa3144ae45d2a06873a1e81c59ab74" [ref=e124]:
+                - cell "INV-2026-000128" [ref=e125]
+                - cell "INV / B2C" [ref=e126]
+                - cell "accepted" [ref=e127]
+                - cell "Bole Branch" [ref=e128]
+                - cell "517.50 ETB" [ref=e129]
+                - cell "TEST-IRN-51fa3144ae45d2a06873a1e81c59ab74" [ref=e130]
+              - row "INV-2026-000129 INV / B2B pending offline Bole Branch 3200.00 ETB Pending EIMS acceptance" [ref=e131]:
+                - cell "INV-2026-000129" [ref=e132]
+                - cell "INV / B2B" [ref=e133]
+                - cell "pending offline" [ref=e134]
+                - cell "Bole Branch" [ref=e135]
+                - cell "3200.00 ETB" [ref=e136]
+                - cell "Pending EIMS acceptance" [ref=e137]
+              - row "INV-2026-000130 CRE / B2C failed retryable Bole Branch 120.00 ETB Pending EIMS acceptance" [ref=e138]:
+                - cell "INV-2026-000130" [ref=e139]
+                - cell "CRE / B2C" [ref=e140]
+                - cell "failed retryable" [ref=e141]
+                - cell "Bole Branch" [ref=e142]
+                - cell "120.00 ETB" [ref=e143]
+                - cell "Pending EIMS acceptance" [ref=e144]
+              - row "INV-2026-000131 INV / B2C unknown submission Bole Branch 780.00 ETB Pending EIMS acceptance" [ref=e145]:
+                - cell "INV-2026-000131" [ref=e146]
+                - cell "INV / B2C" [ref=e147]
+                - cell "unknown submission" [ref=e148]
+                - cell "Bole Branch" [ref=e149]
+                - cell "780.00 ETB" [ref=e150]
+                - cell "Pending EIMS acceptance" [ref=e151]
+  - region "Notifications alt+T"

@@ -27,7 +27,23 @@ export interface OrgDetail {
 	suspendedAt: string | null;
 	suspendReason: string | null;
 	members: OrgMember[];
-	stats: { memberCount: number; invitationCount: number };
+	subscription: {
+		id: string;
+		status: string;
+		billingInterval: string;
+		currency: string;
+		currentPeriodEnd: string;
+		plan: { slug: string; nameEn: string };
+	} | null;
+	usage: { userCount: number; apiCallCount: number; emailCount: number; metricsJson: unknown } | null;
+	stats: {
+		memberCount: number;
+		invitationCount: number;
+		apiKeyCount: number;
+		savedReportCount: number;
+		notificationCount: number;
+		auditLogCount: number;
+	};
 }
 
 export interface OrgMember {
@@ -36,14 +52,6 @@ export interface OrgMember {
 	role: string;
 	createdAt: string;
 	user: { id: string; name: string; email: string };
-}
-
-export interface OrgBuilding {
-	id: string;
-	name: string;
-	type: string;
-	address: string;
-	createdAt: string;
 }
 
 export interface PlatformUser {

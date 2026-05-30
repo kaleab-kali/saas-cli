@@ -19,6 +19,9 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 	canceled: "outline",
 };
 
+const formatMinor = (amountMinor: number, currency: string) =>
+	new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amountMinor / 100);
+
 const BillingIndex = React.memo(
 	() => {
 		const { t } = useTranslation();
@@ -99,9 +102,7 @@ const BillingIndex = React.memo(
 										<th className="text-left p-2">
 											{t("admin.billing.col.periodEnd", { defaultValue: "Period End" })}
 										</th>
-										<th className="text-right p-2">
-											{t("admin.billing.col.credit", { defaultValue: "Credit (ETB)" })}
-										</th>
+										<th className="text-right p-2">{t("admin.billing.col.credit", { defaultValue: "Credit" })}</th>
 										<th className="text-right p-2">{t("common.actions")}</th>
 									</tr>
 								</thead>
@@ -117,15 +118,10 @@ const BillingIndex = React.memo(
 												<Badge variant={STATUS_VARIANT[s.status] ?? "outline"} className="text-xs capitalize">
 													{t(`admin.billing.status.${s.status}`, { defaultValue: s.status.replace("_", " ") })}
 												</Badge>
-												{s.manualPaymentMode && (
-													<Badge variant="outline" className="ml-1 text-[10px]">
-														{t("admin.billing.manualMode", { defaultValue: "Manual" })}
-													</Badge>
-												)}
 											</td>
 											<td className="p-2">{s.billingInterval}</td>
 											<td className="p-2">{new Date(s.currentPeriodEnd).toLocaleDateString()}</td>
-											<td className="p-2 text-right font-mono">{s.creditBalanceEtb}</td>
+											<td className="p-2 text-right font-mono">{formatMinor(s.creditBalanceMinor, s.currency)}</td>
 											<td className="p-2 text-right">
 												<Link to="/admin/billing/$subscriptionId" params={{ subscriptionId: s.id }}>
 													<Button variant="outline" size="sm">

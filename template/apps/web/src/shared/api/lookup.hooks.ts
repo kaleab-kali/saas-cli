@@ -1,28 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "#shared/lib/api-client";
 
-export type LookupKind =
-	| "contact_type"
-	| "contact_source"
-	| "comm_channel"
-	| "activity_type"
-	| "relationship_type"
-	| "work_order_category"
-	| "work_order_priority"
-	| "pm_category"
-	| "asset_type"
-	| "vendor_specialty"
-	| "pr_category"
-	| "pr_urgency"
-	| "budget_category"
-	| "approver_role"
-	| "listing_type"
-	| "listing_feature"
-	| "lead_source"
-	| "lead_temperature"
-	| "financing_status"
-	| "agent_specialty"
-	| "interest_level";
+export type LookupKind = string;
 
 export interface LookupItem {
 	id: string;
@@ -83,7 +62,7 @@ export const useUpdateLookup = (kind: LookupKind) => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: ({ id, ...data }: { id: string } & UpdateLookupInput) =>
-			api.patch<{ data: LookupItem }>(`/lookups/${id}`, data),
+			api.patch<{ data: LookupItem }>(`/lookups/items/${id}`, data),
 		onSuccess: () => qc.invalidateQueries({ queryKey: lookupKeys.kind(kind) }),
 		meta: { successMessage: "Value updated", errorMessage: "Failed to update value" },
 	});
@@ -92,7 +71,7 @@ export const useUpdateLookup = (kind: LookupKind) => {
 export const useDeleteLookup = (kind: LookupKind) => {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (id: string) => api.delete(`/lookups/${id}`),
+		mutationFn: (id: string) => api.delete(`/lookups/items/${id}`),
 		onSuccess: () => qc.invalidateQueries({ queryKey: lookupKeys.kind(kind) }),
 		meta: { successMessage: "Value deleted", errorMessage: "Failed to delete value" },
 	});

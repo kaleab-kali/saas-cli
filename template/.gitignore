@@ -32,11 +32,23 @@ apps/api/logs/*.log
 
 # Test
 coverage/
+playwright-report/
+test-results/
+.stryker-tmp/
+apps/e2e/playwright-report/
+apps/e2e/test-results/
+apps/api-tests/playwright-report/
+apps/api-tests/test-results/
+apps/api/.stryker-tmp/
+apps/api/stryker-tmp/
+apps/api/reports/
+apps/security/security-results/
 
 # Generated
-apps/web/src/routeTree.gen.ts
 .claude/settings.local.json
 apps/api/src/generated/
+.scaffold-credentials.txt
+gitleaks-report.json
 
 # Playwright CLI
 .playwright-cli/

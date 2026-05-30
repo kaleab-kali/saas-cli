@@ -101,7 +101,7 @@ export const SubscriptionGate = React.memo(
 				<LockedOverlay
 					title={t("billing.canceledTitle", { defaultValue: "Subscription canceled" })}
 					message={t("billing.canceledMsg", {
-						defaultValue: "Your subscription is canceled. Start a new plan to continue using PropFlow.",
+						defaultValue: "Your subscription is canceled. Start a new plan to continue using this app.",
 					})}
 					showLogout
 				/>

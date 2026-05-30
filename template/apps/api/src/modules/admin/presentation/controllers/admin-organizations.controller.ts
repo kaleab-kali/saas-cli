@@ -26,7 +26,7 @@ export class AdminOrganizationsController {
 	}
 
 	@Get(":id")
-	@ApiOperation({ summary: "Get organization details with members and buildings" })
+	@ApiOperation({ summary: "Get organization details with members" })
 	async detail(@Param("id") id: string) {
 		const org = await this.getOrgDetail.execute(id);
 		return { data: org };

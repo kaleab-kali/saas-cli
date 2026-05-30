@@ -19,18 +19,26 @@ export class EimsSubmissionController {
 		return this.submissionService.getOverview(req.organizationId);
 	}
 
+	@Get("workspace")
+	@RequirePermissions("eims-submission:read")
+	workspace(@Req() req: AuthedRequest) {
+		return this.submissionService.getWorkspace(req.organizationId);
+	}
+
 	@Get("submissions")
 	@RequirePermissions("eims-submission:read")
 	submissions(@Req() req: AuthedRequest) {
 		return this.submissionService.listSubmissions(req.organizationId);
 	}
 
-	@Post("submissions/mock-submit")
+	@Post("submissions")
 	@RequirePermissions("eims-submission:create")
-	createMockSubmission(@Req() req: AuthedRequest, @Body() body: { documentNumber?: string }) {
+	submitInvoice(@Req() req: AuthedRequest, @Body() body: { documentNumber?: string; sourceSystemId?: string; payload?: unknown }) {
 		return this.submissionService.submitInvoice({
 			organizationId: req.organizationId,
 			documentNumber: body.documentNumber,
+			sourceSystemId: body.sourceSystemId,
+			payload: body.payload,
 		});
 	}
 

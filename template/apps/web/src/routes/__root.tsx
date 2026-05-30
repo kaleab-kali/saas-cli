@@ -10,7 +10,7 @@ export const Route = createRootRoute({
 
 function RootLayout() {
 	return (
-		<ThemeProvider defaultTheme="system" storageKey="propflow-theme">
+		<ThemeProvider defaultTheme="system" storageKey="saas-theme">
 			<TooltipProvider>
 				<AppErrorBoundary>
 					<div className="min-h-screen bg-background">

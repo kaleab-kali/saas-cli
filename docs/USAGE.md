@@ -60,6 +60,9 @@ npm publish --access public
 
 ```
 create-vyllion-saas [project-name] [options]
+create-vyllion-saas doctor
+create-vyllion-saas add module <name>
+create-vyllion-saas add starter <pack>
 ```
 
 ### Options
@@ -67,11 +70,39 @@ create-vyllion-saas [project-name] [options]
 | Flag        | Default | Description |
 |-------------|---------|-------------|
 | `--yes`, `-y` | `false` | Skip all prompts. Use all defaults. Fastest path. |
+| `--install` | `false` | Run `pnpm install` after scaffold. |
+| `--db-push` | `false` | Run `pnpm db:push` after scaffold. |
+| `--seed` | `false` | Run `pnpm db:seed` after scaffold. |
+| `--bootstrap` | `false` | Run install, db push, and seed after scaffold. |
 | `--help`, `-h` | -     | Show help |
 
 ### Positional
 
 - `project-name` — target folder name. Slugified (lowercase, dashes). Also used as the pnpm package name.
+
+---
+
+### Utility commands
+
+`create-vyllion-saas doctor` runs local environment checks from the current project directory:
+- Node and pnpm availability
+- `package.json`, API/web env files, and generated Prisma client
+- `DATABASE_URL` presence
+- common local ports for Postgres, Redis, API, and web
+
+`create-vyllion-saas add module <name>` scaffolds a neutral business module:
+- `apps/api/src/modules/<name>` module, controller, service, and DTO
+- `apps/web/src/features/<name>` hooks and list component
+- `apps/web/src/routes/_authenticated/<name>/index.tsx`
+- `apps/api/src/app.module.ts` registration
+
+`create-vyllion-saas add starter <pack>` expands a domain starter pack into several generated modules. Available packs:
+- `crm`
+- `marketplace`
+- `project-management`
+- `ai-saas`
+- `booking`
+- `helpdesk`
 
 ---
 
@@ -139,8 +170,8 @@ The CLI rewrites these tokens in every text file:
 | `{{caddyDomain}}` | Prompt answer |
 
 Plus literal replacements:
-- `PropFlow` → `{{projectName}}`
-- `propflow` → `{{projectSlug}}`
+- `{{projectName}}` -> configured project name
+- `{{projectSlug}}` -> generated project slug
 
 ---
 
@@ -172,16 +203,43 @@ pnpm dev                       # API: :3000, Web: :5173
 open http://localhost:5173/admin-login
 ```
 
+Fast local path:
+
+```bash
+create-vyllion-saas my-app --yes --bootstrap
+cd my-app
+pnpm dev
+```
+
 ---
 
 ## After scaffold — regenerate route tree
 
 TanStack Router has a generated file `apps/web/src/routeTree.gen.ts`. It's copied from the template. On first `pnpm dev`, TanStack will regenerate it automatically from the `routes/` folder. No manual action needed.
 
-If you see stale route errors, force-regen:
+If you see stale route errors, run the web build once. The Vite router plugin regenerates the route tree before TypeScript validation:
 ```bash
-pnpm --filter web exec tsr generate
+pnpm --filter web build
 ```
+
+---
+
+## Generated project quality commands
+
+```bash
+pnpm doctor
+pnpm typecheck
+pnpm test:api
+pnpm test:property
+pnpm test:e2e
+pnpm test:acceptance
+pnpm test:ai
+pnpm test:load
+pnpm test:security
+pnpm test:mutation
+```
+
+The generated project includes dedicated test apps in `apps/api-tests`, `apps/e2e`, `apps/acceptance`, `apps/performance`, `apps/security`, and `apps/ai-eval`. API unit/property/mutation tests stay in `apps/api`. Details live in `docs/TESTING_GUIDE.md` inside the generated project.
 
 ---
 

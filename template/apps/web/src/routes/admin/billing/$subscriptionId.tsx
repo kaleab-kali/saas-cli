@@ -12,7 +12,6 @@ import {
 	useRecordManualPayment,
 	useSendDunning,
 	useSendInvoice,
-	useToggleManualMode,
 	useVoidInvoice,
 } from "#features/admin/api/admin-billing.hooks";
 import { useUsageHistory } from "#features/admin/api/admin-billing-dashboard.hooks";
@@ -27,7 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const METHODS = ["cash", "bank_transfer", "telebirr", "cbe_birr", "cheque", "chapa_online"] as const;
+const METHODS = ["manual_bank", "manual_other", "stripe_card", "chapa_telebirr", "chapa_cbe", "chapa_card"] as const;
 const FORCE_STATUSES = [
 	"active",
 	"trialing",
@@ -38,6 +37,9 @@ const FORCE_STATUSES = [
 	"suspended",
 	"canceled",
 ] as const;
+
+const formatMinor = (amountMinor: number, currency: string) =>
+	new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amountMinor / 100);
 
 const SubscriptionDetail = React.memo(
 	() => {
@@ -51,7 +53,6 @@ const SubscriptionDetail = React.memo(
 		const voidInvoice = useVoidInvoice();
 		const recordPayment = useRecordManualPayment();
 		const extend = useExtendSubscription();
-		const toggleManual = useToggleManualMode();
 		const creditAcc = useCreditAccount();
 		const changePlan = useChangeSubscriptionPlan();
 		const forceStatus = useForceSubscriptionStatus();
@@ -67,39 +68,40 @@ const SubscriptionDetail = React.memo(
 		const [statusReason, setStatusReason] = React.useState("");
 
 		const [invoiceForm, setInvoiceForm] = React.useState({
-			amountEtb: "",
+			amountMinor: "",
 			periodStart: "",
 			periodEnd: "",
 			description: "",
 		});
 		const [paymentForm, setPaymentForm] = React.useState({
-			amount: "",
-			method: "cash",
+			amountMinor: "",
+			method: "manual_bank",
 			receiptNumber: "",
 			bankReference: "",
 			note: "",
 			paidAt: new Date().toISOString().slice(0, 10),
 			forInvoiceId: "",
 		});
+		const [paymentDialogInvoiceId, setPaymentDialogInvoiceId] = React.useState<string | null>(null);
 
 		const handleCreateInvoice = React.useCallback(async () => {
-			if (!invoiceForm.amountEtb || !invoiceForm.periodStart || !invoiceForm.periodEnd) return;
+			if (!invoiceForm.amountMinor || !invoiceForm.periodStart || !invoiceForm.periodEnd) return;
 			await createInvoice.mutateAsync({
 				subscriptionId,
-				amountEtb: Number(invoiceForm.amountEtb),
+				amountMinor: Number(invoiceForm.amountMinor),
 				periodStart: invoiceForm.periodStart,
 				periodEnd: invoiceForm.periodEnd,
 				description: invoiceForm.description || undefined,
 			});
-			setInvoiceForm({ amountEtb: "", periodStart: "", periodEnd: "", description: "" });
+			setInvoiceForm({ amountMinor: "", periodStart: "", periodEnd: "", description: "" });
 		}, [invoiceForm, createInvoice, subscriptionId]);
 
 		const handleRecordPayment = React.useCallback(
 			async (invoiceId: string) => {
-				if (!paymentForm.amount) return;
+				if (!paymentForm.amountMinor) return;
 				await recordPayment.mutateAsync({
 					invoiceId,
-					amount: Number(paymentForm.amount),
+					amountMinor: Number(paymentForm.amountMinor),
 					method: paymentForm.method,
 					receiptNumber: paymentForm.receiptNumber || undefined,
 					bankReference: paymentForm.bankReference || undefined,
@@ -107,14 +109,15 @@ const SubscriptionDetail = React.memo(
 					paidAt: paymentForm.paidAt,
 				});
 				setPaymentForm({
-					amount: "",
-					method: "cash",
+					amountMinor: "",
+					method: "manual_bank",
 					receiptNumber: "",
 					bankReference: "",
 					note: "",
 					paidAt: new Date().toISOString().slice(0, 10),
 					forInvoiceId: "",
 				});
+				setPaymentDialogInvoiceId(null);
 			},
 			[paymentForm, recordPayment],
 		);
@@ -158,11 +161,6 @@ const SubscriptionDetail = React.memo(
 						</CardHeader>
 						<CardContent>
 							<Badge className="text-sm capitalize">{sub.status.replace("_", " ")}</Badge>
-							{sub.manualPaymentMode && (
-								<Badge variant="outline" className="ml-1 text-[10px]">
-									{t("admin.billing.manualMode", { defaultValue: "Manual" })}
-								</Badge>
-							)}
 						</CardContent>
 					</Card>
 					<Card>
@@ -190,7 +188,7 @@ const SubscriptionDetail = React.memo(
 							</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<div className="text-lg font-semibold font-mono">{sub.creditBalanceEtb} ETB</div>
+							<div className="text-lg font-semibold font-mono">{formatMinor(sub.creditBalanceMinor, sub.currency)}</div>
 						</CardContent>
 					</Card>
 				</div>
@@ -248,32 +246,44 @@ const SubscriptionDetail = React.memo(
 							<CardContent className="space-y-3">
 								<div className="grid grid-cols-1 md:grid-cols-4 gap-2">
 									<div className="space-y-1">
-										<Label>{t("admin.billing.amountEtb", { defaultValue: "Amount (ETB, excl. VAT)" })}</Label>
+										<Label htmlFor="manual-invoice-amount">
+											{t("admin.billing.amountMinor", { defaultValue: "Amount (minor units, excl. tax)" })}
+										</Label>
 										<Input
+											id="manual-invoice-amount"
 											type="number"
-											value={invoiceForm.amountEtb}
-											onChange={(e) => setInvoiceForm((f) => ({ ...f, amountEtb: e.target.value }))}
+											value={invoiceForm.amountMinor}
+											onChange={(e) => setInvoiceForm((f) => ({ ...f, amountMinor: e.target.value }))}
 										/>
 									</div>
 									<div className="space-y-1">
-										<Label>{t("admin.billing.periodStart", { defaultValue: "Period Start" })}</Label>
+										<Label htmlFor="manual-invoice-period-start">
+											{t("admin.billing.periodStart", { defaultValue: "Period Start" })}
+										</Label>
 										<Input
+											id="manual-invoice-period-start"
 											type="date"
 											value={invoiceForm.periodStart}
 											onChange={(e) => setInvoiceForm((f) => ({ ...f, periodStart: e.target.value }))}
 										/>
 									</div>
 									<div className="space-y-1">
-										<Label>{t("admin.billing.periodEndLbl", { defaultValue: "Period End" })}</Label>
+										<Label htmlFor="manual-invoice-period-end">
+											{t("admin.billing.periodEndLbl", { defaultValue: "Period End" })}
+										</Label>
 										<Input
+											id="manual-invoice-period-end"
 											type="date"
 											value={invoiceForm.periodEnd}
 											onChange={(e) => setInvoiceForm((f) => ({ ...f, periodEnd: e.target.value }))}
 										/>
 									</div>
 									<div className="space-y-1">
-										<Label>{t("admin.billing.description", { defaultValue: "Description" })}</Label>
+										<Label htmlFor="manual-invoice-description">
+											{t("admin.billing.description", { defaultValue: "Description" })}
+										</Label>
 										<Input
+											id="manual-invoice-description"
 											value={invoiceForm.description}
 											onChange={(e) => setInvoiceForm((f) => ({ ...f, description: e.target.value }))}
 										/>
@@ -310,8 +320,8 @@ const SubscriptionDetail = React.memo(
 													</Badge>
 												</td>
 												<td className="p-2">{new Date(inv.dueDate).toLocaleDateString()}</td>
-												<td className="p-2 text-right font-mono">{inv.total.toFixed(2)}</td>
-												<td className="p-2 text-right font-mono">{inv.amountPaid.toFixed(2)}</td>
+												<td className="p-2 text-right font-mono">{formatMinor(inv.totalMinor, inv.currency)}</td>
+												<td className="p-2 text-right font-mono">{formatMinor(inv.amountPaidMinor, inv.currency)}</td>
 												<td className="p-2 text-right space-x-1">
 													{inv.status === "draft" && (
 														<Button
@@ -324,7 +334,10 @@ const SubscriptionDetail = React.memo(
 														</Button>
 													)}
 													{inv.status !== "paid" && inv.status !== "void" && (
-														<Dialog>
+														<Dialog
+															open={paymentDialogInvoiceId === inv.id}
+															onOpenChange={(open) => setPaymentDialogInvoiceId(open ? inv.id : null)}
+														>
 															<DialogTrigger asChild>
 																<Button size="sm">{t("admin.billing.recordPayment", { defaultValue: "Pay" })}</Button>
 															</DialogTrigger>
@@ -338,11 +351,14 @@ const SubscriptionDetail = React.memo(
 																<div className="space-y-3">
 																	<div className="grid grid-cols-2 gap-2">
 																		<div className="space-y-1">
-																			<Label>{t("admin.billing.amount", { defaultValue: "Amount (ETB)" })}</Label>
+																			<Label htmlFor={`payment-amount-${inv.id}`}>
+																				{t("admin.billing.amountMinor", { defaultValue: "Amount (minor units)" })}
+																			</Label>
 																			<Input
+																				id={`payment-amount-${inv.id}`}
 																				type="number"
-																				value={paymentForm.amount}
-																				onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))}
+																				value={paymentForm.amountMinor}
+																				onChange={(e) => setPaymentForm((f) => ({ ...f, amountMinor: e.target.value }))}
 																			/>
 																		</div>
 																		<div className="space-y-1">
@@ -364,8 +380,11 @@ const SubscriptionDetail = React.memo(
 																			</Select>
 																		</div>
 																		<div className="space-y-1">
-																			<Label>{t("admin.billing.receiptNo", { defaultValue: "Receipt No" })}</Label>
+																			<Label htmlFor={`payment-receipt-${inv.id}`}>
+																				{t("admin.billing.receiptNo", { defaultValue: "Receipt No" })}
+																			</Label>
 																			<Input
+																				id={`payment-receipt-${inv.id}`}
 																				value={paymentForm.receiptNumber}
 																				onChange={(e) =>
 																					setPaymentForm((f) => ({ ...f, receiptNumber: e.target.value }))
@@ -476,26 +495,6 @@ const SubscriptionDetail = React.memo(
 						<Card>
 							<CardHeader>
 								<CardTitle className="text-base">
-									{t("admin.billing.manualModeAction", { defaultValue: "Manual payment mode" })}
-								</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<Button
-									size="sm"
-									variant={sub.manualPaymentMode ? "default" : "outline"}
-									onClick={() => toggleManual.mutate({ id: subscriptionId, manualMode: !sub.manualPaymentMode })}
-									disabled={toggleManual.isPending}
-								>
-									{sub.manualPaymentMode
-										? t("admin.billing.manualModeOn", { defaultValue: "Manual mode ON (click to disable)" })
-										: t("admin.billing.manualModeOff", { defaultValue: "Manual mode OFF (click to enable)" })}
-								</Button>
-							</CardContent>
-						</Card>
-
-						<Card>
-							<CardHeader>
-								<CardTitle className="text-base">
 									{t("admin.billing.creditAction", { defaultValue: "Credit / Debit account" })}
 								</CardTitle>
 							</CardHeader>
@@ -520,7 +519,7 @@ const SubscriptionDetail = React.memo(
 									onClick={() =>
 										creditAcc.mutate({
 											id: subscriptionId,
-											amountEtb: Number(creditAmount),
+											amountMinor: Number(creditAmount),
 											note: creditNote || undefined,
 										})
 									}
@@ -710,18 +709,22 @@ const UsageHistoryPanel = React.memo(
 						<thead className="bg-muted/40">
 							<tr>
 								<th className="text-left p-2">Date</th>
-								<th className="text-right p-2">Buildings</th>
-								<th className="text-right p-2">Units</th>
 								<th className="text-right p-2">Users</th>
+								<th className="text-right p-2">API calls</th>
+								<th className="text-right p-2">Emails</th>
+								<th className="text-left p-2">Metrics</th>
 							</tr>
 						</thead>
 						<tbody>
 							{data.map((s) => (
 								<tr key={s.id} className="border-t">
 									<td className="p-2">{new Date(s.snapshotDate).toLocaleDateString()}</td>
-									<td className="p-2 text-right font-mono">{s.buildingCount}</td>
-									<td className="p-2 text-right font-mono">{s.unitCount}</td>
 									<td className="p-2 text-right font-mono">{s.userCount}</td>
+									<td className="p-2 text-right font-mono">{s.apiCallCount}</td>
+									<td className="p-2 text-right font-mono">{s.emailCount}</td>
+									<td className="p-2 text-xs text-muted-foreground">
+										{s.metricsJson ? JSON.stringify(s.metricsJson) : "None"}
+									</td>
 								</tr>
 							))}
 						</tbody>

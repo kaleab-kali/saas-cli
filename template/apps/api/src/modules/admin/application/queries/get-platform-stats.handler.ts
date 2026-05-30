@@ -23,28 +23,22 @@ export class GetPlatformStatsHandler {
 		const sevenDaysAgo = new Date(now.getTime() - SEVEN_DAYS_MS);
 		const oneDayAgo = new Date(now.getTime() - ONE_DAY_MS);
 
-		const [
-			totalOrganizations,
-			totalUsers,
-			newOrgsLast7Days,
-			newUsersLast7Days,
-			activeSessionsLast24h,
-			topOrgs,
-		] = await Promise.all([
-			this.prisma.organization.count(),
-			this.prisma.user.count(),
-			this.prisma.organization.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
-			this.prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
-			this.prisma.session.count({ where: { updatedAt: { gte: oneDayAgo } } }),
-			this.prisma.organization.findMany({
-				select: {
-					name: true,
-					_count: { select: { members: true } },
-				},
-				orderBy: { members: { _count: "desc" } },
-				take: TOP_ORGS_LIMIT,
-			}),
-		]);
+		const [totalOrganizations, totalUsers, newOrgsLast7Days, newUsersLast7Days, activeSessionsLast24h, topOrgs] =
+			await Promise.all([
+				this.prisma.organization.count(),
+				this.prisma.user.count(),
+				this.prisma.organization.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+				this.prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+				this.prisma.session.count({ where: { updatedAt: { gte: oneDayAgo } } }),
+				this.prisma.organization.findMany({
+					select: {
+						name: true,
+						_count: { select: { members: true } },
+					},
+					orderBy: { members: { _count: "desc" } },
+					take: TOP_ORGS_LIMIT,
+				}),
+			]);
 
 		return {
 			totalOrganizations,

@@ -37,8 +37,16 @@ type AcceptanceRun = {
 };
 
 test.describe("EIMS MoR BSP acceptance cases", () => {
+	test("provider acceptance runner is only available through super-admin routes", async ({ request }) => {
+		const tenantResponse = await request.get("/api/v1/eims/acceptance/cases");
+		expect(tenantResponse.status()).toBe(404);
+
+		const adminResponse = await request.get("/api/v1/admin/eims/acceptance/cases");
+		expect(adminResponse.status()).toBe(200);
+	});
+
 	test("case catalog exactly covers MoR BSP positive, negative, and additional scenarios", async ({ request }) => {
-		const response = await request.get("/api/v1/eims/acceptance/cases");
+		const response = await request.get("/api/v1/admin/eims/acceptance/cases");
 		expect(response.status()).toBe(200);
 
 		const body = await response.json();
@@ -57,7 +65,7 @@ test.describe("EIMS MoR BSP acceptance cases", () => {
 	});
 
 	test("run-all executes every BSP case and returns detailed assertion/evidence data", async ({ request }) => {
-		const response = await request.post("/api/v1/eims/acceptance/run-all", { data: {} });
+		const response = await request.post("/api/v1/admin/eims/acceptance/run-all", { data: {} });
 		expect([200, 201]).toContain(response.status());
 
 		const body = await response.json();
@@ -94,7 +102,7 @@ test.describe("EIMS MoR BSP acceptance cases", () => {
 		expect(eimsRequest.ItemList.map((item: { TaxCode: string }) => item.TaxCode)).toEqual(
 			expect.arrayContaining(["VAT0", "VAT15", "VATEX"]),
 		);
-		expect(result.response.Irn).toMatch(/^MOCK-IRN-/);
+		expect(result.response.Irn).toMatch(/^TEST-IRN-/);
 		expect(result.response.SignedQR).toContain("IRC-P01");
 		expect(result.evidence.printEvidence).toMatchObject({
 			layouts: expect.arrayContaining(["compact", "a4"]),
@@ -125,7 +133,7 @@ test.describe("EIMS MoR BSP acceptance cases", () => {
 	test("receipt cases validate linked invoice IRN, RRN and withholding detail", async ({ request }) => {
 		const salesReceipt = await runCase(request, "IRC-P03");
 		expect(salesReceipt.request.Invoices[0]).toMatchObject({
-			InvoiceIRN: expect.stringMatching(/^MOCK-IRN-/),
+			InvoiceIRN: expect.stringMatching(/^TEST-IRN-/),
 			PaymentCoverage: "full",
 		});
 		expect(salesReceipt.response.Rrn).toMatch(/^MOCK-RRN-/);
@@ -153,7 +161,7 @@ test.describe("EIMS MoR BSP acceptance cases", () => {
 		expect(credit.request.request.DocumentDetails).toMatchObject({
 			Type: "CRE",
 			Reason: expect.any(String),
-			RelatedDocument: expect.stringMatching(/^MOCK-IRN-/),
+			RelatedDocument: expect.stringMatching(/^TEST-IRN-/),
 		});
 		expect(credit.response.Irn).toMatch(/^MOCK-IRN-CRE-/);
 
@@ -211,7 +219,7 @@ test.describe("EIMS MoR BSP acceptance cases", () => {
 });
 
 async function runCase(request: APIRequestContext, caseId: string) {
-	const response = await request.post(`/api/v1/eims/acceptance/cases/${caseId}/run`, { data: {} });
+	const response = await request.post(`/api/v1/admin/eims/acceptance/cases/${caseId}/run`, { data: {} });
 	expect([200, 201]).toContain(response.status());
 	const body = await response.json();
 	expect(body.data.caseId).toBe(caseId);

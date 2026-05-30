@@ -14,7 +14,6 @@ import {
 	GetSystemRolesHandler,
 	ListCustomRolesHandler,
 } from "./application/queries/role.queries";
-import { ContactOwnershipService } from "./application/services/contact-ownership.service";
 import { CustomRoleAssignmentRepository, CustomRoleRepository } from "./domain/repositories/custom-role.repository";
 import { PermissionValidatorService } from "./domain/services/permission-validator.service";
 import { RolePermissionResolverService } from "./domain/services/role-permission-resolver.service";
@@ -32,7 +31,6 @@ import { RoleController } from "./presentation/controllers/role.controller";
 		{ provide: CustomRoleAssignmentRepository, useClass: PrismaCustomRoleAssignmentRepository },
 		PermissionValidatorService,
 		RolePermissionResolverService,
-		ContactOwnershipService,
 		CreateCustomRoleHandler,
 		UpdateCustomRoleHandler,
 		DeleteCustomRoleHandler,
@@ -43,11 +41,6 @@ import { RoleController } from "./presentation/controllers/role.controller";
 		GetPermissionMatrixHandler,
 		GetSystemRolesHandler,
 	],
-	exports: [
-		RolePermissionResolverService,
-		PermissionValidatorService,
-		ContactOwnershipService,
-		CustomRoleAssignmentRepository,
-	],
+	exports: [RolePermissionResolverService, PermissionValidatorService, CustomRoleAssignmentRepository],
 })
 export class RoleModule {}

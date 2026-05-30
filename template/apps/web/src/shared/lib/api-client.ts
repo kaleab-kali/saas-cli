@@ -21,10 +21,13 @@ async function request<T>(url: string, config: RequestConfig = {}): Promise<T> {
 	const response = await fetch(fullUrl, {
 		...fetchConfig,
 		credentials: "include",
-		headers: {
-			"Content-Type": "application/json",
-			...fetchConfig.headers,
-		},
+		headers:
+			typeof FormData !== "undefined" && fetchConfig.body instanceof FormData
+				? fetchConfig.headers
+				: {
+						"Content-Type": "application/json",
+						...fetchConfig.headers,
+					},
 	});
 
 	if (!response.ok) {
@@ -55,4 +58,6 @@ export const api = {
 	patch: <T>(url: string, data?: unknown, config?: RequestConfig) =>
 		request<T>(url, { ...config, method: "PATCH", body: JSON.stringify(data) }),
 	delete: <T>(url: string, config?: RequestConfig) => request<T>(url, { ...config, method: "DELETE" }),
+	upload: <T>(url: string, formData: FormData, config?: RequestConfig) =>
+		request<T>(url, { ...config, method: "POST", body: formData }),
 };

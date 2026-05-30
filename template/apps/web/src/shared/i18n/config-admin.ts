@@ -6,7 +6,7 @@ import i18next from "i18next";
 import { am } from "./locales/am";
 import { en } from "./locales/en";
 
-const ADMIN_LANG_KEY = "propflow.lang.admin";
+const ADMIN_LANG_KEY = "saas.lang.admin";
 
 const detectLang = (): "en" | "am" => {
 	try {

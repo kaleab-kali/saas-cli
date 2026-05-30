@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { FeatureGate } from "#features/capabilities/components/FeatureGate";
 import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "#features/platform/api/platform.hooks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,21 +15,18 @@ export const Route = createFileRoute("/_authenticated/settings/api-keys")({ comp
 
 const SCOPES = [
 	"admin",
-	"read:property",
-	"write:property",
-	"read:unit",
-	"write:unit",
-	"read:lease",
-	"write:lease",
-	"read:contact",
-	"write:contact",
-	"read:invoice",
-	"write:invoice",
-	"read:payment",
-	"write:payment",
-	"read:work-order",
-	"write:work-order",
+	"read:organization",
+	"write:organization",
+	"read:member",
+	"write:member",
+	"read:billing",
+	"write:billing",
+	"read:notification",
+	"write:notification",
+	"read:file",
+	"write:file",
 	"read:report",
+	"write:report",
 	"read:audit-log",
 ] as const;
 
@@ -38,6 +36,7 @@ const CreateDialog = React.memo(({ onCreated }: { readonly onCreated: (plain: st
 	const [name, setName] = React.useState("");
 	const [scopes, setScopes] = React.useState<string[]>([]);
 	const [expiresAt, setExpiresAt] = React.useState("");
+	const [rateLimit, setRateLimit] = React.useState("");
 	const create = useCreateApiKey();
 
 	const toggle = React.useCallback((s: string) => {
@@ -53,13 +52,15 @@ const CreateDialog = React.memo(({ onCreated }: { readonly onCreated: (plain: st
 			name,
 			scopes,
 			expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
+			rateLimit: rateLimit ? Number(rateLimit) : undefined,
 		});
 		setOpen(false);
 		setName("");
 		setScopes([]);
 		setExpiresAt("");
+		setRateLimit("");
 		onCreated(result.data.plainKey);
-	}, [name, scopes, expiresAt, create, onCreated, t]);
+	}, [name, scopes, expiresAt, rateLimit, create, onCreated, t]);
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -93,6 +94,17 @@ const CreateDialog = React.memo(({ onCreated }: { readonly onCreated: (plain: st
 					<div>
 						<Label>{t("settings.apiKeysExt.expiresLabel")}</Label>
 						<Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+					</div>
+					<div>
+						<Label htmlFor="api-key-rate-limit">Requests per minute</Label>
+						<Input
+							id="api-key-rate-limit"
+							type="number"
+							min={1}
+							value={rateLimit}
+							onChange={(e) => setRateLimit(e.target.value)}
+							placeholder="Use plan tier default"
+						/>
 					</div>
 				</div>
 				<DialogFooter>
@@ -156,7 +168,13 @@ function Page() {
 						<input type="checkbox" checked={includeRevoked} onChange={(e) => setIncludeRevoked(e.target.checked)} />
 						{t("settings.apiKeysExt.showRevokedLabel")}
 					</label>
-					<CreateDialog onCreated={setPlain} />
+					<FeatureGate
+						featureKey="platform.api-keys"
+						requireCapacity
+						fallback={<Button disabled>{t("settings.apiKeys.newKey")}</Button>}
+					>
+						<CreateDialog onCreated={setPlain} />
+					</FeatureGate>
 				</div>
 			</div>
 			<Card>
@@ -173,6 +191,7 @@ function Page() {
 									<th className="py-2 px-3">{t("settings.apiKeysExt.expiresCol")}</th>
 									<th className="py-2 px-3">{t("settings.apiKeysExt.lastUsedCol")}</th>
 									<th className="py-2 px-3">{t("settings.apiKeysExt.usageCol")}</th>
+									<th className="py-2 px-3">RPM</th>
 									<th className="py-2 px-3">{t("settings.apiKeysExt.statusCol")}</th>
 									<th className="py-2 px-3"></th>
 								</tr>
@@ -190,6 +209,7 @@ function Page() {
 											{k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString() : t("settings.apiKeysExt.neverUsed")}
 										</td>
 										<td className="py-2 px-3 text-xs">{k.usageCount}</td>
+										<td className="py-2 px-3 text-xs">{k.rateLimit ?? "plan"}</td>
 										<td className="py-2 px-3">
 											<Badge variant={k.revokedAt ? "secondary" : "default"}>
 												{k.revokedAt ? t("settings.apiKeysExt.revokedStatus") : t("settings.apiKeysExt.activeStatus")}

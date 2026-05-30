@@ -32,7 +32,7 @@ export const adminAuth = betterAuth({
 	},
 
 	advanced: {
-		cookiePrefix: "propflow_admin",
+		cookiePrefix: "saas_admin",
 	},
 });
 

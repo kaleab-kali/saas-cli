@@ -1,0 +1,13 @@
+{
+	"name": "acceptance",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "node run.mjs",
+		"test:dry": "cucumber-js features --import steps/*.mjs --dry-run"
+	},
+	"devDependencies": {
+		"@cucumber/cucumber": "12.9.0"
+	}
+}

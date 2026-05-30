@@ -1,0 +1,22 @@
+[ req ]
+default_bits        = 2048
+prompt              = no
+string_mask         = utf8only
+default_md          = sha256
+distinguished_name  = req_distinguished_name
+req_extensions     = req_ext
+
+[ req_distinguished_name ]
+countryName                     = ET
+stateOrProvinceName             = Addis Ababa
+localityName                    = Addis Ababa
+organizationName              	= Test Company
+organizationalUnitName          = Test Company Main Enterprise
+serialNumber                    = B0360155CA
+commonName                      = 1234567890
+
+[ req_ext ]
+subjectAltName         = @sans
+
+[ sans ]
+email.1 = testtaxpayer@gmail.com

@@ -9,6 +9,11 @@ export const FEATURE_KEYS = [
 	"platform.custom-fields",
 	"platform.lookups",
 	"platform.api-keys",
+	"platform.api-requests-per-minute",
+	"platform.members",
+	"platform.file-upload",
+	"platform.file-count",
+	"platform.storage-bytes",
 	"platform.webhooks",
 	"platform.audit-retention-1year",
 	"platform.audit-export",
@@ -32,6 +37,10 @@ export const LIMITED_FEATURES = {
 	"notifications.bulk-announcements": "recipients per blast",
 	"platform.custom-fields": "fields per entity",
 	"platform.api-keys": "total active keys",
+	"platform.api-requests-per-minute": "requests per minute",
+	"platform.members": "active members",
+	"platform.file-count": "stored files",
+	"platform.storage-bytes": "stored bytes",
 	"reporting.custom-report-builder": "saved reports",
 	"reporting.schedule-delivery": "active schedules",
 } as const;
@@ -55,15 +64,7 @@ export const SUBSCRIPTION_STATUSES = [
 ] as const;
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 
-export const INVOICE_STATUSES = [
-	"draft",
-	"sent",
-	"pending_payment",
-	"paid",
-	"overdue",
-	"void",
-	"refunded",
-] as const;
+export const INVOICE_STATUSES = ["draft", "sent", "pending_payment", "paid", "overdue", "void", "refunded"] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 
 export const PAYMENT_METHODS = [

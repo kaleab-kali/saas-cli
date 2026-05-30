@@ -1,0 +1,15 @@
+{
+	"name": "security",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "pnpm test:secrets && pnpm test:deps && pnpm test:sast && pnpm test:http && pnpm test:api",
+		"test:secrets": "node scripts/run-gitleaks.mjs",
+		"test:deps": "node scripts/run-dependency-audit.mjs",
+		"test:sast": "node scripts/run-semgrep.mjs",
+		"test:http": "node scripts/run-nuclei.mjs",
+		"test:api": "node scripts/api-security-smoke.mjs",
+		"test:tooling": "node scripts/tooling-smoke.mjs"
+	}
+}

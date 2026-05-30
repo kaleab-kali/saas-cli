@@ -1,4 +1,5 @@
 import {
+	BadRequestException,
 	Body,
 	Controller,
 	Delete,
@@ -43,9 +44,11 @@ import {
 	ListPlansHandler,
 	ListSubscriptionInvoicesHandler,
 } from "../../application/queries/billing.queries";
-import { SubscriptionLifecycleService } from "../../application/services/subscription-lifecycle.service";
 import { InvoicePdfService } from "../../application/services/invoice-pdf.service";
+import { PolicyService } from "../../application/services/policy.service";
+import { SubscriptionLifecycleService } from "../../application/services/subscription-lifecycle.service";
 import { SubscriptionInvoiceRepository } from "../../domain/repositories/subscription-invoice.repository";
+import { StripeClient } from "../../infrastructure/stripe/stripe.client";
 
 interface AuthedReq {
 	organizationId: string;
@@ -77,6 +80,8 @@ export class BillingController {
 		private readonly invoicePdf: InvoicePdfService,
 		private readonly invoiceRepo: SubscriptionInvoiceRepository,
 		private readonly subLifecycle: SubscriptionLifecycleService,
+		private readonly stripe: StripeClient,
+		private readonly policies: PolicyService,
 	) {}
 
 	@Get("me")
@@ -128,6 +133,12 @@ export class BillingController {
 	@RequirePermissions("billing:read")
 	async entitlements(@Req() req: AuthedReq) {
 		return { data: await this.getEntitlements.execute(req.organizationId) };
+	}
+
+	@Get("capabilities")
+	@RequirePermissions("billing:read")
+	async capabilities(@Req() req: AuthedReq) {
+		return { data: await this.policies.capabilities(req.organizationId) };
 	}
 
 	@Get("invoices")
@@ -229,6 +240,18 @@ export class BillingController {
 				name: u?.name,
 			}),
 		};
+	}
+
+	@Post("stripe/portal")
+	@RequirePermissions("billing:manage-payment-method")
+	async stripePortal(@Req() req: AuthedReq) {
+		const result = await this.getSub.execute(req.organizationId);
+		const customerId = result.subscription?.stripeCustomerId;
+		if (!customerId) {
+			throw new BadRequestException("Stripe customer is not available for this subscription");
+		}
+		const returnUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/settings/billing`;
+		return { data: await this.stripe.createPortalSession(customerId, returnUrl) };
 	}
 
 	@Delete("subscription")

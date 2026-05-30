@@ -1,11 +1,11 @@
-import { Injectable } from "@nestjs/common";
-import { EimsMockService } from "../../shared/mock/eims-mock.service";
+import { Inject, Injectable } from "@nestjs/common";
+import { EIMS_BACKEND_REPOSITORY, type EimsBackendRepository } from "../../shared/mock/eims-backend.repository";
 
 @Injectable()
 export class EimsComplianceService {
-	constructor(private readonly fixtures: EimsMockService) {}
+	constructor(@Inject(EIMS_BACKEND_REPOSITORY) private readonly repository: EimsBackendRepository) {}
 
 	generateEvidencePackage(organizationId: string) {
-		return this.fixtures.complianceEvidence(organizationId);
+		return this.repository.complianceEvidence(organizationId);
 	}
 }

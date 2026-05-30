@@ -4,22 +4,21 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { downloadDashboard, type ExportFormat } from "../api/reporting.hooks";
 
-type Kind = "main" | "property" | "financial" | "crm" | "maintenance";
+type Kind = "main";
 
 interface Props {
 	readonly kind: Kind;
-	readonly params?: { buildingId?: string; from?: string; to?: string };
 }
 
 export const DownloadButtons = React.memo(
-	({ kind, params }: Props) => {
+	({ kind }: Props) => {
 		const { t } = useTranslation();
 		const [busy, setBusy] = React.useState<ExportFormat | null>(null);
 		const handler = React.useCallback(
 			async (fmt: ExportFormat) => {
 				try {
 					setBusy(fmt);
-					await downloadDashboard(kind, fmt, params ?? {});
+					await downloadDashboard(kind, fmt);
 					toast.success(t("reports.downloadButtons.downloaded", { format: fmt.toUpperCase() }));
 				} catch (e) {
 					toast.error(e instanceof Error ? e.message : t("reports.downloadButtons.failed"));
@@ -27,7 +26,7 @@ export const DownloadButtons = React.memo(
 					setBusy(null);
 				}
 			},
-			[kind, params, t],
+			[kind, t],
 		);
 		return (
 			<div className="flex gap-2">
@@ -43,6 +42,6 @@ export const DownloadButtons = React.memo(
 			</div>
 		);
 	},
-	(p, n) => p.kind === n.kind && JSON.stringify(p.params) === JSON.stringify(n.params),
+	(p, n) => p.kind === n.kind,
 );
 DownloadButtons.displayName = "DownloadButtons";

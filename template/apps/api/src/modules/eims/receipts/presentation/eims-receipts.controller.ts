@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
@@ -19,9 +19,27 @@ export class EimsReceiptsController {
 		return this.receipts.listReceipts(req.organizationId);
 	}
 
-	@Post("mock-submit")
+	@Post()
 	@RequirePermissions("receipt:submit")
-	createMockReceipt(@Req() req: AuthedRequest) {
-		return this.receipts.submitReceipt({ organizationId: req.organizationId });
+	submitReceipt(
+		@Req() req: AuthedRequest,
+		@Body()
+		body: {
+			sourceSystemId?: string;
+			receiptNumber?: string;
+			receiptType?: string;
+			invoiceIrn?: string;
+			paymentMode?: string;
+			paidAmount?: string;
+			withholdingType?: string;
+		},
+	) {
+		return this.receipts.submitReceipt({
+			organizationId: req.organizationId,
+			sourceSystemId: body.sourceSystemId,
+			receiptNumber: body.receiptNumber,
+			payload: body,
+		});
 	}
+
 }

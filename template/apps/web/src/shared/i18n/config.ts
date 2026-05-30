@@ -26,7 +26,7 @@ i18n
 		detection: {
 			order: ["localStorage", "navigator"],
 			caches: ["localStorage"],
-			lookupLocalStorage: "propflow.lang",
+			lookupLocalStorage: "saas.lang",
 		},
 	});
 

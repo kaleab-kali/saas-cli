@@ -8,10 +8,6 @@ function Page() {
 	const { t } = useTranslation();
 	const links = [
 		{ to: "/reports/dashboard/main", key: "dashboardMain" },
-		{ to: "/reports/dashboard/property", key: "dashboardProperty" },
-		{ to: "/reports/dashboard/financial", key: "dashboardFinancial" },
-		{ to: "/reports/dashboard/crm", key: "dashboardCrm" },
-		{ to: "/reports/dashboard/maintenance", key: "dashboardMaintenance" },
 		{ to: "/reports/saved", key: "saved" },
 		{ to: "/reports/new", key: "new" },
 		{ to: "/reports/schedules", key: "schedules" },

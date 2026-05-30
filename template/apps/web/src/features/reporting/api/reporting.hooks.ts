@@ -191,81 +191,6 @@ export const useExecutions = (reportId?: string) =>
 // Dashboards
 export interface MainDashboard {
 	kpis: Record<string, number>;
-	recentActivities: { id: string; type: string; description: string; createdAt: string; contact: string | null }[];
-	upcomingEvents: { id: string; kind: string; title: string; at: string }[];
-	recentPayments: { id: string; amount: number; paymentDate: string; method: string }[];
-	recentWorkOrders: { id: string; title: string; status: string; priority: string; createdAt: string }[];
-	topBuildings: { id: string; name: string; totalArea: number | null }[];
-	upcomingLeaseEnds: { id: string; unit: string; endDate: string; rentAmount: number }[];
-}
-export interface PropertyDashboard {
-	buildings: {
-		id: string;
-		name: string;
-		type: string | null;
-		city: string | null;
-		totalArea: number | null;
-		yearBuilt: number | null;
-		unitCount: number;
-		occupiedUnits: number;
-		occupancyRate: number;
-		openWorkOrders: number;
-	}[];
-	unitsByBuildingStatus: Record<string, Record<string, number>>;
-	unitTypes: { type: string; count: number }[];
-	totals: Record<string, number>;
-	vacantUnits: { id: string; identifier: string; buildingId: string; askingRent: number | null; type: string }[];
-}
-export interface FinancialDashboard {
-	periodStart: string;
-	periodEnd: string;
-	revenue: number;
-	expenses: number;
-	netIncome: number;
-	profitMargin: number;
-	outstandingAR: number;
-	collectionRate: number;
-	paymentCount: number;
-	poCount: number;
-	avgPayment: number;
-	aging: { bucket: string; amount: number }[];
-	budgets: { category: string; annualAmount: number; buildingId: string | null }[];
-	paymentsByMethod: { method: string; count: number; amount: number }[];
-	overdueInvoices: { id: string; number: string; outstanding: number; dueDate: string; daysOverdue: number }[];
-	revenueTrend: { month: string; amount: number }[];
-}
-export interface CrmDashboard {
-	kpis: Record<string, number>;
-	leadsBySource: { source: string; count: number }[];
-	leadsByTemperature: { temperature: string; count: number }[];
-	dealsByStatus: { status: string; count: number; value: number }[];
-	pipeline: { stageId: string; stageName: string; order: number; probability: number; count: number; value: number }[];
-	listingsByStatus: { status: string; count: number }[];
-	offersByStatus: { status: string; count: number; amount: number }[];
-	recentWon: { id: string; title: string; value: number; actualCloseDate: string | null }[];
-	recentLost: {
-		id: string;
-		title: string;
-		value: number;
-		actualCloseDate: string | null;
-		wonLostReason: string | null;
-	}[];
-}
-export interface MaintenanceDashboard {
-	kpis: Record<string, number>;
-	byStatus: { status: string; count: number }[];
-	byPriority: { priority: string; count: number }[];
-	byCategory: { category: string; count: number }[];
-	byBuilding: { buildingId: string | null; buildingName: string; count: number }[];
-	topVendors: {
-		id: string;
-		name: string;
-		status: string;
-		avgRating: number;
-		reviewCount: number;
-		avgResponseMinutes: number;
-	}[];
-	openWorkOrdersAging: { id: string; title: string; priority: string; createdAt: string; ageDays: number }[];
 }
 
 export const useMainDashboard = () =>
@@ -275,51 +200,9 @@ export const useMainDashboard = () =>
 		select: (r) => r.data,
 	});
 
-export const usePropertyDashboard = (buildingId?: string) =>
-	useQuery({
-		queryKey: reportKeys.dashboards("property", buildingId),
-		queryFn: () =>
-			api.get<{ data: PropertyDashboard }>("/reporting/dashboards/property", {
-				params: buildingId ? { buildingId } : {},
-			}),
-		select: (r) => r.data,
-	});
-
-export const useFinancialDashboard = (from?: string, to?: string) =>
-	useQuery({
-		queryKey: reportKeys.dashboards("financial", { from, to }),
-		queryFn: () =>
-			api.get<{ data: FinancialDashboard }>("/reporting/dashboards/financial", {
-				params: { from, to } as Record<string, string | undefined>,
-			}),
-		select: (r) => r.data,
-	});
-
-export const useCrmDashboard = () =>
-	useQuery({
-		queryKey: reportKeys.dashboards("crm", {}),
-		queryFn: () => api.get<{ data: CrmDashboard }>("/reporting/dashboards/crm"),
-		select: (r) => r.data,
-	});
-
-export const useMaintenanceDashboard = (from?: string, to?: string) =>
-	useQuery({
-		queryKey: reportKeys.dashboards("maintenance", { from, to }),
-		queryFn: () =>
-			api.get<{ data: MaintenanceDashboard }>("/reporting/dashboards/maintenance", {
-				params: { from, to } as Record<string, string | undefined>,
-			}),
-		select: (r) => r.data,
-	});
-
-export const downloadDashboard = async (
-	kind: "main" | "property" | "financial" | "crm" | "maintenance",
-	format: ExportFormat,
-	params: { buildingId?: string; from?: string; to?: string } = {},
-) => {
+export const downloadDashboard = async (kind: "main", format: ExportFormat) => {
 	const q = new URLSearchParams({
 		format,
-		...(Object.fromEntries(Object.entries(params).filter(([, v]) => v)) as Record<string, string>),
 	});
 	const res = await fetch(`/api/v1/reporting/dashboards/${kind}/export?${q.toString()}`, {
 		credentials: "include",

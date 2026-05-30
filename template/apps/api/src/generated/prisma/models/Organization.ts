@@ -31,6 +31,8 @@ export type OrganizationMinAggregateOutputType = {
   logo: string | null
   metadata: string | null
   createdAt: Date | null
+  suspendedAt: Date | null
+  suspendReason: string | null
 }
 
 export type OrganizationMaxAggregateOutputType = {
@@ -40,6 +42,8 @@ export type OrganizationMaxAggregateOutputType = {
   logo: string | null
   metadata: string | null
   createdAt: Date | null
+  suspendedAt: Date | null
+  suspendReason: string | null
 }
 
 export type OrganizationCountAggregateOutputType = {
@@ -49,6 +53,8 @@ export type OrganizationCountAggregateOutputType = {
   logo: number
   metadata: number
   createdAt: number
+  suspendedAt: number
+  suspendReason: number
   _all: number
 }
 
@@ -60,6 +66,8 @@ export type OrganizationMinAggregateInputType = {
   logo?: true
   metadata?: true
   createdAt?: true
+  suspendedAt?: true
+  suspendReason?: true
 }
 
 export type OrganizationMaxAggregateInputType = {
@@ -69,6 +77,8 @@ export type OrganizationMaxAggregateInputType = {
   logo?: true
   metadata?: true
   createdAt?: true
+  suspendedAt?: true
+  suspendReason?: true
 }
 
 export type OrganizationCountAggregateInputType = {
@@ -78,6 +88,8 @@ export type OrganizationCountAggregateInputType = {
   logo?: true
   metadata?: true
   createdAt?: true
+  suspendedAt?: true
+  suspendReason?: true
   _all?: true
 }
 
@@ -160,6 +172,8 @@ export type OrganizationGroupByOutputType = {
   logo: string | null
   metadata: string | null
   createdAt: Date
+  suspendedAt: Date | null
+  suspendReason: string | null
   _count: OrganizationCountAggregateOutputType | null
   _min: OrganizationMinAggregateOutputType | null
   _max: OrganizationMaxAggregateOutputType | null
@@ -190,9 +204,12 @@ export type OrganizationWhereInput = {
   logo?: Prisma.StringNullableFilter<"Organization"> | string | null
   metadata?: Prisma.StringNullableFilter<"Organization"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Organization"> | Date | string
+  suspendedAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
+  suspendReason?: Prisma.StringNullableFilter<"Organization"> | string | null
   members?: Prisma.MemberListRelationFilter
   invitations?: Prisma.InvitationListRelationFilter
-  buildings?: Prisma.BuildingListRelationFilter
+  lookups?: Prisma.LookupListRelationFilter
+  fileAssets?: Prisma.FileAssetListRelationFilter
 }
 
 export type OrganizationOrderByWithRelationInput = {
@@ -202,9 +219,12 @@ export type OrganizationOrderByWithRelationInput = {
   logo?: Prisma.SortOrderInput | Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  suspendedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  suspendReason?: Prisma.SortOrderInput | Prisma.SortOrder
   members?: Prisma.MemberOrderByRelationAggregateInput
   invitations?: Prisma.InvitationOrderByRelationAggregateInput
-  buildings?: Prisma.BuildingOrderByRelationAggregateInput
+  lookups?: Prisma.LookupOrderByRelationAggregateInput
+  fileAssets?: Prisma.FileAssetOrderByRelationAggregateInput
 }
 
 export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -217,9 +237,12 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   logo?: Prisma.StringNullableFilter<"Organization"> | string | null
   metadata?: Prisma.StringNullableFilter<"Organization"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Organization"> | Date | string
+  suspendedAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
+  suspendReason?: Prisma.StringNullableFilter<"Organization"> | string | null
   members?: Prisma.MemberListRelationFilter
   invitations?: Prisma.InvitationListRelationFilter
-  buildings?: Prisma.BuildingListRelationFilter
+  lookups?: Prisma.LookupListRelationFilter
+  fileAssets?: Prisma.FileAssetListRelationFilter
 }, "id" | "slug">
 
 export type OrganizationOrderByWithAggregationInput = {
@@ -229,6 +252,8 @@ export type OrganizationOrderByWithAggregationInput = {
   logo?: Prisma.SortOrderInput | Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  suspendedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  suspendReason?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.OrganizationCountOrderByAggregateInput
   _max?: Prisma.OrganizationMaxOrderByAggregateInput
   _min?: Prisma.OrganizationMinOrderByAggregateInput
@@ -244,6 +269,8 @@ export type OrganizationScalarWhereWithAggregatesInput = {
   logo?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
   metadata?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Organization"> | Date | string
+  suspendedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Organization"> | Date | string | null
+  suspendReason?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
 }
 
 export type OrganizationCreateInput = {
@@ -253,9 +280,12 @@ export type OrganizationCreateInput = {
   logo?: string | null
   metadata?: string | null
   createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
-  buildings?: Prisma.BuildingCreateNestedManyWithoutOrganizationInput
+  lookups?: Prisma.LookupCreateNestedManyWithoutOrganizationInput
+  fileAssets?: Prisma.FileAssetCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateInput = {
@@ -265,9 +295,12 @@ export type OrganizationUncheckedCreateInput = {
   logo?: string | null
   metadata?: string | null
   createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
-  buildings?: Prisma.BuildingUncheckedCreateNestedManyWithoutOrganizationInput
+  lookups?: Prisma.LookupUncheckedCreateNestedManyWithoutOrganizationInput
+  fileAssets?: Prisma.FileAssetUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUpdateInput = {
@@ -277,9 +310,12 @@ export type OrganizationUpdateInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
-  buildings?: Prisma.BuildingUpdateManyWithoutOrganizationNestedInput
+  lookups?: Prisma.LookupUpdateManyWithoutOrganizationNestedInput
+  fileAssets?: Prisma.FileAssetUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateInput = {
@@ -289,9 +325,12 @@ export type OrganizationUncheckedUpdateInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
-  buildings?: Prisma.BuildingUncheckedUpdateManyWithoutOrganizationNestedInput
+  lookups?: Prisma.LookupUncheckedUpdateManyWithoutOrganizationNestedInput
+  fileAssets?: Prisma.FileAssetUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateManyInput = {
@@ -301,6 +340,8 @@ export type OrganizationCreateManyInput = {
   logo?: string | null
   metadata?: string | null
   createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
 }
 
 export type OrganizationUpdateManyMutationInput = {
@@ -310,6 +351,8 @@ export type OrganizationUpdateManyMutationInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type OrganizationUncheckedUpdateManyInput = {
@@ -319,6 +362,8 @@ export type OrganizationUncheckedUpdateManyInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type OrganizationCountOrderByAggregateInput = {
@@ -328,6 +373,8 @@ export type OrganizationCountOrderByAggregateInput = {
   logo?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  suspendedAt?: Prisma.SortOrder
+  suspendReason?: Prisma.SortOrder
 }
 
 export type OrganizationMaxOrderByAggregateInput = {
@@ -337,6 +384,8 @@ export type OrganizationMaxOrderByAggregateInput = {
   logo?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  suspendedAt?: Prisma.SortOrder
+  suspendReason?: Prisma.SortOrder
 }
 
 export type OrganizationMinOrderByAggregateInput = {
@@ -346,6 +395,8 @@ export type OrganizationMinOrderByAggregateInput = {
   logo?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  suspendedAt?: Prisma.SortOrder
+  suspendReason?: Prisma.SortOrder
 }
 
 export type OrganizationScalarRelationFilter = {
@@ -381,18 +432,32 @@ export type OrganizationUpdateOneRequiredWithoutInvitationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutInvitationsInput, Prisma.OrganizationUpdateWithoutInvitationsInput>, Prisma.OrganizationUncheckedUpdateWithoutInvitationsInput>
 }
 
-export type OrganizationCreateNestedOneWithoutBuildingsInput = {
-  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutBuildingsInput, Prisma.OrganizationUncheckedCreateWithoutBuildingsInput>
-  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutBuildingsInput
+export type OrganizationCreateNestedOneWithoutLookupsInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutLookupsInput, Prisma.OrganizationUncheckedCreateWithoutLookupsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutLookupsInput
   connect?: Prisma.OrganizationWhereUniqueInput
 }
 
-export type OrganizationUpdateOneRequiredWithoutBuildingsNestedInput = {
-  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutBuildingsInput, Prisma.OrganizationUncheckedCreateWithoutBuildingsInput>
-  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutBuildingsInput
-  upsert?: Prisma.OrganizationUpsertWithoutBuildingsInput
+export type OrganizationUpdateOneRequiredWithoutLookupsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutLookupsInput, Prisma.OrganizationUncheckedCreateWithoutLookupsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutLookupsInput
+  upsert?: Prisma.OrganizationUpsertWithoutLookupsInput
   connect?: Prisma.OrganizationWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutBuildingsInput, Prisma.OrganizationUpdateWithoutBuildingsInput>, Prisma.OrganizationUncheckedUpdateWithoutBuildingsInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutLookupsInput, Prisma.OrganizationUpdateWithoutLookupsInput>, Prisma.OrganizationUncheckedUpdateWithoutLookupsInput>
+}
+
+export type OrganizationCreateNestedOneWithoutFileAssetsInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutFileAssetsInput, Prisma.OrganizationUncheckedCreateWithoutFileAssetsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutFileAssetsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutFileAssetsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutFileAssetsInput, Prisma.OrganizationUncheckedCreateWithoutFileAssetsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutFileAssetsInput
+  upsert?: Prisma.OrganizationUpsertWithoutFileAssetsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutFileAssetsInput, Prisma.OrganizationUpdateWithoutFileAssetsInput>, Prisma.OrganizationUncheckedUpdateWithoutFileAssetsInput>
 }
 
 export type OrganizationCreateWithoutMembersInput = {
@@ -402,8 +467,11 @@ export type OrganizationCreateWithoutMembersInput = {
   logo?: string | null
   metadata?: string | null
   createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
-  buildings?: Prisma.BuildingCreateNestedManyWithoutOrganizationInput
+  lookups?: Prisma.LookupCreateNestedManyWithoutOrganizationInput
+  fileAssets?: Prisma.FileAssetCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutMembersInput = {
@@ -413,8 +481,11 @@ export type OrganizationUncheckedCreateWithoutMembersInput = {
   logo?: string | null
   metadata?: string | null
   createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
-  buildings?: Prisma.BuildingUncheckedCreateNestedManyWithoutOrganizationInput
+  lookups?: Prisma.LookupUncheckedCreateNestedManyWithoutOrganizationInput
+  fileAssets?: Prisma.FileAssetUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutMembersInput = {
@@ -440,8 +511,11 @@ export type OrganizationUpdateWithoutMembersInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
-  buildings?: Prisma.BuildingUpdateManyWithoutOrganizationNestedInput
+  lookups?: Prisma.LookupUpdateManyWithoutOrganizationNestedInput
+  fileAssets?: Prisma.FileAssetUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutMembersInput = {
@@ -451,8 +525,11 @@ export type OrganizationUncheckedUpdateWithoutMembersInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
-  buildings?: Prisma.BuildingUncheckedUpdateManyWithoutOrganizationNestedInput
+  lookups?: Prisma.LookupUncheckedUpdateManyWithoutOrganizationNestedInput
+  fileAssets?: Prisma.FileAssetUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutInvitationsInput = {
@@ -462,8 +539,11 @@ export type OrganizationCreateWithoutInvitationsInput = {
   logo?: string | null
   metadata?: string | null
   createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
-  buildings?: Prisma.BuildingCreateNestedManyWithoutOrganizationInput
+  lookups?: Prisma.LookupCreateNestedManyWithoutOrganizationInput
+  fileAssets?: Prisma.FileAssetCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutInvitationsInput = {
@@ -473,8 +553,11 @@ export type OrganizationUncheckedCreateWithoutInvitationsInput = {
   logo?: string | null
   metadata?: string | null
   createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
-  buildings?: Prisma.BuildingUncheckedCreateNestedManyWithoutOrganizationInput
+  lookups?: Prisma.LookupUncheckedCreateNestedManyWithoutOrganizationInput
+  fileAssets?: Prisma.FileAssetUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutInvitationsInput = {
@@ -500,8 +583,11 @@ export type OrganizationUpdateWithoutInvitationsInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
-  buildings?: Prisma.BuildingUpdateManyWithoutOrganizationNestedInput
+  lookups?: Prisma.LookupUpdateManyWithoutOrganizationNestedInput
+  fileAssets?: Prisma.FileAssetUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
@@ -511,68 +597,155 @@ export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
-  buildings?: Prisma.BuildingUncheckedUpdateManyWithoutOrganizationNestedInput
+  lookups?: Prisma.LookupUncheckedUpdateManyWithoutOrganizationNestedInput
+  fileAssets?: Prisma.FileAssetUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
-export type OrganizationCreateWithoutBuildingsInput = {
+export type OrganizationCreateWithoutLookupsInput = {
   id: string
   name: string
   slug?: string | null
   logo?: string | null
   metadata?: string | null
   createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  fileAssets?: Prisma.FileAssetCreateNestedManyWithoutOrganizationInput
 }
 
-export type OrganizationUncheckedCreateWithoutBuildingsInput = {
+export type OrganizationUncheckedCreateWithoutLookupsInput = {
   id: string
   name: string
   slug?: string | null
   logo?: string | null
   metadata?: string | null
   createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  fileAssets?: Prisma.FileAssetUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
-export type OrganizationCreateOrConnectWithoutBuildingsInput = {
+export type OrganizationCreateOrConnectWithoutLookupsInput = {
   where: Prisma.OrganizationWhereUniqueInput
-  create: Prisma.XOR<Prisma.OrganizationCreateWithoutBuildingsInput, Prisma.OrganizationUncheckedCreateWithoutBuildingsInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutLookupsInput, Prisma.OrganizationUncheckedCreateWithoutLookupsInput>
 }
 
-export type OrganizationUpsertWithoutBuildingsInput = {
-  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutBuildingsInput, Prisma.OrganizationUncheckedUpdateWithoutBuildingsInput>
-  create: Prisma.XOR<Prisma.OrganizationCreateWithoutBuildingsInput, Prisma.OrganizationUncheckedCreateWithoutBuildingsInput>
+export type OrganizationUpsertWithoutLookupsInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutLookupsInput, Prisma.OrganizationUncheckedUpdateWithoutLookupsInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutLookupsInput, Prisma.OrganizationUncheckedCreateWithoutLookupsInput>
   where?: Prisma.OrganizationWhereInput
 }
 
-export type OrganizationUpdateToOneWithWhereWithoutBuildingsInput = {
+export type OrganizationUpdateToOneWithWhereWithoutLookupsInput = {
   where?: Prisma.OrganizationWhereInput
-  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutBuildingsInput, Prisma.OrganizationUncheckedUpdateWithoutBuildingsInput>
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutLookupsInput, Prisma.OrganizationUncheckedUpdateWithoutLookupsInput>
 }
 
-export type OrganizationUpdateWithoutBuildingsInput = {
+export type OrganizationUpdateWithoutLookupsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  fileAssets?: Prisma.FileAssetUpdateManyWithoutOrganizationNestedInput
 }
 
-export type OrganizationUncheckedUpdateWithoutBuildingsInput = {
+export type OrganizationUncheckedUpdateWithoutLookupsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  fileAssets?: Prisma.FileAssetUncheckedUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutFileAssetsInput = {
+  id: string
+  name: string
+  slug?: string | null
+  logo?: string | null
+  metadata?: string | null
+  createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
+  members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  lookups?: Prisma.LookupCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutFileAssetsInput = {
+  id: string
+  name: string
+  slug?: string | null
+  logo?: string | null
+  metadata?: string | null
+  createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  lookups?: Prisma.LookupUncheckedCreateNestedManyWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutFileAssetsInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutFileAssetsInput, Prisma.OrganizationUncheckedCreateWithoutFileAssetsInput>
+}
+
+export type OrganizationUpsertWithoutFileAssetsInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutFileAssetsInput, Prisma.OrganizationUncheckedUpdateWithoutFileAssetsInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutFileAssetsInput, Prisma.OrganizationUncheckedCreateWithoutFileAssetsInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutFileAssetsInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutFileAssetsInput, Prisma.OrganizationUncheckedUpdateWithoutFileAssetsInput>
+}
+
+export type OrganizationUpdateWithoutFileAssetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  lookups?: Prisma.LookupUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutFileAssetsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  lookups?: Prisma.LookupUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 
@@ -583,13 +756,15 @@ export type OrganizationUncheckedUpdateWithoutBuildingsInput = {
 export type OrganizationCountOutputType = {
   members: number
   invitations: number
-  buildings: number
+  lookups: number
+  fileAssets: number
 }
 
 export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   members?: boolean | OrganizationCountOutputTypeCountMembersArgs
   invitations?: boolean | OrganizationCountOutputTypeCountInvitationsArgs
-  buildings?: boolean | OrganizationCountOutputTypeCountBuildingsArgs
+  lookups?: boolean | OrganizationCountOutputTypeCountLookupsArgs
+  fileAssets?: boolean | OrganizationCountOutputTypeCountFileAssetsArgs
 }
 
 /**
@@ -619,8 +794,15 @@ export type OrganizationCountOutputTypeCountInvitationsArgs<ExtArgs extends runt
 /**
  * OrganizationCountOutputType without action
  */
-export type OrganizationCountOutputTypeCountBuildingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.BuildingWhereInput
+export type OrganizationCountOutputTypeCountLookupsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LookupWhereInput
+}
+
+/**
+ * OrganizationCountOutputType without action
+ */
+export type OrganizationCountOutputTypeCountFileAssetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FileAssetWhereInput
 }
 
 
@@ -631,9 +813,12 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   logo?: boolean
   metadata?: boolean
   createdAt?: boolean
+  suspendedAt?: boolean
+  suspendReason?: boolean
   members?: boolean | Prisma.Organization$membersArgs<ExtArgs>
   invitations?: boolean | Prisma.Organization$invitationsArgs<ExtArgs>
-  buildings?: boolean | Prisma.Organization$buildingsArgs<ExtArgs>
+  lookups?: boolean | Prisma.Organization$lookupsArgs<ExtArgs>
+  fileAssets?: boolean | Prisma.Organization$fileAssetsArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["organization"]>
 
@@ -644,6 +829,8 @@ export type OrganizationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   logo?: boolean
   metadata?: boolean
   createdAt?: boolean
+  suspendedAt?: boolean
+  suspendReason?: boolean
 }, ExtArgs["result"]["organization"]>
 
 export type OrganizationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -653,6 +840,8 @@ export type OrganizationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   logo?: boolean
   metadata?: boolean
   createdAt?: boolean
+  suspendedAt?: boolean
+  suspendReason?: boolean
 }, ExtArgs["result"]["organization"]>
 
 export type OrganizationSelectScalar = {
@@ -662,13 +851,16 @@ export type OrganizationSelectScalar = {
   logo?: boolean
   metadata?: boolean
   createdAt?: boolean
+  suspendedAt?: boolean
+  suspendReason?: boolean
 }
 
-export type OrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "logo" | "metadata" | "createdAt", ExtArgs["result"]["organization"]>
+export type OrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "logo" | "metadata" | "createdAt" | "suspendedAt" | "suspendReason", ExtArgs["result"]["organization"]>
 export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   members?: boolean | Prisma.Organization$membersArgs<ExtArgs>
   invitations?: boolean | Prisma.Organization$invitationsArgs<ExtArgs>
-  buildings?: boolean | Prisma.Organization$buildingsArgs<ExtArgs>
+  lookups?: boolean | Prisma.Organization$lookupsArgs<ExtArgs>
+  fileAssets?: boolean | Prisma.Organization$fileAssetsArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -679,7 +871,8 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
   objects: {
     members: Prisma.$MemberPayload<ExtArgs>[]
     invitations: Prisma.$InvitationPayload<ExtArgs>[]
-    buildings: Prisma.$BuildingPayload<ExtArgs>[]
+    lookups: Prisma.$LookupPayload<ExtArgs>[]
+    fileAssets: Prisma.$FileAssetPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -688,6 +881,8 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
     logo: string | null
     metadata: string | null
     createdAt: Date
+    suspendedAt: Date | null
+    suspendReason: string | null
   }, ExtArgs["result"]["organization"]>
   composites: {}
 }
@@ -1084,7 +1279,8 @@ export interface Prisma__OrganizationClient<T, Null = never, ExtArgs extends run
   readonly [Symbol.toStringTag]: "PrismaPromise"
   members<T extends Prisma.Organization$membersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$membersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   invitations<T extends Prisma.Organization$invitationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$invitationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvitationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  buildings<T extends Prisma.Organization$buildingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$buildingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BuildingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  lookups<T extends Prisma.Organization$lookupsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$lookupsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LookupPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  fileAssets<T extends Prisma.Organization$fileAssetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$fileAssetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FileAssetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1120,6 +1316,8 @@ export interface OrganizationFieldRefs {
   readonly logo: Prisma.FieldRef<"Organization", 'String'>
   readonly metadata: Prisma.FieldRef<"Organization", 'String'>
   readonly createdAt: Prisma.FieldRef<"Organization", 'DateTime'>
+  readonly suspendedAt: Prisma.FieldRef<"Organization", 'DateTime'>
+  readonly suspendReason: Prisma.FieldRef<"Organization", 'String'>
 }
     
 
@@ -1561,27 +1759,51 @@ export type Organization$invitationsArgs<ExtArgs extends runtime.Types.Extension
 }
 
 /**
- * Organization.buildings
+ * Organization.lookups
  */
-export type Organization$buildingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Organization$lookupsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Building
+   * Select specific fields to fetch from the Lookup
    */
-  select?: Prisma.BuildingSelect<ExtArgs> | null
+  select?: Prisma.LookupSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Building
+   * Omit specific fields from the Lookup
    */
-  omit?: Prisma.BuildingOmit<ExtArgs> | null
+  omit?: Prisma.LookupOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.BuildingInclude<ExtArgs> | null
-  where?: Prisma.BuildingWhereInput
-  orderBy?: Prisma.BuildingOrderByWithRelationInput | Prisma.BuildingOrderByWithRelationInput[]
-  cursor?: Prisma.BuildingWhereUniqueInput
+  include?: Prisma.LookupInclude<ExtArgs> | null
+  where?: Prisma.LookupWhereInput
+  orderBy?: Prisma.LookupOrderByWithRelationInput | Prisma.LookupOrderByWithRelationInput[]
+  cursor?: Prisma.LookupWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.BuildingScalarFieldEnum | Prisma.BuildingScalarFieldEnum[]
+  distinct?: Prisma.LookupScalarFieldEnum | Prisma.LookupScalarFieldEnum[]
+}
+
+/**
+ * Organization.fileAssets
+ */
+export type Organization$fileAssetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FileAsset
+   */
+  select?: Prisma.FileAssetSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FileAsset
+   */
+  omit?: Prisma.FileAssetOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FileAssetInclude<ExtArgs> | null
+  where?: Prisma.FileAssetWhereInput
+  orderBy?: Prisma.FileAssetOrderByWithRelationInput | Prisma.FileAssetOrderByWithRelationInput[]
+  cursor?: Prisma.FileAssetWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FileAssetScalarFieldEnum | Prisma.FileAssetScalarFieldEnum[]
 }
 
 /**

@@ -170,32 +170,39 @@ const CreateRoleDialog = React.memo(() => {
 							<p className="text-xs text-muted-foreground mt-1">{t("settings.roles.copyFromDesc")}</p>
 						</div>
 						<div>
-							<Label>{t("settings.roles.nameEn")}</Label>
+							<Label htmlFor="custom-role-name-en">{t("settings.roles.nameEn")}</Label>
 							<Input
+								id="custom-role-name-en"
 								value={nameEn}
 								onChange={(e) => setNameEn(e.target.value)}
 								placeholder={t("settings.roles.step1NamePlaceholder")}
 							/>
 						</div>
 						<div>
-							<Label>{t("settings.roles.nameAm")}</Label>
+							<Label htmlFor="custom-role-name-am">{t("settings.roles.nameAm")}</Label>
 							<Input
+								id="custom-role-name-am"
 								value={nameAm}
 								onChange={(e) => setNameAm(e.target.value)}
 								placeholder={t("settings.roles.step1NameAmPlaceholder")}
 							/>
 						</div>
 						<div>
-							<Label>{t("settings.roles.slugInput")}</Label>
+							<Label htmlFor="custom-role-slug">{t("settings.roles.slugInput")}</Label>
 							<Input
+								id="custom-role-slug"
 								value={slug}
 								onChange={(e) => setSlug(slugify(e.target.value))}
 								placeholder={t("settings.roles.step1SlugPlaceholder")}
 							/>
 						</div>
 						<div>
-							<Label>{t("common.description")}</Label>
-							<Input value={description} onChange={(e) => setDescription(e.target.value)} />
+							<Label htmlFor="custom-role-description">{t("common.description")}</Label>
+							<Input
+								id="custom-role-description"
+								value={description}
+								onChange={(e) => setDescription(e.target.value)}
+							/>
 						</div>
 					</div>
 				)}

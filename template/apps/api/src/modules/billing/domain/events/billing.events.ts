@@ -11,8 +11,6 @@ export const BILLING_EVENTS = {
 	INVOICE_OVERDUE: "billing.invoice.overdue",
 	PAYMENT_RECORDED: "billing.payment.recorded",
 	PAYMENT_VERIFIED: "billing.payment.verified",
-	CAMPAIGN_ACTIVATED: "billing.campaign.activated",
-	CAMPAIGN_EXPIRED: "billing.campaign.expired",
 	USAGE_THRESHOLD_WARN: "billing.usage.threshold_warn",
 	USAGE_CAP_EXCEEDED: "billing.usage.cap_exceeded",
 } as const;

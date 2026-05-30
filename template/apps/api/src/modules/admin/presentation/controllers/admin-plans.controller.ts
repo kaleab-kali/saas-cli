@@ -1,7 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
-
 import {
 	ArchivePlanHandler,
 	CreatePlanHandler,
@@ -13,86 +12,8 @@ import {
 	UpsertEntitlementHandler,
 } from "#modules/admin/application/commands/admin-plan.handlers";
 import { SuperAdminGuard } from "#modules/admin/guards/super-admin.guard";
+import { FEATURE_KEYS } from "#modules/billing/domain/value-objects/feature-keys.vo";
 import { PrismaService } from "#shared/database/prisma.service";
-
-// All known feature keys — pulled from seed-plans to populate admin entitlement editor.
-const ALL_FEATURE_KEYS = [
-	"property.multi-building",
-	"property.unlimited-buildings",
-	"property.media-unlimited",
-	"property.bulk-create-units",
-	"property.duplicate-building",
-	"property.csv-import",
-	"property.map-view",
-	"lease.commercial",
-	"lease.co-tenants",
-	"lease.rent-escalation",
-	"lease.cam-reconciliation",
-	"lease.abstraction",
-	"lease.early-termination",
-	"invoice.online-chapa",
-	"invoice.late-fee-auto",
-	"invoice.partial-payment",
-	"invoice.overpayment-credit",
-	"invoice.batch-payment",
-	"invoice.delinquency-reminders",
-	"invoice.payment-plans",
-	"maintenance.vendor-directory",
-	"maintenance.vendor-ratings",
-	"maintenance.auto-assignment",
-	"maintenance.time-tracking",
-	"maintenance.material-costs",
-	"maintenance.sla-policies",
-	"maintenance.preventive-schedules",
-	"maintenance.asset-registry",
-	"maintenance.inspections",
-	"maintenance.inspection-templates",
-	"sales.module",
-	"sales.agent-role",
-	"sales.supervisor-role",
-	"sales.agent-privacy",
-	"sales.custom-stages",
-	"sales.commission-auto",
-	"sales.multi-developer",
-	"sales.usd-pricing",
-	"estate.service-charges",
-	"estate.per-block-config",
-	"estate.hoa-minutes",
-	"crm.activity-auto",
-	"crm.segments-static",
-	"crm.segments-dynamic",
-	"crm.merge-duplicates",
-	"crm.automation-rules",
-	"crm.bulk-email",
-	"finance.income-statement",
-	"finance.cash-flow",
-	"finance.owner-statements",
-	"finance.chart-of-accounts",
-	"finance.manual-journal",
-	"finance.bank-reconciliation",
-	"finance.vat-return",
-	"finance.withholding-tax",
-	"reporting.financial-dashboard",
-	"reporting.sales-dashboard",
-	"reporting.maintenance-dashboard",
-	"reporting.custom-report-builder",
-	"reporting.schedule-delivery",
-	"reporting.export-xlsx",
-	"reporting.export-pdf",
-	"notifications.sms-afromessage",
-	"notifications.telegram-bot",
-	"notifications.bulk-announcements",
-	"platform.branding",
-	"platform.multi-currency",
-	"platform.custom-fields",
-	"platform.api-keys",
-	"platform.webhooks",
-	"platform.audit-retention-1year",
-	"platform.audit-export",
-	"platform.custom-roles",
-	"platform.force-2fa",
-	"platform.ip-allowlist",
-] as const;
 
 interface AdminReq {
 	adminUser?: { id: string };
@@ -115,7 +36,7 @@ export class AdminPlansController {
 	@Get("feature-keys")
 	@ApiOperation({ summary: "List all known feature keys" })
 	listFeatureKeys() {
-		return { data: ALL_FEATURE_KEYS };
+		return { data: FEATURE_KEYS };
 	}
 
 	@Get()

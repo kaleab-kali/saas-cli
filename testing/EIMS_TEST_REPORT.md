@@ -1,25 +1,25 @@
 # EIMS V3 Scaffold Test Report
 
-Date: 2026-05-26
+Date: 2026-05-27
 
 ## Generated Project Tested
 
 Generated project:
 
 ```text
-C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-api-ui-proof
+C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-full-structure-proof
 ```
 
 Generation command:
 
 ```bash
-node packages/cli/bin/index.js C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-api-ui-proof --yes
+node packages/cli/bin/index.js C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-full-structure-proof --yes
 ```
 
 Dependency install command:
 
 ```bash
-cd C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-api-ui-proof
+cd C:\Users\kali\Desktop\novek\testing\vyllion-eims-v3-full-structure-proof
 pnpm install
 ```
 
@@ -82,28 +82,43 @@ pnpm test:eims:scaffold
 
 Result: PASS
 
-The verifier performs 191 explicit checks against the generated project.
+The verifier performs 206 explicit checks against the generated project.
 
 It checks:
 
 ```text
 apps/api/src/modules/eims/admin/application
+apps/api/src/modules/eims/admin/domain
+apps/api/src/modules/eims/admin/infrastructure
 apps/api/src/modules/eims/admin/presentation
 apps/api/src/modules/eims/compliance/application
+apps/api/src/modules/eims/compliance/domain
+apps/api/src/modules/eims/compliance/infrastructure
 apps/api/src/modules/eims/compliance/presentation
 apps/api/src/modules/eims/receipts/application
+apps/api/src/modules/eims/receipts/domain
+apps/api/src/modules/eims/receipts/infrastructure
 apps/api/src/modules/eims/receipts/presentation
 apps/api/src/modules/eims/setup/application
 apps/api/src/modules/eims/setup/domain
 apps/api/src/modules/eims/setup/infrastructure
 apps/api/src/modules/eims/setup/presentation
 apps/api/src/modules/eims/shared/client
+apps/api/src/modules/eims/shared/canonicalization
 apps/api/src/modules/eims/shared/constants
+apps/api/src/modules/eims/shared/crypto
+apps/api/src/modules/eims/shared/errors
 apps/api/src/modules/eims/shared/lookups
 apps/api/src/modules/eims/shared/mock
+apps/api/src/modules/eims/shared/notifications
 apps/api/src/modules/eims/shared/presentation
+apps/api/src/modules/eims/shared/printing
+apps/api/src/modules/eims/shared/queues
+apps/api/src/modules/eims/shared/schemas
+apps/api/src/modules/eims/shared/signing
 apps/api/src/modules/eims/submission/application
 apps/api/src/modules/eims/submission/domain
+apps/api/src/modules/eims/submission/infrastructure
 apps/api/src/modules/eims/submission/presentation
 apps/api/src/modules/invoicing/domain
 apps/web/src/features/eims

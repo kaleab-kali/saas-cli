@@ -37,7 +37,7 @@ export class EmailService {
 	}
 
 	async send(input: SendEmailInput): Promise<{ messageId?: string; response?: unknown }> {
-		const from = process.env.SMTP_FROM ?? "noreply@propflow.local";
+		const from = process.env.SMTP_FROM ?? "noreply@example.local";
 		const t = this.getTransporter();
 		const info = await t.sendMail({
 			from,
