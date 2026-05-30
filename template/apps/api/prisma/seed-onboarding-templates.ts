@@ -10,9 +10,9 @@ const seed = async () => {
 		where: { key: GENERIC_ONBOARDING_TEMPLATE_KEY },
 		update: {
 			name: "Generic SaaS setup",
-			description: "Baseline tenant onboarding workflow for organization profile, branding, team, billing, and launch.",
+			description: "Staff-assisted tenant launch workflow for intake, profile, branding, team, billing, first workflow check, and production approval.",
 			vertical: "generic",
-			estimatedDays: 3,
+			estimatedDays: 5,
 			stepDefinitions: GENERIC_ONBOARDING_STEPS as never,
 			createdByPack: "base",
 			isActive: true,
@@ -20,9 +20,9 @@ const seed = async () => {
 		create: {
 			key: GENERIC_ONBOARDING_TEMPLATE_KEY,
 			name: "Generic SaaS setup",
-			description: "Baseline tenant onboarding workflow for organization profile, branding, team, billing, and launch.",
+			description: "Staff-assisted tenant launch workflow for intake, profile, branding, team, billing, first workflow check, and production approval.",
 			vertical: "generic",
-			estimatedDays: 3,
+			estimatedDays: 5,
 			stepDefinitions: GENERIC_ONBOARDING_STEPS as never,
 			createdByPack: "base",
 		},

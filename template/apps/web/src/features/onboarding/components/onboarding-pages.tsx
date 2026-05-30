@@ -5,6 +5,7 @@ import { useAdminOrgList, useAdminUserList } from "#features/admin/api/admin.que
 import {
 	type OnboardingMode,
 	type OnboardingStep,
+	type OnboardingSummary,
 	type OnboardingTask,
 	type OnboardingTaskStatus,
 	type OnboardingTemplate,
@@ -315,6 +316,176 @@ function OnboardingConsoleBand({
 	);
 }
 
+const assistedLaunchLanes = [
+	{
+		title: "Tenant intake",
+		owner: "Staff",
+		detail: "Business identity, payment evidence, contact channel, and support owner.",
+	},
+	{
+		title: "Setup execution",
+		owner: "Staff + tenant",
+		detail: "Workspace settings, access, billing checks, and starter-pack tasks.",
+	},
+	{
+		title: "Tenant handoff",
+		owner: "Tenant",
+		detail: "Self-service steps, training checkpoints, and first operator confirmation.",
+	},
+	{
+		title: "Launch proof",
+		owner: "Staff",
+		detail: "Final readiness note, blocked-task audit, and production approval.",
+	},
+] as const;
+
+function AssistedLaunchDesk({
+	mode,
+	progress,
+	current,
+}: {
+	readonly mode: string;
+	readonly progress: { readonly completed: number; readonly total: number; readonly percent: number };
+	readonly current: OnboardingStep | null;
+}) {
+	const displayMode = mode.replace("_", " ");
+
+	return (
+		<section className="rounded-md border bg-background">
+			<div className="grid gap-4 border-b bg-muted/30 p-4 lg:grid-cols-[1fr_20rem]">
+				<div>
+					<p className="text-sm font-semibold">Assisted launch desk</p>
+					<h2 className="mt-1 text-xl font-semibold tracking-normal">Operational handoff map</h2>
+					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+						{displayMode} mode keeps the current owner, next handoff, and launch evidence visible before the tenant
+						reaches production.
+					</p>
+				</div>
+				<div className="rounded-md border bg-background p-3">
+					<div className="text-xs font-medium uppercase text-muted-foreground">Now handling</div>
+					<div className="mt-2 text-lg font-semibold">{current?.title ?? "Workflow not started"}</div>
+					<div className="mt-1 text-sm text-muted-foreground">
+						{progress.completed}/{progress.total} checkpoints complete
+					</div>
+				</div>
+			</div>
+			<div className="grid gap-3 p-4 lg:grid-cols-4">
+				{assistedLaunchLanes.map((lane, index) => {
+					const active =
+						current &&
+						(index === 0
+							? ["setup", "profile"].includes(current.category)
+							: index === 1
+								? ["access", "billing"].includes(current.category)
+								: index === 2
+									? current.assigneeType === "TENANT"
+									: ["launch", "verification"].includes(current.category));
+					return (
+						<div key={lane.title} className={`rounded-md border p-4 ${active ? "border-primary/45 bg-primary/5" : ""}`}>
+							<div className="flex items-start justify-between gap-3">
+								<div>
+									<p className="font-medium">{lane.title}</p>
+									<p className="mt-2 text-sm leading-6 text-muted-foreground">{lane.detail}</p>
+								</div>
+								<Badge variant={active ? "default" : "outline"}>{lane.owner}</Badge>
+							</div>
+						</div>
+					);
+				})}
+			</div>
+		</section>
+	);
+}
+
+function AdminConciergeQueueBoard({
+	tasks,
+	summary,
+}: {
+	readonly tasks: readonly OnboardingTask[];
+	readonly summary: OnboardingSummary | undefined;
+}) {
+	const unassigned = tasks.filter((task) => !task.assignedToUserId).length;
+	const tenantHandoffs = tasks.filter((task) => currentStep(task)?.assigneeType === "TENANT").length;
+	const staffOwned = tasks.filter((task) => currentStep(task)?.assigneeType === "STAFF").length;
+	const blocked = summary?.blocked ?? 0;
+	const stale = summary?.stale ?? 0;
+	const lanes = [
+		["Unassigned intake", unassigned, "Needs a staff owner"],
+		["Staff execution", staffOwned, "Work currently owned by support"],
+		["Tenant handoff", tenantHandoffs, "Waiting on tenant action"],
+		["Blocked or stale", blocked + stale, "Escalate before launch slips"],
+	] as const;
+
+	return (
+		<section className="rounded-md border bg-background">
+			<div className="grid gap-4 border-b bg-muted/30 p-4 lg:grid-cols-[1fr_18rem]">
+				<div>
+					<p className="text-sm font-semibold">Concierge launch desk</p>
+					<h2 className="mt-1 text-xl font-semibold tracking-normal">Queue by owner and risk</h2>
+					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+						Staff can separate new intake, active setup work, tenant handoffs, and blocked launches without leaving the
+						onboarding table.
+					</p>
+				</div>
+				<div className="rounded-md border bg-background p-3">
+					<div className="text-xs font-medium uppercase text-muted-foreground">Visible queue</div>
+					<div className="mt-2 text-3xl font-semibold">{tasks.length}</div>
+					<div className="mt-1 text-sm text-muted-foreground">Rows in the current filtered view</div>
+				</div>
+			</div>
+			<div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
+				{lanes.map(([label, value, helper]) => (
+					<div key={label} className="rounded-md border p-4">
+						<div className="text-xs font-medium uppercase text-muted-foreground">{label}</div>
+						<div className="mt-2 text-2xl font-semibold">{value}</div>
+						<div className="mt-1 text-sm text-muted-foreground">{helper}</div>
+					</div>
+				))}
+			</div>
+		</section>
+	);
+}
+
+function ConciergeIntakeHandoffPanel({
+	mode,
+	template,
+	assigned,
+}: {
+	readonly mode: OnboardingMode;
+	readonly template: OnboardingTemplate | undefined;
+	readonly assigned: string;
+}) {
+	const selectedMode = modeLabel(mode);
+	const owner = assigned === "UNASSIGNED" ? "Unassigned" : "Staff owner selected";
+	const rows = [
+		["Mode", selectedMode],
+		["Template", template?.name ?? "Template pending"],
+		["Staff owner", owner],
+		["Checkpoints", `${template?.stepDefinitions.length ?? 0}`],
+	] as const;
+
+	return (
+		<section className="rounded-md border bg-background">
+			<div className="border-b bg-muted/30 p-4">
+				<p className="text-sm font-semibold">Launch handoff</p>
+				<h2 className="mt-1 text-xl font-semibold tracking-normal">Create a staff-owned workflow</h2>
+				<p className="mt-2 text-sm leading-6 text-muted-foreground">
+					The task starts with intake evidence, then moves through staff execution, tenant-owned checks, and launch
+					approval.
+				</p>
+			</div>
+			<div className="grid gap-2 p-4">
+				{rows.map(([label, value]) => (
+					<div key={label} className="flex items-center justify-between gap-3 rounded-md border p-3 text-sm">
+						<span className="text-muted-foreground">{label}</span>
+						<span className="font-medium text-right">{value}</span>
+					</div>
+				))}
+			</div>
+		</section>
+	);
+}
+
 function IntakeSummary({ task }: { readonly task: OnboardingTask }) {
 	const metadata = taskMetadata(task);
 	const items = [
@@ -530,6 +701,11 @@ export function TenantOnboardingPage() {
 					progress={{ completed: 0, total: previewSteps.length, percent: 0 }}
 					current={previewSteps[0] ?? null}
 				/>
+				<AssistedLaunchDesk
+					mode="CONCIERGE"
+					progress={{ completed: 0, total: previewSteps.length, percent: 0 }}
+					current={previewSteps[0] ?? null}
+				/>
 				<div className="grid gap-4 md:grid-cols-3">
 					<MetricCard label="Default mode" value="Concierge" helper="Staff-assisted setup is ready by default." />
 					<MetricCard label="Self-service" value="Available" helper="Tenant-visible steps can be completed here." />
@@ -565,6 +741,7 @@ export function TenantOnboardingPage() {
 			/>
 
 			<OnboardingConsoleBand mode={modeLabel(data.mode)} progress={data.progress} current={step} />
+			<AssistedLaunchDesk mode={data.mode} progress={data.progress} current={step} />
 
 			<div className="grid gap-4 md:grid-cols-3">
 				<MetricCard
@@ -869,6 +1046,8 @@ export function AdminOnboardingListPage() {
 				title="Concierge onboarding"
 				description="Staff-assisted tenant setup workflows, stuck-task visibility, and handoffs for self-service or hybrid tenants."
 			/>
+
+			<AdminConciergeQueueBoard tasks={tasks} summary={summary} />
 
 			<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
 				<MetricCard label="Active" value={summary?.active ?? 0} />
@@ -1416,7 +1595,10 @@ export function AdminOnboardingNewPage() {
 					</CardContent>
 				</Card>
 
-				<TemplatePreview template={selectedTemplate} />
+				<div className="space-y-4">
+					<ConciergeIntakeHandoffPanel mode={mode} template={selectedTemplate} assigned={assignedToUserId} />
+					<TemplatePreview template={selectedTemplate} />
+				</div>
 			</div>
 		</div>
 	);

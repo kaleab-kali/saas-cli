@@ -298,6 +298,7 @@ test("tenant onboarding smoke renders workflow and command palette", async ({ pa
 
 	await expect(page.getByRole("heading", { name: "Launch console" })).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Concierge launch workflow" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Operational handoff map" })).toBeVisible();
 	await expect(page.getByText("Current action").first()).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Company profile" }).first()).toBeVisible();
 	await expect(page.getByText("25%", { exact: true })).toBeVisible();
@@ -316,6 +317,7 @@ test("admin onboarding smoke renders filterable operations table", async ({ page
 	await page.goto("/admin/onboarding?search=Demo&limit=50&sort=tenant%3Aasc", { waitUntil: "networkidle" });
 
 	await expect(page.getByRole("heading", { name: "Concierge onboarding" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Queue by owner and risk" })).toBeVisible();
 	const search = page.getByRole("textbox", { name: /Search tenants/i });
 	await expect(search).toHaveValue("Demo");
 	await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
@@ -341,6 +343,7 @@ test("admin onboarding new tenant renders concierge intake workflow", async ({ p
 
 	await expect(page.getByRole("heading", { name: "New tenant onboarding" })).toBeVisible();
 	await expect(page.getByText("Concierge intake")).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Create a staff-owned workflow" })).toBeVisible();
 	await expect(page.getByText("Existing organization", { exact: true })).toBeVisible();
 	await expect(page.getByText("TIN", { exact: true })).toBeVisible();
 

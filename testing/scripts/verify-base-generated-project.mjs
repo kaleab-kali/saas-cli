@@ -307,21 +307,27 @@ function assertFrontendImprovementSurface() {
 	assert(dataTable.includes("DataTableColumnFilter"), "DataTable renders per-column filters");
 	assert(dataTable.includes("DropdownMenuCheckboxItem"), "DataTable has column visibility controls");
 	assert(onboarding.includes("Concierge launch workflow"), "tenant onboarding uses visible launch workflow console");
+	assert(onboarding.includes("AssistedLaunchDesk"), "tenant onboarding shows assisted launch desk");
 	assert(onboarding.includes("Concierge onboarding"), "admin onboarding uses concierge operations copy");
+	assert(onboarding.includes("AdminConciergeQueueBoard"), "admin onboarding shows concierge launch queue board");
 	assert(onboarding.includes("<DataTable"), "admin onboarding list uses shared DataTable");
 	assert(onboarding.includes("useDataTableState"), "admin onboarding table syncs table state to URL");
 	assert(onboarding.includes("tableState.queryParams"), "admin onboarding table sends server-side table params");
 	assert(onboarding.includes("Current action"), "onboarding pages expose active workflow step");
+	assert(onboarding.includes("ConciergeIntakeHandoffPanel"), "new onboarding page shows launch handoff summary");
 	assert(onboarding.includes("TemplatePreview"), "new onboarding page previews selected templates");
 	assert(onboarding.includes("Concierge intake"), "new onboarding page uses concierge intake workflow");
 	assert(onboarding.includes("preferredChannel"), "new onboarding page persists tenant contact channel metadata");
 	assert(onboarding.includes("staleDays"), "admin onboarding table exposes stuck-task filtering");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
+	assert(e2eSmoke.includes("Operational handoff map"), "E2E smoke covers assisted launch desk");
 	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
+	assert(e2eSmoke.includes("Queue by owner and risk"), "E2E smoke covers admin concierge queue board");
 	assert(
 		e2eSmoke.includes("admin onboarding new tenant renders concierge intake workflow"),
 		"E2E smoke covers new tenant concierge intake",
 	);
+	assert(e2eSmoke.includes("Create a staff-owned workflow"), "E2E smoke covers new onboarding handoff summary");
 	assert(e2eSmoke.includes("search=Demo"), "E2E smoke covers bookmarkable admin table search");
 }
 
@@ -329,6 +335,8 @@ function assertOnboardingServerTableQuery() {
 	const dto = readProjectFile("apps/api/src/modules/onboarding/presentation/dtos/onboarding.dto.ts");
 	const service = readProjectFile("apps/api/src/modules/onboarding/application/onboarding.service.ts");
 	const hooks = readProjectFile("apps/web/src/features/onboarding/api/onboarding.hooks.ts");
+	assert(service.includes('key: "tenant-intake"'), "generic onboarding starts with staff tenant intake");
+	assert(service.includes('key: "first-workflow-check"'), "generic onboarding includes first workflow verification");
 	assert(dto.includes("search?: string"), "onboarding list DTO accepts search");
 	assert(dto.includes("sort?: string"), "onboarding list DTO accepts sort");
 	assert(dto.includes("staleDays?: number"), "onboarding list DTO accepts stale-day filtering");
