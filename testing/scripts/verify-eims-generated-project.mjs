@@ -204,13 +204,16 @@ function assertGeneratedStructure() {
 async function assertBackendMockData() {
 	const overview = await getJson("/api/v1/eims/overview");
 	assert(overview.response.status === 200, "overview status is 200");
-	assert(overview.body.data.mode === "mock", "overview mode is backend mock");
+	assert(overview.body.data.mode === "setup_in_progress", "overview mode is setup in progress");
 	assert(/^\d{10}$/.test(overview.body.data.enterprises[0].tin), "enterprise TIN is 10 digits");
 	assert(overview.body.data.establishments[0].subTin === "0074136947-01", "establishment sub-TIN matches V3 format");
 	assert(overview.body.data.sourceSystems[0].approvalStatus === "approved", "source approval guard has approved source");
 	assert(overview.body.data.sourceSystems[1].approvalStatus === "pending_mor_approval", "source approval exposes pending source");
 	assert(overview.body.data.sourceSystems[0].lastAcceptedCounter === 128, "counter state is exposed");
-	assert(overview.body.data.blockers.includes("INSA sandbox credentials not yet received"), "sandbox blocker is explicit");
+	assert(
+		overview.body.data.blockers.includes("EIMS certificate and API credentials still need to be added"),
+		"sandbox blocker is explicit",
+	);
 
 	for (const [lookup, expectedCodes] of Object.entries(expectedLookups)) {
 		const result = await getJson(`/api/v1/eims/lookups/${lookup}`);
@@ -244,7 +247,7 @@ async function assertBackendMockData() {
 		assert(statuses.includes(status), `submissions include ${status}`);
 	}
 	const accepted = submissions.body.data.find((row) => row.status === "accepted");
-	assert(accepted.irn.startsWith("MOCK-IRN-"), "accepted submission has backend IRN");
+	assert(accepted.irn.startsWith("TEST-IRN-"), "accepted submission has backend IRN");
 	assert(Number(accepted.totalValue) > Number(accepted.taxValue), "accepted submission totals are numeric and sane");
 	const offline = submissions.body.data.find((row) => row.status === "pending_offline");
 	assert(offline.irn === null, "offline submission has no official IRN");
@@ -256,15 +259,15 @@ async function assertBackendMockData() {
 	assert(submitted.response.status === 201, "mock submit returns 201");
 	assert(submitted.body.data.documentNumber === "INV-SCAFFOLD-VERIFY-001", "mock submit preserves document number");
 	assert(submitted.body.data.status === "accepted", "mock submit returns accepted state");
-	assert(submitted.body.data.irn === "MOCK-IRN-NEW", "mock submit returns backend mock IRN");
+	assert(submitted.body.data.irn === "TEST-IRN-NEW", "mock submit returns backend mock IRN");
 
 	const receipts = await getJson("/api/v1/eims/receipts");
-	assert(receipts.body.data.some((row) => row.receiptType === "sales" && row.rrn === "MOCK-RRN-00044"), "sales receipt has RRN");
+	assert(receipts.body.data.some((row) => row.receiptType === "sales" && row.rrn === "TEST-RRN-00044"), "sales receipt has RRN");
 	assert(receipts.body.data.some((row) => row.receiptType === "withholding" && row.rrn === null), "withholding draft has no RRN");
 
 	const compliance = await getJson("/api/v1/eims/compliance/evidence");
-	assert(compliance.body.data.items.some((item) => item.key === "phase0-layer-a"), "compliance includes Phase 0 Layer A");
-	assert(compliance.body.data.items.some((item) => item.key === "rls"), "compliance includes targeted RLS item");
+	assert(compliance.body.data.items.some((item) => item.key === "invoices"), "compliance includes invoice evidence");
+	assert(compliance.body.data.items.some((item) => item.key === "print"), "compliance includes printable receipt evidence");
 
 	const credentials = await getJson("/api/v1/eims/credentials");
 	assert(credentials.body.data[0].status === "tested", "credentials expose tested lifecycle");

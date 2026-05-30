@@ -3,6 +3,7 @@ import path from "node:path";
 import { spinner } from "@clack/prompts";
 import fs from "fs-extra";
 import pc from "picocolors";
+import { stripDomainStarterCode } from "./base-cleanup.js";
 
 const IGNORE_DIRS = new Set([
 	"node_modules",
@@ -90,6 +91,14 @@ export const scaffold = async ({
 	});
 	s.stop("Template copied");
 
+	s.start("Removing optional starter-pack code from base scaffold");
+	const removedStarterArtifacts = await stripDomainStarterCode(targetDir);
+	s.stop(
+		removedStarterArtifacts > 0
+			? `Base scaffold cleaned (${removedStarterArtifacts} starter artifacts removed)`
+			: "Base scaffold already clean",
+	);
+
 	s.start("Applying tokens");
 	const files = [];
 	await walk(targetDir, targetDir, files);
@@ -156,6 +165,7 @@ REDIS_URL=redis://localhost:6379
 BULLMQ_QUEUES=billing,notifications,reports
 BULLMQ_PREFIX=
 BETTER_AUTH_SECRET=${t.authSecret}
+MASTER_KEY=${t.masterKey}
 BETTER_AUTH_URL=http://localhost:3000
 FRONTEND_URL=http://localhost:5173
 SUPER_ADMIN_EMAIL=${t.superAdminEmail}
@@ -215,6 +225,7 @@ ENVIRONMENT
 ==========================================
 Database Name:        ${t.dbName}
 Better Auth Secret:   ${t.authSecret}
+Master Key:           ${t.masterKey}
 
 ==========================================
 NEXT STEPS
@@ -227,8 +238,9 @@ NEXT STEPS
    d) createdb CLI (if installed):  createdb ${t.dbName}
 
 2. cd ${t.projectSlug} && pnpm install
-3. pnpm db:migrate
-4. pnpm db:seed
-5. pnpm dev
-6. Open URLs above and login.
+3. pnpm db:generate
+4. pnpm db:migrate
+5. pnpm db:seed
+6. pnpm dev
+7. Open URLs above and login.
 `;

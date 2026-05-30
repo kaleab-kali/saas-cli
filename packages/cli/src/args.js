@@ -9,6 +9,7 @@ export const parseArgs = (argv) => {
 		install: false,
 		dbPush: false,
 		seed: false,
+		production: false,
 		starters: [],
 	};
 
@@ -20,6 +21,7 @@ export const parseArgs = (argv) => {
 		else if (a === "--install") out.install = true;
 		else if (a === "--db-push") out.dbPush = true;
 		else if (a === "--seed") out.seed = true;
+		else if (a === "--production" || a === "--prod") out.production = true;
 		else if (a === "--starter") {
 			const starter = argv[i + 1];
 			if (starter && !starter.startsWith("-")) {
@@ -43,6 +45,17 @@ export const parseArgs = (argv) => {
 	} else if (positional[0] === "add" && positional[1] === "starter") {
 		out.command = "add-starter";
 		out.starterName = positional[2] ?? null;
+	} else if (
+		(positional[0] === "remove" || positional[0] === "uninstall") &&
+		positional[1] === "starter"
+	) {
+		out.command = "remove-starter";
+		out.starterName = positional[2] ?? null;
+	} else if (
+		(positional[0] === "list" && positional[1] === "starters") ||
+		(positional[0] === "starter" && positional[1] === "list")
+	) {
+		out.command = "list-starters";
 	} else if (positional[0] === "module") {
 		out.command = "add-module";
 		out.moduleName = positional[1] ?? null;

@@ -60,9 +60,11 @@ npm publish --access public
 
 ```
 create-vyllion-saas [project-name] [options]
-create-vyllion-saas doctor
+create-vyllion-saas doctor [--production]
 create-vyllion-saas add module <name>
 create-vyllion-saas add starter <pack>
+create-vyllion-saas remove starter <pack>
+create-vyllion-saas list starters
 ```
 
 ### Options
@@ -74,6 +76,7 @@ create-vyllion-saas add starter <pack>
 | `--db-push` | `false` | Run `pnpm db:push` after scaffold. |
 | `--seed` | `false` | Run `pnpm db:seed` after scaffold. |
 | `--bootstrap` | `false` | Run install, db push, and seed after scaffold. |
+| `--production`, `--prod` | `false` | Make `doctor` fail on missing production prerequisites. |
 | `--help`, `-h` | -     | Show help |
 
 ### Positional
@@ -87,8 +90,11 @@ create-vyllion-saas add starter <pack>
 `create-vyllion-saas doctor` runs local environment checks from the current project directory:
 - Node and pnpm availability
 - `package.json`, API/web env files, and generated Prisma client
-- `DATABASE_URL` presence
+- `DATABASE_URL`, `BETTER_AUTH_SECRET`, and `MASTER_KEY` presence
+- release documentation, scripts, workspaces, and security/performance test scaffolds
 - common local ports for Postgres, Redis, API, and web
+
+Use `create-vyllion-saas doctor --production` or `pnpm doctor:production` in CI/release checks. Production mode exits non-zero when required setup is missing.
 
 `create-vyllion-saas add module <name>` scaffolds a neutral business module:
 - `apps/api/src/modules/<name>` module, controller, service, and DTO
@@ -103,6 +109,11 @@ create-vyllion-saas add starter <pack>
 - `ai-saas`
 - `booking`
 - `helpdesk`
+- `eims`
+
+`create-vyllion-saas list starters` prints pack metadata, requirements, env variables, and generated modules.
+
+`create-vyllion-saas remove starter <pack>` removes starter packs that support automated uninstall. The EIMS starter supports uninstall because the base template must remain domain-neutral.
 
 ---
 
@@ -119,6 +130,7 @@ Running `create-vyllion-saas` without `--yes` walks you through:
 | Production domain | `localhost` | Used in Caddy + README hints. Can change later. |
 
 Auto-generated (no prompt):
+- `MASTER_KEY` - 32-byte hex, unique per scaffold
 - `BETTER_AUTH_SECRET` — 32-byte hex, unique per scaffold
 - Super admin password (if blank) — 20 chars, mixed symbol set
 
@@ -165,6 +177,7 @@ The CLI rewrites these tokens in every text file:
 | `{{projectSlug}}` | Slugified project name |
 | `{{dbName}}` | Prompt answer (db name) |
 | `{{authSecret}}` | Auto-generated 32-byte hex |
+| `{{masterKey}}` | Auto-generated 32-byte hex |
 | `{{superAdminEmail}}` | Prompt answer |
 | `{{superAdminPassword}}` | Prompt answer or auto-generated |
 | `{{caddyDomain}}` | Prompt answer |
@@ -193,6 +206,7 @@ createdb my_app_dev
 pnpm install
 
 # 5. Prisma
+pnpm db:generate               # generates Prisma client
 pnpm db:migrate                # creates schema
 pnpm db:seed                   # seeds super admin + sample org
 
@@ -228,6 +242,8 @@ pnpm --filter web build
 
 ```bash
 pnpm doctor
+pnpm doctor:production
+pnpm deploy:check
 pnpm typecheck
 pnpm test:api
 pnpm test:property

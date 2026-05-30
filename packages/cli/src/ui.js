@@ -28,6 +28,7 @@ export const printNextSteps = ({ targetDir, projectSlug, superAdminEmail, ownerE
 	console.log("     pnpm install");
 	console.log("");
 	console.log(pc.dim("  # 3. Migrate + seed"));
+	console.log("     pnpm db:generate");
 	console.log("     pnpm db:migrate");
 	console.log("     pnpm db:seed");
 	console.log("");

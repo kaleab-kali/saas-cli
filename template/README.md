@@ -17,6 +17,7 @@ Dependencies are pinned to exact versions for reproducible local installs.
 pnpm install
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
+pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
 pnpm dev
@@ -28,11 +29,14 @@ Open `http://localhost:5173`.
 
 ```bash
 pnpm doctor
+pnpm doctor:production
 pnpm gen:module customers
-pnpm gen:starter crm
+pnpm gen:starters
+pnpm gen:starter eims
+pnpm gen:starter:uninstall eims
 ```
 
-`pnpm doctor` checks env files, Prisma client state, database/Redis ports, and app ports. `pnpm gen:module <name>` creates one generic API module and web feature route. `pnpm gen:starter <pack>` creates several modules for CRM, marketplace, project management, AI SaaS, booking, or helpdesk.
+`pnpm doctor` checks env files, Prisma client state, database/Redis ports, and app ports. `pnpm doctor:production` turns missing production prerequisites into release blockers. `pnpm gen:module <name>` creates one generic API module and web feature route. `pnpm gen:starters` lists available starter packs. `pnpm gen:starter <pack>` installs an optional pack, and `pnpm gen:starter:uninstall <pack>` removes packs that support automated uninstall.
 
 ## Quality Gates
 
@@ -45,11 +49,24 @@ pnpm test:acceptance
 pnpm test:ai
 pnpm test:load
 pnpm test:mutation
+pnpm deploy:check
 ```
 
 Test apps live under `apps/api-tests`, `apps/e2e`, `apps/acceptance`, `apps/performance`, `apps/security`, and `apps/ai-eval`. API unit, property, and mutation tests stay in `apps/api`. See `docs/TESTING_GUIDE.md`.
 
-Domain starter packs are documented in `docs/DOMAIN_STARTER_PACKS.md`.
+`pnpm deploy:check` runs Prisma generation, production doctor checks, CI lint/type/test scripts, security tooling smoke tests, and the mock k6 load check.
+
+The base scaffold is domain-neutral. Optional starter packs are documented in `docs/STARTER_PACKS.md` and `docs/DOMAIN_STARTER_PACKS.md`; EIMS is installed only when you run `pnpm gen:starter eims`.
+
+Production readiness docs:
+
+- `docs/SECURITY.md`
+- `docs/OBSERVABILITY.md`
+- `docs/DISASTER_RECOVERY.md`
+- `docs/MIGRATIONS_PLAYBOOK.md`
+- `docs/PRE_LAUNCH_CHECKLIST.md`
+- `docs/WEBHOOK_GUIDE.md`
+- `docs/DESIGN_TOKENS.md`
 
 ## Included Modules
 

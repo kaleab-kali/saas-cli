@@ -15,8 +15,8 @@ Scaffold a production-ready multi-tenant SaaS in seconds.
 - Custom fields, lookups, saved views (generic infra)
 - i18n (English + Amharic seeded)
 - Caddy + PM2 deploy + Docker option
-- Local doctor command and module generator
-- Domain starter packs for CRM, marketplace, project management, AI SaaS, booking, and helpdesk
+- Local doctor command, production deploy gate, and module generator
+- Domain starter packs for CRM, marketplace, project management, AI SaaS, booking, helpdesk, and optional EIMS
 - E2E, API, acceptance, security, k6 load/performance, AI evaluation, property, and mutation testing scaffolds
 - Admin server/resource management dashboard
 
@@ -63,6 +63,7 @@ create-vyllion-saas my-app --yes --bootstrap
 cd my-app
 createdb my_app_dev            # or use pgAdmin
 pnpm install
+pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
 pnpm dev
@@ -74,11 +75,14 @@ Open `http://localhost:5173/admin-login`. Credentials are in `my-app/.scaffold-c
 
 ```bash
 create-vyllion-saas doctor
+create-vyllion-saas doctor --production
 create-vyllion-saas add module customers
+create-vyllion-saas list starters
 create-vyllion-saas add starter crm
+create-vyllion-saas remove starter eims
 ```
 
-`doctor` checks the generated project environment. `add module` creates one generic API + web feature slice. `add starter` expands a common SaaS vertical into several generated modules.
+`doctor` checks the generated project environment. `doctor --production` turns missing release prerequisites into a failing gate. `add module` creates one generic API + web feature slice. `list starters` shows available packs. `add starter` installs an optional pack; EIMS is not part of the base scaffold unless installed.
 
 ---
 
@@ -91,12 +95,14 @@ create-vyllion-saas add starter crm
 | [docs/FEATURES.md](./docs/FEATURES.md) | Full feature list (modules, routes, infra) |
 | [docs/USAGE.md](./docs/USAGE.md) | CLI flags, prompts, workflows |
 | [docs/ADDING_DOMAIN.md](./docs/ADDING_DOMAIN.md) | Build your first business module on the skeleton |
-| [docs/DOMAIN_STARTER_PACKS.md](./docs/DOMAIN_STARTER_PACKS.md) | CRM, marketplace, project management, AI SaaS, booking, and helpdesk starter packs |
+| [docs/DOMAIN_STARTER_PACKS.md](./docs/DOMAIN_STARTER_PACKS.md) | CRM, marketplace, project management, AI SaaS, booking, helpdesk, and optional EIMS starter packs |
 | [docs/BILLING.md](./docs/BILLING.md) | Stripe + Chapa + Manual gateway, lifecycle, dunning |
 | [docs/I18N.md](./docs/I18N.md) | Add locales, translation keys |
 | [docs/OAUTH.md](./docs/OAUTH.md) | Wire Google, GitHub, Microsoft providers |
 | [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) | Production deploy (Caddy + PM2 + Postgres + Redis) |
 | [template/docs/TESTING_GUIDE.md](./template/docs/TESTING_GUIDE.md) | Generated project quality gates and test scaffolds |
+| [template/docs/SECURITY.md](./template/docs/SECURITY.md) | Generated project security gate, secret handling, and release blockers |
+| [template/docs/PRE_LAUNCH_CHECKLIST.md](./template/docs/PRE_LAUNCH_CHECKLIST.md) | Generated project production readiness checklist |
 | [template/docs/ADMIN_OPERATIONS_GUIDE.md](./template/docs/ADMIN_OPERATIONS_GUIDE.md) | Tenant, subscription, resource, and server operations |
 
 ---

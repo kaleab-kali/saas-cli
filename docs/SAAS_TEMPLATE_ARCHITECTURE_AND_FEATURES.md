@@ -9,9 +9,9 @@ The repository has two main responsibilities:
 
 The generated SaaS project is a pnpm workspace with a NestJS API, React/Vite web app, PostgreSQL/Prisma database layer, Better Auth authentication, RBAC, billing, notifications, reporting, operations tooling, and several test harnesses.
 
-## Current Tree Note
+## Starter Pack Cleanup Note
 
-The public docs describe the base scaffold as domain-neutral. The current working tree also contains EIMS/EIRMS e-invoicing and invoicing modules inside `template/apps/api` and `template/apps/web`. If the intended final product is a generic base template, those EIMS files should stay in the starter-pack flow instead of the default generated app.
+The base scaffold is domain-neutral. EIMS/EIRMS files still live in `template/` as source material for the optional starter pack, but new generated projects strip those files unless `create-vyllion-saas add starter eims` is run.
 
 ## Top-Level Repository Structure
 
@@ -639,7 +639,7 @@ apps/web/src/routes/_authenticated/reports/
 
 ## EIMS/EIRMS Surface
 
-The current template contains EIMS/e-invoicing modules and routes.
+The EIMS starter pack installs EIMS/e-invoicing modules and routes. They are not present in the default generated base project.
 
 Tenant-side routes include:
 
@@ -668,10 +668,16 @@ Admin-side routes include:
 /admin/eims/compliance
 ```
 
-If EIMS should be optional, keep it behind:
+Install EIMS with:
 
 ```text
 create-vyllion-saas add starter eims
+```
+
+Remove it with:
+
+```text
+create-vyllion-saas remove starter eims
 ```
 
 ## Module Generator Format
@@ -941,4 +947,3 @@ CLI copies template
     -> shared modules provide cross-cutting infrastructure
     -> test workspaces validate API, browser, contracts, acceptance, security, and performance
 ```
-

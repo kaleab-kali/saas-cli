@@ -58,6 +58,7 @@ export const runPrompts = async ({ projectName: nameArg, yes }) => {
 		ownerEmail: "owner@example.com",
 		ownerPassword: randomPassword(),
 		authSecret: randomSecret(),
+		masterKey: randomSecret(),
 		caddyDomain: "localhost",
 	};
 

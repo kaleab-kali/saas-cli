@@ -9,6 +9,7 @@
 	"files": [
 		"bin",
 		"src",
+		"starters",
 		"../../template"
 	],
 	"scripts": {

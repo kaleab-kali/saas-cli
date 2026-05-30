@@ -1,6 +1,13 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import fs from "fs-extra";
 import pc from "picocolors";
+import { stripDomainStarterCode } from "./base-cleanup.js";
+
+const TEMPLATE_DIR = path.resolve(
+	path.dirname(fileURLToPath(import.meta.url)),
+	"../../../template",
+);
 
 const slugify = (s) =>
 	s
@@ -55,8 +62,12 @@ const STARTER_PACKS = {
 	},
 	eims: {
 		label: "EIMS/EIRMS e-invoicing",
+		description:
+			"Adds Ethiopian EIMS/EIRMS onboarding, setup, submissions, compliance, tests, and operations scaffolding.",
+		version: "0.1.0",
 		modules: ["invoicing", "eims"],
 		custom: "eims",
+		manifest: "packages/cli/starters/eims/pack.json",
 	},
 };
 
@@ -68,7 +79,79 @@ const STARTER_ALIASES = {
 	support: "helpdesk",
 };
 
+const STATE_FILE = ".scaffold-state.json";
+
+const EIMS_DIRECTORY_SKELETON = [
+	"apps/api/src/modules/eims/admin/application",
+	"apps/api/src/modules/eims/admin/domain",
+	"apps/api/src/modules/eims/admin/infrastructure",
+	"apps/api/src/modules/eims/admin/presentation",
+	"apps/api/src/modules/eims/compliance/application",
+	"apps/api/src/modules/eims/compliance/domain",
+	"apps/api/src/modules/eims/compliance/infrastructure",
+	"apps/api/src/modules/eims/compliance/presentation",
+	"apps/api/src/modules/eims/receipts/application",
+	"apps/api/src/modules/eims/receipts/domain",
+	"apps/api/src/modules/eims/receipts/infrastructure",
+	"apps/api/src/modules/eims/receipts/presentation",
+	"apps/api/src/modules/eims/setup/application/commands",
+	"apps/api/src/modules/eims/setup/application/dto",
+	"apps/api/src/modules/eims/setup/application/queries",
+	"apps/api/src/modules/eims/setup/domain",
+	"apps/api/src/modules/eims/setup/infrastructure/repositories",
+	"apps/api/src/modules/eims/setup/presentation",
+	"apps/api/src/modules/eims/shared/client",
+	"apps/api/src/modules/eims/shared/canonicalization",
+	"apps/api/src/modules/eims/shared/constants",
+	"apps/api/src/modules/eims/shared/crypto",
+	"apps/api/src/modules/eims/shared/errors",
+	"apps/api/src/modules/eims/shared/lookups",
+	"apps/api/src/modules/eims/shared/mock",
+	"apps/api/src/modules/eims/shared/notifications",
+	"apps/api/src/modules/eims/shared/presentation",
+	"apps/api/src/modules/eims/shared/printing",
+	"apps/api/src/modules/eims/shared/queues",
+	"apps/api/src/modules/eims/shared/schemas",
+	"apps/api/src/modules/eims/shared/signing",
+	"apps/api/src/modules/eims/submission/application",
+	"apps/api/src/modules/eims/submission/domain",
+	"apps/api/src/modules/eims/submission/infrastructure",
+	"apps/api/src/modules/eims/submission/presentation",
+	"apps/api/src/modules/invoicing/domain",
+	"apps/web/src/features/eims/api",
+	"apps/web/src/features/eims/components",
+	"apps/web/src/routes/_authenticated/eims",
+	"apps/web/src/routes/admin/eims",
+	"apps/api-tests/bruno/EIMS-Phase0",
+	"apps/api-tests/tests",
+	"apps/e2e/tests",
+];
+
+const EIMS_TEMPLATE_ARTIFACTS = [
+	"apps/api/src/modules/eims",
+	"apps/api/src/modules/invoicing",
+	"apps/api-tests/scripts/eims-mock-api-server.mjs",
+	"apps/api-tests/scripts/eims-static-web-server.mjs",
+	"apps/api-tests/scripts/with-mock-api.mjs",
+	"apps/api-tests/tests/eims-acceptance.spec.ts",
+	"apps/api-tests/tests/eims-v3-mock.spec.ts",
+	"apps/e2e/playwright.eims.config.ts",
+	"apps/e2e/tests/eims-mock.spec.ts",
+	"apps/web/src/features/eims",
+	"apps/web/src/routes/_authenticated/eims",
+	"apps/web/src/routes/admin/eims",
+];
+
 export const listStarterPacks = () => Object.keys(STARTER_PACKS);
+
+export const listStarterPackDetails = () =>
+	Object.entries(STARTER_PACKS).map(([name, pack]) => ({
+		name,
+		label: pack.label,
+		description: pack.description ?? `${pack.label} starter pack`,
+		modules: pack.modules,
+		manifest: pack.manifest ?? null,
+	}));
 
 const resolveStarterPack = (starterName) => {
 	const slug = slugify(starterName ?? "");
@@ -80,6 +163,54 @@ const assertGeneratedProjectRoot = async (cwd) => {
 	if (!(await fs.pathExists(rootPackage))) {
 		throw new Error("Run this command from a generated project root.");
 	}
+};
+
+const readScaffoldState = async (cwd) => {
+	const file = path.join(cwd, STATE_FILE);
+	if (!(await fs.pathExists(file))) return { version: 1, starters: [] };
+	try {
+		const state = await fs.readJson(file);
+		return {
+			version: Number(state.version) || 1,
+			starters: Array.isArray(state.starters) ? state.starters : [],
+		};
+	} catch {
+		return { version: 1, starters: [] };
+	}
+};
+
+const writeScaffoldState = async (cwd, state) => {
+	await fs.writeJson(path.join(cwd, STATE_FILE), state, { spaces: "\t" });
+};
+
+const isStarterInstalled = async (cwd, slug) => {
+	const state = await readScaffoldState(cwd);
+	return state.starters.some((starter) => starter.name === slug);
+};
+
+const recordStarterInstalled = async (cwd, slug, pack) => {
+	const state = await readScaffoldState(cwd);
+	const existing = state.starters.find((starter) => starter.name === slug);
+	const installedAt = new Date().toISOString();
+	const entry = {
+		name: slug,
+		label: pack.label,
+		version: pack.version ?? "0.1.0",
+		modules: pack.modules,
+		installedAt,
+	};
+	if (existing) Object.assign(existing, entry);
+	else state.starters.push(entry);
+	await writeScaffoldState(cwd, state);
+};
+
+const recordStarterRemoved = async (cwd, slug) => {
+	const state = await readScaffoldState(cwd);
+	const next = {
+		...state,
+		starters: state.starters.filter((starter) => starter.name !== slug),
+	};
+	await writeScaffoldState(cwd, next);
 };
 
 const assertModulesCanBeCreated = async (cwd, modules) => {
@@ -818,15 +949,19 @@ const patchEimsPackageScripts = async (root) =>
 	patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
+		json.scripts["test:eims:api"] ??=
+			"pnpm --filter api-tests test:eims:mock";
 		json.scripts["test:eims:phase0"] ??=
 			"pnpm --filter api-tests test:bruno:mock";
 		json.scripts["test:eims:sandbox"] ??= "pnpm --filter api-tests test:bruno";
 		json.scripts["test:eims:ui"] ??= "pnpm --filter e2e test:eims";
+		json.scripts["test:eims:ui:headed"] ??=
+			"pnpm --filter e2e test:eims:headed";
 		json.scripts["test:eims:mock"] ??=
-			"pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:phase0 && pnpm test:eims:ui";
+			"pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:api && pnpm test:eims:phase0 && pnpm test:eims:ui";
 		return json;
 	});
 
@@ -4711,13 +4846,41 @@ const assertEimsCanBeCreated = async (cwd) => {
 	}
 };
 
+const copyEimsTemplateArtifacts = async (root) => {
+	for (const relPath of EIMS_TEMPLATE_ARTIFACTS) {
+		const source = path.join(TEMPLATE_DIR, relPath);
+		const target = path.join(root, relPath);
+		if (!(await fs.pathExists(source))) {
+			throw new Error(`EIMS starter source artifact is missing: ${source}`);
+		}
+		if (await fs.pathExists(target)) {
+			throw new Error(`Refusing to overwrite existing EIMS starter artifact: ${target}`);
+		}
+		await fs.copy(source, target, { overwrite: false, errorOnExist: true });
+	}
+};
+
+const ensureEimsDirectorySkeleton = async (root) => {
+	for (const dir of EIMS_DIRECTORY_SKELETON) {
+		await fs.ensureDir(path.join(root, dir));
+	}
+};
+
+const writeEimsSupplementalFiles = async (root) => {
+	await writeNew(
+		path.join(root, "apps/web/src/features/invoicing/index.ts"),
+		`export const invoicingFeatureStatus = "scaffolded";
+`,
+	);
+};
+
 const addEimsStarterPack = async ({ cwd }) => {
 	await assertEimsCanBeCreated(cwd);
 	console.log(pc.bold("Scaffolding EIMS/EIRMS e-invoicing starter pack"));
+	await copyEimsTemplateArtifacts(cwd);
+	await ensureEimsDirectorySkeleton(cwd);
 	await patchEimsPrismaSchema(cwd);
-	await writeEimsApiSkeleton(cwd);
-	await writeEimsSetupFoundation(cwd);
-	await writeEimsWebSkeleton(cwd);
+	await writeEimsSupplementalFiles(cwd);
 	await patchEimsRouteTree(cwd);
 	await writeEimsPhase0Assets(cwd);
 	await writeEimsDocs(cwd);
@@ -4753,8 +4916,15 @@ export const addStarterPack = async ({ cwd, starterName }) => {
 		);
 	}
 
+	if (await isStarterInstalled(cwd, slug)) {
+		console.log(pc.green(`${pack.label} starter pack is already installed.`));
+		console.log(pc.dim(`State: ${STATE_FILE}`));
+		return;
+	}
+
 	if (pack.custom === "eims") {
 		await addEimsStarterPack({ cwd });
+		await recordStarterInstalled(cwd, slug, pack);
 		return;
 	}
 
@@ -4765,6 +4935,7 @@ export const addStarterPack = async ({ cwd, starterName }) => {
 	for (const moduleName of pack.modules) {
 		await addModule({ cwd, moduleName });
 	}
+	await recordStarterInstalled(cwd, slug, pack);
 
 	console.log(pc.green(`${pack.label} starter pack scaffolded.`));
 	console.log(
@@ -4772,4 +4943,31 @@ export const addStarterPack = async ({ cwd, starterName }) => {
 			"Next: add Prisma models for the generated modules, then wire real fields and workflows.",
 		),
 	);
+};
+
+export const uninstallStarterPack = async ({ cwd, starterName }) => {
+	if (!starterName) {
+		throw new Error(
+			`Usage: create-vyllion-saas remove starter <pack>\nAvailable packs: ${listStarterPacks().join(", ")}`,
+		);
+	}
+	await assertGeneratedProjectRoot(cwd);
+
+	const slug = resolveStarterPack(starterName);
+	const pack = STARTER_PACKS[slug];
+	if (!pack) {
+		throw new Error(
+			`Unknown starter pack '${starterName}'. Available packs: ${listStarterPacks().join(", ")}`,
+		);
+	}
+	if (pack.custom !== "eims") {
+		throw new Error(
+			`Uninstall is currently only automated for metadata-backed custom packs. '${slug}' was generated as plain modules.`,
+		);
+	}
+
+	const removed = await stripDomainStarterCode(cwd);
+	await recordStarterRemoved(cwd, slug);
+	console.log(pc.green(`${pack.label} starter pack removed.`));
+	console.log(pc.dim(`Removed or patched ${removed} starter artifacts.`));
 };

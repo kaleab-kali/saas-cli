@@ -44,9 +44,12 @@ pnpm db:generate
 pnpm typecheck
 pnpm lint
 pnpm test:smoke
+pnpm deploy:check
 ```
 
 `test:smoke` validates the scaffold without requiring Postgres, Redis, k6, nuclei, or a running SaaS server.
+
+`deploy:check` is the pre-release gate. It runs Prisma generation, production doctor checks, CI lint/type/test scripts, security tooling smoke tests, and the mock k6 load check.
 
 ## API Unit And Integration Tests
 

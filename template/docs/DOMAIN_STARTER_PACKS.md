@@ -2,9 +2,12 @@
 
 Starter packs generate several neutral repository-pattern modules at once. They are intentionally scaffolds, not finished vertical products. Each generated module includes an API slice, web feature folder, route, permissions, sidebar entry, and a starter unit test.
 
+The base template is domain-neutral. Compliance-heavy or vertical-specific code, including EIMS, belongs in starter packs instead of the default scaffold.
+
 ## Commands
 
 ```bash
+pnpm gen:starters
 pnpm gen:starter crm
 pnpm gen:starter marketplace
 pnpm gen:starter project-management
@@ -12,12 +15,15 @@ pnpm gen:starter ai-saas
 pnpm gen:starter booking
 pnpm gen:starter helpdesk
 pnpm gen:starter eims
+pnpm gen:starter:uninstall eims
 ```
 
 Equivalent direct CLI form:
 
 ```bash
+create-vyllion-saas list starters
 create-vyllion-saas add starter crm
+create-vyllion-saas remove starter eims
 ```
 
 ## Packs
@@ -42,4 +48,4 @@ create-vyllion-saas add starter crm
 
 The base template stays domain-neutral. Starter packs speed up file layout, permissions, navigation, and test placement without choosing your final data model.
 
-The `eims` starter is intentionally compliance-heavy and optional. It follows `docs/EIMS_FINAL_AGREED_SAAS_ARCHITECTURE_PLAN_V3.md` and starts with local Phase 0 proof assets before any real MoR/EIMS calls.
+The `eims` starter is intentionally compliance-heavy and optional. It follows `docs/EIMS_FINAL_AGREED_SAAS_ARCHITECTURE_PLAN_V3.md` and starts with local Phase 0 proof assets before any real MoR/EIMS calls. It supports automated uninstall so this project can return to the neutral base during evaluation.

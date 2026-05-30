@@ -1,0 +1,85 @@
+{
+	"name": "eims",
+	"displayName": "EIMS - Ethiopia Electronic Invoice Management",
+	"description": "Adds tenant-scoped EIMS/EIRMS setup, credentials, certificates, submissions, receipts, compliance dashboards, admin operations, and verification scaffolding.",
+	"version": "0.1.0",
+	"author": "Vyllion",
+	"requires": [],
+	"conflicts": [],
+	"addsRoutes": [
+		"/eims",
+		"/eims/setup",
+		"/eims/enterprises",
+		"/eims/establishments",
+		"/eims/sources",
+		"/eims/credentials",
+		"/eims/certificates",
+		"/eims/submissions",
+		"/eims/bulk",
+		"/eims/receipts",
+		"/eims/compliance",
+		"/admin/eims",
+		"/admin/eims/tenants",
+		"/admin/eims/failures",
+		"/admin/eims/certificates",
+		"/admin/eims/resources",
+		"/admin/eims/compliance"
+	],
+	"addsModels": [
+		"EimsEnterprise",
+		"EimsEstablishment",
+		"EimsSourceSystem",
+		"EimsCredential",
+		"EimsCertificate",
+		"EimsSourceSystemCounter",
+		"EimsCounterReservation",
+		"UserEstablishmentAssignment",
+		"UserSourceSystemAssignment",
+		"TenantBuyer",
+		"TaxInvoice",
+		"TaxInvoiceLine",
+		"EimsSubmission",
+		"EimsReceipt",
+		"EimsCancellation",
+		"EimsAuditEvent",
+		"EimsNotificationLog"
+	],
+	"addsPermissions": [
+		"eims-enterprise:*",
+		"eims-establishment:*",
+		"eims-source:*",
+		"eims-credential:*",
+		"eims-certificate:*",
+		"eims-submission:*",
+		"eims-bulk:*",
+		"eims-compliance:*"
+	],
+	"addsEnvVars": [
+		"EIMS_ENV",
+		"EIMS_BASE_URL_SANDBOX",
+		"EIMS_BASE_URL_PRODUCTION",
+		"EIMS_BULK_URL_SANDBOX",
+		"EIMS_BULK_URL_PRODUCTION",
+		"EIMS_SIGNING_PROVIDER",
+		"EIMS_MOCK_MODE",
+		"EIMS_CALLBACK_PUBLIC_URL",
+		"EIMS_QUEUE_PREFIX"
+	],
+	"addsDependencies": {},
+	"addsDevDependencies": {},
+	"addsSeedData": [
+		"eims-entitlements",
+		"eims-document-types",
+		"eims-transaction-types",
+		"eims-cancel-reason-codes"
+	],
+	"addsCrons": [
+		"certificate-expiry-daily",
+		"retry-queued-submissions",
+		"stale-source-followup"
+	],
+	"addsQueues": [
+		"eims-submission-retry",
+		"eims-bulk-callback"
+	]
+}
