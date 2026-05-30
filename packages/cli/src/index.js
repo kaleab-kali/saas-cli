@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import pc from "picocolors";
 import { parseArgs } from "./args.js";
 import { runDoctor } from "./doctor.js";
@@ -13,12 +12,10 @@ import {
 } from "./module-generator.js";
 import { runPrompts } from "./prompts.js";
 import { scaffold } from "./scaffold.js";
+import { resolveTemplateDir } from "./template-path.js";
 import { printNextSteps, printWelcome } from "./ui.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const TEMPLATE_DIR = path.resolve(__dirname, "../../../template");
+const TEMPLATE_DIR = resolveTemplateDir(import.meta.url);
 
 const projectArgMeta = (projectName) => {
 	if (!projectName) return { promptName: null, explicitTargetDir: null };

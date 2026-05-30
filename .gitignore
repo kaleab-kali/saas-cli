@@ -9,3 +9,4 @@ build
 .turbo
 .cache
 testing/eims-v3-generated/
+packages/cli/template/

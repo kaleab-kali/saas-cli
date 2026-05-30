@@ -1,13 +1,10 @@
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import fs from "fs-extra";
 import pc from "picocolors";
 import { stripDomainStarterCode } from "./base-cleanup.js";
+import { resolveTemplateDir } from "./template-path.js";
 
-const TEMPLATE_DIR = path.resolve(
-	path.dirname(fileURLToPath(import.meta.url)),
-	"../../../template",
-);
+const TEMPLATE_DIR = resolveTemplateDir(import.meta.url);
 
 const slugify = (s) =>
 	s
