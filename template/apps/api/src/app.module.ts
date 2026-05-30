@@ -16,6 +16,7 @@ import { ErrorReportingModule } from "#modules/error-reporting/error-reporting.m
 import { HealthModule } from "#modules/health/health.module";
 import { InvoicingModule } from "#modules/invoicing/invoicing.module";
 import { NotificationModule } from "#modules/notification/notification.module";
+import { OnboardingModule } from "#modules/onboarding/onboarding.module";
 import { OrganizationSettingsModule } from "#modules/organization-settings/organization-settings.module";
 import { ReportingModule } from "#modules/reporting/reporting.module";
 import { RoleModule } from "#modules/role/role.module";
@@ -63,6 +64,7 @@ import { StorageModule } from "#shared/storage/storage.module";
 		AuthModule,
 		AdminModule,
 		NotificationModule,
+		OnboardingModule,
 		ReportingModule,
 		OrganizationSettingsModule,
 		SecuritySettingsModule,

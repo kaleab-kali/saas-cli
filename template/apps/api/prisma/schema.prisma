@@ -32,6 +32,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   members       Member[]
+  assignedOnboardingTasks OnboardingTask[] @relation("AssignedOnboardingTasks")
 
   @@map("user")
 }
@@ -100,6 +101,7 @@ model Organization {
   invitations Invitation[]
   lookups     Lookup[]
   fileAssets  FileAsset[]
+  onboardingTask OnboardingTask?
 
   @@map("organization")
 }
@@ -131,6 +133,117 @@ model Invitation {
   createdAt      DateTime     @default(now())
 
   @@map("invitation")
+}
+
+// ============================================================
+// ONBOARDING WORKFLOWS (generic, starter-pack extensible)
+// ============================================================
+
+model OnboardingTask {
+  id               String                 @id @default(cuid())
+  organizationId   String                 @unique
+  organization     Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  templateKey      String
+  mode             OnboardingMode         @default(CONCIERGE)
+  status           OnboardingTaskStatus   @default(ACTIVE)
+  currentStepKey   String?
+  assignedToUserId String?
+  assignedTo       User?                  @relation("AssignedOnboardingTasks", fields: [assignedToUserId], references: [id])
+  contactName      String
+  contactPhone     String
+  contactEmail     String
+  startedAt        DateTime               @default(now())
+  completedAt      DateTime?
+  blockedReason    String?
+  metadata         Json?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  steps      OnboardingTaskStep[]
+  activities OnboardingActivity[]
+
+  @@index([status])
+  @@index([assignedToUserId])
+  @@index([templateKey, status])
+  @@map("onboarding_task")
+}
+
+enum OnboardingMode {
+  CONCIERGE
+  SELF_SERVICE
+  HYBRID
+}
+
+enum OnboardingTaskStatus {
+  ACTIVE
+  COMPLETED
+  BLOCKED
+  CANCELLED
+}
+
+model OnboardingTaskStep {
+  id                String               @id @default(cuid())
+  taskId            String
+  task              OnboardingTask       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  stepKey           String
+  stepOrder         Int
+  title             String
+  description       String?
+  category          String
+  assigneeType      String
+  canBeSelfService  Boolean              @default(false)
+  status            OnboardingStepStatus @default(PENDING)
+  startedAt         DateTime?
+  completedAt       DateTime?
+  completedByUserId String?
+  notes             String?
+  capturedData      Json?
+  blocked           Boolean              @default(false)
+  blockedReason     String?
+
+  @@unique([taskId, stepKey])
+  @@index([taskId, stepOrder])
+  @@index([status])
+  @@map("onboarding_task_step")
+}
+
+enum OnboardingStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+  FAILED
+}
+
+model OnboardingActivity {
+  id        String         @id @default(cuid())
+  taskId    String
+  task      OnboardingTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  type      String
+  message   String
+  userId    String?
+  metadata  Json?
+  createdAt DateTime       @default(now())
+
+  @@index([taskId, createdAt])
+  @@map("onboarding_activity")
+}
+
+model OnboardingTaskTemplate {
+  id              String   @id @default(cuid())
+  key             String   @unique
+  name            String
+  description     String?
+  vertical        String
+  estimatedDays   Int
+  stepDefinitions Json
+  createdByPack   String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([vertical, isActive])
+  @@map("onboarding_task_template")
 }
 
 model OrganizationRole {
@@ -656,6 +769,8 @@ model OrganizationSettings {
   companyEmail         String?
   taxId                String?
   taxRatePct           Float    @default(0)
+  onboardingCompletedAt DateTime?
+  onboardingStep        String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 

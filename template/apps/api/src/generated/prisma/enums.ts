@@ -9,7 +9,31 @@
 * 🟢 You can import this file directly.
 */
 
+export const OnboardingMode = {
+  CONCIERGE: 'CONCIERGE',
+  SELF_SERVICE: 'SELF_SERVICE',
+  HYBRID: 'HYBRID'
+} as const
+
+export type OnboardingMode = (typeof OnboardingMode)[keyof typeof OnboardingMode]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const OnboardingTaskStatus = {
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  BLOCKED: 'BLOCKED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type OnboardingTaskStatus = (typeof OnboardingTaskStatus)[keyof typeof OnboardingTaskStatus]
+
+
+export const OnboardingStepStatus = {
+  PENDING: 'PENDING',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  SKIPPED: 'SKIPPED',
+  FAILED: 'FAILED'
+} as const
+
+export type OnboardingStepStatus = (typeof OnboardingStepStatus)[keyof typeof OnboardingStepStatus]

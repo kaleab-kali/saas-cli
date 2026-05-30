@@ -23,6 +23,7 @@ import { Route as AdminSettingsIndexRouteImport } from './routes/admin/settings/
 import { Route as AdminServerIndexRouteImport } from './routes/admin/server/index'
 import { Route as AdminPlansIndexRouteImport } from './routes/admin/plans/index'
 import { Route as AdminOrganizationsIndexRouteImport } from './routes/admin/organizations/index'
+import { Route as AdminOnboardingIndexRouteImport } from './routes/admin/onboarding/index'
 import { Route as AdminJobsIndexRouteImport } from './routes/admin/jobs/index'
 import { Route as AdminFeatureFlagsIndexRouteImport } from './routes/admin/feature-flags/index'
 import { Route as AdminEimsIndexRouteImport } from './routes/admin/eims/index'
@@ -30,12 +31,15 @@ import { Route as AdminBillingIndexRouteImport } from './routes/admin/billing/in
 import { Route as AdminAuditLogsIndexRouteImport } from './routes/admin/audit-logs/index'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedReportsIndexRouteImport } from './routes/_authenticated/reports/index'
+import { Route as AuthenticatedOnboardingIndexRouteImport } from './routes/_authenticated/onboarding/index'
 import { Route as AuthenticatedNotificationsIndexRouteImport } from './routes/_authenticated/notifications/index'
 import { Route as AuthenticatedFilesIndexRouteImport } from './routes/_authenticated/files/index'
 import { Route as AuthenticatedEimsIndexRouteImport } from './routes/_authenticated/eims/index'
 import { Route as AdminPlansNewRouteImport } from './routes/admin/plans/new'
 import { Route as AdminPlansPlanIdRouteImport } from './routes/admin/plans/$planId'
 import { Route as AdminOrganizationsOrgIdRouteImport } from './routes/admin/organizations/$orgId'
+import { Route as AdminOnboardingNewRouteImport } from './routes/admin/onboarding/new'
+import { Route as AdminOnboardingTaskIdRouteImport } from './routes/admin/onboarding/$taskId'
 import { Route as AdminEimsTenantsRouteImport } from './routes/admin/eims/tenants'
 import { Route as AdminEimsResourcesRouteImport } from './routes/admin/eims/resources'
 import { Route as AdminEimsFailuresRouteImport } from './routes/admin/eims/failures'
@@ -139,6 +143,11 @@ const AdminOrganizationsIndexRoute = AdminOrganizationsIndexRouteImport.update({
   path: '/organizations/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOnboardingIndexRoute = AdminOnboardingIndexRouteImport.update({
+  id: '/onboarding/',
+  path: '/onboarding/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminJobsIndexRoute = AdminJobsIndexRouteImport.update({
   id: '/jobs/',
   path: '/jobs/',
@@ -176,6 +185,12 @@ const AuthenticatedReportsIndexRoute =
     path: '/reports/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedOnboardingIndexRoute =
+  AuthenticatedOnboardingIndexRouteImport.update({
+    id: '/onboarding/',
+    path: '/onboarding/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedNotificationsIndexRoute =
   AuthenticatedNotificationsIndexRouteImport.update({
     id: '/notifications/',
@@ -205,6 +220,16 @@ const AdminPlansPlanIdRoute = AdminPlansPlanIdRouteImport.update({
 const AdminOrganizationsOrgIdRoute = AdminOrganizationsOrgIdRouteImport.update({
   id: '/organizations/$orgId',
   path: '/organizations/$orgId',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOnboardingNewRoute = AdminOnboardingNewRouteImport.update({
+  id: '/onboarding/new',
+  path: '/onboarding/new',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOnboardingTaskIdRoute = AdminOnboardingTaskIdRouteImport.update({
+  id: '/onboarding/$taskId',
+  path: '/onboarding/$taskId',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminEimsTenantsRoute = AdminEimsTenantsRouteImport.update({
@@ -430,12 +455,15 @@ export interface FileRoutesByFullPath {
   '/admin/eims/failures': typeof AdminEimsFailuresRoute
   '/admin/eims/resources': typeof AdminEimsResourcesRoute
   '/admin/eims/tenants': typeof AdminEimsTenantsRoute
+  '/admin/onboarding/$taskId': typeof AdminOnboardingTaskIdRoute
+  '/admin/onboarding/new': typeof AdminOnboardingNewRoute
   '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/admin/plans/$planId': typeof AdminPlansPlanIdRoute
   '/admin/plans/new': typeof AdminPlansNewRoute
   '/eims/': typeof AuthenticatedEimsIndexRoute
   '/files/': typeof AuthenticatedFilesIndexRoute
   '/notifications/': typeof AuthenticatedNotificationsIndexRoute
+  '/onboarding/': typeof AuthenticatedOnboardingIndexRoute
   '/reports/': typeof AuthenticatedReportsIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/admin/audit-logs/': typeof AdminAuditLogsIndexRoute
@@ -443,6 +471,7 @@ export interface FileRoutesByFullPath {
   '/admin/eims/': typeof AdminEimsIndexRoute
   '/admin/feature-flags/': typeof AdminFeatureFlagsIndexRoute
   '/admin/jobs/': typeof AdminJobsIndexRoute
+  '/admin/onboarding/': typeof AdminOnboardingIndexRoute
   '/admin/organizations/': typeof AdminOrganizationsIndexRoute
   '/admin/plans/': typeof AdminPlansIndexRoute
   '/admin/server/': typeof AdminServerIndexRoute
@@ -489,12 +518,15 @@ export interface FileRoutesByTo {
   '/admin/eims/failures': typeof AdminEimsFailuresRoute
   '/admin/eims/resources': typeof AdminEimsResourcesRoute
   '/admin/eims/tenants': typeof AdminEimsTenantsRoute
+  '/admin/onboarding/$taskId': typeof AdminOnboardingTaskIdRoute
+  '/admin/onboarding/new': typeof AdminOnboardingNewRoute
   '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/admin/plans/$planId': typeof AdminPlansPlanIdRoute
   '/admin/plans/new': typeof AdminPlansNewRoute
   '/eims': typeof AuthenticatedEimsIndexRoute
   '/files': typeof AuthenticatedFilesIndexRoute
   '/notifications': typeof AuthenticatedNotificationsIndexRoute
+  '/onboarding': typeof AuthenticatedOnboardingIndexRoute
   '/reports': typeof AuthenticatedReportsIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/admin/audit-logs': typeof AdminAuditLogsIndexRoute
@@ -502,6 +534,7 @@ export interface FileRoutesByTo {
   '/admin/eims': typeof AdminEimsIndexRoute
   '/admin/feature-flags': typeof AdminFeatureFlagsIndexRoute
   '/admin/jobs': typeof AdminJobsIndexRoute
+  '/admin/onboarding': typeof AdminOnboardingIndexRoute
   '/admin/organizations': typeof AdminOrganizationsIndexRoute
   '/admin/plans': typeof AdminPlansIndexRoute
   '/admin/server': typeof AdminServerIndexRoute
@@ -551,12 +584,15 @@ export interface FileRoutesById {
   '/admin/eims/failures': typeof AdminEimsFailuresRoute
   '/admin/eims/resources': typeof AdminEimsResourcesRoute
   '/admin/eims/tenants': typeof AdminEimsTenantsRoute
+  '/admin/onboarding/$taskId': typeof AdminOnboardingTaskIdRoute
+  '/admin/onboarding/new': typeof AdminOnboardingNewRoute
   '/admin/organizations/$orgId': typeof AdminOrganizationsOrgIdRoute
   '/admin/plans/$planId': typeof AdminPlansPlanIdRoute
   '/admin/plans/new': typeof AdminPlansNewRoute
   '/_authenticated/eims/': typeof AuthenticatedEimsIndexRoute
   '/_authenticated/files/': typeof AuthenticatedFilesIndexRoute
   '/_authenticated/notifications/': typeof AuthenticatedNotificationsIndexRoute
+  '/_authenticated/onboarding/': typeof AuthenticatedOnboardingIndexRoute
   '/_authenticated/reports/': typeof AuthenticatedReportsIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/admin/audit-logs/': typeof AdminAuditLogsIndexRoute
@@ -564,6 +600,7 @@ export interface FileRoutesById {
   '/admin/eims/': typeof AdminEimsIndexRoute
   '/admin/feature-flags/': typeof AdminFeatureFlagsIndexRoute
   '/admin/jobs/': typeof AdminJobsIndexRoute
+  '/admin/onboarding/': typeof AdminOnboardingIndexRoute
   '/admin/organizations/': typeof AdminOrganizationsIndexRoute
   '/admin/plans/': typeof AdminPlansIndexRoute
   '/admin/server/': typeof AdminServerIndexRoute
@@ -613,12 +650,15 @@ export interface FileRouteTypes {
     | '/admin/eims/failures'
     | '/admin/eims/resources'
     | '/admin/eims/tenants'
+    | '/admin/onboarding/$taskId'
+    | '/admin/onboarding/new'
     | '/admin/organizations/$orgId'
     | '/admin/plans/$planId'
     | '/admin/plans/new'
     | '/eims/'
     | '/files/'
     | '/notifications/'
+    | '/onboarding/'
     | '/reports/'
     | '/settings/'
     | '/admin/audit-logs/'
@@ -626,6 +666,7 @@ export interface FileRouteTypes {
     | '/admin/eims/'
     | '/admin/feature-flags/'
     | '/admin/jobs/'
+    | '/admin/onboarding/'
     | '/admin/organizations/'
     | '/admin/plans/'
     | '/admin/server/'
@@ -672,12 +713,15 @@ export interface FileRouteTypes {
     | '/admin/eims/failures'
     | '/admin/eims/resources'
     | '/admin/eims/tenants'
+    | '/admin/onboarding/$taskId'
+    | '/admin/onboarding/new'
     | '/admin/organizations/$orgId'
     | '/admin/plans/$planId'
     | '/admin/plans/new'
     | '/eims'
     | '/files'
     | '/notifications'
+    | '/onboarding'
     | '/reports'
     | '/settings'
     | '/admin/audit-logs'
@@ -685,6 +729,7 @@ export interface FileRouteTypes {
     | '/admin/eims'
     | '/admin/feature-flags'
     | '/admin/jobs'
+    | '/admin/onboarding'
     | '/admin/organizations'
     | '/admin/plans'
     | '/admin/server'
@@ -733,12 +778,15 @@ export interface FileRouteTypes {
     | '/admin/eims/failures'
     | '/admin/eims/resources'
     | '/admin/eims/tenants'
+    | '/admin/onboarding/$taskId'
+    | '/admin/onboarding/new'
     | '/admin/organizations/$orgId'
     | '/admin/plans/$planId'
     | '/admin/plans/new'
     | '/_authenticated/eims/'
     | '/_authenticated/files/'
     | '/_authenticated/notifications/'
+    | '/_authenticated/onboarding/'
     | '/_authenticated/reports/'
     | '/_authenticated/settings/'
     | '/admin/audit-logs/'
@@ -746,6 +794,7 @@ export interface FileRouteTypes {
     | '/admin/eims/'
     | '/admin/feature-flags/'
     | '/admin/jobs/'
+    | '/admin/onboarding/'
     | '/admin/organizations/'
     | '/admin/plans/'
     | '/admin/server/'
@@ -865,6 +914,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOrganizationsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/onboarding/': {
+      id: '/admin/onboarding/'
+      path: '/onboarding'
+      fullPath: '/admin/onboarding/'
+      preLoaderRoute: typeof AdminOnboardingIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/jobs/': {
       id: '/admin/jobs/'
       path: '/jobs'
@@ -914,6 +970,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReportsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/onboarding/': {
+      id: '/_authenticated/onboarding/'
+      path: '/onboarding'
+      fullPath: '/onboarding/'
+      preLoaderRoute: typeof AuthenticatedOnboardingIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/notifications/': {
       id: '/_authenticated/notifications/'
       path: '/notifications'
@@ -954,6 +1017,20 @@ declare module '@tanstack/react-router' {
       path: '/organizations/$orgId'
       fullPath: '/admin/organizations/$orgId'
       preLoaderRoute: typeof AdminOrganizationsOrgIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/onboarding/new': {
+      id: '/admin/onboarding/new'
+      path: '/onboarding/new'
+      fullPath: '/admin/onboarding/new'
+      preLoaderRoute: typeof AdminOnboardingNewRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/onboarding/$taskId': {
+      id: '/admin/onboarding/$taskId'
+      path: '/onboarding/$taskId'
+      fullPath: '/admin/onboarding/$taskId'
+      preLoaderRoute: typeof AdminOnboardingTaskIdRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/eims/tenants': {
@@ -1211,6 +1288,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedEimsIndexRoute: typeof AuthenticatedEimsIndexRoute
   AuthenticatedFilesIndexRoute: typeof AuthenticatedFilesIndexRoute
   AuthenticatedNotificationsIndexRoute: typeof AuthenticatedNotificationsIndexRoute
+  AuthenticatedOnboardingIndexRoute: typeof AuthenticatedOnboardingIndexRoute
   AuthenticatedReportsIndexRoute: typeof AuthenticatedReportsIndexRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
   AuthenticatedReportsDashboardMainRoute: typeof AuthenticatedReportsDashboardMainRoute
@@ -1248,6 +1326,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedEimsIndexRoute: AuthenticatedEimsIndexRoute,
   AuthenticatedFilesIndexRoute: AuthenticatedFilesIndexRoute,
   AuthenticatedNotificationsIndexRoute: AuthenticatedNotificationsIndexRoute,
+  AuthenticatedOnboardingIndexRoute: AuthenticatedOnboardingIndexRoute,
   AuthenticatedReportsIndexRoute: AuthenticatedReportsIndexRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
   AuthenticatedReportsDashboardMainRoute:
@@ -1267,6 +1346,8 @@ interface AdminRouteChildren {
   AdminEimsFailuresRoute: typeof AdminEimsFailuresRoute
   AdminEimsResourcesRoute: typeof AdminEimsResourcesRoute
   AdminEimsTenantsRoute: typeof AdminEimsTenantsRoute
+  AdminOnboardingTaskIdRoute: typeof AdminOnboardingTaskIdRoute
+  AdminOnboardingNewRoute: typeof AdminOnboardingNewRoute
   AdminOrganizationsOrgIdRoute: typeof AdminOrganizationsOrgIdRoute
   AdminPlansPlanIdRoute: typeof AdminPlansPlanIdRoute
   AdminPlansNewRoute: typeof AdminPlansNewRoute
@@ -1275,6 +1356,7 @@ interface AdminRouteChildren {
   AdminEimsIndexRoute: typeof AdminEimsIndexRoute
   AdminFeatureFlagsIndexRoute: typeof AdminFeatureFlagsIndexRoute
   AdminJobsIndexRoute: typeof AdminJobsIndexRoute
+  AdminOnboardingIndexRoute: typeof AdminOnboardingIndexRoute
   AdminOrganizationsIndexRoute: typeof AdminOrganizationsIndexRoute
   AdminPlansIndexRoute: typeof AdminPlansIndexRoute
   AdminServerIndexRoute: typeof AdminServerIndexRoute
@@ -1292,6 +1374,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEimsFailuresRoute: AdminEimsFailuresRoute,
   AdminEimsResourcesRoute: AdminEimsResourcesRoute,
   AdminEimsTenantsRoute: AdminEimsTenantsRoute,
+  AdminOnboardingTaskIdRoute: AdminOnboardingTaskIdRoute,
+  AdminOnboardingNewRoute: AdminOnboardingNewRoute,
   AdminOrganizationsOrgIdRoute: AdminOrganizationsOrgIdRoute,
   AdminPlansPlanIdRoute: AdminPlansPlanIdRoute,
   AdminPlansNewRoute: AdminPlansNewRoute,
@@ -1300,6 +1384,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminEimsIndexRoute: AdminEimsIndexRoute,
   AdminFeatureFlagsIndexRoute: AdminFeatureFlagsIndexRoute,
   AdminJobsIndexRoute: AdminJobsIndexRoute,
+  AdminOnboardingIndexRoute: AdminOnboardingIndexRoute,
   AdminOrganizationsIndexRoute: AdminOrganizationsIndexRoute,
   AdminPlansIndexRoute: AdminPlansIndexRoute,
   AdminServerIndexRoute: AdminServerIndexRoute,

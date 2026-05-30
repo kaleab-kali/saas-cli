@@ -44,6 +44,7 @@ import {
 const ADMIN_NAV = [
 	{ labelKey: "admin.nav.overview", to: "/admin", icon: DashboardSquare01Icon },
 	{ labelKey: "admin.nav.organizations", to: "/admin/organizations", icon: Building06Icon },
+	{ labelKey: "admin.nav.onboarding", to: "/admin/onboarding", icon: Timer02Icon },
 	{ labelKey: "admin.nav.users", to: "/admin/users", icon: UserMultipleIcon },
 	{ labelKey: "admin.nav.plans", to: "/admin/plans", icon: PackageIcon },
 	{ labelKey: "admin.nav.billing", to: "/admin/billing", icon: CreditCardIcon },

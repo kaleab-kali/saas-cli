@@ -58,6 +58,10 @@ export const ModelName = {
   Organization: 'Organization',
   Member: 'Member',
   Invitation: 'Invitation',
+  OnboardingTask: 'OnboardingTask',
+  OnboardingTaskStep: 'OnboardingTaskStep',
+  OnboardingActivity: 'OnboardingActivity',
+  OnboardingTaskTemplate: 'OnboardingTaskTemplate',
   OrganizationRole: 'OrganizationRole',
   CustomFieldDefinition: 'CustomFieldDefinition',
   CustomFieldValue: 'CustomFieldValue',
@@ -235,6 +239,81 @@ export const InvitationScalarFieldEnum = {
 } as const
 
 export type InvitationScalarFieldEnum = (typeof InvitationScalarFieldEnum)[keyof typeof InvitationScalarFieldEnum]
+
+
+export const OnboardingTaskScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  templateKey: 'templateKey',
+  mode: 'mode',
+  status: 'status',
+  currentStepKey: 'currentStepKey',
+  assignedToUserId: 'assignedToUserId',
+  contactName: 'contactName',
+  contactPhone: 'contactPhone',
+  contactEmail: 'contactEmail',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  blockedReason: 'blockedReason',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OnboardingTaskScalarFieldEnum = (typeof OnboardingTaskScalarFieldEnum)[keyof typeof OnboardingTaskScalarFieldEnum]
+
+
+export const OnboardingTaskStepScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  stepKey: 'stepKey',
+  stepOrder: 'stepOrder',
+  title: 'title',
+  description: 'description',
+  category: 'category',
+  assigneeType: 'assigneeType',
+  canBeSelfService: 'canBeSelfService',
+  status: 'status',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  completedByUserId: 'completedByUserId',
+  notes: 'notes',
+  capturedData: 'capturedData',
+  blocked: 'blocked',
+  blockedReason: 'blockedReason'
+} as const
+
+export type OnboardingTaskStepScalarFieldEnum = (typeof OnboardingTaskStepScalarFieldEnum)[keyof typeof OnboardingTaskStepScalarFieldEnum]
+
+
+export const OnboardingActivityScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  type: 'type',
+  message: 'message',
+  userId: 'userId',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type OnboardingActivityScalarFieldEnum = (typeof OnboardingActivityScalarFieldEnum)[keyof typeof OnboardingActivityScalarFieldEnum]
+
+
+export const OnboardingTaskTemplateScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  name: 'name',
+  description: 'description',
+  vertical: 'vertical',
+  estimatedDays: 'estimatedDays',
+  stepDefinitions: 'stepDefinitions',
+  createdByPack: 'createdByPack',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OnboardingTaskTemplateScalarFieldEnum = (typeof OnboardingTaskTemplateScalarFieldEnum)[keyof typeof OnboardingTaskTemplateScalarFieldEnum]
 
 
 export const OrganizationRoleScalarFieldEnum = {
@@ -671,6 +750,8 @@ export const OrganizationSettingsScalarFieldEnum = {
   companyEmail: 'companyEmail',
   taxId: 'taxId',
   taxRatePct: 'taxRatePct',
+  onboardingCompletedAt: 'onboardingCompletedAt',
+  onboardingStep: 'onboardingStep',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1315,19 +1396,19 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-export const JsonNullValueInput = {
-  JsonNull: JsonNull
-} as const
-
-export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
-
-
 export const NullableJsonNullValueInput = {
   DbNull: DbNull,
   JsonNull: JsonNull
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {

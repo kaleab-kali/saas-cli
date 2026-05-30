@@ -48,6 +48,7 @@ export const en = {
 	},
 	sidebar: {
 		workspace: "Workspace",
+		onboarding: "Onboarding",
 		files: "Files",
 		reports: "Reports",
 		notifications: "Notifications",
@@ -299,6 +300,7 @@ export const en = {
 		nav: {
 			overview: "Overview",
 			organizations: "Organizations",
+			onboarding: "Onboarding",
 			users: "Users",
 			plans: "Plans",
 			billing: "Billing",

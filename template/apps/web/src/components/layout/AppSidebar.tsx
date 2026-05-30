@@ -43,6 +43,11 @@ interface NavItemDef {
 
 const NAV_ITEMS: readonly NavItemDef[] = [
 	{
+		labelKey: "sidebar.onboarding",
+		to: "/onboarding",
+		icon: DashboardSquare01Icon,
+	},
+	{
 		labelKey: "sidebar.files",
 		to: "/files",
 		icon: DashboardSquare01Icon,
