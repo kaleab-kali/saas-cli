@@ -51,7 +51,7 @@ Do not add feature-local encryption helpers. Keep ciphertext values opaque to th
 
 The generated project includes:
 
-- `apps/security`: security smoke, dependency, Semgrep, gitleaks, and nuclei wrappers.
+- `apps/security`: security smoke, dependency, Semgrep, gitleaks, deterministic HTTP exposure checks, and opt-in nuclei wrappers.
 - `.gitleaks.toml`: committed secret detection.
 - `pnpm test:security`: aggregate security checks.
 - `pnpm test:security:source`: deterministic source checks for core API/web hardening.

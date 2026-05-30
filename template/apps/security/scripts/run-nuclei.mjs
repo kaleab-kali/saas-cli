@@ -63,12 +63,20 @@ if (!target) {
 
 let code = 0;
 try {
-	if (hasCommand("nuclei")) {
+	code = await runBuiltInHttpCheck(target);
+	if (code !== 0) {
+		// The deterministic built-in scan already found an exposure.
+	} else if (
+		hasCommand("nuclei") &&
+		(process.env.SECURITY_RUN_NUCLEI === "1" || process.env.SECURITY_STRICT_TOOLS === "1")
+	) {
 		code = await run("nuclei", [
 			"-u",
 			target,
 			"-t",
 			path.resolve(here, "../nuclei"),
+			"-duc",
+			"-no-stdin",
 			"-severity",
 			"low,medium,high,critical",
 			"-timeout",
@@ -78,13 +86,12 @@ try {
 			"-silent",
 			"-no-color",
 		]);
-	} else if (process.env.SECURITY_STRICT_TOOLS === "1") {
-		console.log("nuclei is not installed.");
-		console.log("Install nuclei from https://docs.projectdiscovery.io/tools/nuclei/install");
+	} else if (!hasCommand("nuclei") && process.env.SECURITY_STRICT_TOOLS === "1") {
+		console.error("nuclei is not installed.");
+		console.error("Install nuclei from https://docs.projectdiscovery.io/tools/nuclei/install");
 		code = 1;
 	} else {
-		console.log("nuclei is not installed. Running built-in HTTP security scan.");
-		code = await runBuiltInHttpCheck(target);
+		console.log("Built-in HTTP security scan passed. Set SECURITY_RUN_NUCLEI=1 to also run nuclei locally.");
 	}
 } finally {
 	if (server) await new Promise((resolve) => server.close(resolve));

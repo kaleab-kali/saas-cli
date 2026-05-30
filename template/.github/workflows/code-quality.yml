@@ -72,8 +72,6 @@ jobs:
     needs: [lint, types, unit-tests]
     env:
       DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
-      BETTER_AUTH_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-      MASTER_KEY: abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
       BETTER_AUTH_URL: http://localhost:3000
       FRONTEND_URL: http://localhost:5173
       VITE_API_URL: http://localhost:3000
@@ -92,6 +90,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install Playwright Chromium
         run: pnpm --filter e2e exec playwright install --with-deps chromium
+      - name: Generate throwaway CI secrets
+        run: |
+          echo "BETTER_AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "MASTER_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
       - name: Deploy readiness gate
         run: pnpm deploy:check
 

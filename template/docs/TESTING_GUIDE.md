@@ -191,7 +191,7 @@ Security layers:
 - `test:security:secrets`: gitleaks secret scanning
 - `test:security:deps`: `pnpm audit` plus optional osv-scanner
 - `test:security:sast`: semgrep with local rules
-- `test:security:http`: nuclei against `NUCLEI_TARGET`
+- `test:security:http`: deterministic exposed-file HTTP scan; add nuclei with `SECURITY_RUN_NUCLEI=1`
 - `test:security:api`: deterministic auth/RBAC/API smoke checks
 - `test:security:source`: source hardening checks for Helmet, validation, CORS, Swagger exposure, unsafe Prisma, direct Axios imports, and fetch-in-effect drift
 
@@ -199,10 +199,11 @@ Runtime examples:
 
 ```bash
 NUCLEI_TARGET=http://127.0.0.1:3000 pnpm test:security:http
+SECURITY_RUN_NUCLEI=1 NUCLEI_TARGET=http://127.0.0.1:3000 pnpm test:security:http
 SECURITY_API_BASE_URL=http://127.0.0.1:3000 pnpm test:security:api
 ```
 
-Nuclei catches common HTTP/security misconfiguration. It does not understand business rules like tenant isolation; keep those as Playwright API/security tests.
+The built-in HTTP scan is deterministic for fresh scaffolds. Nuclei adds external template coverage when explicitly enabled or when `SECURITY_STRICT_TOOLS=1` is set. It does not understand business rules like tenant isolation; keep those as Playwright API/security tests.
 
 ## AI Eval Scaffold
 

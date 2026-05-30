@@ -36,7 +36,10 @@ Runtime HTTP security scan:
 ```bash
 pnpm --filter security test:http
 NUCLEI_TARGET=http://127.0.0.1:3000 pnpm --filter security test:http
+SECURITY_RUN_NUCLEI=1 pnpm --filter security test:http
 ```
+
+`test:http` always runs the deterministic built-in exposure scan. The external nuclei binary is opt-in for local runs via `SECURITY_RUN_NUCLEI=1` and required in `SECURITY_STRICT_TOOLS=1` mode.
 
 Business/API security smoke:
 

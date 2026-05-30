@@ -126,6 +126,9 @@ function assertCiWorkflows() {
 	assert(codeQuality.includes("production-gate:"), "code quality workflow includes production gate job");
 	assert(codeQuality.includes("pnpm deploy:check"), "code quality workflow runs deploy readiness gate");
 	assert(codeQuality.includes("playwright install --with-deps chromium"), "production gate installs browser dependency");
+	assert(codeQuality.includes("openssl rand -hex 32"), "production gate generates throwaway CI secrets");
+	assert(!/BETTER_AUTH_SECRET:\s*[a-f0-9]{64}/i.test(codeQuality), "production gate has no hardcoded auth secret");
+	assert(!/MASTER_KEY:\s*[a-f0-9]{64}/i.test(codeQuality), "production gate has no hardcoded master key");
 	assert(!codeQuality.includes("NODE_ENV: test"), "production gate does not force test-mode frontend builds");
 	assert(playwright.includes("pull_request:"), "Playwright workflow runs on pull requests");
 	assert(playwright.includes("push:"), "Playwright workflow runs on pushes");
