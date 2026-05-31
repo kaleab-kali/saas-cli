@@ -41,6 +41,7 @@ const mustNotExist = [
 const mustExist = [
 	"apps/api/src/modules/onboarding/onboarding.module.ts",
 	"apps/api/src/modules/onboarding/application/onboarding.service.spec.ts",
+	"apps/api/src/modules/onboarding/infrastructure/crons/stale-onboarding.cron.spec.ts",
 	"apps/api/src/modules/auth/guards/permissions.guard.spec.ts",
 	"apps/api/src/modules/health/detailed-health.controller.ts",
 	"apps/api/src/modules/health/health-diagnostics.service.ts",
@@ -385,14 +386,21 @@ function assertFrontendImprovementSurface() {
 
 function assertOnboardingServerTableQuery() {
 	const dto = readProjectFile("apps/api/src/modules/onboarding/presentation/dtos/onboarding.dto.ts");
+	const module = readProjectFile("apps/api/src/modules/onboarding/onboarding.module.ts");
 	const service = readProjectFile("apps/api/src/modules/onboarding/application/onboarding.service.ts");
 	const serviceSpec = readProjectFile("apps/api/src/modules/onboarding/application/onboarding.service.spec.ts");
+	const staleCron = readProjectFile("apps/api/src/modules/onboarding/infrastructure/crons/stale-onboarding.cron.ts");
+	const staleCronSpec = readProjectFile("apps/api/src/modules/onboarding/infrastructure/crons/stale-onboarding.cron.spec.ts");
 	const hooks = readProjectFile("apps/web/src/features/onboarding/api/onboarding.hooks.ts");
 	assert(service.includes('key: "tenant-intake"'), "generic onboarding starts with staff tenant intake");
 	assert(service.includes('key: "first-workflow-check"'), "generic onboarding includes first workflow verification");
 	assert(serviceSpec.includes("prevents tenant self-service completion"), "onboarding service tests tenant self-service guardrails");
 	assert(serviceSpec.includes("builds filterable, sorted task queries"), "onboarding service tests queue filtering and sorting");
 	assert(serviceSpec.includes("marks the workflow complete"), "onboarding service tests workflow completion");
+	assert(module.includes("NotificationModule"), "onboarding module imports notification infrastructure");
+	assert(staleCron.includes("CreateNotificationHandler"), "stale onboarding cron sends staff notifications");
+	assert(staleCron.includes("onboarding.task.stale"), "stale onboarding cron uses a traceable notification source event");
+	assert(staleCronSpec.includes("notifies assigned staff"), "stale onboarding cron has notification coverage");
 	assert(dto.includes("search?: string"), "onboarding list DTO accepts search");
 	assert(dto.includes("sort?: string"), "onboarding list DTO accepts sort");
 	assert(dto.includes("staleDays?: number"), "onboarding list DTO accepts stale-day filtering");
