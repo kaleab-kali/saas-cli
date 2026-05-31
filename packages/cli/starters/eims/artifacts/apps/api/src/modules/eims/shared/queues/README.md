@@ -16,3 +16,7 @@ boundary for invoice submission ordering:
 Replace the in-process coordinator with BullMQ-backed workers when enabling
 multi-node production deployment; keep the same payload metadata contract and
 Prisma reservation audit trail.
+
+Generated EIMS installs append `eims-submission-retry`, `eims-bulk-callback`,
+and `eims-offline-replay` to `BULLMQ_QUEUES` so platform operators can inspect
+and retry worker queues from `/admin/jobs`.

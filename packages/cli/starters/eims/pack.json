@@ -92,6 +92,7 @@
 	],
 	"addsQueues": [
 		"eims-submission-retry",
-		"eims-bulk-callback"
+		"eims-bulk-callback",
+		"eims-offline-replay"
 	]
 }

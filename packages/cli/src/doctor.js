@@ -103,6 +103,21 @@ const requireHttpsEnvUrl = (env, key, production) => {
 	return false;
 };
 
+const requireEnvListIncludes = (env, key, requiredValues, production, detail) => {
+	const configured = envValue(env, key)
+		.split(",")
+		.map((value) => value.trim())
+		.filter(Boolean);
+	const missing = requiredValues.filter((value) => !configured.includes(value));
+	if (missing.length === 0) {
+		ok(`${key} includes required values`, requiredValues.join(", "));
+		return true;
+	}
+	const message = detail ?? `missing ${missing.join(", ")}`;
+	production ? fail(key, message) : warn(key, message);
+	return false;
+};
+
 const requireDeployEnv = (cwd, production) => {
 	const generic = path.join(cwd, ".env.deploy");
 	const prod = path.join(cwd, ".env.deploy.production");
@@ -159,6 +174,14 @@ const checkEimsProductionEnv = (apiEnv, production) => {
 
 	if (apiEnv.EIMS_PHASE0_STRICT === "true") ok("EIMS_PHASE0_STRICT", "true");
 	else fail("EIMS_PHASE0_STRICT", "must be true before EIMS production launch");
+
+	requireEnvListIncludes(
+		apiEnv,
+		"BULLMQ_QUEUES",
+		["eims-submission-retry", "eims-bulk-callback", "eims-offline-replay"],
+		production,
+		"include EIMS queues so /admin/jobs can monitor and retry EIMS workers",
+	);
 };
 
 const checkStarterEnvVars = (starters, apiEnv, production) => {

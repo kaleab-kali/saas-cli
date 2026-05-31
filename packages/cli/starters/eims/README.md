@@ -22,4 +22,6 @@ Production readiness is enforced by `pnpm doctor:production`. For an EIMS instal
 
 Invoice submission lanes persist `EimsCounterReservation` rows before calling the SDK and hydrate source counters from durable state after restart. Multi-node production still needs BullMQ/Redis workers using the same reservation contract.
 
+Installing the starter appends `eims-submission-retry`, `eims-bulk-callback`, and `eims-offline-replay` to `BULLMQ_QUEUES` so the base `/admin/jobs` queue monitor can inspect and retry EIMS worker queues. `pnpm doctor:production` blocks EIMS go-live if those queues are not visible in the generated API environment.
+
 The `pack.json` manifest is the source-of-truth metadata for routes, models, permissions, environment variables, seed data, queues, and cron jobs.

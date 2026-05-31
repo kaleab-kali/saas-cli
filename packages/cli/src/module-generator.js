@@ -1275,6 +1275,25 @@ const appendBlockIfMissing = async (file, marker, block) => {
 	return true;
 };
 
+const patchEnvListValue = async (file, key, values) => {
+	if (!(await fs.pathExists(file))) return false;
+	let text = await fs.readFile(file, "utf8");
+	const lineRegex = new RegExp(`^${key}=.*$`, "m");
+	const existingLine = text.match(lineRegex)?.[0];
+	const existingValues = existingLine
+		? existingLine
+				.slice(key.length + 1)
+				.split(",")
+				.map((value) => value.trim())
+				.filter(Boolean)
+		: [];
+	const nextValues = [...new Set([...existingValues, ...values])].join(",");
+	const nextLine = `${key}=${nextValues}`;
+	text = existingLine ? text.replace(lineRegex, nextLine) : `${text.trimEnd()}\n${nextLine}\n`;
+	await fs.writeFile(file, text, "utf8");
+	return true;
+};
+
 const patchEimsEnvExamples = async (root) => {
 	const block = `# --- EIMS / Ethiopian e-invoicing (optional starter) ---
 EIMS_ENV=sandbox
@@ -1333,6 +1352,15 @@ EIMS_QUEUE_PREFIX=eims`;
 		"EIMS_ENV=",
 		block,
 	);
+	const eimsQueueNames = ["eims-submission-retry", "eims-bulk-callback", "eims-offline-replay"];
+	for (const envFile of [
+		path.join(root, ".env.example"),
+		path.join(root, ".env.production.example"),
+		path.join(root, "apps/api/.env.example"),
+		path.join(root, "apps/api/.env"),
+	]) {
+		await patchEnvListValue(envFile, "BULLMQ_QUEUES", eimsQueueNames);
+	}
 	return true;
 };
 
@@ -6042,6 +6070,10 @@ The concierge launch console is the primary UI for staff-assisted EIMS launches.
 		"EIMS_DR_RUNBOOK.md": `# EIMS DR Runbook
 
 Document VPS, PostgreSQL, Vault, certificate revocation, MoR API change, and tenant dispute response procedures before production rollout.
+
+The starter registers \`eims-submission-retry\`, \`eims-bulk-callback\`, and
+\`eims-offline-replay\` in \`BULLMQ_QUEUES\` so \`/admin/jobs\` can monitor
+worker depth and retry failed jobs when Redis is configured.
 `,
 	};
 	for (const [name, content] of Object.entries(docs)) {

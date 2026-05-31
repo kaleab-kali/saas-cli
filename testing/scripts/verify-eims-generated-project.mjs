@@ -267,7 +267,10 @@ function assertGeneratedStructure() {
 	assert(appModule.includes("InvoicingModule,"), "API app registers InvoicingModule");
 
 	const packageJson = JSON.parse(readProjectFile("package.json"));
+	const rootEnvExample = readProjectFile(".env.example");
 	const productionEnvExample = readProjectFile(".env.production.example");
+	const apiEnv = readProjectFile("apps/api/.env");
+	const apiEnvExample = readProjectFile("apps/api/.env.example");
 	assert(packageJson.scripts["test:eims:mock"]?.includes("test:eims:ui"), "generated package has full EIMS mock gate");
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-credential-secret.service.spec.ts"),
@@ -361,6 +364,7 @@ function assertGeneratedStructure() {
 	assert(eimsStarter.permissions?.includes("eims-submission:*"), "scaffold state records EIMS permission metadata");
 	assert(eimsStarter.seedData?.includes("eims-entitlements"), "scaffold state records EIMS seed metadata");
 	assert(eimsStarter.queues?.includes("eims-submission-retry"), "scaffold state records EIMS queue metadata");
+	assert(eimsStarter.queues?.includes("eims-offline-replay"), "scaffold state records EIMS offline replay queue metadata");
 	assert(eimsStarter.crons?.includes("certificate-expiry-daily"), "scaffold state records EIMS cron metadata");
 	assert(eimsStarter.dependencies?.["@yourcompany/eims-sdk"], "scaffold state records EIMS SDK dependency metadata");
 	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
@@ -384,6 +388,11 @@ function assertGeneratedStructure() {
 	assert(productionEnvExample.includes("EIMS_SIGNING_PROVIDER=vault"), "EIMS production env example uses non-local signing");
 	assert(productionEnvExample.includes("EIMS_PHASE0_STRICT=true"), "EIMS production env example enables Phase 0 strict mode");
 	assert(productionEnvExample.includes("EIMS_CALLBACK_HMAC_SECRET="), "EIMS production env example documents callback HMAC secret");
+	for (const envText of [rootEnvExample, productionEnvExample, apiEnvExample, apiEnv]) {
+		assert(envText.includes("eims-submission-retry"), "EIMS install registers submission retry queue in BullMQ env");
+		assert(envText.includes("eims-bulk-callback"), "EIMS install registers bulk callback queue in BullMQ env");
+		assert(envText.includes("eims-offline-replay"), "EIMS install registers offline replay queue in BullMQ env");
+	}
 	const webPackageJson = JSON.parse(readProjectFile("apps/web/package.json"));
 	assert(webPackageJson.scripts?.lint === "biome check .", "web workspace lint uses Biome");
 	assert(webPackageJson.scripts?.format === "biome check --write .", "web workspace format uses Biome");
