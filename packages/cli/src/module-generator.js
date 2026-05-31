@@ -564,6 +564,19 @@ const EIMS_ADMIN_NAV = [
 	return true;
 };
 
+const patchEimsLandingRoute = async (root) => {
+	const file = path.join(root, "apps/web/src/routes/index.tsx");
+	if (!(await fs.pathExists(file))) return false;
+	const text = await fs.readFile(file, "utf8");
+	const next = text.replace(
+		/return <Navigate to="\/(?:onboarding|eims)" \/>;/,
+		'return <Navigate to="/eims" />;',
+	);
+	if (next === text) return false;
+	await fs.writeFile(file, next, "utf8");
+	return true;
+};
+
 const patchSidebar = async (root, slug, name, varName) => {
 	if (slug === "eims") {
 		await patchEimsTenantSidebar(root);
@@ -5717,6 +5730,7 @@ const addEimsStarterPack = async ({ cwd }) => {
 	await patchEimsPrismaSchema(cwd);
 	await writeEimsSupplementalFiles(cwd);
 	await patchEimsRouteTree(cwd);
+	await patchEimsLandingRoute(cwd);
 	await writeEimsPhase0Assets(cwd);
 	await writeEimsDocs(cwd);
 	await patchAppModule(cwd, "invoicing", "Invoicing");
@@ -5739,6 +5753,7 @@ const refreshEimsStarterPack = async ({ cwd }) => {
 	console.log(pc.bold("Refreshing EIMS/EIRMS starter-owned UI and verification files"));
 	await copyEimsStarterArtifacts(cwd, { refresh: true });
 	await patchEimsRouteTree(cwd);
+	await patchEimsLandingRoute(cwd);
 	await patchEimsPackageScripts(cwd);
 	await patchEimsSeedScript(cwd);
 	await patchEimsEnvExamples(cwd);

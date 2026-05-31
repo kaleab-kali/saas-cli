@@ -350,6 +350,13 @@ function assertGeneratedStructure() {
 	assert(adminSidebar.includes('admin.nav.eimsOperations'), "admin sidebar exposes EIMS operations label");
 	assert(adminSidebar.includes("EIMS operations focus"), "admin shell is visibly EIMS-specific after installing the starter");
 	assert(adminSidebar.includes("EIMS tenant launch queue"), "admin shell status panel names the EIMS queue");
+	const rootRoute = readProjectFile("apps/web/src/routes/index.tsx");
+	assert(rootRoute.includes('return <Navigate to="/eims" />;'), "EIMS starter makes the tax workspace the authenticated landing page");
+	const eimsBrowserSpec = readProjectFile("apps/e2e/tests/eims-mock.spec.ts");
+	assert(
+		eimsBrowserSpec.includes("authenticated landing page opens the EIMS tax workspace"),
+		"EIMS browser smoke verifies the authenticated landing page opens the EIMS workspace",
+	);
 	const englishLocale = readProjectFile("apps/web/src/shared/i18n/locales/en.ts");
 	assert(englishLocale.includes('eims: "Tax tools"'), "tenant EIMS nav is business-facing");
 	assert(englishLocale.includes('eimsCancellations: "Cancellations"'), "tenant EIMS nav labels include cancellations");

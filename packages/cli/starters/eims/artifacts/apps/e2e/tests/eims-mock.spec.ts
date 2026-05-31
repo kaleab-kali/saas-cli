@@ -287,6 +287,13 @@ async function assertNoTenantInternalLanguage(page: Page) {
 }
 
 test.describe("tenant EIMS workflow is business-facing and backend-driven", () => {
+	test("authenticated landing page opens the EIMS tax workspace", async ({ page }) => {
+		await page.goto("/", { waitUntil: "domcontentloaded" });
+		await expect(page).toHaveURL(/\/eims\/?$/);
+		await expect(page.getByRole("heading", { name: "Tax invoicing status" })).toBeVisible();
+		await expect(page.getByText("Ethiopia tax workspace", { exact: false })).toBeVisible();
+	});
+
 	test("tenant navigation exposes business actions, not internal compliance/source modules", async ({ page }) => {
 		await page.goto("/settings", { waitUntil: "domcontentloaded" });
 		await openSidebarIfNeeded(page, "Tax tools");

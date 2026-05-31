@@ -164,6 +164,11 @@ test("adds and removes the EIMS starter without leaving generated residue", () =
 		const addResult = runCli(["add", "starter", "eims"], { cwd: targetDir, timeout: 120_000 });
 		assert.equal(addResult.status, 0, outputOf(addResult));
 		assert.ok(existsSync(path.join(targetDir, "apps/api/src/modules/eims")), "EIMS API module should be installed");
+		assert.match(
+			readFileSync(path.join(targetDir, "apps/web/src/routes/index.tsx"), "utf8"),
+			/return <Navigate to="\/eims" \/>;/,
+			"EIMS starter should make the tax workspace the authenticated landing page",
+		);
 		assert.ok(
 			existsSync(path.join(targetDir, "apps/performance/scripts/eims-mock-load.mjs")),
 			"EIMS performance smoke should be installed",
@@ -179,6 +184,11 @@ test("adds and removes the EIMS starter without leaving generated residue", () =
 		assert.ok(
 			!existsSync(path.join(targetDir, "apps/api/prisma/seed-eims-onboarding-template.ts")),
 			"EIMS onboarding seed should be removed",
+		);
+		assert.match(
+			readFileSync(path.join(targetDir, "apps/web/src/routes/index.tsx"), "utf8"),
+			/return <Navigate to="\/onboarding" \/>;/,
+			"removing EIMS should restore the base onboarding landing page",
 		);
 
 		const scaffoldState = JSON.parse(readFileSync(path.join(targetDir, ".scaffold-state.json"), "utf8"));
@@ -206,17 +216,25 @@ test("refreshes an already-installed EIMS starter UI without reinstalling API mo
 		assert.equal(addResult.status, 0, outputOf(addResult));
 
 		const tenantPage = path.join(targetDir, "apps/web/src/features/eims/components/eims-tenant-pages.tsx");
+		const rootRoute = path.join(targetDir, "apps/web/src/routes/index.tsx");
 		const apiModule = path.join(targetDir, "apps/api/src/modules/eims/eims.module.ts");
 		writeFileSync(tenantPage, "export const staleEimsUi = 'old ui';\n", "utf8");
+		writeFileSync(
+			rootRoute,
+			readFileSync(rootRoute, "utf8").replace('return <Navigate to="/eims" />;', 'return <Navigate to="/onboarding" />;'),
+			"utf8",
+		);
 		writeFileSync(apiModule, `${readFileSync(apiModule, "utf8")}\n// local API implementation marker\n`, "utf8");
 
 		const noRefreshResult = runCli(["add", "starter", "eims"], { cwd: targetDir, timeout: 120_000 });
 		assert.equal(noRefreshResult.status, 0, outputOf(noRefreshResult));
 		assert.match(readFileSync(tenantPage, "utf8"), /old ui/);
+		assert.match(readFileSync(rootRoute, "utf8"), /return <Navigate to="\/onboarding" \/>;/);
 
 		const refreshResult = runCli(["add", "starter", "eims", "--refresh"], { cwd: targetDir, timeout: 120_000 });
 		assert.equal(refreshResult.status, 0, outputOf(refreshResult));
 		assert.match(readFileSync(tenantPage, "utf8"), /Ethiopia tax workspace/);
+		assert.match(readFileSync(rootRoute, "utf8"), /return <Navigate to="\/eims" \/>;/);
 		assert.match(readFileSync(apiModule, "utf8"), /local API implementation marker/);
 		assert.match(outputOf(refreshResult), /EIMS starter refresh complete/);
 	} finally {

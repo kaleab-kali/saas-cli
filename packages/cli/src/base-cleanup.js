@@ -187,6 +187,14 @@ const stripRouteTree = async (root) => {
 	return writeIfChanged(file, text, next);
 };
 
+const stripEimsLandingRoute = async (root) => {
+	const file = path.join(root, "apps/web/src/routes/index.tsx");
+	const text = await readText(file);
+	if (text === null) return false;
+	const next = text.replace('return <Navigate to="/eims" />;', 'return <Navigate to="/onboarding" />;');
+	return writeIfChanged(file, text, next);
+};
+
 const stripLocales = async (root) => {
 	let changed = false;
 	for (const locale of ["en", "am"]) {
@@ -415,6 +423,7 @@ export const stripDomainStarterCode = async (root) => {
 		stripSidebar,
 		stripAdminSidebar,
 		stripRouteTree,
+		stripEimsLandingRoute,
 		stripLocales,
 		stripPackageScripts,
 		rewriteApiTestMocks,
