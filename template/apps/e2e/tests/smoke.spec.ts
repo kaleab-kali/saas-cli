@@ -253,6 +253,35 @@ async function installAdminMocks(page: Page) {
 			);
 			return;
 		}
+		if (url.includes("/admin/settings/feature-flags")) {
+			await route.fulfill(
+				ok({
+					data: [
+						{
+							id: "flag_api",
+							name: "platform.api-keys",
+							description: "Allow organizations to create scoped API keys",
+							enabledGlobal: true,
+							overrides: [
+								{
+									id: "override_demo",
+									organizationId: "org_smoke",
+									enabled: false,
+								},
+							],
+						},
+						{
+							id: "flag_reports",
+							name: "platform.reports",
+							description: "Enable saved reports and dashboard exports",
+							enabledGlobal: false,
+							overrides: [],
+						},
+					],
+				}),
+			);
+			return;
+		}
 		if (url.includes("/saved-views")) {
 			await route.fulfill(ok({ data: [] }));
 			return;
@@ -341,6 +370,29 @@ test("admin onboarding smoke renders filterable operations table", async ({ page
 	await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe("Demo Cafe");
 	await expect(page.getByRole("cell", { name: /Demo Cafe/i })).toBeVisible();
 	await expect(page.getByText("1/4 steps")).toBeVisible();
+
+	assertNoErrors();
+});
+
+test("admin feature flags smoke renders rollout table", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAdminMocks(page);
+
+	await page.goto("/admin/feature-flags?search=api&limit=100", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Feature Flags" })).toBeVisible();
+	const search = page.getByRole("textbox", { name: /Search feature flags/i });
+	await expect(search).toHaveValue("api");
+	await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Saved views" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save view" })).toBeVisible();
+	await expect(page.getByText("platform.api-keys", { exact: true })).toBeVisible();
+	await expect(page.getByRole("switch", { name: "Toggle platform.api-keys globally" })).toBeChecked();
+	await expect(page.getByRole("button", { name: "Add override" }).first()).toBeVisible();
+	await page.getByRole("checkbox", { name: "Select row flag_api" }).check();
+	await expect(page.getByText("1 selected")).toBeVisible();
+	await expect(page.getByRole("button", { name: "Bulk actions" })).toBeVisible();
 
 	assertNoErrors();
 });

@@ -71,6 +71,11 @@ BULLMQ_PREFIX=
 
 Failed BullMQ jobs show their last failure reason and can be retried directly from `/admin/jobs`.
 
+## Feature Flag Management
+Route: `/admin/feature-flags`
+
+The rollout table uses the shared DataTable surface, so platform admins can search, filter, save views, export CSV, and bulk-enable or bulk-disable selected flags. Each row exposes a global switch plus organization overrides for controlled tenant rollouts.
+
 ## File Storage
 Route: `/files`
 

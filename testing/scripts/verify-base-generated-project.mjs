@@ -426,7 +426,9 @@ function assertFrontendImprovementSurface() {
 	const topBar = readProjectFile("apps/web/src/components/layout/TopBar.tsx");
 	const dataTable = readProjectFile("apps/web/src/shared/components/DataTable.tsx");
 	const onboarding = readProjectFile("apps/web/src/features/onboarding/components/onboarding-pages.tsx");
+	const featureFlags = readProjectFile("apps/web/src/routes/admin/feature-flags/index.tsx");
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
+	const opsGuide = readProjectFile("docs/ADMIN_OPERATIONS_GUIDE.md");
 	const e2eSmoke = readProjectFile("apps/e2e/tests/smoke.spec.ts");
 	assert(topBar.includes("<CommandPalette />"), "top bar exposes command palette");
 	assert(topBar.includes("Workspace command center"), "top bar exposes visible command-center shell");
@@ -461,6 +463,14 @@ function assertFrontendImprovementSurface() {
 	assert(onboarding.includes("enableCsvExport"), "admin onboarding table enables CSV export");
 	assert(onboarding.includes("savedViewsEntity"), "admin onboarding table enables saved views");
 	assert(onboarding.includes("bulkActions"), "admin onboarding table enables bulk actions");
+	assert(featureFlags.includes("<DataTable"), "admin feature flags use shared DataTable");
+	assert(featureFlags.includes("useDataTableState"), "admin feature flags sync table controls to URL");
+	assert(featureFlags.includes("savedViewsEntity"), "admin feature flags enable saved views");
+	assert(featureFlags.includes("enableCsvExport"), "admin feature flags enable CSV export");
+	assert(featureFlags.includes("bulkActions"), "admin feature flags expose bulk global rollout actions");
+	assert(featureFlags.includes("<Switch"), "admin feature flags use switches for binary rollout state");
+	assert(featureFlags.includes("OrgOverrideDialog"), "admin feature flags keep org override workflow in-table");
+	assert(opsGuide.includes("Feature Flag Management"), "admin operations guide documents feature flag rollout table");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
 	assert(e2eSmoke.includes("Operational handoff map"), "E2E smoke covers assisted launch desk");
 	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
@@ -474,6 +484,8 @@ function assertFrontendImprovementSurface() {
 	);
 	assert(e2eSmoke.includes("Create a staff-owned workflow"), "E2E smoke covers new onboarding handoff summary");
 	assert(e2eSmoke.includes("search=Demo"), "E2E smoke covers bookmarkable admin table search");
+	assert(e2eSmoke.includes("admin feature flags smoke renders rollout table"), "E2E smoke covers admin feature flag table");
+	assert(e2eSmoke.includes("Toggle platform.api-keys globally"), "E2E smoke covers feature flag switch controls");
 }
 
 function assertOnboardingServerTableQuery() {
