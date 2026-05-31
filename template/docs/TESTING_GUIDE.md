@@ -20,7 +20,7 @@ Free external CLIs are optional and intentionally not installed as Node dependen
 - semgrep: https://semgrep.dev/docs/getting-started/
 - nuclei: https://docs.projectdiscovery.io/tools/nuclei/install
 
-External CLI wrappers are optional for local development. Security wrappers skip missing external scanners unless strict mode is enabled; the mock performance gate runs a built-in HTTP load smoke when k6 is missing. Production deploy checks use strict modes so external security scanners and k6 must be installed:
+External CLI wrappers are optional for local development. Security wrappers report missing or unusable external scanners without failing unless strict mode is enabled; the mock performance gate runs a built-in HTTP load smoke when k6 is missing. Production deploy checks use strict modes so external security scanners and k6 must be installed and executable:
 
 ```bash
 SECURITY_STRICT_TOOLS=1 pnpm test:security

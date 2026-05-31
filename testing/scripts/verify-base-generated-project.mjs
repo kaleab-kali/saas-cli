@@ -159,6 +159,9 @@ function assertDeployGateBuilds() {
 		"base package exposes strict security tooling command",
 	);
 	assert(securityTooling.includes("missingTools"), "security tooling smoke tracks missing scanner tools");
+	assert(securityTooling.includes("unusableTools"), "security tooling smoke tracks unusable scanner tools");
+	assert(securityTooling.includes("versionArgs"), "security tooling smoke executes scanner version checks");
+	assert(securityTooling.includes("SECURITY_TOOLING_TIMEOUT_MS"), "security tooling smoke bounds scanner version checks");
 	assert(securityTooling.includes('process.argv.includes("--strict")'), "security tooling smoke supports strict CLI mode");
 	assert(securityTooling.includes("SECURITY_STRICT_TOOLS"), "security tooling smoke supports strict production mode");
 	assert(securityTooling.includes("process.exit(1)"), "security tooling smoke fails when strict tools are missing");
