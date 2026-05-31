@@ -17,6 +17,7 @@ import {
 	useReactTable,
 	type VisibilityState,
 } from "@tanstack/react-table";
+import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,8 @@ interface DataTableProps<TData, TValue> {
 	readonly enableColumnVisibility?: boolean;
 	readonly enableCsvExport?: boolean;
 	readonly exportFilename?: string;
+	readonly virtualizeRows?: boolean;
+	readonly estimateRowHeight?: number;
 	readonly toolbarActions?: React.ReactNode;
 	readonly getRowId?: (row: TData, index: number) => string;
 	readonly onRowClick?: (row: TData) => void;
@@ -305,6 +308,48 @@ const downloadCsv = (filename: string, rows: readonly (readonly unknown[])[]) =>
 	link.click();
 	URL.revokeObjectURL(url);
 };
+
+function useDataTableCsvExport<TData>(table: TanStackTable<TData>, exportFilename: string) {
+	return React.useCallback(() => {
+		const exportColumns = table.getVisibleLeafColumns().filter((column) => column.id !== "actions");
+		const rows = table.getRowModel().rows;
+		downloadCsv(exportFilename, [
+			exportColumns.map((column) => csvHeader(column.columnDef, column.id)),
+			...rows.map((row) => exportColumns.map((column) => row.getValue(column.id))),
+		]);
+	}, [exportFilename, table]);
+}
+
+function useDataTableVirtualRows<TData>({
+	table,
+	enabled,
+	estimateRowHeight,
+}: {
+	readonly table: TanStackTable<TData>;
+	readonly enabled: boolean;
+	readonly estimateRowHeight: number;
+}) {
+	const tableContainerRef = React.useRef<HTMLDivElement>(null);
+	const rowVirtualizer = useVirtualizer({
+		count: table.getRowModel().rows.length,
+		getScrollElement: () => tableContainerRef.current,
+		estimateSize: () => estimateRowHeight,
+		overscan: 8,
+		enabled,
+	});
+	const virtualItems = enabled ? rowVirtualizer.getVirtualItems() : undefined;
+	const virtualPaddingTop = virtualItems?.[0]?.start ?? 0;
+	const virtualPaddingBottom = virtualItems
+		? Math.max(0, rowVirtualizer.getTotalSize() - (virtualItems.at(-1)?.end ?? 0))
+		: 0;
+
+	return {
+		tableContainerRef,
+		virtualItems,
+		virtualPaddingTop,
+		virtualPaddingBottom,
+	};
+}
 
 const matchesFilter = (cellValue: unknown, filter: unknown) => {
 	if (!hasFilterValue(filter)) return true;
@@ -614,6 +659,9 @@ function DataTableRows<TData>({
 	emptyMessage,
 	emptyAction,
 	onRowClick,
+	virtualRows,
+	virtualPaddingTop,
+	virtualPaddingBottom,
 }: {
 	readonly table: TanStackTable<TData>;
 	readonly error?: unknown;
@@ -624,6 +672,9 @@ function DataTableRows<TData>({
 	readonly emptyMessage: string;
 	readonly emptyAction?: React.ReactNode;
 	readonly onRowClick?: (row: TData) => void;
+	readonly virtualRows?: readonly VirtualItem[];
+	readonly virtualPaddingTop?: number;
+	readonly virtualPaddingBottom?: number;
 }) {
 	const visibleColumns = table.getVisibleLeafColumns();
 	const rows = table.getRowModel().rows;
@@ -678,19 +729,43 @@ function DataTableRows<TData>({
 		);
 	}
 
-	return rows.map((row) => (
-		<TableRow
-			key={row.id}
-			className={onRowClick ? "cursor-pointer" : undefined}
-			onClick={onRowClick ? () => onRowClick(row.original) : undefined}
-		>
-			{row.getVisibleCells().map((cell) => (
-				<TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>
-					{flexRender(cell.column.columnDef.cell, cell.getContext())}
-				</TableCell>
+	const renderedRows = virtualRows ? virtualRows.map((virtualRow) => rows[virtualRow.index]).filter(Boolean) : rows;
+
+	return (
+		<>
+			{Boolean(virtualPaddingTop) && (
+				<TableRow aria-hidden="true">
+					<TableCell
+						colSpan={visibleColumns.length}
+						className="border-0 p-0"
+						style={{ height: `${virtualPaddingTop}px` }}
+					/>
+				</TableRow>
+			)}
+			{renderedRows.map((row) => (
+				<TableRow
+					key={row.id}
+					className={onRowClick ? "cursor-pointer" : undefined}
+					onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+				>
+					{row.getVisibleCells().map((cell) => (
+						<TableCell key={cell.id} className={cell.column.columnDef.meta?.className}>
+							{flexRender(cell.column.columnDef.cell, cell.getContext())}
+						</TableCell>
+					))}
+				</TableRow>
 			))}
-		</TableRow>
-	));
+			{Boolean(virtualPaddingBottom) && (
+				<TableRow aria-hidden="true">
+					<TableCell
+						colSpan={visibleColumns.length}
+						className="border-0 p-0"
+						style={{ height: `${virtualPaddingBottom}px` }}
+					/>
+				</TableRow>
+			)}
+		</>
+	);
 }
 
 export function DataTable<TData, TValue>({
@@ -712,6 +787,8 @@ export function DataTable<TData, TValue>({
 	enableColumnVisibility = true,
 	enableCsvExport = false,
 	exportFilename = "table-export.csv",
+	virtualizeRows = false,
+	estimateRowHeight = 48,
 	toolbarActions,
 	getRowId,
 	onRowClick,
@@ -822,14 +899,7 @@ export function DataTable<TData, TValue>({
 		table.resetColumnFilters();
 	}, [onGlobalFilterInputChange, setColumnFilters, table]);
 
-	const exportCsv = React.useCallback(() => {
-		const exportColumns = table.getVisibleLeafColumns().filter((column) => column.id !== "actions");
-		const rows = table.getRowModel().rows;
-		downloadCsv(exportFilename, [
-			exportColumns.map((column) => csvHeader(column.columnDef, column.id)),
-			...rows.map((row) => exportColumns.map((column) => row.getValue(column.id))),
-		]);
-	}, [exportFilename, table]);
+	const exportCsv = useDataTableCsvExport(table, exportFilename);
 
 	const hasFilters = Boolean(
 		globalFilterInput || globalFilter || columnFilters.some((filter) => hasFilterValue(filter.value)),
@@ -847,6 +917,12 @@ export function DataTable<TData, TValue>({
 	const showFilterRow =
 		enableColumnFilters &&
 		table.getHeaderGroups().some((group) => group.headers.some((header) => header.column.columnDef.meta?.filter));
+	const shouldVirtualizeRows = !isLoading && !error && (virtualizeRows || currentPageSize >= 100);
+	const { tableContainerRef, virtualItems, virtualPaddingTop, virtualPaddingBottom } = useDataTableVirtualRows({
+		table,
+		enabled: shouldVirtualizeRows,
+		estimateRowHeight,
+	});
 
 	return (
 		<div className="space-y-4">
@@ -865,7 +941,10 @@ export function DataTable<TData, TValue>({
 				table={table}
 			/>
 
-			<div className="overflow-x-auto rounded-md border">
+			<div
+				ref={tableContainerRef}
+				className={`overflow-x-auto rounded-md border ${shouldVirtualizeRows ? "max-h-[70vh] overflow-y-auto" : ""}`}
+			>
 				<Table>
 					<TableHeader>
 						{table.getHeaderGroups().map((headerGroup) => (
@@ -923,6 +1002,9 @@ export function DataTable<TData, TValue>({
 							emptyMessage={resolvedEmptyMessage}
 							emptyAction={emptyAction}
 							onRowClick={onRowClick}
+							virtualRows={virtualItems}
+							virtualPaddingTop={virtualPaddingTop}
+							virtualPaddingBottom={virtualPaddingBottom}
 						/>
 					</TableBody>
 				</Table>

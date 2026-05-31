@@ -43,6 +43,7 @@ onSuccess: () => {
 - Do not render raw `<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, or `<td>` tags outside `components/ui/table.tsx`; the source security gate rejects drift
 - Use `useDataTableState` for list pages that need bookmarkable search, sorting, and pagination state
 - Enable `enableCsvExport` on operational list pages so visible, filtered rows can be handed off without bespoke table export code
+- Let DataTable virtualize large pages with TanStack Virtual by passing `virtualizeRows` or using a page size of 100 rows
 - Use shadcn form components with zod validation schemas
 - Route all HTTP calls through `#shared/lib/api-client.ts`
 - Use `#shared/lib/auth-client.ts` for Better Auth hooks

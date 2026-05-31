@@ -417,6 +417,8 @@ function assertFrontendImprovementSurface() {
 	assert(dataTable.includes("DropdownMenuCheckboxItem"), "DataTable has column visibility controls");
 	assert(dataTable.includes("enableCsvExport"), "DataTable exposes opt-in CSV exports");
 	assert(dataTable.includes("downloadCsv"), "DataTable implements reusable CSV download");
+	assert(dataTable.includes("useVirtualizer"), "DataTable uses TanStack Virtual for large row sets");
+	assert(dataTable.includes("virtualizeRows"), "DataTable exposes opt-in row virtualization");
 	assert(onboarding.includes("Concierge launch workflow"), "tenant onboarding uses visible launch workflow console");
 	assert(onboarding.includes("AssistedLaunchDesk"), "tenant onboarding shows assisted launch desk");
 	assert(onboarding.includes("Concierge onboarding"), "admin onboarding uses concierge operations copy");

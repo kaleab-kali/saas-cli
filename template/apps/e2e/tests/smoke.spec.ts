@@ -314,7 +314,7 @@ test("admin onboarding smoke renders filterable operations table", async ({ page
 	const assertNoErrors = await expectNoConsoleErrors(page);
 	const { onboardingListRequests } = await installAdminMocks(page);
 
-	await page.goto("/admin/onboarding?search=Demo&limit=50&sort=tenant%3Aasc", { waitUntil: "networkidle" });
+	await page.goto("/admin/onboarding?search=Demo&limit=100&sort=tenant%3Aasc", { waitUntil: "networkidle" });
 
 	await expect(page.getByRole("heading", { name: "Concierge onboarding" })).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Queue by owner and risk" })).toBeVisible();
