@@ -5,6 +5,7 @@ import { RequirePermissions } from "#shared/decorators/permissions.decorator";
 import { EimsBulkCallbackPersistenceService } from "../callbacks/eims-bulk-callback-persistence.service";
 import { EimsCredentialPersistenceService } from "../crypto/eims-credential-persistence.service";
 import { EimsCredentialSecretService } from "../crypto/eims-credential-secret.service";
+import { EimsCredentialValidationService } from "../crypto/eims-credential-validation.service";
 import { EIMS_BACKEND_REPOSITORY, type EimsBackendRepository } from "../mock/eims-backend.repository";
 import type { EimsOfflinePendingInvoiceInput } from "../offline/eims-offline-pending-sync-cache.service";
 import { EimsOfflinePendingSyncPersistenceService } from "../offline/eims-offline-pending-sync-persistence.service";
@@ -22,6 +23,7 @@ export class EimsSupportingResourcesController {
 		@Inject(EIMS_BACKEND_REPOSITORY) private readonly repository: EimsBackendRepository,
 		private readonly credentialStore: EimsCredentialPersistenceService,
 		private readonly credentialSecrets: EimsCredentialSecretService,
+		private readonly credentialValidation: EimsCredentialValidationService,
 		private readonly bulkReceiptStore: EimsBulkCallbackPersistenceService,
 		private readonly offlinePending: EimsOfflinePendingSyncPersistenceService,
 		private readonly offlineReplay: EimsOfflineReplayService,
@@ -47,7 +49,7 @@ export class EimsSupportingResourcesController {
 	@Post("credentials/test")
 	@RequirePermissions("eims-credential:create")
 	testCredential(@Req() req: AuthedRequest, @Body() body: { sourceSystemId?: string }) {
-		return this.credentialStore.testCredential(req.organizationId, body.sourceSystemId);
+		return this.credentialValidation.testCredential(req.organizationId, body.sourceSystemId);
 	}
 
 	@Post("credentials/rotate")

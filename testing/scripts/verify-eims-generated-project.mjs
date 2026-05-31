@@ -81,6 +81,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts",
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.ts",
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
+	"apps/api/src/modules/eims/shared/crypto/eims-credential-validation.service.ts",
+	"apps/api/src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts",
 	"apps/api/src/modules/eims/shared/lookups/eims-lookup.service.spec.ts",
 	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.ts",
 	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts",
@@ -279,6 +281,10 @@ function assertGeneratedStructure() {
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-credential-persistence.service.spec.ts"),
 		"generated EIMS local test gate includes credential persistence tests",
+	);
+	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-credential-validation.service.spec.ts"),
+		"generated EIMS local test gate includes SDK-bound credential validation tests",
 	);
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-sdk-external.client.spec.ts"),
@@ -667,6 +673,12 @@ function assertGeneratedStructure() {
 	const credentialSecretsSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
 	);
+	const credentialValidation = readProjectFile(
+		"apps/api/src/modules/eims/shared/crypto/eims-credential-validation.service.ts",
+	);
+	const credentialValidationSpec = readProjectFile(
+		"apps/api/src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts",
+	);
 	const offlineCache = readProjectFile("apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.ts");
 	const offlineCacheSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts",
@@ -719,7 +731,7 @@ function assertGeneratedStructure() {
 	assert(sdkClientProvider.includes("DEFAULT_EIMS_SDK_PACKAGE_NAME"), "EIMS SDK provider defaults to the starter SDK package");
 	assert(sdkClientProvider.includes("createEimsSdkClientFromModule"), "EIMS SDK provider validates loaded SDK module shape");
 	assert(
-		sdkClientProvider.includes("registerInvoice/registerReceipt/verifyIrn-capable"),
+		sdkClientProvider.includes("registerInvoice/registerReceipt/verifyIrn/validateCredential-capable"),
 		"EIMS SDK provider fails closed for incompatible SDK modules",
 	);
 	assert(sdkClientProviderSpec.includes("createEimsClient factory"), "EIMS SDK provider tests cover SDK factory wiring");
@@ -729,6 +741,7 @@ function assertGeneratedStructure() {
 	assert(sdkContractScript.includes("registerInvoice"), "EIMS SDK contract script verifies invoice capability");
 	assert(sdkContractScript.includes("registerReceipt"), "EIMS SDK contract script verifies receipt capability");
 	assert(sdkContractScript.includes("verifyIrn"), "EIMS SDK contract script verifies IRN lookup capability");
+	assert(sdkContractScript.includes("validateCredential"), "EIMS SDK contract script verifies credential validation");
 	assert(
 		sdkContractScript.includes("placeholderPattern"),
 		"EIMS SDK contract script rejects placeholder package names",
@@ -737,6 +750,7 @@ assert(sdkExternalClient.includes("EIMS_SDK_CLIENT"), "EIMS SDK adapter uses SDK
 assert(sdkExternalClient.includes("registerInvoice"), "EIMS SDK adapter delegates invoice registration");
 assert(sdkExternalClient.includes("registerReceipt"), "EIMS SDK adapter delegates receipt registration");
 assert(sdkExternalClient.includes("verifyIrn"), "EIMS SDK adapter delegates IRN verification");
+assert(sdkExternalClient.includes("validateCredential"), "EIMS SDK adapter delegates credential validation");
 	assert(sdkExternalClient.includes("ServiceUnavailableException"), "EIMS SDK adapter fails closed without SDK provider");
 	assert(sdkExternalClientSpec.includes("delegates invoice registration"), "EIMS SDK adapter tests cover invoice delegation");
 	assert(sdkExternalClientSpec.includes("fails closed"), "EIMS SDK adapter tests cover missing SDK wiring");
@@ -859,8 +873,26 @@ assert(sdkExternalClient.includes("verifyIrn"), "EIMS SDK adapter delegates IRN 
 		"EIMS credential persistence tests cover durable encrypted storage",
 	);
 	assert(
-		credentialPersistenceSpec.includes("records credential test proof"),
-		"EIMS credential persistence tests cover durable test proof",
+		credentialPersistence.includes("credentialForValidation"),
+		"EIMS credential persistence exposes SDK validation material boundary",
+	);
+	assert(
+		credentialPersistence.includes("this.cipher.decrypt"),
+		"EIMS credential persistence decrypts secrets only for SDK validation",
+	);
+	assert(
+		credentialPersistenceSpec.includes("records SDK credential validation proof"),
+		"EIMS credential persistence tests cover durable SDK validation proof",
+	);
+	assert(credentialValidation.includes("EIMS_EXTERNAL_CLIENT"), "EIMS credential validation uses SDK client boundary");
+	assert(credentialValidation.includes("validateCredential"), "EIMS credential validation delegates to SDK");
+	assert(
+		credentialValidation.includes("recordValidationResult"),
+		"EIMS credential validation records durable test result",
+	);
+	assert(
+		credentialValidationSpec.includes("through the EIMS SDK boundary"),
+		"EIMS credential validation tests cover SDK-bound credential tests",
 	);
 	assert(credentialSecrets.includes("CipherService"), "EIMS credential secrets use platform CipherService");
 	assert(credentialSecrets.includes("delete persistablePayload[field]"), "EIMS credential secrets strip raw values");
@@ -887,8 +919,14 @@ assert(sdkExternalClient.includes("verifyIrn"), "EIMS SDK adapter delegates IRN 
 		supportingResourcesController.includes("EimsCredentialPersistenceService"),
 		"EIMS credential API uses durable credential persistence",
 	);
+	assert(
+		supportingResourcesController.includes("EimsCredentialValidationService") &&
+			supportingResourcesController.includes("credentialValidation.testCredential"),
+		"EIMS credential API tests credentials through the SDK validation service",
+	);
 	assert(eimsSharedModule.includes("EimsCredentialPersistenceService"), "EIMS shared module exports credential persistence");
 	assert(eimsSharedModule.includes("EimsCredentialSecretService"), "EIMS shared module exports credential secret service");
+	assert(eimsSharedModule.includes("EimsCredentialValidationService"), "EIMS shared module exports credential validation");
 	assert(printProof.includes("PDFDocument"), "EIMS print proof service renders PDF output");
 	assert(printProof.includes("createHash"), "EIMS print proof service fingerprints generated PDFs");
 	assert(printProof.includes("Official print proof requires an accepted EIMS response"), "EIMS print proof requires acceptance");

@@ -1213,7 +1213,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:sdk-contract"] ??=
@@ -5372,6 +5372,8 @@ const main = async () => {
 \t\tregisterInvoice: typeof client.registerInvoice === "function",
 \t\tregisterReceipt: typeof client.registerReceipt === "function",
 \t\tverifyIrn: typeof client.verifyIrn === "function",
+\t\tvalidateCredential:
+\t\t\ttypeof client.validateCredential === "function" || typeof client.validateCredentials === "function",
 \t};
 \tconst missingCapabilities = Object.entries(capabilities)
 \t\t.filter(([, available]) => !available)
@@ -5828,6 +5830,7 @@ for (const secretField of ["apiKey", "password", "clientSecret", "refreshToken",
 }
 
 const credentialPersistence = read("apps/api/src/modules/eims/shared/crypto/eims-credential-persistence.service.ts");
+const credentialValidation = read("apps/api/src/modules/eims/shared/crypto/eims-credential-validation.service.ts");
 assertIncludes(credentialPersistence, "PrismaService", "EIMS credentials must persist through Prisma");
 assertIncludes(credentialPersistence, "eimsCredential.create", "EIMS credential persistence must create durable rows");
 assertIncludes(credentialPersistence, "eimsCredential.update", "EIMS credential persistence must update durable rows");
@@ -5840,6 +5843,27 @@ assertIncludes(
 \tcredentialPersistence,
 \t"secretsReturned: false",
 \t"EIMS credential persistence must redact secret responses",
+);
+assertIncludes(
+\tcredentialPersistence,
+\t"credentialForValidation",
+\t"EIMS credentials must expose SDK validation material",
+);
+assertIncludes(
+\tcredentialPersistence,
+\t"this.cipher.decrypt",
+\t"EIMS credential validation must decrypt only inside the API",
+);
+assertIncludes(
+\tcredentialValidation,
+\t"EIMS_EXTERNAL_CLIENT",
+\t"EIMS credential validation must use the SDK client boundary",
+);
+assertIncludes(credentialValidation, "validateCredential", "EIMS credential validation must delegate to the SDK");
+assertIncludes(
+\tsupportingController,
+\t"credentialValidation.testCredential",
+\t"EIMS credential test endpoint must use SDK-bound credential validation",
 );
 
 const apiMockTests = read("apps/api-tests/tests/eims-v3-mock.spec.ts");
@@ -5955,12 +5979,13 @@ assertIncludes(sdkClientProvider, "EIMS_SDK_PACKAGE_NAME", "EIMS SDK provider mu
 assertIncludes(sdkClientProvider, "createEimsSdkClientFromModule", "EIMS SDK provider must validate SDK module shape");
 assertIncludes(
 \tsdkClientProvider,
-\t"registerInvoice/registerReceipt/verifyIrn-capable",
+\t"registerInvoice/registerReceipt/verifyIrn/validateCredential-capable",
 \t"EIMS SDK provider must fail closed for incompatible SDK clients",
 );
 assertIncludes(sdkExternalClient, "registerInvoice", "EIMS SDK adapter must submit invoices through the SDK");
 assertIncludes(sdkExternalClient, "registerReceipt", "EIMS SDK adapter must submit receipts through the SDK");
 assertIncludes(sdkExternalClient, "verifyIrn", "EIMS SDK adapter must verify IRNs through the SDK");
+assertIncludes(sdkExternalClient, "validateCredential", "EIMS SDK adapter must validate credentials through the SDK");
 assertIncludes(
 \tsdkExternalClient,
 \t"ServiceUnavailableException",
@@ -6043,8 +6068,8 @@ Layer B runs against INSA/MoR sandbox after credentials and certificates are ava
 After publishing or linking the real SDK package, set \`EIMS_SDK_PACKAGE_NAME\`
 and run \`pnpm test:eims:sdk-contract\`. This imports the SDK package, builds the
 same options used by the Nest provider, and verifies the package exposes the
-\`registerInvoice\`, \`registerReceipt\`, and \`verifyIrn\` methods consumed by
-the SaaS adapter before sandbox credentials are exercised.
+\`registerInvoice\`, \`registerReceipt\`, \`verifyIrn\`, and credential validation
+methods consumed by the SaaS adapter before sandbox credentials are exercised.
 
 Invoice submission lanes persist counter reservations before SDK dispatch and
 hydrate source counter state from durable rows after restart. Multi-node

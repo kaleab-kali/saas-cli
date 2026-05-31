@@ -8,6 +8,7 @@ import { EimsSdkExternalClient } from "./client/eims-sdk-external.client";
 import { MockEimsExternalClient } from "./client/mock-eims-external.client";
 import { EimsCredentialPersistenceService } from "./crypto/eims-credential-persistence.service";
 import { EimsCredentialSecretService } from "./crypto/eims-credential-secret.service";
+import { EimsCredentialValidationService } from "./crypto/eims-credential-validation.service";
 import { EimsLookupController } from "./lookups/eims-lookup.controller";
 import { EimsLookupService } from "./lookups/eims-lookup.service";
 import { EIMS_BACKEND_REPOSITORY } from "./mock/eims-backend.repository";
@@ -30,6 +31,7 @@ import { EimsSubmissionQueuePersistenceService } from "./queues/eims-submission-
 		EimsSubmissionQueuePersistenceService,
 		EimsCredentialPersistenceService,
 		EimsCredentialSecretService,
+		EimsCredentialValidationService,
 		EimsOfflinePendingSyncCacheService,
 		EimsOfflinePendingSyncPersistenceService,
 		EimsOfflineReplayService,
@@ -54,6 +56,7 @@ import { EimsSubmissionQueuePersistenceService } from "./queues/eims-submission-
 		EimsSubmissionQueuePersistenceService,
 		EimsCredentialPersistenceService,
 		EimsCredentialSecretService,
+		EimsCredentialValidationService,
 		EimsOfflinePendingSyncCacheService,
 		EimsOfflinePendingSyncPersistenceService,
 		EimsOfflineReplayService,

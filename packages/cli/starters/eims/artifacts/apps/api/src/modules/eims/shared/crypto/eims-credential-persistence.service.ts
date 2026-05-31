@@ -1,5 +1,6 @@
 import { Buffer } from "node:buffer";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { CipherService } from "#shared/crypto/cipher.service";
 import { PrismaService } from "#shared/database/prisma.service";
 
 const SECRET_COLUMNS = {
@@ -13,6 +14,7 @@ type SecretField = keyof typeof SECRET_COLUMNS;
 
 interface EimsCredentialRow {
 	id: string;
+	organizationId: string;
 	sourceSystemId: string;
 	environment: string;
 	clientId: string | null;
@@ -37,9 +39,22 @@ interface CredentialEnvelope {
 	meta?: Record<string, unknown>;
 }
 
+export interface EimsCredentialValidationRecord {
+	id: string;
+	organizationId: string;
+	sourceSystemId: string;
+	environment: string;
+	clientId: string | null;
+	username: string | null;
+	credentials: Partial<Record<SecretField, string>>;
+}
+
 @Injectable()
 export class EimsCredentialPersistenceService {
-	constructor(private readonly prisma: PrismaService) {}
+	constructor(
+		private readonly prisma: PrismaService,
+		private readonly cipher: CipherService,
+	) {}
 
 	async listCredentials(
 		organizationId: string,
@@ -85,25 +100,50 @@ export class EimsCredentialPersistenceService {
 		};
 	}
 
-	async testCredential(organizationId: string, sourceSystemId?: string): Promise<CredentialEnvelope> {
+	async credentialForValidation(
+		organizationId: string,
+		sourceSystemId?: string,
+	): Promise<EimsCredentialValidationRecord> {
 		const row = await this.prisma.eimsCredential.findFirst({
 			where: { organizationId, ...(sourceSystemId ? { sourceSystemId } : {}) },
 			orderBy: { updatedAt: "desc" },
 		});
 		if (!row) throw new NotFoundException("EIMS credential not found for this tenant/source system");
+		const credential = row as EimsCredentialRow;
+		return {
+			id: credential.id,
+			organizationId,
+			sourceSystemId: credential.sourceSystemId,
+			environment: credential.environment,
+			clientId: credential.clientId,
+			username: credential.username,
+			credentials: this.decryptedSecrets(credential),
+		};
+	}
+
+	async recordValidationResult(
+		organizationId: string,
+		credentialId: string,
+		input: {
+			lastTestStatus: "success" | "failed";
+			sdkValidation?: Record<string, unknown>;
+		},
+	): Promise<CredentialEnvelope> {
 		const tested = await this.prisma.eimsCredential.update({
-			where: { id: row.id },
+			where: { id: credentialId },
 			data: {
 				lastTestedAt: new Date(),
-				lastTestStatus: "success",
-				status: "tested",
+				lastTestStatus: input.lastTestStatus,
+				status: input.lastTestStatus === "success" ? "tested" : "test_failed",
 			},
 		});
 		return {
 			data: {
-				message: "Connection test succeeded",
+				message: input.lastTestStatus === "success" ? "Connection test succeeded" : "Connection test failed",
 				...this.redact(tested),
-				handledBy: "prisma-credential-store",
+				handledBy: "eims-sdk-credential-validation",
+				sdkValidation: input.sdkValidation ?? null,
+				organizationId,
 			},
 		};
 	}
@@ -135,6 +175,18 @@ export class EimsCredentialPersistenceService {
 		for (const field of Object.keys(SECRET_COLUMNS) as SecretField[]) {
 			const encrypted = (value as Record<string, unknown>)[field];
 			if (typeof encrypted === "string" && encrypted.length > 0) result[field] = encrypted;
+		}
+		return result;
+	}
+
+	private decryptedSecrets(row: EimsCredentialRow): Partial<Record<SecretField, string>> {
+		const result: Partial<Record<SecretField, string>> = {};
+		for (const [field, [encryptedColumn]] of Object.entries(SECRET_COLUMNS) as Array<
+			[SecretField, readonly [string, string]]
+		>) {
+			const encrypted = row[encryptedColumn as keyof EimsCredentialRow];
+			if (!encrypted) continue;
+			result[field] = this.cipher.decrypt(Buffer.from(encrypted as Uint8Array).toString("utf8"));
 		}
 		return result;
 	}

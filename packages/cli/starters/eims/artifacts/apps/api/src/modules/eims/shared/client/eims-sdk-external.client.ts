@@ -5,6 +5,7 @@ import {
 	type EimsSdkClient,
 	type RegisterInvoiceInput,
 	type RegisterReceiptInput,
+	type ValidateCredentialInput,
 } from "./eims-external-client";
 
 @Injectable()
@@ -30,6 +31,20 @@ export class EimsSdkExternalClient {
 		const response = await sdk.verifyIrn({
 			irn: input.irn,
 			tenantConfig: this.tenantConfig(input),
+		});
+		return this.envelope(response);
+	}
+
+	async validateCredential(input: ValidateCredentialInput): Promise<EimsExternalResponse> {
+		const sdk = this.requireSdk();
+		const validateCredential = sdk.validateCredential ?? sdk.validateCredentials;
+		if (!validateCredential) throw new ServiceUnavailableException("EIMS SDK credential validation is not configured");
+		const response = await validateCredential.call(sdk, {
+			credentials: input.credentials,
+			tenantConfig: this.tenantConfig(input),
+			environment: input.environment,
+			clientId: input.clientId,
+			username: input.username,
 		});
 		return this.envelope(response);
 	}

@@ -27,6 +27,7 @@ type SdkPackageShape = {
 };
 
 const REQUIRED_EIMS_SDK_CAPABILITIES = ["registerInvoice", "registerReceipt", "verifyIrn"] as const;
+const EIMS_SDK_CREDENTIAL_VALIDATORS = ["validateCredential", "validateCredentials"] as const;
 
 const configString = (config: ConfigReader, key: string, fallback = "") => {
 	const value = config.get<string | undefined>(key);
@@ -67,9 +68,15 @@ export const buildEimsSdkOptions = (config: ConfigReader): EimsSdkClientOptions 
 };
 
 export const missingEimsSdkCapabilities = (value: unknown) => {
-	if (!value || typeof value !== "object") return [...REQUIRED_EIMS_SDK_CAPABILITIES];
+	if (!value || typeof value !== "object") return [...REQUIRED_EIMS_SDK_CAPABILITIES, "validateCredential"];
 	const candidate = value as Record<string, unknown>;
-	return REQUIRED_EIMS_SDK_CAPABILITIES.filter((capability) => typeof candidate[capability] !== "function");
+	const missing: string[] = REQUIRED_EIMS_SDK_CAPABILITIES.filter(
+		(capability) => typeof candidate[capability] !== "function",
+	);
+	if (!EIMS_SDK_CREDENTIAL_VALIDATORS.some((capability) => typeof candidate[capability] === "function")) {
+		missing.push("validateCredential");
+	}
+	return missing;
 };
 
 const isEimsSdkClient = (value: unknown): value is EimsSdkClient => missingEimsSdkCapabilities(value).length === 0;
@@ -124,7 +131,7 @@ export const createEimsSdkClientFromModule = async (
 	}
 
 	throw new ServiceUnavailableException(
-		"EIMS SDK package does not expose a registerInvoice/registerReceipt/verifyIrn-capable client",
+		"EIMS SDK package does not expose a registerInvoice/registerReceipt/verifyIrn/validateCredential-capable client",
 	);
 };
 

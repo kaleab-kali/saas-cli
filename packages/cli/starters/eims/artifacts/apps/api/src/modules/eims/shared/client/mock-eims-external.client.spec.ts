@@ -50,4 +50,24 @@ describe("MockEimsExternalClient", () => {
 			data: expect.objectContaining({ irn: "REAL-IRN-MISSING", status: "not_found" }),
 		});
 	});
+
+	it("validates mock credentials through the same external client boundary", async () => {
+		const client = new MockEimsExternalClient(new EimsMockService());
+
+		await expect(
+			client.validateCredential({
+				organizationId,
+				sourceSystemId: "src_mock_1",
+				environment: "sandbox",
+				credentials: { apiKey: "mock-key" },
+			}),
+		).resolves.toEqual({
+			data: expect.objectContaining({
+				organizationId,
+				sourceSystemId: "src_mock_1",
+				status: "valid",
+				valid: true,
+			}),
+		});
+	});
 });

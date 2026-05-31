@@ -54,6 +54,37 @@ describe("EimsSdkExternalClient", () => {
 		expect(response.data).toMatchObject({ sdkResponse: { receiptNumber: "RRN-1" } });
 	});
 
+	it("delegates credential validation to the configured EIMS SDK client", async () => {
+		const sdk = {
+			registerInvoice: jest.fn(),
+			validateCredential: jest.fn().mockResolvedValue({ data: { status: "valid", valid: true } }),
+		};
+		const client = new EimsSdkExternalClient(sdk);
+
+		const response = await client.validateCredential({
+			organizationId: "org_1",
+			sourceSystemId: "src_front",
+			environment: "production",
+			clientId: "client-front-pos",
+			username: "TIN0074136947",
+			credentials: { apiKey: "plain-api-key" },
+		});
+
+		expect(sdk.validateCredential).toHaveBeenCalledWith({
+			credentials: { apiKey: "plain-api-key" },
+			environment: "production",
+			clientId: "client-front-pos",
+			username: "TIN0074136947",
+			tenantConfig: {
+				organizationId: "org_1",
+				sourceSystemId: "src_front",
+				counter: undefined,
+				previousIrn: null,
+			},
+		});
+		expect(response.data).toMatchObject({ status: "valid", valid: true });
+	});
+
 	it("fails closed when production SDK provider is not configured", async () => {
 		const client = new EimsSdkExternalClient();
 

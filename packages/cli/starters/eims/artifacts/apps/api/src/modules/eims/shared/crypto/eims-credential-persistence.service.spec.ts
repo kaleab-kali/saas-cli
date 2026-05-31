@@ -42,6 +42,10 @@ function prismaMock() {
 	};
 }
 
+const cipher = {
+	decrypt: jest.fn((value: string) => `plain:${value}`),
+};
+
 describe("EimsCredentialPersistenceService", () => {
 	it("stores encrypted credential columns durably and returns only redacted metadata", async () => {
 		const prisma = prismaMock();
@@ -49,7 +53,7 @@ describe("EimsCredentialPersistenceService", () => {
 		prisma.eimsCredential.create.mockImplementation((args: { data: Record<string, unknown> }) =>
 			Promise.resolve(credentialRow(args.data)),
 		);
-		const service = new EimsCredentialPersistenceService(prisma as never);
+		const service = new EimsCredentialPersistenceService(prisma as never, cipher as never);
 
 		const response = await service.saveCredential("org_1", {
 			sourceSystemId: "src_front",
@@ -94,7 +98,7 @@ describe("EimsCredentialPersistenceService", () => {
 		prisma.eimsCredential.update.mockImplementation((args: { data: Record<string, unknown> }) =>
 			Promise.resolve(credentialRow({ ...existing, ...args.data })),
 		);
-		const service = new EimsCredentialPersistenceService(prisma as never);
+		const service = new EimsCredentialPersistenceService(prisma as never, cipher as never);
 
 		const response = await service.saveCredential("org_1", {
 			sourceSystemId: "src_front",
@@ -126,16 +130,43 @@ describe("EimsCredentialPersistenceService", () => {
 		});
 	});
 
-	it("records credential test proof on the durable row", async () => {
+	it("decrypts stored credential secrets only for SDK validation", async () => {
+		const prisma = prismaMock();
+		const existing = credentialRow({
+			apiKeyEncrypted: Buffer.from("cipher-api-key"),
+			clientSecretEncrypted: Buffer.from("cipher-client-secret"),
+		});
+		prisma.eimsCredential.findFirst.mockResolvedValue(existing);
+		const service = new EimsCredentialPersistenceService(prisma as never, cipher as never);
+
+		const credential = await service.credentialForValidation("org_1", "src_front");
+
+		expect(credential).toEqual({
+			id: "cred_1",
+			organizationId: "org_1",
+			sourceSystemId: "src_front",
+			environment: "production",
+			clientId: "client-front-pos",
+			username: "TIN0074136947",
+			credentials: {
+				apiKey: "plain:cipher-api-key",
+				clientSecret: "plain:cipher-client-secret",
+			},
+		});
+	});
+
+	it("records SDK credential validation proof on the durable row", async () => {
 		const prisma = prismaMock();
 		const existing = credentialRow();
-		prisma.eimsCredential.findFirst.mockResolvedValue(existing);
 		prisma.eimsCredential.update.mockImplementation((args: { data: Record<string, unknown> }) =>
 			Promise.resolve(credentialRow({ ...existing, ...args.data })),
 		);
-		const service = new EimsCredentialPersistenceService(prisma as never);
+		const service = new EimsCredentialPersistenceService(prisma as never, cipher as never);
 
-		const response = await service.testCredential("org_1", "src_front");
+		const response = await service.recordValidationResult("org_1", "cred_1", {
+			lastTestStatus: "success",
+			sdkValidation: { status: "valid", valid: true },
+		});
 
 		expect(prisma.eimsCredential.update).toHaveBeenCalledWith({
 			where: { id: "cred_1" },
@@ -151,11 +182,13 @@ describe("EimsCredentialPersistenceService", () => {
 			lastTestStatus: "success",
 			lifecycle: "active",
 			secretsReturned: false,
+			handledBy: "eims-sdk-credential-validation",
+			sdkValidation: { status: "valid", valid: true },
 		});
 	});
 
 	it("rejects credential persistence without a source system id", async () => {
-		const service = new EimsCredentialPersistenceService(prismaMock() as never);
+		const service = new EimsCredentialPersistenceService(prismaMock() as never, cipher as never);
 
 		await expect(service.saveCredential("org_1", { encryptedSecrets: { apiKey: "cipher" } })).rejects.toThrow(
 			"sourceSystemId is required",

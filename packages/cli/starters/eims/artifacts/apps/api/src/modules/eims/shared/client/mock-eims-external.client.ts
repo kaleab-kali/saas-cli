@@ -1,6 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { EIMS_BACKEND_REPOSITORY, type EimsBackendRepository } from "../mock/eims-backend.repository";
-import type { EimsExternalClient, RegisterInvoiceInput, RegisterReceiptInput } from "./eims-external-client";
+import type {
+	EimsExternalClient,
+	RegisterInvoiceInput,
+	RegisterReceiptInput,
+	ValidateCredentialInput,
+} from "./eims-external-client";
 
 @Injectable()
 export class MockEimsExternalClient implements EimsExternalClient {
@@ -24,6 +29,19 @@ export class MockEimsExternalClient implements EimsExternalClient {
 				irn: input.irn,
 				status: input.irn.startsWith("IRN-") ? "active" : "not_found",
 				verifiedAt: new Date().toISOString(),
+			},
+		};
+	}
+
+	async validateCredential(input: ValidateCredentialInput) {
+		return {
+			data: {
+				organizationId: input.organizationId,
+				sourceSystemId: input.sourceSystemId ?? null,
+				environment: input.environment ?? "sandbox",
+				status: Object.keys(input.credentials).length > 0 ? "valid" : "invalid",
+				valid: Object.keys(input.credentials).length > 0,
+				validatedAt: new Date().toISOString(),
 			},
 		};
 	}

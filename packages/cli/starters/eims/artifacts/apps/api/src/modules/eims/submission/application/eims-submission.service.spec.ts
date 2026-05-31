@@ -18,6 +18,7 @@ describe("EimsSubmissionService", () => {
 			})),
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
+			validateCredential: jest.fn(),
 		};
 		const service = new EimsSubmissionService(client, new EimsMockService(), new EimsSubmissionQueueService());
 
@@ -61,6 +62,7 @@ describe("EimsSubmissionService", () => {
 			registerInvoice: jest.fn(),
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
+			validateCredential: jest.fn(),
 		};
 		const service = new EimsSubmissionService(client, new EimsMockService(), new EimsSubmissionQueueService());
 
@@ -81,6 +83,7 @@ describe("EimsSubmissionService", () => {
 			verifyIrn: jest.fn(async (input) => ({
 				data: { ...input, status: "active", verifiedAt: "2026-05-26T10:30:00.000Z" },
 			})),
+			validateCredential: jest.fn(),
 		};
 		const service = new EimsSubmissionService(client, new EimsMockService(), new EimsSubmissionQueueService());
 

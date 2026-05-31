@@ -37,6 +37,7 @@ describe("EimsOfflineReplayService", () => {
 			registerInvoice: jest.fn().mockResolvedValue({ data: { status: "accepted", irn: "IRN-ACCEPTED" } }),
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
+			validateCredential: jest.fn(),
 		};
 		const pending = pendingStoreMock();
 		pending.claimForSync.mockResolvedValue(claim);
@@ -72,6 +73,7 @@ describe("EimsOfflineReplayService", () => {
 			registerInvoice: jest.fn().mockResolvedValue({ data: { status: "failed_retryable", errorCode: "EIMS_TIMEOUT" } }),
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
+			validateCredential: jest.fn(),
 		};
 		const pending = pendingStoreMock();
 		pending.claimForSync.mockResolvedValue(claim);
@@ -102,6 +104,7 @@ describe("EimsOfflineReplayService", () => {
 			registerInvoice: jest.fn().mockRejectedValue(new Error("SDK network timeout")),
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
+			validateCredential: jest.fn(),
 		};
 		const pending = pendingStoreMock();
 		pending.claimForSync.mockResolvedValue(claim);
@@ -127,6 +130,7 @@ describe("EimsOfflineReplayService", () => {
 			registerInvoice: jest.fn().mockResolvedValue({ data: { status: "accepted", irn: "IRN-ACCEPTED" } }),
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
+			validateCredential: jest.fn(),
 		};
 		const pending = pendingStoreMock();
 		pending.listPending.mockResolvedValue([
