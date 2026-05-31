@@ -206,6 +206,7 @@ function assertDeployGateBuilds() {
 	assert(doctor.includes("METRICS_TOKEN"), "production doctor requires metrics endpoint protection");
 	assert(doctor.includes("SMTP_HOST"), "production doctor requires email relay readiness");
 	assert(doctor.includes("requireHttpsEnvUrl"), "production doctor rejects non-HTTPS public URLs");
+	assert(doctor.includes("process.env.DEPLOY_HOST"), "production doctor accepts CI-provided deploy host");
 	assert(doctor.includes(".env.deploy.production"), "production doctor requires environment-specific deploy config");
 	assert(doctor.includes("Grafana dashboard"), "production doctor verifies observability dashboard docs");
 	assert(deploymentGuide.includes("pnpm deploy production --confirm-production"), "deployment guide documents production deploy command");
@@ -335,6 +336,10 @@ function assertDeployGateBuilds() {
 	assert(strykerConfig.includes("testRunnerNodeArgs"), "mutation test config sets explicit test-runner Node args");
 	assert(strykerConfig.includes("--max-old-space-size=4096"), "mutation test runner has heap headroom");
 	assert(moduleMutationRunner.includes("process.env.MODULE"), "module mutation runner reads MODULE env var");
+	assert(moduleMutationRunner.includes('?? "billing"'), "module mutation runner has an out-of-box default module");
+	assert(moduleMutationRunner.includes('arg !== "--"'), "module mutation runner handles pnpm argument separator");
+	assert(moduleMutationRunner.includes("--all"), "module mutation runner supports full-module mutation mode");
+	assert(moduleMutationRunner.includes("testedSources"), "module mutation runner defaults to tested source files");
 	assert(moduleMutationRunner.includes("--dry-run"), "module mutation runner supports dry-run validation");
 	assert(moduleMutationRunner.includes("src/modules"), "module mutation runner scopes to API module folders");
 	assert(moduleMutationRunner.includes(".stryker-module"), "module mutation runner writes generated Stryker config");
@@ -357,6 +362,11 @@ function assertCiWorkflows() {
 	assert(codeQuality.includes("production-gate:"), "code quality workflow includes production gate job");
 	assert(codeQuality.includes("pnpm deploy:check"), "code quality workflow runs deploy readiness gate");
 	assert(codeQuality.includes("playwright install --with-deps chromium"), "production gate installs browser dependency");
+	assert(codeQuality.includes("NODE_ENV: production"), "production gate runs doctor in production env");
+	assert(codeQuality.includes("BETTER_AUTH_URL: https://ci.vyllion.test"), "production gate uses HTTPS auth URL");
+	assert(codeQuality.includes("DEPLOY_HOST: 127.0.0.1"), "production gate supplies deploy host for doctor");
+	assert(codeQuality.includes("METRICS_TOKEN: ci-metrics-token"), "production gate supplies metrics token for doctor");
+	assert(codeQuality.includes("SMTP_HOST: smtp.ci.vyllion.test"), "production gate supplies SMTP host for doctor");
 	assert(codeQuality.includes("actions/setup-go@v5"), "production gate installs Go for security scanners");
 	assert(codeQuality.includes("python -m pipx install semgrep"), "production gate installs Semgrep scanner");
 	assert(codeQuality.includes("github.com/gitleaks/gitleaks"), "production gate installs gitleaks scanner");

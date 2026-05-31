@@ -725,7 +725,11 @@ export class EimsMockService implements EimsBackendRepository {
 		return {
 			data: {
 				readiness: 68,
-				missing: ["Controlled authority test evidence report", "Bank guarantee scanned copy", "Data residency legal opinion"],
+				missing: [
+					"Controlled authority test evidence report",
+					"Bank guarantee scanned copy",
+					"Data residency legal opinion",
+				],
 				ready: [
 					"V3 architecture plan",
 					"Layer A local test assets",

@@ -108,7 +108,7 @@ const requireHttpsEnvUrl = (values, key) => {
 };
 
 const requireDeployEnv = () => {
-	if (!existsSync(".env.deploy") && !existsSync(".env.deploy.production")) {
+	if (!existsSync(".env.deploy") && !existsSync(".env.deploy.production") && !process.env.DEPLOY_HOST) {
 		production
 			? status.fail("deploy env", "create .env.deploy.production from .env.deploy.example")
 			: status.warn("deploy env", "recommended for staging/production deploys");

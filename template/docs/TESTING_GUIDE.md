@@ -80,8 +80,10 @@ pnpm test:unit
 pnpm test:coverage
 pnpm test:property
 pnpm test:mutation
+pnpm test:mutation:module
 MODULE=billing pnpm test:mutation:module
 MODULE=billing pnpm test:mutation:module -- --dry-run
+MODULE=billing pnpm test:mutation:module -- --all
 ```
 
 Use these for domain logic, billing rules, entitlement enforcement, and Nest service/controller tests.
@@ -92,7 +94,7 @@ Generated modules and starter-pack modules include a starter handler spec under 
 
 `pnpm test:mutation` runs Stryker against the current high-signal billing policy target and writes the HTML report under `apps/api/reports/mutation/`. The Stryker test runner uses explicit Node heap headroom so the command can run as a reliable nightly/full gate instead of restarting under memory pressure on fresh scaffolds.
 
-`pnpm test:mutation:module` runs Stryker against one module folder under `apps/api/src/modules`. Set `MODULE=<module-folder>` such as `billing`, `onboarding`, or `organization-settings`. The runner validates the module, discovers that module's `.spec.ts` and `.test.ts` files, writes a generated config under `apps/api/.stryker-module/`, and scopes mutation patterns to the selected module. Use `-- --dry-run` to verify the generated config without running Stryker.
+`pnpm test:mutation:module` runs Stryker against one module folder under `apps/api/src/modules`. It defaults to `billing` so the command works out of the box. By default the runner mutates directly matched source files for the module's tests, which keeps the command useful and fast for local work. Set `MODULE=<module-folder>` or pass a module name such as `onboarding` or `organization-settings` to target another module. Add `-- --all` to mutate the whole module when that module has enough coverage. The runner validates the module, discovers that module's `.spec.ts` and `.test.ts` files, writes a generated config under `apps/api/.stryker-module/`, and scopes mutation patterns to the selected module. Use `-- --dry-run` to verify the generated config without running Stryker.
 
 ## HTTP API Tests
 

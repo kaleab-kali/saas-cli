@@ -6,19 +6,14 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const apiRoot = path.resolve(__dirname, "..");
-const args = process.argv.slice(2);
+const args = process.argv.slice(2).filter((arg) => arg !== "--");
 const dryRun = args.includes("--dry-run");
-const moduleName = process.env.MODULE ?? args.find((arg) => !arg.startsWith("-"));
+const fullModule = args.includes("--all");
+const moduleName = process.env.MODULE ?? args.find((arg) => !arg.startsWith("-")) ?? "billing";
 
 function fail(message) {
 	console.error(message);
 	process.exit(1);
-}
-
-if (!moduleName) {
-	fail(
-		"Set MODULE=<module-folder> or pass the module folder name, for example MODULE=billing pnpm test:mutation:module",
-	);
 }
 
 if (!/^[a-z0-9][a-z0-9-]*$/.test(moduleName)) {
@@ -55,7 +50,26 @@ if (testFiles.length === 0) {
 	fail(`Module "${moduleName}" has no .spec.ts or .test.ts files for Stryker to run.`);
 }
 
-const mutate = [
+const directSourceForTest = (testFile) => {
+	for (const pattern of [
+		[/\.property\.spec\.ts$/, ".ts"],
+		[/\.property\.test\.ts$/, ".ts"],
+		[/\.spec\.ts$/, ".ts"],
+		[/\.test\.ts$/, ".ts"],
+	]) {
+		if (!pattern[0].test(testFile)) continue;
+		const candidate = testFile.replace(pattern[0], pattern[1]);
+		if (existsSync(path.join(apiRoot, candidate))) return candidate;
+	}
+	return null;
+};
+
+const testedSources = [...new Set(testFiles.map(directSourceForTest).filter(Boolean))].sort();
+if (!fullModule && testedSources.length === 0) {
+	fail(`Module "${moduleName}" has no directly matched source files. Re-run with --all to mutate the whole module.`);
+}
+
+const fullModuleMutate = [
 	`src/modules/${moduleName}/**/*.ts`,
 	`!src/modules/${moduleName}/**/*.spec.ts`,
 	`!src/modules/${moduleName}/**/*.test.ts`,
@@ -67,6 +81,7 @@ const mutate = [
 	`!src/modules/${moduleName}/presentation/**`,
 	`!src/modules/${moduleName}/infrastructure/mappers/**`,
 ];
+const mutate = fullModule ? fullModuleMutate : testedSources;
 
 const formatArray = (values) => `[\n${values.map((value) => `\t\t${JSON.stringify(value)},`).join("\n")}\n\t]`;
 
@@ -94,7 +109,9 @@ if (dryRun) {
 	const configPreview = readFileSync(configPath, "utf8");
 	console.log(`Prepared module mutation config: ${relativeConfigPath}`);
 	console.log(`Module: ${moduleName}`);
+	console.log(`Mode: ${fullModule ? "full module" : "tested source files"}`);
 	console.log(`Test files: ${testFiles.length}`);
+	console.log(`Mutated files: ${mutate.length}`);
 	console.log(configPreview);
 	process.exit(0);
 }

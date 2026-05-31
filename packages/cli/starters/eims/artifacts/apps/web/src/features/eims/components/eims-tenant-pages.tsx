@@ -420,9 +420,9 @@ function MorInsaFifteenStepTimelinePanel({ workspace }: { readonly workspace: Ei
 					<p className="text-sm font-semibold">15-step MoR/INSA launch timeline</p>
 					<h2 className="mt-1 text-xl font-semibold tracking-normal">From tenant intake to first live invoice</h2>
 					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-						Concierge operators can see the full authority workflow instead of a generic setup checklist: tenant
-						intake, MoR source approval, encrypted credentials, INSA certificate, controlled invoice proof, and
-						production launch.
+						Concierge operators can see the full authority workflow instead of a generic setup checklist: tenant intake,
+						MoR source approval, encrypted credentials, INSA certificate, controlled invoice proof, and production
+						launch.
 					</p>
 				</div>
 				<div className="rounded-md border bg-background p-3">

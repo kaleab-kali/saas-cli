@@ -302,7 +302,8 @@ function AdminAuthorityDeskPanel({ stats }: { readonly stats: readonly (readonly
 					<p className="text-sm font-semibold">MoR/INSA authority desk</p>
 					<h2 className="mt-1 text-xl font-semibold tracking-normal">Cross-tenant launch blockers</h2>
 					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-						Operations view for authority waits, certificate handoffs, controlled invoice proof, and the live invoice switch.
+						Operations view for authority waits, certificate handoffs, controlled invoice proof, and the live invoice
+						switch.
 					</p>
 				</div>
 				<div className="grid grid-cols-3 gap-2">

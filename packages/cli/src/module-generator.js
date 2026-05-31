@@ -5043,7 +5043,7 @@ Given("an establishment exists", function () {
 \teims.establishment = {
 \t\tid: "est_acceptance",
 \t\tenterpriseId: eims.enterprise.id,
-\t\tsubTin: eims.enterprise.tin + "-01",
+\t\tsubTin: \`\${eims.enterprise.tin}-01\`,
 \t\tname: "Bole Branch",
 \t};
 });
@@ -5108,10 +5108,10 @@ const endpoints = [
 
 export default function () {
 \tfor (const endpoint of endpoints) {
-\t\tconst res = http.get(baseUrl + endpoint);
+\t\tconst res = http.get(\`\${baseUrl}\${endpoint}\`);
 \t\tcheck(res, {
-\t\t\t[endpoint + " responds"]: (r) => r.status >= 200 && r.status < 500,
-\t\t\t[endpoint + " returns json"]: (r) => String(r.headers["Content-Type"] || "").includes("application/json"),
+\t\t\t[\`\${endpoint} responds\`]: (r) => r.status >= 200 && r.status < 500,
+\t\t\t[\`\${endpoint} returns json\`]: (r) => String(r.headers["Content-Type"] || "").includes("application/json"),
 \t\t});
 \t}
 }
@@ -5129,7 +5129,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, "../../..");
 const mockServerPath = path.join(workspaceRoot, "apps/api-tests/scripts/eims-mock-api-server.mjs");
 const port = Number(process.env.EIMS_PERFORMANCE_MOCK_PORT || 4317);
-const baseUrl = process.env.EIMS_PERFORMANCE_BASE_URL || "http://127.0.0.1:" + port;
+const baseUrl = process.env.EIMS_PERFORMANCE_BASE_URL || \`http://127.0.0.1:\${port}\`;
 const requestCount = Number(process.env.EIMS_PERFORMANCE_REQUESTS || 48);
 const concurrency = Math.max(1, Number(process.env.EIMS_PERFORMANCE_CONCURRENCY || 8));
 const p95ThresholdMs = Number(process.env.EIMS_PERFORMANCE_P95_MS || 1000);
@@ -5149,7 +5149,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const startMockServer = async () => {
 \tif (process.env.EIMS_PERFORMANCE_BASE_URL) return;
 \tif (!existsSync(mockServerPath)) {
-\t\tthrow new Error("EIMS mock API server is missing at " + mockServerPath);
+\t\tthrow new Error(\`EIMS mock API server is missing at \${mockServerPath}\`);
 \t}
 \tserverProcess = spawn(process.execPath, [mockServerPath], {
 \t\tcwd: workspaceRoot,
@@ -5163,26 +5163,26 @@ const startMockServer = async () => {
 const waitForServer = async () => {
 \tfor (let attempt = 0; attempt < 40; attempt += 1) {
 \t\ttry {
-\t\t\tconst response = await fetch(baseUrl + "/api/v1/eims/overview");
+\t\t\tconst response = await fetch(\`\${baseUrl}/api/v1/eims/overview\`);
 \t\t\tif (response.ok) return;
 \t\t} catch {
 \t\t\t// keep waiting for the local mock server
 \t\t}
 \t\tawait sleep(100);
 \t}
-\tthrow new Error("EIMS mock API did not become ready at " + baseUrl);
+\tthrow new Error(\`EIMS mock API did not become ready at \${baseUrl}\`);
 };
 
 const scenarios = [
 \t{
 \t\tmethod: "GET",
 \t\tpath: "/api/v1/eims/overview",
-\t\tassert: (body) => body.data && body.data.stats && typeof body.data.stats.pendingOffline === "number",
+\t\tassert: (body) => typeof body.data?.stats?.pendingOffline === "number",
 \t},
 \t{
 \t\tmethod: "GET",
 \t\tpath: "/api/v1/eims/workspace",
-\t\tassert: (body) => body.data && body.data.readiness && Array.isArray(body.data.readiness.steps),
+\t\tassert: (body) => Array.isArray(body.data?.readiness?.steps),
 \t},
 \t{
 \t\tmethod: "GET",
@@ -5193,34 +5193,36 @@ const scenarios = [
 \t\tmethod: "POST",
 \t\tpath: "/api/v1/eims/submissions",
 \t\tbody: { documentNumber: "PERF-MOCK-001", sourceSystemId: "src_mock_1", payload: { total: "100.00" } },
-\t\tassert: (body) => body.data && body.data.irn && body.data.status === "accepted",
+\t\tassert: (body) => Boolean(body.data?.irn) && body.data?.status === "accepted",
 \t},
 \t{
 \t\tmethod: "GET",
 \t\tpath: "/api/v1/eims/bulk",
-\t\tassert: (body) => Array.isArray(body.data) && body.data[0].submitted === body.data[0].accepted + body.data[0].failed + body.data[0].pending,
+\t\tassert: (body) =>
+\t\t\tArray.isArray(body.data) &&
+\t\t\tbody.data[0].submitted === body.data[0].accepted + body.data[0].failed + body.data[0].pending,
 \t},
 \t{
 \t\tmethod: "POST",
 \t\tpath: "/api/v1/eims/bulk/reconcile",
 \t\tbody: { conversationId: "TEST-CONV-20260526-001" },
-\t\tassert: (body) => body.data && body.data.status === "scheduled" && body.data.reference === "TEST-CONV-20260526-001",
+\t\tassert: (body) => body.data?.status === "scheduled" && body.data?.reference === "TEST-CONV-20260526-001",
 \t},
 \t{
 \t\tmethod: "GET",
 \t\tpath: "/api/v1/eims/compliance/evidence",
-\t\tassert: (body) => body.data && body.data.readiness >= 0 && Array.isArray(body.data.items),
+\t\tassert: (body) => Number(body.data?.readiness ?? -1) >= 0 && Array.isArray(body.data?.items),
 \t},
 \t{
 \t\tmethod: "GET",
 \t\tpath: "/api/v1/admin/eims/overview",
-\t\tassert: (body) => body.data && body.data.tenantsTotal >= 1 && Array.isArray(body.data.latestFailures),
+\t\tassert: (body) => (body.data?.tenantsTotal ?? 0) >= 1 && Array.isArray(body.data?.latestFailures),
 \t},
 ];
 
 const requestScenario = async (scenario) => {
 \tconst startedAt = performance.now();
-\tconst response = await fetch(baseUrl + scenario.path, {
+\tconst response = await fetch(\`\${baseUrl}\${scenario.path}\`, {
 \t\tmethod: scenario.method,
 \t\theaders: scenario.body ? { "content-type": "application/json" } : undefined,
 \t\tbody: scenario.body ? JSON.stringify(scenario.body) : undefined,
@@ -5230,13 +5232,13 @@ const requestScenario = async (scenario) => {
 \ttry {
 \t\tbody = text ? JSON.parse(text) : {};
 \t} catch {
-\t\tthrow new Error(scenario.method + " " + scenario.path + " returned non-JSON response");
+\t\tthrow new Error(\`\${scenario.method} \${scenario.path} returned non-JSON response\`);
 \t}
 \tif (response.status < 200 || response.status >= 500) {
-\t\tthrow new Error(scenario.method + " " + scenario.path + " returned " + response.status);
+\t\tthrow new Error(\`\${scenario.method} \${scenario.path} returned \${response.status}\`);
 \t}
 \tif (!scenario.assert(body)) {
-\t\tthrow new Error(scenario.method + " " + scenario.path + " returned unexpected payload");
+\t\tthrow new Error(\`\${scenario.method} \${scenario.path} returned unexpected payload\`);
 \t}
 \treturn performance.now() - startedAt;
 };
@@ -5264,18 +5266,14 @@ const runLoad = async () => {
 \tconst p95 = percentile(latencies, 95);
 \tconst errorRate = requestCount === 0 ? 1 : failed / requestCount;
 \tconsole.log(
-\t\t"EIMS performance smoke: requests=" +
-\t\t\trequestCount +
-\t\t\t" failed=" +
-\t\t\tfailed +
-\t\t\t" errorRate=" +
-\t\t\terrorRate.toFixed(3) +
-\t\t\t" p95=" +
-\t\t\tp95.toFixed(1) +
-\t\t\t"ms",
+\t\t\`EIMS performance smoke: requests=\${requestCount} failed=\${failed} errorRate=\${errorRate.toFixed(3)} p95=\${p95.toFixed(1)}ms\`,
 \t);
-\tif (errorRate >= maxErrorRate) throw new Error("error rate " + errorRate.toFixed(3) + " exceeded max " + maxErrorRate);
-\tif (p95 >= p95ThresholdMs) throw new Error("p95 " + p95.toFixed(1) + "ms exceeded threshold " + p95ThresholdMs + "ms");
+\tif (errorRate >= maxErrorRate) {
+\t\tthrow new Error(\`error rate \${errorRate.toFixed(3)} exceeded max \${maxErrorRate}\`);
+\t}
+\tif (p95 >= p95ThresholdMs) {
+\t\tthrow new Error(\`p95 \${p95.toFixed(1)}ms exceeded threshold \${p95ThresholdMs}ms\`);
+\t}
 };
 
 try {
@@ -5328,24 +5326,27 @@ const controllerFiles = walkFiles(eimsRoot, (file) => file.endsWith(".controller
 for (const file of controllerFiles) {
 \tconst relative = rel(file);
 \tconst text = readFileSync(file, "utf8");
-\tconst isAdminController = relative.includes("/admin/") || relative.includes("/compliance/presentation/eims-acceptance");
+\tconst isAdminController =
+\t\trelative.includes("/admin/") || relative.includes("/compliance/presentation/eims-acceptance");
 
 \tif (isAdminController) {
-\t\tassertIncludes(text, "SuperAdminGuard", relative + " must require the platform super-admin guard");
-\t\tassertIncludes(text, "@UseGuards(SuperAdminGuard)", relative + " must bind the platform super-admin guard");
+\t\tassertIncludes(text, "SuperAdminGuard", \`\${relative} must require the platform super-admin guard\`);
+\t\tassertIncludes(text, "@UseGuards(SuperAdminGuard)", \`\${relative} must bind the platform super-admin guard\`);
 \t} else {
-\t\tassertIncludes(text, "AuthGuard", relative + " must require tenant authentication");
-\t\tassertIncludes(text, "PermissionsGuard", relative + " must require tenant permission checks");
-\t\tassertIncludes(text, "@UseGuards(AuthGuard, PermissionsGuard)", relative + " must bind auth and permission guards");
+\t\tassertIncludes(text, "AuthGuard", \`\${relative} must require tenant authentication\`);
+\t\tassertIncludes(text, "PermissionsGuard", \`\${relative} must require tenant permission checks\`);
+\t\tassertIncludes(text, "@UseGuards(AuthGuard, PermissionsGuard)", \`\${relative} must bind auth and permission guards\`);
 \t\tconst endpoints = text.match(/@(Get|Post|Put|Patch|Delete)\\(/g) ?? [];
 \t\tconst permissions = text.match(/@RequirePermissions\\(/g) ?? [];
 \t\tif (permissions.length < endpoints.length) {
-\t\t\tfail(relative + " has EIMS endpoints without matching @RequirePermissions decorators");
+\t\t\tfail(\`\${relative} has EIMS endpoints without matching @RequirePermissions decorators\`);
 \t\t}
 \t}
 }
 
-const supportingController = read("apps/api/src/modules/eims/shared/presentation/eims-supporting-resources.controller.ts");
+const supportingController = read(
+\t"apps/api/src/modules/eims/shared/presentation/eims-supporting-resources.controller.ts",
+);
 for (const [needle, message] of [
 \t['@RequirePermissions("eims-credential:read")', "EIMS credential reads must be permission protected"],
 \t['@RequirePermissions("eims-credential:create")', "EIMS credential writes/tests must be permission protected"],
@@ -5359,14 +5360,30 @@ for (const [needle, message] of [
 }
 
 const mockService = read("apps/api/src/modules/eims/shared/mock/eims-mock.service.ts");
-assertIncludes(mockService, "secretsReturned: false", "EIMS credential APIs must explicitly report secrets as redacted");
-assertIncludes(mockService, "apiKeyConfigured", "EIMS credential APIs should expose configured flags instead of API keys");
-assertIncludes(mockService, "clientSecretConfigured", "EIMS credential APIs should expose configured flags instead of client secrets");
-assertIncludes(mockService, "refreshTokenConfigured", "EIMS credential APIs should expose configured flags instead of refresh tokens");
+assertIncludes(
+\tmockService,
+\t"secretsReturned: false",
+\t"EIMS credential APIs must explicitly report secrets as redacted",
+);
+assertIncludes(
+\tmockService,
+\t"apiKeyConfigured",
+\t"EIMS credential APIs should expose configured flags instead of API keys",
+);
+assertIncludes(
+\tmockService,
+\t"clientSecretConfigured",
+\t"EIMS credential APIs should expose configured flags instead of client secrets",
+);
+assertIncludes(
+\tmockService,
+\t"refreshTokenConfigured",
+\t"EIMS credential APIs should expose configured flags instead of refresh tokens",
+);
 for (const secretField of ["apiKey", "password", "clientSecret", "refreshToken", "privateKey"]) {
-\tconst rawSecretProperty = new RegExp("\\\\b" + secretField + "\\\\s*:");
+\tconst rawSecretProperty = new RegExp(\`\\\\b\${secretField}\\\\s*:\`);
 \tif (rawSecretProperty.test(mockService)) {
-\t\tfail("EIMS mock responses must not expose raw " + secretField + " properties");
+\t\tfail(\`EIMS mock responses must not expose raw \${secretField} properties\`);
 \t}
 }
 
@@ -5374,12 +5391,16 @@ const apiMockTests = read("apps/api-tests/tests/eims-v3-mock.spec.ts");
 for (const secretField of ["apiKey", "password", "clientSecret", "refreshToken"]) {
 \tassertIncludes(
 \t\tapiMockTests,
-\t\t'not.toHaveProperty("' + secretField + '")',
-\t\t"EIMS API mock tests must prove " + secretField + " is not returned",
+\t\t\`not.toHaveProperty("\${secretField}")\`,
+\t\t\`EIMS API mock tests must prove \${secretField} is not returned\`,
 \t);
 }
 assertIncludes(apiMockTests, "secretsReturned: false", "EIMS API mock tests must prove credential redaction status");
-assertIncludes(apiMockTests, "/api/v1/eims/bulk/reconcile", "EIMS API mock tests must cover bulk callback reconciliation flow");
+assertIncludes(
+\tapiMockTests,
+\t"/api/v1/eims/bulk/reconcile",
+\t"EIMS API mock tests must cover bulk callback reconciliation flow",
+);
 
 const acceptanceTests = read("apps/api-tests/tests/eims-acceptance.spec.ts");
 assertIncludes(
@@ -5387,11 +5408,15 @@ assertIncludes(
 \t'"/api/v1/eims/acceptance/cases"',
 \t"EIMS acceptance cases must stay admin-only in API tests",
 );
-assertIncludes(acceptanceTests, "expect(tenantResponse.status()).toBe(404)", "Tenant routes must not expose admin acceptance cases");
+assertIncludes(
+\tacceptanceTests,
+\t"expect(tenantResponse.status()).toBe(404)",
+\t"Tenant routes must not expose admin acceptance cases",
+);
 
 if (failures.length > 0) {
 \tconsole.error("EIMS security smoke failed:");
-\tfor (const failure of failures) console.error("- " + failure);
+\tfor (const failure of failures) console.error(\`- \${failure}\`);
 \tprocess.exit(1);
 }
 
@@ -5541,7 +5566,8 @@ const EIMS_ONBOARDING_STEPS = [
 \t\tkey: "mor-password-2fa",
 \t\tstepOrder: 5,
 \t\ttitle: "Secure MoR portal access",
-\t\tdescription: "Complete forced password change, TOTP setup, and backup-code capture in the encrypted credential store.",
+\t\tdescription:
+\t\t\t"Complete forced password change, TOTP setup, and backup-code capture in the encrypted credential store.",
 \t\tcategory: "mor-portal",
 \t\tassigneeType: "STAFF",
 \t\tcanBeSelfService: false,
@@ -5568,7 +5594,8 @@ const EIMS_ONBOARDING_STEPS = [
 \t\tkey: "credentials-capture",
 \t\tstepOrder: 8,
 \t\ttitle: "Capture EIMS credentials",
-\t\tdescription: "Store client ID, client secret, API key, system number, and source identifiers through encrypted backend APIs.",
+\t\tdescription:
+\t\t\t"Store client ID, client secret, API key, system number, and source identifiers through encrypted backend APIs.",
 \t\tcategory: "credentials",
 \t\tassigneeType: "STAFF",
 \t\tcanBeSelfService: false,
@@ -5577,7 +5604,8 @@ const EIMS_ONBOARDING_STEPS = [
 \t\tkey: "generate-csr",
 \t\tstepOrder: 9,
 \t\ttitle: "Generate certificate request",
-\t\tdescription: "Generate the CSR server-side with the configured signing provider and prepare the INSA request package.",
+\t\tdescription:
+\t\t\t"Generate the CSR server-side with the configured signing provider and prepare the INSA request package.",
 \t\tcategory: "insa-cert",
 \t\tassigneeType: "STAFF",
 \t\tcanBeSelfService: false,
@@ -5622,7 +5650,8 @@ const EIMS_ONBOARDING_STEPS = [
 \t\tkey: "staff-training",
 \t\tstepOrder: 14,
 \t\ttitle: "Complete staff training",
-\t\tdescription: "Train owner, manager, and cashiers on invoice issue, receipt print, cancellation, and support escalation.",
+\t\tdescription:
+\t\t\t"Train owner, manager, and cashiers on invoice issue, receipt print, cancellation, and support escalation.",
 \t\tcategory: "training",
 \t\tassigneeType: "STAFF",
 \t\tcanBeSelfService: false,
@@ -5631,7 +5660,8 @@ const EIMS_ONBOARDING_STEPS = [
 \t\tkey: "production-ready",
 \t\tstepOrder: 15,
 \t\ttitle: "Mark production ready",
-\t\tdescription: "Confirm live endpoint, credentials, certificate, printer layout, and first production invoice readiness.",
+\t\tdescription:
+\t\t\t"Confirm live endpoint, credentials, certificate, printer layout, and first production invoice readiness.",
 \t\tcategory: "launch",
 \t\tassigneeType: "STAFF",
 \t\tcanBeSelfService: false,

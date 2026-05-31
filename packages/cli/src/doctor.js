@@ -106,7 +106,7 @@ const requireHttpsEnvUrl = (env, key, production) => {
 const requireDeployEnv = (cwd, production) => {
 	const generic = path.join(cwd, ".env.deploy");
 	const prod = path.join(cwd, ".env.deploy.production");
-	if (!existsSync(generic) && !existsSync(prod)) {
+	if (!existsSync(generic) && !existsSync(prod) && !process.env.DEPLOY_HOST) {
 		production ? fail("deploy env", "create .env.deploy.production from .env.deploy.example") : warn("deploy env", "recommended for staging/production deploys");
 		return;
 	}
