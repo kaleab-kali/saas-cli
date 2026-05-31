@@ -66,6 +66,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/client/eims-external-client.ts",
 	"apps/api/src/modules/eims/shared/client/mock-eims-external.client.ts",
 	"apps/api/src/modules/eims/shared/constants/eims-lookup-values.ts",
+	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts",
+	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts",
 	"apps/api/src/modules/eims/setup/presentation/eims-setup.controller.ts",
 	"apps/api/src/modules/eims/submission/presentation/eims-submission.controller.ts",
 	"apps/api/src/modules/eims/receipts/presentation/eims-receipts.controller.ts",
@@ -435,6 +437,28 @@ function assertGeneratedStructure() {
 	for (const modelName of requiredPrismaModels) {
 		assert(prismaSchema.includes(modelName), `Prisma contains ${modelName}`);
 	}
+	const queueService = readProjectFile("apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts");
+	const queueSpec = readProjectFile("apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts");
+	const submissionService = readProjectFile("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");
+	const externalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-external-client.ts");
+	const eimsSharedModule = readProjectFile("apps/api/src/modules/eims/shared/eims-shared.module.ts");
+	assert(queueService.includes("enqueueInvoice"), "EIMS queue service exposes invoice enqueue boundary");
+	assert(queueService.includes("previousIrn"), "EIMS queue service carries previous IRN chain metadata");
+	assert(queueService.includes("lastAcceptedCounter"), "EIMS queue service tracks accepted counter state");
+	assert(queueService.includes("reservationStatus"), "EIMS queue service records counter reservation status");
+	assert(queueService.includes("failed_retryable"), "EIMS queue service classifies retryable failures");
+	assert(queueSpec.includes("serializes submissions per source"), "EIMS queue tests cover per-source serialization");
+	assert(
+		queueSpec.includes("keeps retryable and unknown outcomes out of the accepted counter chain"),
+		"EIMS queue tests cover retryable counter handling",
+	);
+	assert(
+		submissionService.includes("EimsSubmissionQueueService"),
+		"EIMS submission service uses queue/counter coordinator",
+	);
+	assert(externalClient.includes("counter?: number"), "EIMS external client contract includes reserved counter");
+	assert(externalClient.includes("previousIrn?: string | null"), "EIMS external client contract includes previous IRN");
+	assert(eimsSharedModule.includes("EimsSubmissionQueueService"), "EIMS shared module exports queue coordinator");
 	const eimsOnboardingSeed = readProjectFile("apps/api/prisma/seed-eims-onboarding-template.ts");
 	assert(eimsOnboardingSeed.includes('"eims-restaurant"'), "EIMS onboarding template uses eims-restaurant key");
 	assert(eimsOnboardingSeed.includes('"mor-portal-signup"'), "EIMS onboarding template includes MoR signup step");

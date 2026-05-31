@@ -28,7 +28,7 @@ What is not done yet:
 
 - Real MoR/INSA integration.
 - Real Vault Transit signing.
-- Real per-source BullMQ queue and counter reservation lifecycle.
+- Persistent BullMQ workers for multi-node per-source submission queues.
 - Real targeted PostgreSQL RLS policies.
 - Real encrypted credential persistence.
 - Real print PDF rendering and QR scan validation.
@@ -44,7 +44,7 @@ What is not done yet:
 | Enterprise -> Establishment -> SourceSystem | Scaffolded | API + scaffold verifier | Data model and mock overview expose hierarchy, TIN, sub-TIN, approval state, counter. |
 | Lookup/code registry | Implemented as seed/mock API | API tests | Document, transaction, source, cancellation, tax, payment, unit, nature, and region values verified. ETag/cache refresh is not implemented yet. |
 | Source approval guard | Partially implemented | Unit/API tests | Guard and mock approval states exist. Full MoR portal workflow is not production-built. |
-| Counter and PreviousIrn chain | Data model/mock only | Unit/API tests | Model/statuses exist; real per-source BullMQ queue and reconciliation are not built. |
+| Counter and PreviousIrn chain | Source-scoped coordinator implemented, persistence pending | Unit/API tests | Starter now serializes submissions per source, reserves counters, attaches `previousIrn`, and keeps retryable/unknown outcomes out of the accepted chain. Multi-node BullMQ workers and DB-backed reconciliation are still not complete. |
 | Credentials lifecycle | Mock API only | API/UI tests | Redaction is tested. Real encrypted storage and rotation workflows are not complete. |
 | Certificates/CSR | Mock API only | API/UI tests | Certificate metadata and expiry state are exposed. Real Vault/INSA certificate flow is not complete. |
 | 2FA enforcement | Planned/partially existing platform auth | Not EIMS-specific | EIMS-specific permission enforcement and bootstrap test coverage still need implementation. |
@@ -94,5 +94,6 @@ real Playwright route walkthroughs and include a headed CLI path.
 
 The implementation should not be described as production-complete EIMS. It is a
 clean V3 scaffold foundation with detailed mock API/UI verification. Production
-completion still requires the V3 phases for Vault, RLS, queues/counters,
-offline cache, print rendering, real MoR APIs, and sandbox proof.
+completion still requires the V3 phases for Vault, RLS, persistent BullMQ/DB
+counter reconciliation, offline cache, print rendering, real MoR APIs, and
+sandbox proof.

@@ -1,5 +1,6 @@
 import type { EimsExternalClient } from "../../shared/client/eims-external-client";
 import { EimsMockService } from "../../shared/mock/eims-mock.service";
+import { EimsSubmissionQueueService } from "../../shared/queues/eims-submission-queue.service";
 import { EimsSubmissionService } from "./eims-submission.service";
 
 describe("EimsSubmissionService", () => {
@@ -18,7 +19,7 @@ describe("EimsSubmissionService", () => {
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
 		};
-		const service = new EimsSubmissionService(client, new EimsMockService());
+		const service = new EimsSubmissionService(client, new EimsMockService(), new EimsSubmissionQueueService());
 
 		const result = await service.submitInvoice({
 			organizationId,
@@ -27,18 +28,30 @@ describe("EimsSubmissionService", () => {
 			payload: { documentType: "INV" },
 		});
 
-		expect(client.registerInvoice).toHaveBeenCalledWith({
-			organizationId,
-			sourceSystemId: "src_test",
-			documentNumber: "INV-TEST-001",
-			payload: { documentType: "INV" },
-		});
-		expect(result).toEqual({
+		expect(client.registerInvoice).toHaveBeenCalledWith(
+			expect.objectContaining({
+				organizationId,
+				sourceSystemId: "src_test",
+				documentNumber: "INV-TEST-001",
+				payload: { documentType: "INV" },
+				queueName: "eims:submission:org_test:src_test",
+				counter: 1,
+				previousIrn: null,
+			}),
+		);
+		expect(result).toMatchObject({
 			data: {
 				id: "sub_test",
 				documentNumber: "INV-TEST-001",
 				irn: "MOCK-IRN-SERVICE-001",
 				status: "accepted",
+			},
+			meta: {
+				queue: {
+					sourceSystemId: "src_test",
+					counter: 1,
+					reservationStatus: "accepted",
+				},
 			},
 		});
 	});
@@ -49,7 +62,7 @@ describe("EimsSubmissionService", () => {
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
 		};
-		const service = new EimsSubmissionService(client, new EimsMockService());
+		const service = new EimsSubmissionService(client, new EimsMockService(), new EimsSubmissionQueueService());
 
 		const overview = service.getOverview(organizationId);
 
@@ -69,7 +82,7 @@ describe("EimsSubmissionService", () => {
 				data: { ...input, status: "active", verifiedAt: "2026-05-26T10:30:00.000Z" },
 			})),
 		};
-		const service = new EimsSubmissionService(client, new EimsMockService());
+		const service = new EimsSubmissionService(client, new EimsMockService(), new EimsSubmissionQueueService());
 
 		await expect(service.verifyIrn(organizationId, "MOCK-IRN-001")).resolves.toEqual({
 			data: {

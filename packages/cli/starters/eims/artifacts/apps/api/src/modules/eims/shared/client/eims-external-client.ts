@@ -5,6 +5,10 @@ export interface RegisterInvoiceInput {
 	sourceSystemId?: string;
 	documentNumber?: string;
 	payload?: unknown;
+	queueName?: string;
+	reservationId?: string;
+	counter?: number;
+	previousIrn?: string | null;
 }
 
 export interface RegisterReceiptInput {
@@ -14,8 +18,13 @@ export interface RegisterReceiptInput {
 	payload?: unknown;
 }
 
+export interface EimsExternalResponse {
+	data: Record<string, unknown>;
+	meta?: Record<string, unknown>;
+}
+
 export interface EimsExternalClient {
-	registerInvoice(input: RegisterInvoiceInput): Promise<unknown>;
-	registerReceipt(input: RegisterReceiptInput): Promise<unknown>;
-	verifyIrn(input: { organizationId: string; irn: string }): Promise<unknown>;
+	registerInvoice(input: RegisterInvoiceInput): Promise<EimsExternalResponse>;
+	registerReceipt(input: RegisterReceiptInput): Promise<EimsExternalResponse>;
+	verifyIrn(input: { organizationId: string; irn: string }): Promise<EimsExternalResponse>;
 }

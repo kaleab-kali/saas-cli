@@ -82,14 +82,11 @@ export class EimsMockService implements EimsBackendRepository {
 						name: "Bar POS",
 						systemNumber: "PENDING",
 						systemType: "POS",
-						approvalStatus: "pending_approval",
+						approvalStatus: "pending_mor_approval",
 						lastAcceptedCounter: 0,
 					},
 				],
-				blockers: [
-					"Register/POS reference is missing for one register",
-					"API credentials and certificate still need to be added",
-				],
+				blockers: ["Bar POS awaiting MoR approval", "EIMS certificate and API credentials still need to be added"],
 				recentSubmissions: submissions,
 			},
 		};
