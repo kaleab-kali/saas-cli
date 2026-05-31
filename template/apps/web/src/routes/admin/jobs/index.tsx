@@ -1,11 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
-import { useJobQueues, useJobRuns, useJobs, useTriggerJob } from "#features/admin/api/admin-jobs.hooks";
+import {
+	type JobRun,
+	useJobQueues,
+	useJobRuns,
+	useJobs,
+	useRetryQueueJob,
+	useTriggerJob,
+} from "#features/admin/api/admin-jobs.hooks";
+import { DataTable } from "#shared/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const statusVariant = {
 	running: "secondary" as const,
@@ -13,12 +21,67 @@ const statusVariant = {
 	failed: "destructive" as const,
 };
 
+const formatDateTime = (value: string | number) =>
+	new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+
 const JobsPage = React.memo(
 	() => {
 		const { data: jobs = [], isLoading } = useJobs();
 		const { data: runs = [] } = useJobRuns();
 		const { data: queueMonitor } = useJobQueues();
 		const trigger = useTriggerJob();
+		const retryQueueJob = useRetryQueueJob();
+		const runColumns = React.useMemo<ColumnDef<JobRun, unknown>[]>(
+			() => [
+				{
+					accessorKey: "jobName",
+					header: "Job",
+					cell: ({ row }) => <span className="font-mono text-xs">{row.original.jobName}</span>,
+				},
+				{
+					accessorKey: "status",
+					header: "Status",
+					cell: ({ row }) => <Badge variant={statusVariant[row.original.status]}>{row.original.status}</Badge>,
+					meta: {
+						filter: {
+							type: "select",
+							options: [
+								{ value: "running", label: "Running" },
+								{ value: "success", label: "Success" },
+								{ value: "failed", label: "Failed" },
+							],
+						},
+					},
+				},
+				{
+					accessorKey: "startedAt",
+					header: "Started",
+					cell: ({ row }) => formatDateTime(row.original.startedAt),
+				},
+				{
+					accessorKey: "durationMs",
+					header: "Duration",
+					cell: ({ row }) => <span className="font-mono">{row.original.durationMs ?? "-"} ms</span>,
+				},
+				{
+					id: "trigger",
+					accessorFn: (row) => (row.triggeredByUserId ? "manual" : "scheduled"),
+					header: "Trigger",
+					cell: ({ row }) => (row.original.triggeredByUserId ? "manual" : "scheduled"),
+				},
+				{
+					id: "summary",
+					accessorFn: (row) => row.summary || row.errorMessage || "",
+					header: "Summary",
+					cell: ({ row }) => (
+						<span className="block max-w-md truncate text-xs text-muted-foreground">
+							{row.original.summary || row.original.errorMessage || "-"}
+						</span>
+					),
+				},
+			],
+			[],
+		);
 
 		return (
 			<div className="space-y-6">
@@ -32,44 +95,44 @@ const JobsPage = React.memo(
 				{isLoading ? (
 					<Skeleton className="h-48 w-full" />
 				) : (
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-						{jobs.map((j) => (
-							<Card key={j.name}>
+					<div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+						{jobs.map((job) => (
+							<Card key={job.name}>
 								<CardHeader>
-									<CardTitle className="text-base font-mono">{j.name}</CardTitle>
+									<CardTitle className="text-base font-mono">{job.name}</CardTitle>
 								</CardHeader>
 								<CardContent className="space-y-2 text-sm">
-									{j.lastRun ? (
+									{job.lastRun ? (
 										<>
 											<div className="flex items-center justify-between">
 												<span className="text-muted-foreground">Status</span>
-												<Badge variant={statusVariant[j.lastRun.status]}>{j.lastRun.status}</Badge>
+												<Badge variant={statusVariant[job.lastRun.status]}>{job.lastRun.status}</Badge>
 											</div>
 											<div className="flex items-center justify-between">
 												<span className="text-muted-foreground">Last run</span>
-												<span>{new Date(j.lastRun.startedAt).toLocaleString()}</span>
+												<span>{formatDateTime(job.lastRun.startedAt)}</span>
 											</div>
-											{j.lastRun.durationMs !== null && (
+											{job.lastRun.durationMs !== null && (
 												<div className="flex items-center justify-between">
 													<span className="text-muted-foreground">Duration</span>
-													<span className="font-mono">{j.lastRun.durationMs}ms</span>
+													<span className="font-mono">{job.lastRun.durationMs}ms</span>
 												</div>
 											)}
-											{j.lastRun.summary && (
-												<div className="text-xs text-muted-foreground border-t pt-2">{j.lastRun.summary}</div>
+											{job.lastRun.summary && (
+												<div className="border-t pt-2 text-xs text-muted-foreground">{job.lastRun.summary}</div>
 											)}
-											{j.lastRun.errorMessage && (
-												<div className="text-xs text-destructive border-t pt-2">{j.lastRun.errorMessage}</div>
+											{job.lastRun.errorMessage && (
+												<div className="border-t pt-2 text-xs text-destructive">{job.lastRun.errorMessage}</div>
 											)}
 										</>
 									) : (
-										<p className="text-muted-foreground text-xs">Never run.</p>
+										<p className="text-xs text-muted-foreground">Never run.</p>
 									)}
 									<Button
 										size="sm"
-										className="w-full mt-2"
-										onClick={() => trigger.mutate(j.name)}
-										disabled={trigger.isPending || j.lastRun?.status === "running"}
+										className="mt-2 w-full"
+										onClick={() => trigger.mutate(job.name)}
+										disabled={trigger.isPending || job.lastRun?.status === "running"}
 									>
 										{trigger.isPending ? "Triggering..." : "Run now"}
 									</Button>
@@ -92,9 +155,9 @@ const JobsPage = React.memo(
 						) : queueMonitor.queues.length === 0 ? (
 							<p className="text-sm text-muted-foreground">No queues configured.</p>
 						) : (
-							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+							<div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 								{queueMonitor.queues.map((queue) => (
-									<div key={queue.name} className="rounded-md border p-3 space-y-2">
+									<div key={queue.name} className="space-y-2 rounded-md border p-3">
 										<div className="font-mono text-sm font-semibold">{queue.name}</div>
 										<div className="grid grid-cols-2 gap-2 text-xs">
 											{Object.entries(queue.counts).map(([key, value]) => (
@@ -105,11 +168,21 @@ const JobsPage = React.memo(
 											))}
 										</div>
 										{queue.failed.length > 0 && (
-											<div className="border-t pt-2 space-y-1">
+											<div className="space-y-1 border-t pt-2">
 												<div className="text-xs font-medium text-destructive">Recent failures</div>
 												{queue.failed.map((job) => (
-													<div key={job.id} className="text-[11px] text-muted-foreground truncate">
-														{job.name}: {job.failedReason ?? "failed"}
+													<div key={job.id} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+														<div className="min-w-0 flex-1 truncate">
+															{job.name}: {job.failedReason ?? "failed"}
+														</div>
+														<Button
+															size="sm"
+															variant="outline"
+															onClick={() => retryQueueJob.mutate({ queueName: queue.name, jobId: job.id })}
+															disabled={retryQueueJob.isPending}
+														>
+															Retry
+														</Button>
 													</div>
 												))}
 											</div>
@@ -125,39 +198,17 @@ const JobsPage = React.memo(
 					<CardHeader>
 						<CardTitle className="text-base">Recent runs (50)</CardTitle>
 					</CardHeader>
-					<CardContent className="p-0 overflow-x-auto">
-						{runs.length === 0 ? (
-							<p className="text-sm text-muted-foreground p-4 text-center">No runs yet.</p>
-						) : (
-							<Table className="w-full text-sm">
-								<TableHeader className="bg-muted/40">
-									<TableRow>
-										<TableHead className="text-left p-2">Job</TableHead>
-										<TableHead className="text-left p-2">Status</TableHead>
-										<TableHead className="text-left p-2">Started</TableHead>
-										<TableHead className="text-right p-2">Duration</TableHead>
-										<TableHead className="text-left p-2">Trigger</TableHead>
-										<TableHead className="text-left p-2">Summary</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{runs.map((r) => (
-										<TableRow key={r.id} className="border-t">
-											<TableCell className="p-2 font-mono text-xs">{r.jobName}</TableCell>
-											<TableCell className="p-2">
-												<Badge variant={statusVariant[r.status]}>{r.status}</Badge>
-											</TableCell>
-											<TableCell className="p-2">{new Date(r.startedAt).toLocaleString()}</TableCell>
-											<TableCell className="p-2 text-right font-mono">{r.durationMs ?? "—"} ms</TableCell>
-											<TableCell className="p-2 text-xs">{r.triggeredByUserId ? "manual" : "scheduled"}</TableCell>
-											<TableCell className="p-2 text-xs text-muted-foreground max-w-md truncate">
-												{r.summary || r.errorMessage || "—"}
-											</TableCell>
-										</TableRow>
-									))}
-								</TableBody>
-							</Table>
-						)}
+					<CardContent>
+						<DataTable
+							columns={runColumns}
+							data={runs}
+							searchPlaceholder="Search job runs..."
+							emptyMessage="No runs yet."
+							pageSize={10}
+							enableCsvExport
+							exportFilename="job-runs.csv"
+							getRowId={(run) => run.id}
+						/>
 					</CardContent>
 				</Card>
 			</div>

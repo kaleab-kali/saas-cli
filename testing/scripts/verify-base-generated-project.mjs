@@ -558,6 +558,24 @@ function assertApiFormattingPolicy() {
 	assert(sourceSecurity.includes("uses ad hoc formatting"), "source security gate enforces shared i18n formatters");
 }
 
+function assertAdminJobsQueueSurface() {
+	const queueMonitor = readProjectFile("apps/api/src/modules/admin/application/services/queue-monitor.service.ts");
+	const jobsController = readProjectFile("apps/api/src/modules/admin/presentation/controllers/admin-jobs.controller.ts");
+	const jobsHooks = readProjectFile("apps/web/src/features/admin/api/admin-jobs.hooks.ts");
+	const jobsPage = readProjectFile("apps/web/src/routes/admin/jobs/index.tsx");
+	const opsGuide = readProjectFile("docs/ADMIN_OPERATIONS_GUIDE.md");
+	assert(queueMonitor.includes("retryFailedJob"), "queue monitor can retry failed BullMQ jobs");
+	assert(
+		jobsController.includes('queues/:queueName/failed/:jobId/retry'),
+		"admin jobs API exposes failed queue job retry",
+	);
+	assert(jobsHooks.includes("useRetryQueueJob"), "admin jobs web hooks expose failed queue job retry");
+	assert(jobsPage.includes("<DataTable"), "admin jobs recent runs use shared DataTable");
+	assert(jobsPage.includes("enableCsvExport"), "admin jobs recent runs export CSV through shared DataTable");
+	assert(jobsPage.includes("Retry"), "admin jobs page renders failed queue job retry controls");
+	assert(opsGuide.includes("can be retried directly"), "admin operations guide documents failed queue retries");
+}
+
 function readEnv(relPath) {
 	const out = {};
 	for (const line of readProjectFile(relPath).split(/\r?\n/)) {
@@ -624,6 +642,7 @@ async function main() {
 	assertWebBundleImportPolicy();
 	assertWebTableMarkupPolicy();
 	assertApiFormattingPolicy();
+	assertAdminJobsQueueSurface();
 	assertGeneratedSecrets();
 
 	console.log(`Base generated-project verification passed: ${checks.length} checks`);

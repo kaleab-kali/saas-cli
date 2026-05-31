@@ -19,6 +19,19 @@ export class QueueMonitorService implements OnModuleDestroy {
 		return { enabled: true, reason: null, queues };
 	}
 
+	async retryFailedJob(queueName: string, jobId: string) {
+		const queue = this.queue(queueName);
+		const job = await queue.getJob(jobId);
+		if (!job) return null;
+		await job.retry();
+		return {
+			id: String(job.id),
+			name: job.name,
+			queueName,
+			retried: true,
+		};
+	}
+
 	async onModuleDestroy() {
 		await Promise.all([...this.queues.values()].map((queue) => queue.close()));
 		if (this.connection) await this.connection.quit();

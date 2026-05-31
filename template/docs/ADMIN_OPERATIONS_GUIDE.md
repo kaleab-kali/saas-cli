@@ -69,6 +69,8 @@ BULLMQ_QUEUES=billing,notifications,reports
 BULLMQ_PREFIX=
 ```
 
+Failed BullMQ jobs show their last failure reason and can be retried directly from `/admin/jobs`.
+
 ## File Storage
 Route: `/files`
 

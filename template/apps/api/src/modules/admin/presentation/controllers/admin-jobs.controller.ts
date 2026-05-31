@@ -1,4 +1,14 @@
-import { BadRequestException, Controller, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import {
+	BadRequestException,
+	Controller,
+	Get,
+	NotFoundException,
+	Param,
+	Post,
+	Query,
+	Req,
+	UseGuards,
+} from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AllowAnonymous } from "@thallesp/nestjs-better-auth";
 import { QueueMonitorService } from "#modules/admin/application/services/queue-monitor.service";
@@ -56,6 +66,15 @@ export class AdminJobsController {
 	@ApiOperation({ summary: "Inspect configured BullMQ queues" })
 	async listQueues() {
 		return { data: await this.queues.listQueues() };
+	}
+
+	@Post("queues/:queueName/failed/:jobId/retry")
+	@ApiOperation({ summary: "Retry a failed BullMQ job" })
+	async retryFailedQueueJob(@Param("queueName") queueName: string, @Param("jobId") jobId: string) {
+		if (!process.env.REDIS_URL) throw new BadRequestException("REDIS_URL is not set");
+		const data = await this.queues.retryFailedJob(queueName, jobId);
+		if (!data) throw new NotFoundException(`Failed job '${jobId}' was not found in queue '${queueName}'`);
+		return { data };
 	}
 
 	@Post(":name/trigger")

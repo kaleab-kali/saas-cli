@@ -71,3 +71,12 @@ export const useTriggerJob = () => {
 		onSuccess: () => qc.invalidateQueries({ queryKey: k.all }),
 	});
 };
+
+export const useRetryQueueJob = () => {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: ({ queueName, jobId }: { queueName: string; jobId: string }) =>
+			api.post(`/admin/jobs/queues/${encodeURIComponent(queueName)}/failed/${encodeURIComponent(jobId)}/retry`, {}),
+		onSuccess: () => qc.invalidateQueries({ queryKey: k.all }),
+	});
+};
