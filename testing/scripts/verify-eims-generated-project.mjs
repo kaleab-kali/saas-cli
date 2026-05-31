@@ -345,18 +345,22 @@ function assertGeneratedStructure() {
 	assert(appSidebar.includes("EIMS tax workspace"), "tenant shell is visibly EIMS-specific after installing the starter");
 	assert(appSidebar.includes("Tax launch status"), "tenant shell launch panel changes for EIMS installs");
 	assert(appSidebar.includes("EIMS setup active"), "tenant shell status panel names the EIMS setup");
+	assert(appSidebar.includes("Start in onboarding"), "tenant shell keeps onboarding as the primary EIMS launch surface");
 	const adminSidebar = readProjectFile("apps/web/src/components/layout/AdminSidebar.tsx");
 	assert(adminSidebar.includes("const EIMS_ADMIN_NAV"), "admin sidebar includes EIMS operations group");
 	assert(adminSidebar.includes('admin.nav.eimsOperations'), "admin sidebar exposes EIMS operations label");
 	assert(adminSidebar.includes("EIMS operations focus"), "admin shell is visibly EIMS-specific after installing the starter");
 	assert(adminSidebar.includes("EIMS tenant launch queue"), "admin shell status panel names the EIMS queue");
 	const rootRoute = readProjectFile("apps/web/src/routes/index.tsx");
-	assert(rootRoute.includes('return <Navigate to="/eims" />;'), "EIMS starter makes the tax workspace the authenticated landing page");
+	assert(rootRoute.includes('return <Navigate to="/onboarding" />;'), "EIMS starter keeps concierge onboarding as the authenticated landing page");
 	const eimsBrowserSpec = readProjectFile("apps/e2e/tests/eims-mock.spec.ts");
 	assert(
-		eimsBrowserSpec.includes("authenticated landing page opens the EIMS tax workspace"),
-		"EIMS browser smoke verifies the authenticated landing page opens the EIMS workspace",
+		eimsBrowserSpec.includes("authenticated landing page opens the concierge onboarding console"),
+		"EIMS browser smoke verifies the authenticated landing page opens onboarding",
 	);
+	const eimsMockServer = readProjectFile("apps/api-tests/scripts/eims-mock-api-server.mjs");
+	assert(eimsMockServer.includes("/api/v1/onboarding"), "EIMS mock server supports onboarding landing data");
+	assert(eimsMockServer.includes("/api/v1/notifications/stream"), "EIMS mock server supports notification SSE stream");
 	const englishLocale = readProjectFile("apps/web/src/shared/i18n/locales/en.ts");
 	assert(englishLocale.includes('eims: "Tax tools"'), "tenant EIMS nav is business-facing");
 	assert(englishLocale.includes('eimsCancellations: "Cancellations"'), "tenant EIMS nav labels include cancellations");
@@ -382,6 +386,7 @@ function assertGeneratedStructure() {
 	assert(tenantPages.includes("MoR and INSA launch control"), "tenant EIMS UI names the MoR/INSA launch flow");
 	assert(tenantPages.includes("Launch gate timeline"), "tenant EIMS UI shows launch gates from intake to live invoices");
 	assert(tenantPages.includes("Operational launch board"), "tenant EIMS status page has a launch-focused workflow panel");
+	assert(tenantPages.includes("Open launch console"), "tenant EIMS UI links back to the concierge onboarding console");
 	assert(
 		tenantPages.includes("15-step MoR/INSA launch timeline"),
 		"tenant EIMS UI shows the full MoR/INSA launch timeline",
@@ -398,6 +403,8 @@ function assertGeneratedStructure() {
 	assert(adminPages.includes("MoR/INSA authority desk"), "admin EIMS UI exposes authority blocker operations");
 	assert(adminPages.includes("Cross-tenant launch blockers"), "admin EIMS UI highlights cross-tenant blockers");
 	assert(adminPages.includes("15-step EIMS launch queue"), "admin EIMS UI shows the full launch queue timeline");
+	assert(adminPages.includes("Start EIMS onboarding"), "admin EIMS UI can start the onboarding workflow");
+	assert(adminPages.includes("Open onboarding queue"), "admin EIMS UI links to the base onboarding queue");
 	assert(adminPages.includes("MoR and INSA operator timeline"), "admin EIMS UI names the authority operator timeline");
 	assert(adminPages.includes("Controlled invoice proof lane"), "admin EIMS UI names the controlled invoice proof lane");
 	assert(adminPages.includes("MoR test environment"), "admin EIMS UI labels MoR test connectivity without sandbox jargon");

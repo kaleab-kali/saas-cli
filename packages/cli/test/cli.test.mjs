@@ -170,8 +170,8 @@ test("adds and removes the EIMS starter without leaving generated residue", () =
 		assert.ok(existsSync(path.join(targetDir, "apps/api/src/modules/eims")), "EIMS API module should be installed");
 		assert.match(
 			readFileSync(path.join(targetDir, "apps/web/src/routes/index.tsx"), "utf8"),
-			/return <Navigate to="\/eims" \/>;/,
-			"EIMS starter should make the tax workspace the authenticated landing page",
+			/return <Navigate to="\/onboarding" \/>;/,
+			"EIMS starter should keep concierge onboarding as the authenticated landing page",
 		);
 		assert.ok(
 			existsSync(path.join(targetDir, "apps/performance/scripts/eims-mock-load.mjs")),
@@ -225,7 +225,7 @@ test("refreshes an already-installed EIMS starter UI without reinstalling API mo
 		writeFileSync(tenantPage, "export const staleEimsUi = 'old ui';\n", "utf8");
 		writeFileSync(
 			rootRoute,
-			readFileSync(rootRoute, "utf8").replace('return <Navigate to="/eims" />;', 'return <Navigate to="/onboarding" />;'),
+			readFileSync(rootRoute, "utf8").replace('return <Navigate to="/onboarding" />;', 'return <Navigate to="/eims" />;'),
 			"utf8",
 		);
 		writeFileSync(apiModule, `${readFileSync(apiModule, "utf8")}\n// local API implementation marker\n`, "utf8");
@@ -233,12 +233,12 @@ test("refreshes an already-installed EIMS starter UI without reinstalling API mo
 		const noRefreshResult = runCli(["add", "starter", "eims"], { cwd: targetDir, timeout: 120_000 });
 		assert.equal(noRefreshResult.status, 0, outputOf(noRefreshResult));
 		assert.match(readFileSync(tenantPage, "utf8"), /old ui/);
-		assert.match(readFileSync(rootRoute, "utf8"), /return <Navigate to="\/onboarding" \/>;/);
+		assert.match(readFileSync(rootRoute, "utf8"), /return <Navigate to="\/eims" \/>;/);
 
 		const refreshResult = runCli(["add", "starter", "eims", "--refresh"], { cwd: targetDir, timeout: 120_000 });
 		assert.equal(refreshResult.status, 0, outputOf(refreshResult));
 		assert.match(readFileSync(tenantPage, "utf8"), /Ethiopia tax workspace/);
-		assert.match(readFileSync(rootRoute, "utf8"), /return <Navigate to="\/eims" \/>;/);
+		assert.match(readFileSync(rootRoute, "utf8"), /return <Navigate to="\/onboarding" \/>;/);
 		assert.match(readFileSync(apiModule, "utf8"), /local API implementation marker/);
 		assert.match(outputOf(refreshResult), /EIMS starter refresh complete/);
 	} finally {

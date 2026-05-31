@@ -287,11 +287,13 @@ async function assertNoTenantInternalLanguage(page: Page) {
 }
 
 test.describe("tenant EIMS workflow is business-facing and backend-driven", () => {
-	test("authenticated landing page opens the EIMS tax workspace", async ({ page }) => {
+	test("authenticated landing page opens the concierge onboarding console", async ({ page }) => {
 		await page.goto("/", { waitUntil: "domcontentloaded" });
-		await expect(page).toHaveURL(/\/eims\/?$/);
-		await expect(page.getByRole("heading", { name: "EIMS compliance dashboard" })).toBeVisible();
-		await expect(page.getByText("Ethiopia tax workspace", { exact: false })).toBeVisible();
+		await expect(page).toHaveURL(/\/onboarding\/?$/);
+		await expect(page.getByRole("heading", { name: "Launch console" })).toBeVisible();
+		await expect(page.getByRole("heading", { name: "Concierge launch workflow" })).toBeVisible();
+		await expect(page.getByText("MoR portal signup", { exact: false }).first()).toBeVisible();
+		await expect(page.getByText("3/15 steps", { exact: false }).first()).toBeVisible();
 	});
 
 	test("tenant navigation exposes business actions, not internal compliance/source modules", async ({ page }) => {
@@ -336,7 +338,7 @@ test.describe("tenant EIMS workflow is business-facing and backend-driven", () =
 		await expect(page.getByText("Buyer registry coverage")).toBeVisible();
 		await expect(page.getByText("Operational launch board")).toBeVisible();
 		await expect(page.getByText("15-step MoR/INSA launch timeline")).toBeVisible();
-		await expect(page.getByText("First live invoice")).toBeVisible();
+		await expect(page.getByText("First live invoice").first()).toBeVisible();
 		await expectVisibleTexts(page, [workspace.operationModeLabel, workspace.plainLanguageSummary]);
 		for (const requiredInput of workspace.requiredInputs) await expectVisibleTexts(page, [requiredInput]);
 		await expectVisibleTexts(page, [workspace.supportNote]);

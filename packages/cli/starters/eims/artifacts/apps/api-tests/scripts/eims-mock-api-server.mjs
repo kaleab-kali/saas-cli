@@ -119,6 +119,75 @@ const featureFlags = [
 	{ id: "ff_1", name: "eims.enabled", description: "Enable EIMS tax tools", enabledGlobal: true },
 	{ id: "ff_2", name: "billing.chapa", description: "Enable Chapa payments", enabledGlobal: false },
 ];
+const eimsOnboardingSteps = [
+	["tenant-intake", "Tenant intake", "Capture legal name, TIN, owner contact, and payment proof.", "setup", "STAFF", "COMPLETED"],
+	["subscription-verified", "Subscription verified", "Confirm the EIMS add-on and receipt before authority work starts.", "billing", "STAFF", "COMPLETED"],
+	["organization-shell", "Organization shell", "Create the tenant, owner user, settings, and VAT metadata.", "setup", "STAFF", "COMPLETED"],
+	["mor-portal-signup", "MoR portal signup", "Submit the portal request and coordinate the OTP handoff.", "authority", "STAFF", "IN_PROGRESS"],
+	["portal-login-2fa", "Portal login and 2FA", "Change password and store backup codes through the secure workflow.", "authority", "STAFF", "PENDING"],
+	["source-registration", "Register source system", "Register the POS source and capture branch metadata.", "authority", "STAFF", "PENDING"],
+	["mor-approval-wait", "MoR approval wait", "Track source approval status and follow-up notes.", "authority", "STAFF", "PENDING"],
+	["credential-capture", "Capture API credentials", "Store client ID, client secret, API key, username, and system number.", "credential", "STAFF", "PENDING"],
+	["generate-csr", "Generate CSR", "Create the CSR and encrypted private key material.", "certificate", "STAFF", "PENDING"],
+	["send-insa-request", "Send INSA request", "Send the CSR email package and request form.", "certificate", "STAFF", "PENDING"],
+	["certificate-upload", "Upload certificate", "Import the issued certificate and validate key match, TIN, and expiry.", "certificate", "STAFF", "PENDING"],
+	["controlled-test-invoice", "Controlled test invoice", "Capture controlled test IRN and signed QR evidence before go-live.", "verification", "STAFF", "PENDING"],
+	["tenant-notified-live", "Notify tenant", "Send SMS, email, and training appointment details.", "launch", "STAFF", "PENDING"],
+	["first-live-invoice", "First live invoice", "Observe the first production IRN with the cashier.", "launch", "TENANT", "PENDING"],
+	["evidence-archive", "Evidence archive", "Archive MoR, INSA, invoice, training, and renewal evidence.", "launch", "STAFF", "PENDING"],
+].map(([stepKey, title, description, category, assigneeType, status], index) => ({
+	id: `onboarding_step_${index + 1}`,
+	stepKey,
+	stepOrder: index + 1,
+	title,
+	description,
+	category,
+	assigneeType,
+	canBeSelfService: assigneeType === "TENANT",
+	status,
+	startedAt: status === "IN_PROGRESS" ? fixedNow : null,
+	completedAt: status === "COMPLETED" ? fixedNow : null,
+	completedByUserId: status === "COMPLETED" ? "admin_1" : null,
+	notes: null,
+	blocked: false,
+	blockedReason: null,
+}));
+const eimsOnboardingTask = {
+	id: "task_eims_mock",
+	organizationId: "org_mock",
+	templateKey: "eims-restaurant",
+	mode: "CONCIERGE",
+	status: "ACTIVE",
+	currentStepKey: "mor-portal-signup",
+	assignedToUserId: "admin_1",
+	contactName: "Owner User",
+	contactPhone: "+251911000000",
+	contactEmail: "owner@example.com",
+	startedAt: fixedNow,
+	completedAt: null,
+	blockedReason: null,
+	metadata: {
+		businessType: "restaurant",
+		legalName: "Acme Restaurant PLC",
+		tradeName: "Acme Restaurant",
+		taxId: "0074136947",
+		vatNumber: "VAT-0074136947",
+		region: "Addis Ababa",
+		subCity: "Bole",
+		preferredChannel: "WhatsApp",
+		plan: "restaurant-pro",
+		paymentMethod: "telebirr",
+		paymentReference: "EIMS-MOCK-001",
+	},
+	organization: { id: "org_mock", name: "Acme Restaurant", slug: "acme-restaurant", createdAt: fixedNow },
+	assignedTo: { id: "admin_1", name: "Operations Admin", email: "ops@example.com", image: null },
+	steps: eimsOnboardingSteps,
+	activities: [
+		{ id: "act_eims_1", type: "STAFF_ACTION", message: "EIMS concierge onboarding started", userId: "admin_1", createdAt: fixedNow },
+		{ id: "act_eims_2", type: "SYSTEM", message: "Steps 1-3 auto-completed after tenant creation", userId: null, createdAt: fixedNow },
+	],
+	progress: { total: eimsOnboardingSteps.length, completed: 3, currentStepKey: "mor-portal-signup", percent: 20 },
+};
 
 const eimsSubmissions = [
 	{
@@ -835,6 +904,15 @@ async function handleMockRequest(req, res) {
 
 function handleCoreRoutes(path, res) {
 	if (path === "/health") return sendJson(res, 200, { status: "ok" });
+	if (path === "/api/v1/notifications/stream") {
+		res.writeHead(200, {
+			"content-type": "text/event-stream",
+			"cache-control": "no-cache",
+			connection: "keep-alive",
+		});
+		res.write("event: ping\ndata: {}\n\n");
+		return true;
+	}
 	if (path === "/api/v1/notifications") {
 		return sendJson(res, 200, { data: [], meta: { total: 0, unread: 0, limit: 10, offset: 0 } });
 	}
@@ -877,6 +955,12 @@ function handleBillingRoutes(path, res) {
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: mock route dispatch intentionally mirrors scaffold endpoints.
 async function handleScaffoldManagementRoutes(req, res, url, path) {
+	if (path === "/api/v1/onboarding" && req.method === "GET") {
+		return sendJson(res, 200, { data: eimsOnboardingTask });
+	}
+	if (path.startsWith("/api/v1/onboarding/steps/") && req.method === "POST") {
+		return sendJson(res, 200, { data: eimsOnboardingTask });
+	}
 	if (path === "/api/v1/team/members" && req.method === "GET") {
 		return sendJson(res, 200, { data: teamMembers });
 	}

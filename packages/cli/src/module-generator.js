@@ -489,7 +489,7 @@ const patchEimsTenantSidebar = async (root) => {
 		.replace(
 			`<div className="mt-1 text-sidebar-foreground/62">Use onboarding first, then attach vertical packs.</div>`,
 			`<div className="mt-1 text-sidebar-foreground/62">
-								MoR approval, certificates, source setup, and compliance evidence are available.
+								Start in onboarding, then use MoR approval, certificates, source setup, and compliance evidence.
 							</div>`,
 		);
 
@@ -572,7 +572,7 @@ const patchEimsLandingRoute = async (root) => {
 	const text = await fs.readFile(file, "utf8");
 	const next = text.replace(
 		/return <Navigate to="\/(?:onboarding|eims)" \/>;/,
-		'return <Navigate to="/eims" />;',
+		'return <Navigate to="/onboarding" />;',
 	);
 	if (next === text) return false;
 	await fs.writeFile(file, next, "utf8");

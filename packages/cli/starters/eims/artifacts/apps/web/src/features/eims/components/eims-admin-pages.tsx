@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
 import {
@@ -102,6 +103,14 @@ function AdminOperationsHero({ stats }: { readonly stats: readonly (readonly [st
 						Track blocked tenants, retry queues, certificate expiry, compliance evidence, and source approval health
 						before they reach support escalations.
 					</p>
+					<div className="mt-4 flex flex-wrap gap-2">
+						<Button asChild className="bg-[#f2b36d] text-[#25170c] hover:bg-[#ffd095]">
+							<Link to="/admin/onboarding/new">Start EIMS onboarding</Link>
+						</Button>
+						<Button asChild variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10">
+							<Link to="/admin/onboarding">Open onboarding queue</Link>
+						</Button>
+					</div>
 				</div>
 				<div className="grid gap-2 sm:grid-cols-3">
 					{stats.slice(0, 6).map(([label, value]) => (
@@ -204,6 +213,14 @@ function AdminMorInsaTimelinePanel() {
 					<p className="mt-1 text-xs leading-5 text-muted-foreground">
 						The timeline keeps tenant handoffs and staff-only authority work in one operational view.
 					</p>
+					<div className="mt-3 grid gap-2">
+						<Button asChild size="sm">
+							<Link to="/admin/onboarding/new">Create 15-step launch</Link>
+						</Button>
+						<Button asChild size="sm" variant="outline">
+							<Link to="/admin/onboarding">Review active queue</Link>
+						</Button>
+					</div>
 				</div>
 			</div>
 			<div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5">

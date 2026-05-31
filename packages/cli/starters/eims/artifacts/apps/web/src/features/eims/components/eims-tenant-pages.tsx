@@ -132,9 +132,9 @@ function EimsWorkspaceHeader({
 		["Certificate alerts", String(overview.stats.certificatesExpiring)],
 	] as const;
 	const actions = [
-		["Continue setup", "/eims/setup"],
+		["Open launch console", "/onboarding"],
+		["Continue EIMS setup", "/eims/setup"],
 		["Submit invoice", "/eims/submissions"],
-		["Export records", "/eims/compliance"],
 	] as const;
 
 	return (
@@ -366,7 +366,7 @@ const morInsaLaunchTimeline = [
 	{
 		title: "Controlled test invoice",
 		owner: "Staff",
-		proof: "Sandbox IRN and signed QR captured",
+		proof: "Controlled test IRN and signed QR captured",
 		action: "Block live invoices until the controlled invoice is accepted.",
 	},
 	{
@@ -797,7 +797,10 @@ function TenantLaunchPanel({ workspace }: { readonly workspace: EimsTenantWorksp
 					</Badge>
 				</div>
 				<div className="mt-4 grid gap-3 md:grid-cols-3">
-					{workspace.primaryActions.slice(0, 3).map((action) => (
+					{[
+						{ label: "Open concierge launch console", href: "/onboarding" },
+						...workspace.primaryActions.slice(0, 2),
+					].map((action) => (
 						<Button key={action.href} asChild variant="outline" className="justify-start">
 							<a href={action.href}>{action.label}</a>
 						</Button>
@@ -924,7 +927,10 @@ function EimsComplianceDashboardPanel({
 				</p>
 				<div className="mt-4 flex flex-wrap gap-2">
 					<Button asChild className="bg-[#22c55e] text-[#07130c] hover:bg-[#4ade80]">
-						<Link to="/eims/setup">Continue setup</Link>
+						<Link to="/onboarding">Open launch console</Link>
+					</Button>
+					<Button asChild variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10">
+						<Link to="/eims/setup">Continue EIMS setup</Link>
 					</Button>
 					<Button asChild variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10">
 						<Link to="/eims/compliance">Export evidence</Link>
