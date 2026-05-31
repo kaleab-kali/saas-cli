@@ -27,7 +27,7 @@ export const useAdminStats = () =>
 		select: (res) => res.data,
 	});
 
-export const useAdminOrgList = (params: { page?: number; limit?: number; search?: string } = {}) =>
+export const useAdminOrgList = (params: { page?: number; limit?: number; search?: string; sort?: string } = {}) =>
 	useQuery({
 		queryKey: adminKeys.orgList(params),
 		queryFn: () => api.get<PaginatedResponse<OrgListItem>>("/admin/organizations", { params }),

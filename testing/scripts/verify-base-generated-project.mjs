@@ -426,6 +426,9 @@ function assertFrontendImprovementSurface() {
 	const topBar = readProjectFile("apps/web/src/components/layout/TopBar.tsx");
 	const dataTable = readProjectFile("apps/web/src/shared/components/DataTable.tsx");
 	const onboarding = readProjectFile("apps/web/src/features/onboarding/components/onboarding-pages.tsx");
+	const adminOrganizations = readProjectFile("apps/web/src/features/admin/components/OrgTable.tsx");
+	const adminOrganizationsRoute = readProjectFile("apps/web/src/routes/admin/organizations/index.tsx");
+	const adminOrganizationsHandler = readProjectFile("apps/api/src/modules/admin/application/queries/list-organizations.handler.ts");
 	const featureFlags = readProjectFile("apps/web/src/routes/admin/feature-flags/index.tsx");
 	const adminUsers = readProjectFile("apps/web/src/routes/admin/users/index.tsx");
 	const adminUsersHandler = readProjectFile("apps/api/src/modules/admin/application/queries/list-users.handler.ts");
@@ -467,6 +470,14 @@ function assertFrontendImprovementSurface() {
 	assert(onboarding.includes("enableCsvExport"), "admin onboarding table enables CSV export");
 	assert(onboarding.includes("savedViewsEntity"), "admin onboarding table enables saved views");
 	assert(onboarding.includes("bulkActions"), "admin onboarding table enables bulk actions");
+	assert(adminOrganizations.includes("<DataTable"), "admin organizations use shared DataTable");
+	assert(adminOrganizations.includes("useDataTableState"), "admin organizations sync table controls to URL");
+	assert(adminOrganizations.includes("savedViewsEntity"), "admin organizations enable saved views");
+	assert(adminOrganizations.includes("enableCsvExport"), "admin organizations enable CSV export");
+	assert(!adminOrganizationsRoute.includes("<Input"), "admin organizations use DataTable search instead of separate input");
+	assert(adminOrganizationsHandler.includes("organizationSort(params.sort)"), "admin organizations apply server-side sorting");
+	assert(adminOrganizationsHandler.includes("members: { some:"), "admin organizations search owner member emails");
+	assert(opsGuide.includes("organization directory uses the shared DataTable"), "admin operations guide documents organization table");
 	assert(featureFlags.includes("<DataTable"), "admin feature flags use shared DataTable");
 	assert(featureFlags.includes("useDataTableState"), "admin feature flags sync table controls to URL");
 	assert(featureFlags.includes("savedViewsEntity"), "admin feature flags enable saved views");
@@ -509,6 +520,10 @@ function assertFrontendImprovementSurface() {
 	assert(e2eSmoke.includes("Toggle platform.api-keys globally"), "E2E smoke covers feature flag switch controls");
 	assert(e2eSmoke.includes("admin audit logs smoke renders filterable evidence table"), "E2E smoke covers admin audit log table");
 	assert(e2eSmoke.includes("admin users smoke renders searchable user table"), "E2E smoke covers admin users table");
+	assert(
+		e2eSmoke.includes("admin organizations smoke renders tenant directory table"),
+		"E2E smoke covers admin organizations table",
+	);
 }
 
 function assertOnboardingServerTableQuery() {

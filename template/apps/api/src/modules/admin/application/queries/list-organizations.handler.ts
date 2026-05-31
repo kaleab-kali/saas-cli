@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "#shared/database/prisma.service";
 import type { PaginatedResponse } from "#shared/types";
+import type { Prisma } from "../../../../generated/prisma/client";
 
 export interface OrgListItem {
 	id: string;
@@ -13,32 +14,52 @@ export interface OrgListItem {
 }
 
 interface OrgFilters {
-	page?: number;
-	limit?: number;
+	page?: number | string;
+	limit?: number | string;
 	search?: string;
-	sortOrder?: "asc" | "desc";
+	sort?: string;
 }
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
+
+const parsePositiveInt = (value: number | string | undefined, fallback: number) => {
+	const parsed = typeof value === "number" ? value : Number.parseInt(value ?? "", 10);
+	return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, MAX_LIMIT) : fallback;
+};
+
+const organizationSort = (sort: string | undefined): Prisma.OrganizationOrderByWithRelationInput => {
+	const [field, direction] = (sort ?? "createdAt:desc").split(":");
+	const dir = direction === "asc" ? "asc" : "desc";
+	switch (field) {
+		case "name":
+		case "slug":
+		case "createdAt":
+			return { [field]: dir };
+		default:
+			return { createdAt: "desc" };
+	}
+};
 
 @Injectable()
 export class ListOrganizationsHandler {
 	constructor(private readonly prisma: PrismaService) {}
 
 	async execute(params: OrgFilters): Promise<PaginatedResponse<OrgListItem>> {
-		const page = params.page || DEFAULT_PAGE;
-		const limit = params.limit || DEFAULT_LIMIT;
+		const page = parsePositiveInt(params.page, DEFAULT_PAGE);
+		const limit = parsePositiveInt(params.limit, DEFAULT_LIMIT);
 		const skip = (page - 1) * limit;
 
-		const where = params.search
-			? {
-					OR: [
-						{ name: { contains: params.search, mode: "insensitive" as const } },
-						{ slug: { contains: params.search, mode: "insensitive" as const } },
-					],
-				}
-			: {};
+		const where: Prisma.OrganizationWhereInput = {};
+		const search = params.search?.trim();
+		if (search) {
+			where.OR = [
+				{ name: { contains: search, mode: "insensitive" } },
+				{ slug: { contains: search, mode: "insensitive" } },
+				{ members: { some: { user: { email: { contains: search, mode: "insensitive" } } } } },
+			];
+		}
 
 		const [organizations, total] = await Promise.all([
 			this.prisma.organization.findMany({
@@ -56,7 +77,7 @@ export class ListOrganizationsHandler {
 						take: 1,
 					},
 				},
-				orderBy: { createdAt: params.sortOrder === "asc" ? "asc" : "desc" },
+				orderBy: organizationSort(params.sort),
 				skip,
 				take: limit,
 			}),

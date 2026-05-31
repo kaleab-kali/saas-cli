@@ -437,6 +437,26 @@ test("admin users smoke renders searchable user table", async ({ page }) => {
 	assertNoErrors();
 });
 
+test("admin organizations smoke renders tenant directory table", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAdminMocks(page);
+
+	await page.goto("/admin/organizations?search=Demo&limit=20&sort=name%3Aasc", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "All Organizations" })).toBeVisible();
+	const search = page.getByRole("textbox", { name: /Search organizations/i });
+	await expect(search).toHaveValue("Demo");
+	await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Saved views" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save view" })).toBeVisible();
+	await expect(page.getByText("Demo Cafe", { exact: true })).toBeVisible();
+	await expect(page.getByText("owner@example.test")).toBeVisible();
+	await expect(page.getByRole("link", { name: "View", exact: true })).toBeVisible();
+
+	assertNoErrors();
+});
+
 test("admin audit logs smoke renders filterable evidence table", async ({ page }) => {
 	const assertNoErrors = await expectNoConsoleErrors(page);
 	await installAdminMocks(page);

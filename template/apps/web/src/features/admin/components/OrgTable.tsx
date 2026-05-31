@@ -1,71 +1,101 @@
 import { Link } from "@tanstack/react-router";
+import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAdminOrgList } from "#features/admin/api/admin.queries";
+import type { OrgListItem } from "#features/admin/types/admin.types";
+import { DataTable, useDataTableState } from "#shared/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 
-export const OrgTable = React.memo(
-	({ search }: { readonly search?: string }) => {
-		const { t } = useTranslation();
-		const { data, isLoading } = useAdminOrgList({ search });
+const dateFormatter = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" });
 
-		if (isLoading) {
-			return (
-				<div className="space-y-2">
-					{Array.from({ length: 5 }).map((_, i) => (
-						<Skeleton key={`row-${i}`} className="h-12 w-full" />
-					))}
-				</div>
-			);
-		}
+function buildColumns(t: (key: string) => string): ColumnDef<OrgListItem, unknown>[] {
+	return [
+		{
+			accessorKey: "name",
+			header: t("admin.orgHeader"),
+			cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+			meta: { filter: { type: "text" } },
+		},
+		{
+			accessorKey: "slug",
+			header: t("admin.slugHeader"),
+			cell: ({ row }) => <Badge variant="secondary">{row.original.slug || "-"}</Badge>,
+			meta: { filter: { type: "text" } },
+		},
+		{
+			accessorKey: "ownerEmail",
+			header: t("admin.ownerHeader"),
+			cell: ({ row }) => <span className="text-muted-foreground">{row.original.ownerEmail || "-"}</span>,
+			meta: { filter: { type: "text" } },
+		},
+		{
+			accessorKey: "memberCount",
+			header: t("admin.membersHeader"),
+			enableSorting: false,
+			cell: ({ row }) => <span className="font-mono">{row.original.memberCount}</span>,
+			meta: { className: "text-right", headerClassName: "text-right" },
+		},
+		{
+			accessorKey: "createdAt",
+			header: t("admin.createdHeader"),
+			cell: ({ row }) => (
+				<span className="text-muted-foreground">{dateFormatter.format(new Date(row.original.createdAt))}</span>
+			),
+		},
+		{
+			id: "actions",
+			header: t("admin.actionsHeader"),
+			enableSorting: false,
+			enableColumnFilter: false,
+			cell: ({ row }) => (
+				<Link to="/admin/organizations/$orgId" params={{ orgId: row.original.id }}>
+					<Button variant="outline" size="sm">
+						{t("admin.viewBtn")}
+					</Button>
+				</Link>
+			),
+			meta: { className: "text-right", headerClassName: "text-right" },
+		},
+	];
+}
 
-		const orgs = data?.data || [];
+export const OrgTable = React.memo(() => {
+	const { t } = useTranslation();
+	const tableState = useDataTableState({ defaultPageSize: 20, defaultSort: [{ id: "createdAt", desc: true }] });
+	const { data, isLoading, error, refetch } = useAdminOrgList({
+		page: tableState.page,
+		limit: tableState.pageSize,
+		search: tableState.search || undefined,
+		sort: tableState.sort,
+	});
+	const columns = React.useMemo(() => buildColumns(t), [t]);
 
-		return (
-			<Table>
-				<TableHeader>
-					<TableRow>
-						<TableHead>{t("admin.orgHeader")}</TableHead>
-						<TableHead>{t("admin.slugHeader")}</TableHead>
-						<TableHead>{t("admin.ownerHeader")}</TableHead>
-						<TableHead className="text-right">{t("admin.membersHeader")}</TableHead>
-						<TableHead>{t("admin.createdHeader")}</TableHead>
-						<TableHead className="text-right">{t("admin.actionsHeader")}</TableHead>
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{orgs.length === 0 && (
-						<TableRow>
-							<TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-								{t("admin.noOrgs")}
-							</TableCell>
-						</TableRow>
-					)}
-					{orgs.map((org) => (
-						<TableRow key={org.id}>
-							<TableCell className="font-medium">{org.name}</TableCell>
-							<TableCell>
-								<Badge variant="secondary">{org.slug || "-"}</Badge>
-							</TableCell>
-							<TableCell className="text-muted-foreground">{org.ownerEmail || "-"}</TableCell>
-							<TableCell className="text-right">{org.memberCount}</TableCell>
-							<TableCell className="text-muted-foreground">{new Date(org.createdAt).toLocaleDateString()}</TableCell>
-							<TableCell className="text-right">
-								<Link to="/admin/organizations/$orgId" params={{ orgId: org.id }}>
-									<Button variant="outline" size="sm">
-										{t("admin.viewBtn")}
-									</Button>
-								</Link>
-							</TableCell>
-						</TableRow>
-					))}
-				</TableBody>
-			</Table>
-		);
-	},
-	(prev, next) => prev.search === next.search,
-);
+	return (
+		<Card>
+			<CardContent className="pt-6">
+				<DataTable
+					columns={columns}
+					data={data?.data ?? []}
+					isLoading={isLoading}
+					error={error}
+					onRetry={() => void refetch()}
+					searchPlaceholder={t("admin.searchOrgsPlaceholder")}
+					emptyTitle={t("admin.noOrgs")}
+					emptyMessage="No tenant organizations match the current filters."
+					totalCount={data?.meta.total ?? 0}
+					pageCount={data?.meta.totalPages ?? 0}
+					enableCsvExport
+					exportFilename="platform-organizations.csv"
+					savedViewsEntity="admin-organizations"
+					getRowId={(org) => org.id}
+					{...tableState.tableProps}
+					manualFiltering
+				/>
+			</CardContent>
+		</Card>
+	);
+});
 OrgTable.displayName = "OrgTable";

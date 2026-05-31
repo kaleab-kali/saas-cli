@@ -21,8 +21,13 @@ export class AdminOrganizationsController {
 
 	@Get()
 	@ApiOperation({ summary: "List all organizations (platform-wide)" })
-	async list(@Query("page") page?: number, @Query("limit") limit?: number, @Query("search") search?: string) {
-		return this.listOrgs.execute({ page, limit, search });
+	async list(
+		@Query("page") page?: number,
+		@Query("limit") limit?: number,
+		@Query("search") search?: string,
+		@Query("sort") sort?: string,
+	) {
+		return this.listOrgs.execute({ page, limit, search, sort });
 	}
 
 	@Get(":id")

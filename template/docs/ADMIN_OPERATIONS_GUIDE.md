@@ -16,6 +16,8 @@ Tenant detail pages include:
 - Tenant audit event count
 - Per-tenant entitlement overrides
 
+The organization directory uses the shared DataTable surface with URL-backed search, server-side sorting, saved views, CSV export, and direct links into tenant detail pages.
+
 ## Plan And Subscription Management
 Routes:
 - `/admin/plans`
