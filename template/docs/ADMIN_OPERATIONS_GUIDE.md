@@ -76,6 +76,11 @@ Route: `/admin/feature-flags`
 
 The rollout table uses the shared DataTable surface, so platform admins can search, filter, save views, export CSV, and bulk-enable or bulk-disable selected flags. Each row exposes a global switch plus organization overrides for controlled tenant rollouts.
 
+## Audit Evidence
+Route: `/admin/audit-logs`
+
+Platform audit logs use the shared DataTable surface with URL-backed search, column filters, saved views, current-page CSV export, and an all-results CSV export for compliance reviews.
+
 ## File Storage
 Route: `/files`
 

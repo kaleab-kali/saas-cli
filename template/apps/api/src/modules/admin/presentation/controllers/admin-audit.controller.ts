@@ -30,16 +30,41 @@ export class AdminAuditController {
 	async list(
 		@Query("page") page?: number,
 		@Query("limit") limit?: number,
+		@Query("search") search?: string,
+		@Query("sort") sort?: string,
 		@Query("action") action?: string,
 		@Query("targetType") targetType?: string,
+		@Query("performedBy") performedBy?: string,
+		@Query("targetId") targetId?: string,
+		@Query("from") from?: string,
+		@Query("to") to?: string,
 	) {
-		return this.listLogs.execute({ page, limit, action, targetType });
+		return this.listLogs.execute({ page, limit, search, sort, action, targetType, performedBy, targetId, from, to });
 	}
 
 	@Get("export")
 	@ApiOperation({ summary: "Export audit logs as CSV" })
-	async exportCsv(@Res() res: Response, @Query("action") action?: string, @Query("targetType") targetType?: string) {
-		const result = await this.listLogs.execute({ page: 1, limit: 5000, action, targetType });
+	async exportCsv(
+		@Res() res: Response,
+		@Query("search") search?: string,
+		@Query("action") action?: string,
+		@Query("targetType") targetType?: string,
+		@Query("performedBy") performedBy?: string,
+		@Query("targetId") targetId?: string,
+		@Query("from") from?: string,
+		@Query("to") to?: string,
+	) {
+		const result = await this.listLogs.execute({
+			page: 1,
+			limit: 5000,
+			search,
+			action,
+			targetType,
+			performedBy,
+			targetId,
+			from,
+			to,
+		});
 		const csv = toCsv(result.data as unknown as Array<Record<string, unknown>>);
 		const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 		res.setHeader("content-type", "text/csv; charset=utf-8");

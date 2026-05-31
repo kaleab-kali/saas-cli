@@ -47,7 +47,20 @@ export const useAdminUserList = (params: { page?: number; limit?: number; search
 		queryFn: () => api.get<PaginatedResponse<PlatformUser>>("/admin/users", { params }),
 	});
 
-export const useAdminAuditLogs = (params: { page?: number; limit?: number; action?: string } = {}) =>
+export const useAdminAuditLogs = (
+	params: {
+		page?: number;
+		limit?: number;
+		search?: string;
+		sort?: string;
+		action?: string;
+		targetType?: string;
+		performedBy?: string;
+		targetId?: string;
+		from?: string;
+		to?: string;
+	} = {},
+) =>
 	useQuery({
 		queryKey: adminKeys.auditLogs(params),
 		queryFn: () => api.get<PaginatedResponse<AuditLogEntry>>("/admin/audit-logs", { params }),

@@ -427,6 +427,8 @@ function assertFrontendImprovementSurface() {
 	const dataTable = readProjectFile("apps/web/src/shared/components/DataTable.tsx");
 	const onboarding = readProjectFile("apps/web/src/features/onboarding/components/onboarding-pages.tsx");
 	const featureFlags = readProjectFile("apps/web/src/routes/admin/feature-flags/index.tsx");
+	const adminAuditLogs = readProjectFile("apps/web/src/routes/admin/audit-logs/index.tsx");
+	const adminAuditHandler = readProjectFile("apps/api/src/modules/admin/application/queries/list-platform-audit-logs.handler.ts");
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
 	const opsGuide = readProjectFile("docs/ADMIN_OPERATIONS_GUIDE.md");
 	const e2eSmoke = readProjectFile("apps/e2e/tests/smoke.spec.ts");
@@ -471,6 +473,15 @@ function assertFrontendImprovementSurface() {
 	assert(featureFlags.includes("<Switch"), "admin feature flags use switches for binary rollout state");
 	assert(featureFlags.includes("OrgOverrideDialog"), "admin feature flags keep org override workflow in-table");
 	assert(opsGuide.includes("Feature Flag Management"), "admin operations guide documents feature flag rollout table");
+	assert(adminAuditLogs.includes("<DataTable"), "admin audit logs use shared DataTable");
+	assert(adminAuditLogs.includes("useDataTableState"), "admin audit logs sync table controls to URL");
+	assert(adminAuditLogs.includes("savedViewsEntity"), "admin audit logs enable saved views");
+	assert(adminAuditLogs.includes("enableCsvExport"), "admin audit logs enable current-page CSV export");
+	assert(adminAuditLogs.includes("Export all CSV"), "admin audit logs keep full evidence export action");
+	assert(adminAuditHandler.includes("params.search?.trim()"), "admin audit logs apply server-side search");
+	assert(adminAuditHandler.includes("auditLogSort(params.sort)"), "admin audit logs apply server-side sorting");
+	assert(adminAuditHandler.includes('mode: "insensitive"'), "admin audit logs apply case-insensitive filters");
+	assert(opsGuide.includes("Audit Evidence"), "admin operations guide documents audit evidence table");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
 	assert(e2eSmoke.includes("Operational handoff map"), "E2E smoke covers assisted launch desk");
 	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
@@ -486,6 +497,7 @@ function assertFrontendImprovementSurface() {
 	assert(e2eSmoke.includes("search=Demo"), "E2E smoke covers bookmarkable admin table search");
 	assert(e2eSmoke.includes("admin feature flags smoke renders rollout table"), "E2E smoke covers admin feature flag table");
 	assert(e2eSmoke.includes("Toggle platform.api-keys globally"), "E2E smoke covers feature flag switch controls");
+	assert(e2eSmoke.includes("admin audit logs smoke renders filterable evidence table"), "E2E smoke covers admin audit log table");
 }
 
 function assertOnboardingServerTableQuery() {

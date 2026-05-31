@@ -282,6 +282,26 @@ async function installAdminMocks(page: Page) {
 			);
 			return;
 		}
+		if (url.includes("/admin/audit-logs")) {
+			await route.fulfill(
+				ok({
+					data: [
+						{
+							id: "audit_smoke",
+							action: "tenant.suspended",
+							performedBy: "admin_smoke",
+							targetType: "organization",
+							targetId: "org_smoke",
+							details: { reason: "support review" },
+							ipAddress: "203.0.113.10",
+							createdAt: now(),
+						},
+					],
+					meta: { page: 1, limit: 50, total: 1, totalPages: 1 },
+				}),
+			);
+			return;
+		}
 		if (url.includes("/saved-views")) {
 			await route.fulfill(ok({ data: [] }));
 			return;
@@ -393,6 +413,26 @@ test("admin feature flags smoke renders rollout table", async ({ page }) => {
 	await page.getByRole("checkbox", { name: "Select row flag_api" }).check();
 	await expect(page.getByText("1 selected")).toBeVisible();
 	await expect(page.getByRole("button", { name: "Bulk actions" })).toBeVisible();
+
+	assertNoErrors();
+});
+
+test("admin audit logs smoke renders filterable evidence table", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAdminMocks(page);
+
+	await page.goto("/admin/audit-logs?search=tenant&limit=50&sort=createdAt%3Adesc", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: /platform audit logs/i })).toBeVisible();
+	const search = page.getByRole("textbox", { name: /Search audit logs/i });
+	await expect(search).toHaveValue("tenant");
+	await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Saved views" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save view" })).toBeVisible();
+	await expect(page.getByRole("link", { name: "Export all CSV" })).toBeVisible();
+	await expect(page.getByText("tenant.suspended")).toBeVisible();
+	await expect(page.getByText("organization", { exact: true })).toBeVisible();
 
 	assertNoErrors();
 });
