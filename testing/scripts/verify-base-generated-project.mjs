@@ -415,6 +415,8 @@ function assertFrontendImprovementSurface() {
 	assert(dataTable.includes("manualPagination"), "DataTable supports server-side pagination");
 	assert(dataTable.includes("DataTableColumnFilter"), "DataTable renders per-column filters");
 	assert(dataTable.includes("DropdownMenuCheckboxItem"), "DataTable has column visibility controls");
+	assert(dataTable.includes("enableCsvExport"), "DataTable exposes opt-in CSV exports");
+	assert(dataTable.includes("downloadCsv"), "DataTable implements reusable CSV download");
 	assert(onboarding.includes("Concierge launch workflow"), "tenant onboarding uses visible launch workflow console");
 	assert(onboarding.includes("AssistedLaunchDesk"), "tenant onboarding shows assisted launch desk");
 	assert(onboarding.includes("Concierge onboarding"), "admin onboarding uses concierge operations copy");
@@ -428,9 +430,11 @@ function assertFrontendImprovementSurface() {
 	assert(onboarding.includes("Concierge intake"), "new onboarding page uses concierge intake workflow");
 	assert(onboarding.includes("preferredChannel"), "new onboarding page persists tenant contact channel metadata");
 	assert(onboarding.includes("staleDays"), "admin onboarding table exposes stuck-task filtering");
+	assert(onboarding.includes("enableCsvExport"), "admin onboarding table enables CSV export");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
 	assert(e2eSmoke.includes("Operational handoff map"), "E2E smoke covers assisted launch desk");
 	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
+	assert(e2eSmoke.includes("Export CSV"), "E2E smoke covers admin onboarding CSV export control");
 	assert(e2eSmoke.includes("Queue by owner and risk"), "E2E smoke covers admin concierge queue board");
 	assert(
 		e2eSmoke.includes("admin onboarding new tenant renders concierge intake workflow"),

@@ -321,6 +321,7 @@ test("admin onboarding smoke renders filterable operations table", async ({ page
 	const search = page.getByRole("textbox", { name: /Search tenants/i });
 	await expect(search).toHaveValue("Demo");
 	await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible();
 	await expect(page.getByRole("columnheader", { name: /Current step/i })).toBeVisible();
 	await expect(page.getByRole("cell", { name: /Demo Cafe/i })).toBeVisible();
 	await expect

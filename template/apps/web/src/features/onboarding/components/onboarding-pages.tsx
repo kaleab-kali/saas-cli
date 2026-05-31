@@ -1080,6 +1080,8 @@ export function AdminOnboardingListPage() {
 						totalCount={data?.meta.total}
 						pageCount={data?.meta.totalPages}
 						toolbarActions={toolbarActions}
+						enableCsvExport
+						exportFilename="onboarding-tasks.csv"
 						{...tableState.tableProps}
 					/>
 				</CardContent>

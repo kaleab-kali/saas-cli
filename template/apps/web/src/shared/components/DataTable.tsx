@@ -74,6 +74,8 @@ interface DataTableProps<TData, TValue> {
 	readonly enablePagination?: boolean;
 	readonly enableColumnFilters?: boolean;
 	readonly enableColumnVisibility?: boolean;
+	readonly enableCsvExport?: boolean;
+	readonly exportFilename?: string;
 	readonly toolbarActions?: React.ReactNode;
 	readonly getRowId?: (row: TData, index: number) => string;
 	readonly onRowClick?: (row: TData) => void;
@@ -284,6 +286,26 @@ const hasFilterValue = (value: unknown) => {
 	return Boolean(filter.value || filter.min || filter.max);
 };
 
+const csvValue = (value: unknown) => {
+	const text = value instanceof Date ? value.toISOString() : String(value ?? "");
+	const escaped = text.replaceAll('"', '""');
+	return /[",\r\n]/.test(text) ? `"${escaped}"` : escaped;
+};
+
+const csvHeader = <TData, TValue>(column: ColumnDef<TData, TValue>, columnId: string) =>
+	typeof column.header === "string" ? column.header : columnId;
+
+const downloadCsv = (filename: string, rows: readonly (readonly unknown[])[]) => {
+	const csv = rows.map((row) => row.map(csvValue).join(",")).join("\r\n");
+	const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+	link.click();
+	URL.revokeObjectURL(url);
+};
+
 const matchesFilter = (cellValue: unknown, filter: unknown) => {
 	if (!hasFilterValue(filter)) return true;
 	const config = filter as FilterValue;
@@ -420,6 +442,9 @@ function DataTableToolbar<TData>({
 	resetFilters,
 	toolbarActions,
 	enableColumnVisibility,
+	enableCsvExport,
+	exportDisabled,
+	onExportCsv,
 	table,
 }: {
 	readonly enableSearch: boolean;
@@ -430,9 +455,12 @@ function DataTableToolbar<TData>({
 	readonly resetFilters: () => void;
 	readonly toolbarActions?: React.ReactNode;
 	readonly enableColumnVisibility: boolean;
+	readonly enableCsvExport: boolean;
+	readonly exportDisabled: boolean;
+	readonly onExportCsv: () => void;
 	readonly table: TanStackTable<TData>;
 }) {
-	if (!(enableSearch || toolbarActions || enableColumnVisibility || hasFilters)) return null;
+	if (!(enableSearch || toolbarActions || enableColumnVisibility || enableCsvExport || hasFilters)) return null;
 
 	return (
 		<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -453,6 +481,11 @@ function DataTableToolbar<TData>({
 			</div>
 			<div className="flex flex-wrap items-center gap-2">
 				{toolbarActions}
+				{enableCsvExport && (
+					<Button variant="outline" size="sm" onClick={onExportCsv} disabled={exportDisabled}>
+						Export CSV
+					</Button>
+				)}
 				{enableColumnVisibility && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
@@ -677,6 +710,8 @@ export function DataTable<TData, TValue>({
 	enablePagination = true,
 	enableColumnFilters = true,
 	enableColumnVisibility = true,
+	enableCsvExport = false,
+	exportFilename = "table-export.csv",
 	toolbarActions,
 	getRowId,
 	onRowClick,
@@ -787,6 +822,15 @@ export function DataTable<TData, TValue>({
 		table.resetColumnFilters();
 	}, [onGlobalFilterInputChange, setColumnFilters, table]);
 
+	const exportCsv = React.useCallback(() => {
+		const exportColumns = table.getVisibleLeafColumns().filter((column) => column.id !== "actions");
+		const rows = table.getRowModel().rows;
+		downloadCsv(exportFilename, [
+			exportColumns.map((column) => csvHeader(column.columnDef, column.id)),
+			...rows.map((row) => exportColumns.map((column) => row.getValue(column.id))),
+		]);
+	}, [exportFilename, table]);
+
 	const hasFilters = Boolean(
 		globalFilterInput || globalFilter || columnFilters.some((filter) => hasFilterValue(filter.value)),
 	);
@@ -815,6 +859,9 @@ export function DataTable<TData, TValue>({
 				resetFilters={resetFilters}
 				toolbarActions={toolbarActions}
 				enableColumnVisibility={enableColumnVisibility}
+				enableCsvExport={enableCsvExport}
+				exportDisabled={table.getRowModel().rows.length === 0}
+				onExportCsv={exportCsv}
 				table={table}
 			/>
 
