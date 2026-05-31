@@ -45,6 +45,8 @@ const mustExist = [
 	"apps/api/src/modules/auth/guards/permissions.guard.spec.ts",
 	"apps/api/src/modules/health/detailed-health.controller.ts",
 	"apps/api/src/modules/health/health-diagnostics.service.ts",
+	"apps/api/src/modules/notification/application/services/notification-stream.service.ts",
+	"apps/api/src/modules/notification/application/services/notification-stream.service.spec.ts",
 	"apps/api/scripts/run-module-mutation.mjs",
 	"apps/api/src/shared/decorators/audit.decorator.ts",
 	"apps/api/src/shared/errors/domain-error.ts",
@@ -70,6 +72,7 @@ const mustExist = [
 	"apps/web/src/shared/components/AuthShell.tsx",
 	"apps/web/src/shared/components/CommandPalette.tsx",
 	"apps/web/src/shared/components/PageShell.tsx",
+	"apps/web/src/shared/hooks/use-realtime.ts",
 	"apps/web/src/types/hugeicons-core-free-icons.d.ts",
 	"apps/e2e/tests/smoke.spec.ts",
 	"apps/security/scripts/source-security-check.mjs",
@@ -546,6 +549,20 @@ function assertFrontendImprovementSurface() {
 	const adminBillingDashboard = readProjectFile("apps/web/src/routes/admin/billing/dashboard.tsx");
 	const adminPlanDetail = readProjectFile("apps/web/src/routes/admin/plans/$planId.tsx");
 	const notificationHooks = readProjectFile("apps/web/src/features/notifications/api/notification.hooks.ts");
+	const notificationBell = readProjectFile("apps/web/src/features/notifications/components/NotificationBell.tsx");
+	const notificationController = readProjectFile(
+		"apps/api/src/modules/notification/presentation/controllers/notification.controller.ts",
+	);
+	const notificationCreateHandler = readProjectFile(
+		"apps/api/src/modules/notification/application/commands/create-notification/create-notification.handler.ts",
+	);
+	const notificationStream = readProjectFile(
+		"apps/api/src/modules/notification/application/services/notification-stream.service.ts",
+	);
+	const notificationStreamSpec = readProjectFile(
+		"apps/api/src/modules/notification/application/services/notification-stream.service.spec.ts",
+	);
+	const realtimeHook = readProjectFile("apps/web/src/shared/hooks/use-realtime.ts");
 	const notificationDeliveries = readProjectFile("apps/web/src/routes/_authenticated/notifications/deliveries.tsx");
 	const emailDeliveryHandler = readProjectFile(
 		"apps/api/src/modules/notification/application/queries/list-email-deliveries.handler.ts",
@@ -729,6 +746,24 @@ function assertFrontendImprovementSurface() {
 		!notificationDeliveries.includes("@/components/ui/table"),
 		"notification deliveries avoid raw table primitives",
 	);
+	assert(notificationController.includes('@Sse("stream")'), "notifications expose an SSE stream endpoint");
+	assert(
+		notificationController.includes("streamForUser(userId)"),
+		"notification SSE stream is scoped to the current user",
+	);
+	assert(notificationStream.includes("Map<string, Set<Subject<MessageEvent>>>"), "notification stream tracks user-scoped SSE clients");
+	assert(notificationStream.includes('"notification"'), "notification stream emits named notification events");
+	assert(notificationStream.includes('"badge"'), "notification stream emits badge update events");
+	assert(notificationStreamSpec.includes("does not broadcast tenant/user scoped events"), "notification stream has isolation coverage");
+	assert(notificationCreateHandler.includes("stream.emitToUser"), "notification creation publishes to SSE clients");
+	assert(notificationCreateHandler.includes("stream.emitBadgeCount"), "notification creation publishes unread badge updates");
+	assert(realtimeHook.includes("new EventSource"), "frontend realtime hook uses browser-native SSE");
+	assert(realtimeHook.includes("/api/v1/notifications/stream"), "frontend realtime hook targets the notification stream");
+	assert(notificationBell.includes("useRealtime"), "notification bell subscribes with the shared realtime hook");
+	assert(
+		!notificationBell.includes("connectNotificationSocket"),
+		"notification bell no longer depends on Socket.IO for realtime updates",
+	);
 	assert(emailDeliveryHandler.includes("emailDeliverySort(q.sort)"), "email delivery API applies server-side sorting");
 	assert(emailDeliveryHandler.includes("q.search?.trim()"), "email delivery API applies server-side search");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
@@ -782,6 +817,7 @@ function assertFrontendImprovementSurface() {
 		e2eSmoke.includes("notification deliveries smoke renders searchable delivery table"),
 		"E2E smoke covers notification delivery DataTable",
 	);
+	assert(e2eSmoke.includes("text/event-stream"), "E2E smoke mocks the notification SSE stream contract");
 }
 
 function assertOnboardingServerTableQuery() {

@@ -47,6 +47,15 @@ onSuccess: () => {
 }
 ```
 
+## Realtime Events
+Use the shared `useRealtime` hook for browser push updates. The base scaffold exposes notifications over Server-Sent Events at `/api/v1/notifications/stream`, authenticated by the existing session cookie, so feature code can invalidate TanStack Query keys without opening a Socket.IO connection.
+
+Realtime handlers should stay small:
+- Invalidate query keys from the relevant feature key factory
+- Show toasts only for user-actionable events
+- Keep event payloads tenant/user scoped on the API before publishing
+- Fall back to normal polling/query refetch when SSE is unavailable
+
 ## Shared Rules
 - Wrap tables with the shared TanStack Table/DataTable utilities
 - Do not render raw `<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, or `<td>` tags outside `components/ui/table.tsx`; the source security gate rejects drift

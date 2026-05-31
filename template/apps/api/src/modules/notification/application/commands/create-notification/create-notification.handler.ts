@@ -7,6 +7,7 @@ import { NotificationRepository } from "../../../domain/repositories/notificatio
 import type { NotificationCategory, NotificationSeverity } from "../../../domain/value-objects/notification.vo";
 import { NotificationGateway } from "../../../infrastructure/gateways/notification.gateway";
 import type { CreateNotificationDto } from "../../dto/notification.dto";
+import { NotificationStreamService } from "../../services/notification-stream.service";
 
 @Injectable()
 export class CreateNotificationHandler {
@@ -14,6 +15,7 @@ export class CreateNotificationHandler {
 		private readonly repo: NotificationRepository,
 		private readonly events: DomainEventBus,
 		private readonly gateway: NotificationGateway,
+		private readonly stream: NotificationStreamService,
 	) {}
 
 	async execute(organizationId: string, dto: CreateNotificationDto) {
@@ -37,8 +39,10 @@ export class CreateNotificationHandler {
 		});
 		const saved = await this.repo.save(notification);
 		this.gateway.emitToUser(dto.userId, saved.toPrimitives());
+		this.stream.emitToUser(dto.userId, saved.toPrimitives());
 		const { unread } = await this.repo.list({ organizationId, userId: dto.userId, limit: 1 });
 		this.gateway.emitBadgeCount(dto.userId, unread);
+		this.stream.emitBadgeCount(dto.userId, unread);
 		this.events.emit({
 			eventName: NOTIFICATION_EVENTS.NOTIFICATION_CREATED,
 			organizationId,

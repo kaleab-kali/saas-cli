@@ -23,6 +23,16 @@ Expose operational metrics through the metrics module:
 
 Keep the metrics endpoint private or protected by infrastructure controls. Set `METRICS_TOKEN` to require `Authorization: Bearer <token>` on `GET /api/v1/metrics`.
 
+## Realtime Events
+
+Notifications use Server-Sent Events at `/api/v1/notifications/stream`. The stream is session-authenticated, user-scoped, and emits:
+
+- `ping` when a browser connects.
+- `notification` when a new notification is created for the current user.
+- `badge` when the unread count changes.
+
+Use the browser Network panel or `curl -N` with an authenticated cookie to confirm the stream stays open. If a proxy buffers SSE responses, disable response buffering for `/api/v1/notifications/stream`.
+
 ## Health Endpoints
 
 - `GET /health/live`: process liveness. Use this for container or process manager restart checks; it does not touch downstream dependencies.

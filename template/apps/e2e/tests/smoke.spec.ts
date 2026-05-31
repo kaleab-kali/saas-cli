@@ -168,6 +168,18 @@ async function installAuthenticatedMocks(page: Page) {
 			await route.fulfill(ok({ data: {} }));
 			return;
 		}
+		if (url.includes("/notifications/stream")) {
+			await route.fulfill({
+				status: 200,
+				contentType: "text/event-stream",
+				headers: {
+					"cache-control": "no-cache",
+					connection: "keep-alive",
+				},
+				body: `event: ping\ndata: ${JSON.stringify({ connected: true })}\n\n`,
+			});
+			return;
+		}
 		if (url.includes("/notifications/email-deliveries")) {
 			await route.fulfill(
 				ok({

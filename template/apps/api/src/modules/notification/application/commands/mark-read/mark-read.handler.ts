@@ -3,6 +3,7 @@ import { DomainEventBus } from "#shared/events/domain-event.bus";
 import { NOTIFICATION_EVENTS } from "../../../domain/events/notification.events";
 import { NotificationRepository } from "../../../domain/repositories/notification.repository";
 import { NotificationGateway } from "../../../infrastructure/gateways/notification.gateway";
+import { NotificationStreamService } from "../../services/notification-stream.service";
 
 @Injectable()
 export class MarkReadHandler {
@@ -10,6 +11,7 @@ export class MarkReadHandler {
 		private readonly repo: NotificationRepository,
 		private readonly events: DomainEventBus,
 		private readonly gateway: NotificationGateway,
+		private readonly stream: NotificationStreamService,
 	) {}
 
 	async execute(organizationId: string, id: string) {
@@ -19,6 +21,7 @@ export class MarkReadHandler {
 		const saved = await this.repo.update(organizationId, id, n);
 		const { unread } = await this.repo.list({ organizationId, userId: n.userId, limit: 1 });
 		this.gateway.emitBadgeCount(n.userId, unread);
+		this.stream.emitBadgeCount(n.userId, unread);
 		this.events.emit({
 			eventName: NOTIFICATION_EVENTS.NOTIFICATION_READ,
 			organizationId,

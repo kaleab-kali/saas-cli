@@ -19,6 +19,7 @@ import { ListPreferencesHandler } from "./application/queries/list-preferences.h
 import { ListTemplatesHandler } from "./application/queries/list-templates.handler";
 import { DigestService } from "./application/services/digest.service";
 import { EmailDispatcherService } from "./application/services/email-dispatcher.service";
+import { NotificationStreamService } from "./application/services/notification-stream.service";
 import { ScheduledBulkService } from "./application/services/scheduled-bulk.service";
 import { BulkCommunicationRepository } from "./domain/repositories/bulk-communication.repository";
 import { NotificationRepository } from "./domain/repositories/notification.repository";
@@ -61,10 +62,11 @@ import { TemplateController } from "./presentation/controllers/template.controll
 		ListBulkHandler,
 		ListEmailDeliveriesHandler,
 		EmailDispatcherService,
+		NotificationStreamService,
 		ScheduledBulkService,
 		DigestService,
 		DomainEventListener,
 	],
-	exports: [CreateNotificationHandler, EmailDispatcherService],
+	exports: [CreateNotificationHandler, EmailDispatcherService, NotificationStreamService],
 })
 export class NotificationModule {}

@@ -5,10 +5,10 @@ import { Link } from "@tanstack/react-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { type RealtimeNotificationPayload, useRealtime } from "#shared/hooks/use-realtime";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { notifKeys, useMarkRead, useNotifications } from "../api/notification.hooks";
-import { connectNotificationSocket, disconnectNotificationSocket } from "../api/socket";
 
 interface Props {
 	readonly userId: string | null;
@@ -24,16 +24,8 @@ export const NotificationBell = React.memo(
 		const items = data?.data ?? [];
 		const markRead = useMarkRead();
 
-		React.useEffect(() => {
-			if (!userId) return;
-			const s = connectNotificationSocket(userId);
-			if (!s) return;
-			const onNotif = (payload: {
-				severity?: string;
-				title?: string;
-				body?: string | null;
-				linkUrl?: string | null;
-			}) => {
+		const handleNotification = React.useCallback(
+			(payload: RealtimeNotificationPayload) => {
 				qc.invalidateQueries({ queryKey: notifKeys.all });
 				if (payload?.severity === "critical" || payload?.severity === "error") {
 					toast.error(payload.title ?? t("notifications.bell.alert"), { description: payload.body ?? undefined });
@@ -42,16 +34,16 @@ export const NotificationBell = React.memo(
 				} else if (payload?.severity === "success") {
 					toast.success(payload.title ?? t("notifications.bell.success"), { description: payload.body ?? undefined });
 				}
-			};
-			const onBadge = () => qc.invalidateQueries({ queryKey: notifKeys.all });
-			s.on("notification", onNotif);
-			s.on("badge", onBadge);
-			return () => {
-				s.off("notification", onNotif);
-				s.off("badge", onBadge);
-				disconnectNotificationSocket();
-			};
-		}, [userId, qc, t]);
+			},
+			[qc, t],
+		);
+		const handleBadge = React.useCallback(() => qc.invalidateQueries({ queryKey: notifKeys.all }), [qc]);
+
+		useRealtime({
+			enabled: Boolean(userId),
+			onNotification: handleNotification,
+			onBadge: handleBadge,
+		});
 
 		return (
 			<Popover open={open} onOpenChange={setOpen}>
