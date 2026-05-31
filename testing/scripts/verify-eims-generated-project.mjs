@@ -73,6 +73,7 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/constants/eims-lookup-values.ts",
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.ts",
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
+	"apps/api/src/modules/eims/shared/lookups/eims-lookup.service.spec.ts",
 	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.ts",
 	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts",
@@ -260,6 +261,10 @@ function assertGeneratedStructure() {
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-offline-pending-sync-cache.service.spec.ts"),
 		"generated EIMS local test gate includes offline cache tests",
+	);
+	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-lookup.service.spec.ts"),
+		"generated EIMS local test gate includes lookup cache tests",
 	);
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-print-proof.service.spec.ts"),
@@ -479,6 +484,9 @@ function assertGeneratedStructure() {
 	const submissionService = readProjectFile("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");
 	const externalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-external-client.ts");
 	const eimsSharedModule = readProjectFile("apps/api/src/modules/eims/shared/eims-shared.module.ts");
+	const lookupService = readProjectFile("apps/api/src/modules/eims/shared/lookups/eims-lookup.service.ts");
+	const lookupController = readProjectFile("apps/api/src/modules/eims/shared/lookups/eims-lookup.controller.ts");
+	const lookupServiceSpec = readProjectFile("apps/api/src/modules/eims/shared/lookups/eims-lookup.service.spec.ts");
 	const bulkCallbackService = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.ts");
 	const bulkCallbackController = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.controller.ts");
 	const bulkCallbackSpec = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts");
@@ -512,6 +520,14 @@ function assertGeneratedStructure() {
 	assert(externalClient.includes("counter?: number"), "EIMS external client contract includes reserved counter");
 	assert(externalClient.includes("previousIrn?: string | null"), "EIMS external client contract includes previous IRN");
 	assert(eimsSharedModule.includes("EimsSubmissionQueueService"), "EIMS shared module exports queue coordinator");
+	assert(lookupService.includes("createHash"), "EIMS lookup service generates deterministic ETags");
+	assert(lookupService.includes("EIMS_LOOKUP_CACHE_TTL_SECONDS"), "EIMS lookup service honors lookup cache TTL env");
+	assert(lookupService.includes("cacheControl"), "EIMS lookup service returns cache-control metadata");
+	assert(lookupService.includes("matchesEtag"), "EIMS lookup service supports conditional requests");
+	assert(lookupController.includes('Headers("if-none-match")'), "EIMS lookup controller reads If-None-Match");
+	assert(lookupController.includes("response.status(304)"), "EIMS lookup controller returns 304 for fresh lookup caches");
+	assert(lookupServiceSpec.includes("deterministic ETag"), "EIMS lookup tests cover deterministic ETags");
+	assert(lookupServiceSpec.includes("If-None-Match"), "EIMS lookup tests cover conditional cache requests");
 	assert(bulkCallbackService.includes("timingSafeEqual"), "EIMS bulk callback verification uses constant-time signature compare");
 	assert(bulkCallbackService.includes("EIMS_CALLBACK_HMAC_SECRET"), "EIMS bulk callback service requires callback HMAC secret");
 	assert(bulkCallbackService.includes("knownConversationIds"), "EIMS bulk callback service validates known conversations");
