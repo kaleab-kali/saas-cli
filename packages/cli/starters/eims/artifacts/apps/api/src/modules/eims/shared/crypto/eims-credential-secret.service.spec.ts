@@ -64,4 +64,54 @@ describe("EimsCredentialSecretService", () => {
 		expect(JSON.stringify(response)).not.toContain("raw-api-key");
 		expect(JSON.stringify(response)).not.toContain("encrypted:raw-api-key");
 	});
+
+	it("seals credential rotations with revision and tamper-evident metadata", () => {
+		const cipher = {
+			encrypt: jest.fn((value: string) => `encrypted:${Buffer.from(value).toString("base64url")}`),
+		} as unknown as CipherService;
+		const service = new EimsCredentialSecretService(cipher);
+
+		const rotated = service.sealRotationPayload(
+			{
+				sourceSystemId: "src_front",
+				environment: "production",
+				rotationRevision: 2,
+				rotationReason: "scheduled_key_rotation",
+				apiKey: "new-api-key",
+				clientSecret: "new-client-secret",
+			},
+			new Date("2026-05-26T10:30:00.000Z"),
+		);
+
+		expect(rotated.persistablePayload).toMatchObject({
+			sourceSystemId: "src_front",
+			environment: "production",
+			status: "rotation_pending_test",
+			lastRotatedAt: "2026-05-26T10:30:00.000Z",
+			rotationRevision: 3,
+			encryptedSecrets: {
+				apiKey: "encrypted:bmV3LWFwaS1rZXk",
+				clientSecret: "encrypted:bmV3LWNsaWVudC1zZWNyZXQ",
+			},
+			apiKeyConfigured: true,
+			clientSecretConfigured: true,
+			secretsReturned: false,
+		});
+		expect(rotated.rotationEvidenceSha256).toMatch(/^[a-f0-9]{64}$/);
+		expect(rotated.persistablePayload).not.toHaveProperty("apiKey");
+		expect(rotated.persistablePayload).not.toHaveProperty("clientSecret");
+		expect(JSON.stringify(rotated.persistablePayload)).not.toContain("new-api-key");
+	});
+
+	it("rejects credential rotation requests without new secret material", () => {
+		const cipher = { encrypt: jest.fn((value: string) => `encrypted:${value}`) } as unknown as CipherService;
+		const service = new EimsCredentialSecretService(cipher);
+
+		expect(() =>
+			service.sealRotationPayload({
+				sourceSystemId: "src_front",
+				rotationReason: "empty_rotation",
+			}),
+		).toThrow("At least one EIMS credential secret is required for rotation");
+	});
 });

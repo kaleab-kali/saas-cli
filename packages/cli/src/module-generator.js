@@ -5586,6 +5586,7 @@ const supportingController = read(
 for (const [needle, message] of [
 \t['@RequirePermissions("eims-credential:read")', "EIMS credential reads must be permission protected"],
 \t['@RequirePermissions("eims-credential:create")', "EIMS credential writes/tests must be permission protected"],
+\t['@RequirePermissions("eims-credential:rotate")', "EIMS credential rotation must require rotate permission"],
 \t['@RequirePermissions("eims-certificate:read")', "EIMS certificate reads must be permission protected"],
 \t['@RequirePermissions("eims-certificate:import")', "EIMS certificate import/CSR must be permission protected"],
 \t['@RequirePermissions("eims-bulk:create")', "EIMS bulk submission must be permission protected"],

@@ -30,7 +30,7 @@ What is not done yet:
 - Real Vault Transit signing.
 - Persistent BullMQ workers for multi-node per-source submission queues.
 - Applied production PostgreSQL RLS migrations beyond the generated policy export.
-- Durable encrypted credential persistence and rotation workflows.
+- Durable encrypted credential persistence beyond the rotation sealing boundary.
 - Production printer/device QR scan certification across real hardware.
 - Durable bulk callback storage/polling beyond the signed callback boundary.
 - Durable offline pending-sync storage beyond the encrypted cache boundary.
@@ -45,7 +45,7 @@ What is not done yet:
 | Lookup/code registry | Seeded with ETag/cache metadata | Unit/API tests | Document, transaction, source, cancellation, tax, payment, unit, nature, and region values verified. The Nest lookup service emits deterministic ETags, cache-control metadata, and conditional 304 support; live authority refresh is still pending. |
 | Source approval guard | Partially implemented | Unit/API tests | Guard and mock approval states exist. Full MoR portal workflow is not production-built. |
 | Counter and PreviousIrn chain | Source-scoped coordinator implemented, persistence pending | Unit/API tests | Starter now serializes submissions per source, reserves counters, attaches `previousIrn`, and keeps retryable/unknown outcomes out of the accepted chain. Multi-node BullMQ workers and DB-backed reconciliation are still not complete. |
-| Credentials lifecycle | Encryption boundary implemented, durable storage pending | Unit/API/UI tests | Credential POST payloads are sealed with `CipherService`, raw secret fields are stripped before repository save, and responses expose only redaction metadata. Real DB persistence and rotation workflows are not complete. |
+| Credentials lifecycle | Encryption and rotation boundary implemented, durable storage pending | Unit/API/UI tests | Credential POST and rotate payloads are sealed with `CipherService`, raw secret fields are stripped before repository save, rotation attempts require new secret material, and responses expose only redaction/evidence metadata. Real DB persistence remains pending. |
 | Certificates/CSR | Mock API only | API/UI tests | Certificate metadata and expiry state are exposed. Real Vault/INSA certificate flow is not complete. |
 | 2FA enforcement | Planned/partially existing platform auth | Not EIMS-specific | EIMS-specific permission enforcement and bootstrap test coverage still need implementation. |
 | Buyer/government directory | Mock API + data model | API/UI tests | Buyer and government buyer data verified. CRUD/import is not complete. |

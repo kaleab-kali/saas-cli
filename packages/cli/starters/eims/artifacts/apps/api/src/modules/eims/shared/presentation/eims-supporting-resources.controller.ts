@@ -41,6 +41,16 @@ export class EimsSupportingResourcesController {
 		return this.repository.testCredential(req.organizationId, body.sourceSystemId);
 	}
 
+	@Post("credentials/rotate")
+	@RequirePermissions("eims-credential:rotate")
+	rotateCredential(@Req() req: AuthedRequest, @Body() body: Record<string, unknown>) {
+		const rotated = this.credentialSecrets.sealRotationPayload(body);
+		return this.credentialSecrets.withRedactionMetadata(
+			this.repository.saveCredential(req.organizationId, rotated.persistablePayload),
+			rotated,
+		);
+	}
+
 	@Get("certificates")
 	@RequirePermissions("eims-certificate:read")
 	certificates(@Req() req: AuthedRequest) {

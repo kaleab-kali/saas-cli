@@ -378,6 +378,10 @@ function assertGeneratedStructure() {
 		"EIMS security smoke enforces credential redaction",
 	);
 	assert(
+		eimsSecuritySmoke.includes("EIMS credential rotation must require rotate permission"),
+		"EIMS security smoke enforces credential rotation permission",
+	);
+	assert(
 		eimsSecuritySmoke.includes("EIMS bulk reconcile must require retry permission"),
 		"EIMS security smoke enforces bulk reconcile permission",
 	);
@@ -587,12 +591,22 @@ function assertGeneratedStructure() {
 	assert(credentialSecrets.includes("delete persistablePayload[field]"), "EIMS credential secrets strip raw values");
 	assert(credentialSecrets.includes("encryptedSecrets"), "EIMS credential secrets persist encrypted payload fields");
 	assert(credentialSecrets.includes("secretsReturned: false"), "EIMS credential secret boundary keeps responses redacted");
+	assert(credentialSecrets.includes("sealRotationPayload"), "EIMS credential secrets expose rotation sealing boundary");
+	assert(credentialSecrets.includes("rotationEvidenceSha256"), "EIMS credential rotations produce evidence hashes");
+	assert(credentialSecrets.includes("rotation_pending_test"), "EIMS credential rotations require post-rotation testing");
 	assert(credentialSecretsSpec.includes("removes raw values"), "EIMS credential secret tests cover raw-value removal");
 	assert(credentialSecretsSpec.includes("without exposing ciphertext"), "EIMS credential secret tests cover response redaction");
+	assert(credentialSecretsSpec.includes("seals credential rotations"), "EIMS credential secret tests cover rotation sealing");
+	assert(credentialSecretsSpec.includes("without new secret material"), "EIMS credential secret tests reject empty rotations");
 	assert(supportingResourcesController.includes("sealPayload(body)"), "EIMS credential API seals payloads before repository save");
 	assert(
 		supportingResourcesController.includes("withRedactionMetadata"),
 		"EIMS credential API returns redaction metadata",
+	);
+	assert(supportingResourcesController.includes('Post("credentials/rotate")'), "EIMS credential API exposes rotation endpoint");
+	assert(
+		supportingResourcesController.includes('@RequirePermissions("eims-credential:rotate")'),
+		"EIMS credential rotation endpoint requires rotate permission",
 	);
 	assert(eimsSharedModule.includes("EimsCredentialSecretService"), "EIMS shared module exports credential secret service");
 	assert(printProof.includes("PDFDocument"), "EIMS print proof service renders PDF output");
