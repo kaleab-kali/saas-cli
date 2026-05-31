@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import PDFDocument from "pdfkit";
+import { minorToDecimalString } from "#shared/i18n/money.util";
 import type { SubscriptionInvoice } from "../../domain/entities/subscription-invoice.entity";
 
 interface CompanyInfo {
@@ -27,8 +28,6 @@ const DEFAULT_ISSUER: CompanyInfo = {
 	email: "",
 	taxId: "",
 };
-
-const minorToDecimal = (minor: number): string => (minor / 100).toFixed(2);
 
 @Injectable()
 export class InvoicePdfService {
@@ -72,11 +71,11 @@ export class InvoicePdfService {
 				doc.fontSize(11).text(p.description ?? "Subscription", { underline: true });
 				doc.moveDown(0.5);
 				doc.fontSize(10);
-				doc.text(`Subtotal:  ${p.currency} ${minorToDecimal(p.subtotalMinor)}`);
-				doc.text(`Tax:       ${p.currency} ${minorToDecimal(p.taxMinor)}`);
-				doc.text(`Total:     ${p.currency} ${minorToDecimal(p.totalMinor)}`, { underline: true });
-				doc.text(`Paid:      ${p.currency} ${minorToDecimal(p.amountPaidMinor)}`);
-				doc.text(`Balance:   ${p.currency} ${minorToDecimal(p.totalMinor - p.amountPaidMinor)}`);
+				doc.text(`Subtotal:  ${p.currency} ${minorToDecimalString(p.subtotalMinor)}`);
+				doc.text(`Tax:       ${p.currency} ${minorToDecimalString(p.taxMinor)}`);
+				doc.text(`Total:     ${p.currency} ${minorToDecimalString(p.totalMinor)}`, { underline: true });
+				doc.text(`Paid:      ${p.currency} ${minorToDecimalString(p.amountPaidMinor)}`);
+				doc.text(`Balance:   ${p.currency} ${minorToDecimalString(p.totalMinor - p.amountPaidMinor)}`);
 
 				doc.end();
 			} catch (e) {

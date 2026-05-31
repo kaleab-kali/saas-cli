@@ -47,6 +47,9 @@ const mustExist = [
 	"apps/api/src/modules/health/health-diagnostics.service.ts",
 	"apps/api/src/shared/filters/global-exception.filter.spec.ts",
 	"apps/api/src/shared/interceptors/audit.interceptor.spec.ts",
+	"apps/api/src/shared/i18n/money.util.ts",
+	"apps/api/src/shared/i18n/time-zone.util.ts",
+	"apps/api/src/shared/i18n/money.util.property.spec.ts",
 	"apps/api/src/shared/rate-limit/rate-limit.config.ts",
 	"apps/api/src/shared/rate-limit/tenant-throttler.guard.ts",
 	"apps/api/src/shared/rate-limit/tenant-throttler.guard.spec.ts",
@@ -124,6 +127,9 @@ function assertDeployGateBuilds() {
 	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
 	const apiTestsPackageJson = JSON.parse(readProjectFile("apps/api-tests/package.json"));
 	const apiE2eSpec = readProjectFile("apps/api/test/app.e2e-spec.ts");
+	const moneyUtil = readProjectFile("apps/api/src/shared/i18n/money.util.ts");
+	const timeZoneUtil = readProjectFile("apps/api/src/shared/i18n/time-zone.util.ts");
+	const moneyPropertySpec = readProjectFile("apps/api/src/shared/i18n/money.util.property.spec.ts");
 	const apiHttpRunner = readProjectFile("apps/api-tests/scripts/run-http.mjs");
 	const brunoRunner = readProjectFile("apps/api-tests/scripts/run-bruno.mjs");
 	const securityPackageJson = JSON.parse(readProjectFile("apps/security/package.json"));
@@ -192,6 +198,11 @@ function assertDeployGateBuilds() {
 	assert(testIntegration.includes("test:api:e2e"), "integration test category includes API e2e harness");
 	assert(testIntegration.includes("test:api:http:mock"), "integration test category includes mock HTTP API tests");
 	assert(testIntegration.includes("test:api:contract:smoke"), "integration test category includes OpenAPI smoke contract");
+	assert(moneyUtil.includes("minorToDecimalString"), "API shared i18n has minor-unit money formatter");
+	assert(moneyUtil.includes("decimalStringToMinor"), "API shared i18n has decimal-to-minor parser");
+	assert(timeZoneUtil.includes("formatDateInTimeZone"), "API shared i18n has tenant timezone date formatting");
+	assert(moneyPropertySpec.includes("round-trips safe minor-unit amounts"), "money utilities have property coverage");
+	assert(apiPackageJson.scripts?.["test:property"]?.includes("money.util.property.spec.ts"), "property test gate includes money utilities");
 	assert(packageJson.scripts?.["test:coverage"] === "pnpm --filter api test:coverage", "base package exposes API coverage command");
 	assert(testAll.includes("test:mutation"), "full local gate includes mutation testing");
 	assert(testAll.includes("test:performance"), "full local gate includes performance testing");

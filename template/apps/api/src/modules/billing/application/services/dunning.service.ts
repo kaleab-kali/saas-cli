@@ -2,6 +2,8 @@ import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { PlatformSettingsService } from "#modules/admin/application/services/platform-settings.service";
 import { PrismaService } from "#shared/database/prisma.service";
 import { EmailService } from "#shared/email/email.service";
+import { minorToDecimalString } from "#shared/i18n/money.util";
+import { formatDateInTimeZone } from "#shared/i18n/time-zone.util";
 
 export type DunningType = "reminder" | "overdue" | "grace" | "read_only" | "locked" | "renewal";
 
@@ -59,10 +61,10 @@ export class DunningService {
 			orgName: org?.name ?? sub.organizationId,
 			planName: sub.plan.nameEn,
 			invoiceNumber: invoice?.number ?? "",
-			dueDate: invoice?.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-GB") : "",
-			amount: invoice ? `${(invoice.totalMinor / 100).toFixed(2)} ${invoice.currency}` : "",
-			gracePeriodEndsAt: sub.gracePeriodEndsAt ? new Date(sub.gracePeriodEndsAt).toLocaleDateString("en-GB") : "",
-			readOnlyModeEndsAt: sub.readOnlyModeEndsAt ? new Date(sub.readOnlyModeEndsAt).toLocaleDateString("en-GB") : "",
+			dueDate: invoice?.dueDate ? formatDateInTimeZone(invoice.dueDate) : "",
+			amount: invoice ? `${minorToDecimalString(invoice.totalMinor)} ${invoice.currency}` : "",
+			gracePeriodEndsAt: sub.gracePeriodEndsAt ? formatDateInTimeZone(sub.gracePeriodEndsAt) : "",
+			readOnlyModeEndsAt: sub.readOnlyModeEndsAt ? formatDateInTimeZone(sub.readOnlyModeEndsAt) : "",
 			companyName,
 			supportEmail,
 			payUrl: `${process.env.FRONTEND_URL ?? "http://localhost:5173"}/settings/billing`,
