@@ -1213,7 +1213,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:sdk-contract"] ??=
@@ -1317,7 +1317,10 @@ EIMS_SUBMISSION_DISTRIBUTED_LOCKS=false
 EIMS_SUBMISSION_LOCK_TTL_MS=30000
 EIMS_SUBMISSION_LOCK_WAIT_MS=10000
 EIMS_WORKERS_ENABLED=false
-EIMS_OFFLINE_REPLAY_ATTEMPTS=5`;
+EIMS_OFFLINE_REPLAY_ATTEMPTS=5
+EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED=false
+EIMS_OFFLINE_REPLAY_BATCH_LIMIT=10
+EIMS_OFFLINE_REPLAY_ORGANIZATION_LIMIT=50`;
 	const productionBlock = `# --- EIMS / Ethiopian e-invoicing (optional starter) ---
 EIMS_ENV=production
 EIMS_SDK_PACKAGE_NAME=@yourcompany/eims-sdk
@@ -1340,7 +1343,10 @@ EIMS_SUBMISSION_DISTRIBUTED_LOCKS=true
 EIMS_SUBMISSION_LOCK_TTL_MS=30000
 EIMS_SUBMISSION_LOCK_WAIT_MS=10000
 EIMS_WORKERS_ENABLED=true
-EIMS_OFFLINE_REPLAY_ATTEMPTS=5`;
+EIMS_OFFLINE_REPLAY_ATTEMPTS=5
+EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED=true
+EIMS_OFFLINE_REPLAY_BATCH_LIMIT=10
+EIMS_OFFLINE_REPLAY_ORGANIZATION_LIMIT=50`;
 
 	await appendBlockIfMissing(
 		path.join(root, ".env.example"),
@@ -5937,6 +5943,9 @@ assertIncludes(
 );
 
 const offlineReplay = read("apps/api/src/modules/eims/shared/offline/eims-offline-replay.service.ts");
+const offlineReplayScheduler = read(
+	"apps/api/src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.ts",
+);
 assertIncludes(
 \tofflineReplay,
 \t"EIMS_EXTERNAL_CLIENT",
@@ -5946,6 +5955,22 @@ assertIncludes(offlineReplay, "claimForSync", "EIMS offline replay must claim du
 assertIncludes(offlineReplay, "registerInvoice", "EIMS offline replay must submit claimed invoices through the client");
 assertIncludes(offlineReplay, "markSynced", "EIMS offline replay must mark accepted offline invoices synced");
 assertIncludes(offlineReplay, "markRetryableFailure", "EIMS offline replay must preserve failed rows for retry");
+assertIncludes(offlineReplayScheduler, "@Cron", "EIMS offline replay must have scheduled replay cadence");
+assertIncludes(
+	offlineReplayScheduler,
+	"EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED",
+	"EIMS offline replay scheduler must be explicitly enabled",
+);
+assertIncludes(
+	offlineReplayScheduler,
+	"listPendingOrganizations",
+	"EIMS offline replay scheduler must scan durable pending organizations",
+);
+assertIncludes(
+	offlineReplayScheduler,
+	"enqueueReplay",
+	"EIMS offline replay scheduler must enqueue worker jobs instead of direct authority calls",
+);
 
 const queuePersistence = read("apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.ts");
 const sourceLock = read("apps/api/src/modules/eims/shared/queues/eims-submission-source-lock.service.ts");

@@ -90,6 +90,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts",
 	"apps/api/src/modules/eims/shared/offline/eims-offline-replay.service.ts",
 	"apps/api/src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts",
+	"apps/api/src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.ts",
+	"apps/api/src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-offline-replay-queue.service.ts",
@@ -315,6 +317,10 @@ function assertGeneratedStructure() {
 		"generated EIMS local test gate includes offline replay tests",
 	);
 	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-offline-replay-scheduler.service.spec.ts"),
+		"generated EIMS local test gate includes offline replay scheduler tests",
+	);
+	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-lookup.service.spec.ts"),
 		"generated EIMS local test gate includes lookup cache tests",
 	);
@@ -391,6 +397,18 @@ function assertGeneratedStructure() {
 		eimsStarter.envVars?.includes("EIMS_OFFLINE_REPLAY_ATTEMPTS"),
 		"scaffold state records EIMS offline replay attempt metadata",
 	);
+	assert(
+		eimsStarter.envVars?.includes("EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED"),
+		"scaffold state records EIMS offline replay scheduler env metadata",
+	);
+	assert(
+		eimsStarter.envVars?.includes("EIMS_OFFLINE_REPLAY_BATCH_LIMIT"),
+		"scaffold state records EIMS offline replay batch env metadata",
+	);
+	assert(
+		eimsStarter.envVars?.includes("EIMS_OFFLINE_REPLAY_ORGANIZATION_LIMIT"),
+		"scaffold state records EIMS offline replay organization env metadata",
+	);
 	assert(eimsStarter.routes?.includes("/eims/setup"), "scaffold state records EIMS route metadata");
 	assert(eimsStarter.models?.includes("EimsCredential"), "scaffold state records EIMS model metadata");
 	assert(eimsStarter.permissions?.includes("eims-submission:*"), "scaffold state records EIMS permission metadata");
@@ -398,6 +416,7 @@ function assertGeneratedStructure() {
 	assert(eimsStarter.queues?.includes("eims-submission-retry"), "scaffold state records EIMS queue metadata");
 	assert(eimsStarter.queues?.includes("eims-offline-replay"), "scaffold state records EIMS offline replay queue metadata");
 	assert(eimsStarter.crons?.includes("certificate-expiry-daily"), "scaffold state records EIMS cron metadata");
+	assert(eimsStarter.crons?.includes("offline-replay-every-minute"), "scaffold state records EIMS offline replay cron metadata");
 	assert(eimsStarter.dependencies?.["@yourcompany/eims-sdk"], "scaffold state records EIMS SDK dependency metadata");
 	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
 	assert(
@@ -436,6 +455,18 @@ function assertGeneratedStructure() {
 	assert(
 		productionEnvExample.includes("EIMS_OFFLINE_REPLAY_ATTEMPTS=5"),
 		"EIMS production env example configures offline replay attempts",
+	);
+	assert(
+		productionEnvExample.includes("EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED=true"),
+		"EIMS production env example enables offline replay scheduler",
+	);
+	assert(
+		productionEnvExample.includes("EIMS_OFFLINE_REPLAY_BATCH_LIMIT=10"),
+		"EIMS production env example configures offline replay batch size",
+	);
+	assert(
+		productionEnvExample.includes("EIMS_OFFLINE_REPLAY_ORGANIZATION_LIMIT=50"),
+		"EIMS production env example configures offline replay organization limit",
 	);
 	for (const envText of [rootEnvExample, productionEnvExample, apiEnvExample, apiEnv]) {
 		assert(envText.includes("eims-submission-retry"), "EIMS install registers submission retry queue in BullMQ env");
@@ -517,6 +548,10 @@ function assertGeneratedStructure() {
 	assert(
 		eimsSecuritySmoke.includes("EIMS offline replay must dispatch through the SDK adapter boundary"),
 		"EIMS security smoke enforces SDK-bound offline replay",
+	);
+	assert(
+		eimsSecuritySmoke.includes("EIMS offline replay scheduler must enqueue worker jobs"),
+		"EIMS security smoke enforces scheduled offline replay",
 	);
 	assert(
 		eimsSecuritySmoke.includes("EIMS queue reservations must be persisted before SDK dispatch"),
@@ -742,6 +777,12 @@ function assertGeneratedStructure() {
 	);
 	const offlineReplay = readProjectFile("apps/api/src/modules/eims/shared/offline/eims-offline-replay.service.ts");
 	const offlineReplaySpec = readProjectFile("apps/api/src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts");
+	const offlineReplayScheduler = readProjectFile(
+		"apps/api/src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.ts",
+	);
+	const offlineReplaySchedulerSpec = readProjectFile(
+		"apps/api/src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts",
+	);
 	const printProof = readProjectFile("apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts");
 	const printProofSpec = readProjectFile("apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts");
 	const supportingResourcesController = readProjectFile(
@@ -906,11 +947,24 @@ assert(sdkExternalClient.includes("validateCredential"), "EIMS SDK adapter deleg
 		offlinePersistenceSpec.includes("records durable sync success"),
 		"EIMS offline pending sync tests cover durable lifecycle updates",
 	);
+	assert(
+		offlinePersistence.includes("listPendingOrganizations"),
+		"EIMS offline pending sync persistence lists organizations for scheduled replay",
+	);
 	assert(offlineReplay.includes("EIMS_EXTERNAL_CLIENT"), "EIMS offline replay uses external SDK client boundary");
 	assert(offlineReplay.includes("claimForSync"), "EIMS offline replay claims durable pending rows");
 	assert(offlineReplay.includes("registerInvoice"), "EIMS offline replay submits through the SDK adapter boundary");
 	assert(offlineReplay.includes("markSynced"), "EIMS offline replay marks accepted rows synced");
 	assert(offlineReplay.includes("markRetryableFailure"), "EIMS offline replay preserves retryable failures");
+	assert(offlineReplayScheduler.includes("@Cron"), "EIMS offline replay scheduler registers a cron");
+	assert(
+		offlineReplayScheduler.includes("EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED"),
+		"EIMS offline replay scheduler is explicitly enabled by env",
+	);
+	assert(
+		offlineReplayScheduler.includes("listPendingOrganizations") && offlineReplayScheduler.includes("enqueueReplay"),
+		"EIMS offline replay scheduler enqueues jobs for durable pending organizations",
+	);
 	assert(
 		offlineReplaySpec.includes("through the EIMS external client"),
 		"EIMS offline replay tests cover SDK-bound replay",
@@ -919,12 +973,17 @@ assert(sdkExternalClient.includes("validateCredential"), "EIMS SDK adapter deleg
 		offlineReplaySpec.includes("marks thrown SDK errors retryable"),
 		"EIMS offline replay tests cover SDK retryable errors",
 	);
+	assert(
+		offlineReplaySchedulerSpec.includes("durable pending records"),
+		"EIMS offline replay scheduler tests cover durable pending organization scans",
+	);
 	assert(eimsSharedModule.includes("EimsOfflinePendingSyncCacheService"), "EIMS shared module exports offline cache service");
 	assert(
 		eimsSharedModule.includes("EimsOfflinePendingSyncPersistenceService"),
 		"EIMS shared module exports durable offline pending-sync service",
 	);
 	assert(eimsSharedModule.includes("EimsOfflineReplayService"), "EIMS shared module exports offline replay service");
+	assert(eimsSharedModule.includes("EimsOfflineReplaySchedulerService"), "EIMS shared module exports offline replay scheduler");
 	assert(
 		supportingResourcesController.includes('Controller("eims")') &&
 			supportingResourcesController.includes('"offline-pending"'),

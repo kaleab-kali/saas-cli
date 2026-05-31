@@ -123,6 +123,24 @@ describe("EimsOfflinePendingSyncPersistenceService", () => {
 		expect(pending[0]).toMatchObject({ payloadReturned: false, encryptedPayloadReturned: false });
 	});
 
+	it("lists organizations with durable pending offline records for scheduled replay", async () => {
+		const prisma = prismaMock();
+		prisma.eimsOfflinePendingSync.findMany.mockResolvedValue([
+			{ organizationId: "org_1" },
+			{ organizationId: "org_2" },
+		]);
+		const service = new EimsOfflinePendingSyncPersistenceService(new FakeCipher() as never, prisma as never);
+
+		await expect(service.listPendingOrganizations(25)).resolves.toEqual(["org_1", "org_2"]);
+		expect(prisma.eimsOfflinePendingSync.findMany).toHaveBeenCalledWith({
+			where: { syncStatus: "pending_offline" },
+			select: { organizationId: true },
+			distinct: ["organizationId"],
+			orderBy: { updatedAt: "asc" },
+			take: 25,
+		});
+	});
+
 	it("decrypts and claims payloads for sync only after integrity verification", async () => {
 		const prisma = prismaMock();
 		const cipher = new FakeCipher();

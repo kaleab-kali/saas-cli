@@ -102,6 +102,17 @@ export class EimsOfflinePendingSyncPersistenceService {
 		return rows.map((row) => this.redacted(row as EimsOfflinePendingSyncRow));
 	}
 
+	async listPendingOrganizations(limit = 50): Promise<string[]> {
+		const rows = await this.prisma.eimsOfflinePendingSync.findMany({
+			where: { syncStatus: "pending_offline" },
+			select: { organizationId: true },
+			distinct: ["organizationId"],
+			orderBy: { updatedAt: "asc" },
+			take: Math.max(1, Math.min(limit, 500)),
+		});
+		return rows.map((row: { organizationId: string }) => row.organizationId);
+	}
+
 	async claimForSync(organizationId: string, offlineId: string): Promise<EimsOfflineSyncClaim> {
 		const row = await this.recordFor(organizationId, offlineId);
 		const payloadJson = this.cipher.decrypt(Buffer.from(row.encryptedPayload).toString("utf8"));

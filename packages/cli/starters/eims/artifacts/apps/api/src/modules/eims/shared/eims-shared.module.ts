@@ -16,6 +16,7 @@ import { EimsMockService } from "./mock/eims-mock.service";
 import { EimsOfflinePendingSyncCacheService } from "./offline/eims-offline-pending-sync-cache.service";
 import { EimsOfflinePendingSyncPersistenceService } from "./offline/eims-offline-pending-sync-persistence.service";
 import { EimsOfflineReplayService } from "./offline/eims-offline-replay.service";
+import { EimsOfflineReplaySchedulerService } from "./offline/eims-offline-replay-scheduler.service";
 import { EimsSupportingResourcesController } from "./presentation/eims-supporting-resources.controller";
 import { EimsPrintProofService } from "./printing/eims-print-proof.service";
 import { EimsOfflineReplayQueueService } from "./queues/eims-offline-replay-queue.service";
@@ -37,6 +38,7 @@ import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source
 		EimsOfflinePendingSyncCacheService,
 		EimsOfflinePendingSyncPersistenceService,
 		EimsOfflineReplayService,
+		EimsOfflineReplaySchedulerService,
 		EimsOfflineReplayQueueService,
 		EimsPrintProofService,
 		EimsSubmissionSourceLockService,
@@ -64,6 +66,7 @@ import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source
 		EimsOfflinePendingSyncCacheService,
 		EimsOfflinePendingSyncPersistenceService,
 		EimsOfflineReplayService,
+		EimsOfflineReplaySchedulerService,
 		EimsOfflineReplayQueueService,
 		EimsPrintProofService,
 		EimsSubmissionSourceLockService,

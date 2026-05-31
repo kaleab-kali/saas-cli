@@ -18,10 +18,12 @@ boundary for invoice submission ordering:
 `EIMS_SUBMISSION_DISTRIBUTED_LOCKS=true` with `REDIS_URL` in production so only
 one API or worker process can reserve and submit for the same source at a time.
 
-`EimsOfflineReplayQueueService` provides the durable offline replay worker path.
-It enqueues tenant-scoped replay jobs into `eims-offline-replay`; the worker calls
-the existing SDK-bound replay service and never talks to the authority directly.
-Set `EIMS_WORKERS_ENABLED=true` with `REDIS_URL` in production.
+`EimsOfflineReplaySchedulerService` scans durable pending offline records every
+minute when `EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED=true`.
+`EimsOfflineReplayQueueService` enqueues tenant-scoped replay jobs into
+`eims-offline-replay`; the worker calls the existing SDK-bound replay service and
+never talks to the authority directly. Set `EIMS_WORKERS_ENABLED=true` with
+`REDIS_URL` in production.
 
 Generated EIMS installs append `eims-submission-retry`, `eims-bulk-callback`,
 and `eims-offline-replay` to `BULLMQ_QUEUES` so platform operators can inspect
