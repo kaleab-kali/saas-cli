@@ -10,6 +10,7 @@ export const parseArgs = (argv) => {
 		dbPush: false,
 		seed: false,
 		production: false,
+		refresh: false,
 		starters: [],
 	};
 
@@ -29,6 +30,7 @@ export const parseArgs = (argv) => {
 		else if (a === "--db-push") out.dbPush = true;
 		else if (a === "--seed") out.seed = true;
 		else if (a === "--production" || a === "--prod") out.production = true;
+		else if (a === "--refresh") out.refresh = true;
 		else if (a === "--starter") {
 			const starter = argv[i + 1];
 			if (starter && !starter.startsWith("-")) {

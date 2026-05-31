@@ -53,7 +53,7 @@ export const run = async (argv) => {
 	}
 
 	if (args.command === "add-starter") {
-		await addStarterPack({ cwd: process.cwd(), starterName: args.starterName });
+		await addStarterPack({ cwd: process.cwd(), starterName: args.starterName, refresh: args.refresh });
 		return;
 	}
 
@@ -130,6 +130,7 @@ ${pc.bold("Usage:")}
 ${pc.bold("Options:")}
   --yes, -y        Accept all defaults (non-interactive)
   --starter <pack> Add starter packs during project creation (repeatable or comma-separated)
+  --refresh       Reapply an already-installed custom starter's owned UI/routes/tests
   --install        Run pnpm install after scaffold
   --db-push        Run pnpm db:push after scaffold
   --seed           Run pnpm db:seed after scaffold
@@ -146,6 +147,7 @@ ${pc.bold("Examples:")}
   create-vyllion-saas doctor
   create-vyllion-saas add module projects
   create-vyllion-saas add starter crm
+  create-vyllion-saas add starter eims --refresh
   create-vyllion-saas remove starter eims
   create-vyllion-saas list starters
   create-vyllion-saas  (prompts for name)

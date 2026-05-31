@@ -147,6 +147,15 @@ const EIMS_STARTER_ARTIFACTS = [
 	"apps/web/src/routes/admin/eims",
 ];
 const EIMS_REPLACEABLE_ARTIFACTS = new Set(["apps/api-tests/scripts/with-mock-api.mjs"]);
+const EIMS_REFRESHABLE_ARTIFACTS = new Set([
+	"apps/api-tests/scripts/eims-static-web-server.mjs",
+	"apps/api-tests/scripts/with-mock-api.mjs",
+	"apps/e2e/playwright.eims.config.ts",
+	"apps/e2e/tests/eims-mock.spec.ts",
+	"apps/web/src/features/eims",
+	"apps/web/src/routes/_authenticated/eims",
+	"apps/web/src/routes/admin/eims",
+]);
 
 export const listStarterPacks = () => Object.keys(STARTER_PACKS);
 
@@ -5667,19 +5676,21 @@ const assertEimsCanBeCreated = async (cwd) => {
 	}
 };
 
-const copyEimsStarterArtifacts = async (root) => {
+const copyEimsStarterArtifacts = async (root, { refresh = false } = {}) => {
 	for (const relPath of EIMS_STARTER_ARTIFACTS) {
+		if (refresh && !EIMS_REFRESHABLE_ARTIFACTS.has(relPath)) continue;
 		const source = path.join(EIMS_STARTER_ARTIFACTS_DIR, relPath);
 		const target = path.join(root, relPath);
 		if (!(await fs.pathExists(source))) {
 			throw new Error(`EIMS starter source artifact is missing: ${source}`);
 		}
-		if ((await fs.pathExists(target)) && !EIMS_REPLACEABLE_ARTIFACTS.has(relPath)) {
+		const canOverwrite = EIMS_REPLACEABLE_ARTIFACTS.has(relPath) || (refresh && EIMS_REFRESHABLE_ARTIFACTS.has(relPath));
+		if ((await fs.pathExists(target)) && !canOverwrite) {
 			throw new Error(`Refusing to overwrite existing EIMS starter artifact: ${target}`);
 		}
 		await fs.copy(source, target, {
-			overwrite: EIMS_REPLACEABLE_ARTIFACTS.has(relPath),
-			errorOnExist: !EIMS_REPLACEABLE_ARTIFACTS.has(relPath),
+			overwrite: canOverwrite,
+			errorOnExist: !canOverwrite,
 		});
 	}
 };
@@ -5724,7 +5735,23 @@ const addEimsStarterPack = async ({ cwd }) => {
 	);
 };
 
-export const addStarterPack = async ({ cwd, starterName }) => {
+const refreshEimsStarterPack = async ({ cwd }) => {
+	console.log(pc.bold("Refreshing EIMS/EIRMS starter-owned UI and verification files"));
+	await copyEimsStarterArtifacts(cwd, { refresh: true });
+	await patchEimsRouteTree(cwd);
+	await patchEimsPackageScripts(cwd);
+	await patchEimsSeedScript(cwd);
+	await patchEimsEnvExamples(cwd);
+	await patchSidebar(cwd, "eims", "EIMS", "eims");
+	console.log(pc.green("EIMS starter refresh complete."));
+	console.log(
+		pc.dim(
+			"Refreshed web UI/routes, EIMS browser tests, sidebar entries, package scripts, seed chain, and env examples. API modules were not overwritten.",
+		),
+	);
+};
+
+export const addStarterPack = async ({ cwd, starterName, refresh = false }) => {
 	if (!starterName) {
 		throw new Error(
 			`Usage: create-vyllion-saas add starter <pack>\nAvailable packs: ${listStarterPacks().join(", ")}`,
@@ -5741,8 +5768,16 @@ export const addStarterPack = async ({ cwd, starterName }) => {
 	}
 
 	if (await isStarterInstalled(cwd, slug)) {
+		if (pack.custom === "eims" && refresh) {
+			await refreshEimsStarterPack({ cwd });
+			await recordStarterInstalled(cwd, slug, pack);
+			return;
+		}
 		console.log(pc.green(`${pack.label} starter pack is already installed.`));
 		console.log(pc.dim(`State: ${STATE_FILE}`));
+		if (pack.custom === "eims") {
+			console.log(pc.dim("Run `create-vyllion-saas add starter eims --refresh` to reapply the EIMS-owned UI/routes/tests."));
+		}
 		return;
 	}
 

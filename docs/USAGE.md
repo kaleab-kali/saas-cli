@@ -62,7 +62,7 @@ npm publish --access public
 create-vyllion-saas [project-name] [options]
 create-vyllion-saas doctor [--production]
 create-vyllion-saas add module <name>
-create-vyllion-saas add starter <pack>
+create-vyllion-saas add starter <pack> [--refresh]
 create-vyllion-saas remove starter <pack>
 create-vyllion-saas list starters
 ```
@@ -77,6 +77,7 @@ create-vyllion-saas list starters
 | `--seed` | `false` | Run `pnpm db:seed` after scaffold. |
 | `--bootstrap` | `false` | Run install, db push, and seed after scaffold. |
 | `--starter <pack>` | none | Install one or more starter packs during scaffold. Repeat the flag or pass a comma-separated list. Unknown packs fail before files are created. |
+| `--refresh` | `false` | With `add starter eims`, refresh starter-owned UI, routes, tests, scripts, and sidebars for an existing EIMS install without overwriting API modules. |
 | `--production`, `--prod` | `false` | Make `doctor` fail on missing production prerequisites. |
 | `--help`, `-h` | -     | Show help |
 
@@ -115,6 +116,8 @@ Use `create-vyllion-saas doctor --production` or `pnpm doctor:production` in CI/
 During project creation, `--starter eims,crm` and `--starter eims --starter crm` are equivalent. Starter names are validated before the target directory is created.
 
 `create-vyllion-saas list starters` prints pack metadata, generated modules, env variables, routes, and permissions.
+
+`create-vyllion-saas add starter eims --refresh` is for already-generated projects that installed EIMS before the starter UI changed. It refreshes EIMS-owned web UI/routes, browser tests, package scripts, seed chaining, env examples, and sidebar patches. It deliberately leaves API modules alone so local production work is not overwritten.
 
 `create-vyllion-saas remove starter <pack>` removes starter packs that support automated uninstall. The EIMS starter supports uninstall because the base template must remain domain-neutral.
 

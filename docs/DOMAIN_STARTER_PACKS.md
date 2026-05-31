@@ -24,6 +24,7 @@ From a generated project root:
 create-vyllion-saas list starters
 create-vyllion-saas add starter crm
 create-vyllion-saas add starter eims
+create-vyllion-saas add starter eims --refresh
 create-vyllion-saas remove starter eims
 ```
 
@@ -37,5 +38,7 @@ pnpm gen:starter:uninstall eims
 ```
 
 The command refuses to overwrite existing module folders. After generation, add Prisma models and replace the placeholder repositories with real queries.
+
+For projects that already installed EIMS, `create-vyllion-saas add starter eims --refresh` reapplies the starter-owned web UI/routes, browser tests, scripts, env examples, seed chain, and sidebar patches. It does not overwrite API modules.
 
 The `eims` starter is special: it creates the V3 EIMS/EIRMS scaffold, not a finished integration. Start with `docs/EIMS_PHASE0_RUNBOOK.md` and do Phase 0 Layer A before adding real MoR/EIMS sandbox calls. It supports automated uninstall so teams can return to the neutral base when evaluating packs.

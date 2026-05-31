@@ -68,6 +68,13 @@ test("parses repeated and comma-separated starter flags", () => {
 	assert.deepEqual(args.starters, ["eims", "crm", "helpdesk"]);
 });
 
+test("parses starter refresh flag", () => {
+	const args = parseArgs(["add", "starter", "eims", "--refresh"]);
+	assert.equal(args.command, "add-starter");
+	assert.equal(args.starterName, "eims");
+	assert.equal(args.refresh, true);
+});
+
 test("doctor command runs in advisory mode", () => {
 	const result = runCli(["doctor"], { cwd: repoRoot });
 	assert.equal(result.status, 0, outputOf(result));
@@ -182,6 +189,36 @@ test("adds and removes the EIMS starter without leaving generated residue", () =
 			Object.keys(packageJson.scripts ?? {}).every((key) => !key.toLowerCase().includes("eims")),
 			"EIMS scripts should be removed",
 		);
+	} finally {
+		rmSync(targetDir, { recursive: true, force: true });
+	}
+});
+
+test("refreshes an already-installed EIMS starter UI without reinstalling API modules", () => {
+	const targetDir = path.join(tmpRoot, `eims-refresh-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
+	rmSync(targetDir, { recursive: true, force: true });
+
+	try {
+		const scaffoldResult = runCli([targetDir, "--yes"], { timeout: 120_000 });
+		assert.equal(scaffoldResult.status, 0, outputOf(scaffoldResult));
+
+		const addResult = runCli(["add", "starter", "eims"], { cwd: targetDir, timeout: 120_000 });
+		assert.equal(addResult.status, 0, outputOf(addResult));
+
+		const tenantPage = path.join(targetDir, "apps/web/src/features/eims/components/eims-tenant-pages.tsx");
+		const apiModule = path.join(targetDir, "apps/api/src/modules/eims/eims.module.ts");
+		writeFileSync(tenantPage, "export const staleEimsUi = 'old ui';\n", "utf8");
+		writeFileSync(apiModule, `${readFileSync(apiModule, "utf8")}\n// local API implementation marker\n`, "utf8");
+
+		const noRefreshResult = runCli(["add", "starter", "eims"], { cwd: targetDir, timeout: 120_000 });
+		assert.equal(noRefreshResult.status, 0, outputOf(noRefreshResult));
+		assert.match(readFileSync(tenantPage, "utf8"), /old ui/);
+
+		const refreshResult = runCli(["add", "starter", "eims", "--refresh"], { cwd: targetDir, timeout: 120_000 });
+		assert.equal(refreshResult.status, 0, outputOf(refreshResult));
+		assert.match(readFileSync(tenantPage, "utf8"), /Ethiopia tax workspace/);
+		assert.match(readFileSync(apiModule, "utf8"), /local API implementation marker/);
+		assert.match(outputOf(refreshResult), /EIMS starter refresh complete/);
 	} finally {
 		rmSync(targetDir, { recursive: true, force: true });
 	}
