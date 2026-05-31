@@ -20,6 +20,7 @@ describe("EimsSubmissionService", () => {
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
 			pollBulkStatus: jest.fn(),
+			cancelInvoice: jest.fn(),
 		};
 		const service = new EimsSubmissionService(client, new EimsMockService(), new EimsSubmissionQueueService());
 
@@ -65,6 +66,7 @@ describe("EimsSubmissionService", () => {
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
 			pollBulkStatus: jest.fn(),
+			cancelInvoice: jest.fn(),
 		};
 		const service = new EimsSubmissionService(client, new EimsMockService(), new EimsSubmissionQueueService());
 
@@ -87,6 +89,7 @@ describe("EimsSubmissionService", () => {
 			})),
 			validateCredential: jest.fn(),
 			pollBulkStatus: jest.fn(),
+			cancelInvoice: jest.fn(),
 		};
 		const service = new EimsSubmissionService(client, new EimsMockService(), new EimsSubmissionQueueService());
 

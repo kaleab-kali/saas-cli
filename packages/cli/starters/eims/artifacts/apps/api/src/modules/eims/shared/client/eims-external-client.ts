@@ -34,6 +34,15 @@ export interface PollBulkStatusInput {
 	sourceSystemId?: string;
 }
 
+export interface CancelInvoiceInput {
+	organizationId: string;
+	sourceSystemId?: string;
+	invoiceIrn?: string;
+	reasonCode?: string;
+	remark?: string;
+	payload?: unknown;
+}
+
 export interface EimsExternalResponse {
 	data: Record<string, unknown>;
 	meta?: Record<string, unknown>;
@@ -45,6 +54,7 @@ export interface EimsExternalClient {
 	verifyIrn(input: { organizationId: string; irn: string }): Promise<EimsExternalResponse>;
 	validateCredential(input: ValidateCredentialInput): Promise<EimsExternalResponse>;
 	pollBulkStatus(input: PollBulkStatusInput): Promise<EimsExternalResponse>;
+	cancelInvoice(input: CancelInvoiceInput): Promise<EimsExternalResponse>;
 }
 
 export interface EimsSdkClient {
@@ -56,6 +66,34 @@ export interface EimsSdkClient {
 	getBulkStatus?(input: { conversationId: string; tenantConfig: Record<string, unknown> }): Promise<unknown>;
 	getBulkConversationStatus?(input: {
 		conversationId: string;
+		tenantConfig: Record<string, unknown>;
+	}): Promise<unknown>;
+	cancelInvoice?(input: {
+		irn?: string;
+		reasonCode?: string;
+		remark?: string;
+		payload: unknown;
+		tenantConfig: Record<string, unknown>;
+	}): Promise<unknown>;
+	cancelDocument?(input: {
+		irn?: string;
+		reasonCode?: string;
+		remark?: string;
+		payload: unknown;
+		tenantConfig: Record<string, unknown>;
+	}): Promise<unknown>;
+	cancelTaxInvoice?(input: {
+		irn?: string;
+		reasonCode?: string;
+		remark?: string;
+		payload: unknown;
+		tenantConfig: Record<string, unknown>;
+	}): Promise<unknown>;
+	submitCancellation?(input: {
+		irn?: string;
+		reasonCode?: string;
+		remark?: string;
+		payload: unknown;
 		tenantConfig: Record<string, unknown>;
 	}): Promise<unknown>;
 	validateCredential?(input: {

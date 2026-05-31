@@ -1213,7 +1213,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.spec.ts src/modules/eims/shared/cancellations/eims-cancellation.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:sdk-contract"] ??=
@@ -5393,6 +5393,11 @@ const main = async () => {
 \t\t\ttypeof client.pollBulkConversation === "function" ||
 \t\t\ttypeof client.getBulkStatus === "function" ||
 \t\t\ttypeof client.getBulkConversationStatus === "function",
+\t\tcancelInvoice:
+\t\t\ttypeof client.cancelInvoice === "function" ||
+\t\t\ttypeof client.cancelDocument === "function" ||
+\t\t\ttypeof client.cancelTaxInvoice === "function" ||
+\t\t\ttypeof client.submitCancellation === "function",
 \t\tvalidateCredential:
 \t\t\ttypeof client.validateCredential === "function" || typeof client.validateCredentials === "function",
 \t};
@@ -5911,6 +5916,7 @@ const callbackPersistence = read(
 \t"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.ts",
 );
 const callbackPolling = read("apps/api/src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.ts");
+const cancellationService = read("apps/api/src/modules/eims/shared/cancellations/eims-cancellation.service.ts");
 assertIncludes(callbackPersistence, "PrismaService", "EIMS bulk callback receipts must use durable Prisma persistence");
 assertIncludes(
 \tcallbackPersistence,
@@ -5938,6 +5944,13 @@ assertIncludes(
 \tcallbackPolling,
 \t"storePolledReconciliation",
 \t"EIMS bulk polling must persist durable reconciliation receipts",
+);
+assertIncludes(cancellationService, "EIMS_EXTERNAL_CLIENT", "EIMS cancellation must use the SDK adapter boundary");
+assertIncludes(cancellationService, "cancelInvoice", "EIMS cancellation must call SDK cancellation capability");
+assertIncludes(
+\tcancellationService,
+\t"Reason code 4 requires a remark",
+\t"EIMS cancellation must validate reason-code remarks before SDK dispatch",
 );
 
 const offlinePersistence = read(
@@ -6055,7 +6068,7 @@ assertIncludes(sdkClientProvider, "EIMS_SDK_PACKAGE_NAME", "EIMS SDK provider mu
 assertIncludes(sdkClientProvider, "createEimsSdkClientFromModule", "EIMS SDK provider must validate SDK module shape");
 assertIncludes(
 \tsdkClientProvider,
-\t"registerInvoice/registerReceipt/verifyIrn/validateCredential/pollBulkStatus-capable",
+\t"registerInvoice/registerReceipt/verifyIrn/validateCredential/pollBulkStatus/cancelInvoice-capable",
 \t"EIMS SDK provider must fail closed for incompatible SDK clients",
 );
 assertIncludes(sdkExternalClient, "registerInvoice", "EIMS SDK adapter must submit invoices through the SDK");
@@ -6063,6 +6076,7 @@ assertIncludes(sdkExternalClient, "registerReceipt", "EIMS SDK adapter must subm
 assertIncludes(sdkExternalClient, "verifyIrn", "EIMS SDK adapter must verify IRNs through the SDK");
 assertIncludes(sdkExternalClient, "validateCredential", "EIMS SDK adapter must validate credentials through the SDK");
 assertIncludes(sdkExternalClient, "pollBulkStatus", "EIMS SDK adapter must poll bulk status through the SDK");
+assertIncludes(sdkExternalClient, "cancelInvoice", "EIMS SDK adapter must cancel invoices through the SDK");
 assertIncludes(
 \tsdkExternalClient,
 \t"ServiceUnavailableException",
@@ -6145,7 +6159,7 @@ Layer B runs against INSA/MoR sandbox after credentials and certificates are ava
 After publishing or linking the real SDK package, set \`EIMS_SDK_PACKAGE_NAME\`
 and run \`pnpm test:eims:sdk-contract\`. This imports the SDK package, builds the
 same options used by the Nest provider, and verifies the package exposes the
-\`registerInvoice\`, \`registerReceipt\`, \`verifyIrn\`, bulk-status polling, and credential validation
+\`registerInvoice\`, \`registerReceipt\`, \`verifyIrn\`, bulk-status polling, invoice cancellation, and credential validation
 methods consumed by the SaaS adapter before sandbox credentials are exercised.
 
 Invoice submission lanes persist counter reservations before SDK dispatch and
@@ -6157,6 +6171,10 @@ Bulk callback handling is SaaS-side, but delayed callback reconciliation must
 still go through the SDK. The \`/eims/bulk/reconcile\` endpoint calls the SDK
 bulk-status capability and stores the polled result as a durable callback
 receipt for audit and operator review.
+
+Cancellation requests are validated by the SaaS layer for tenant input shape and
+then submitted through the SDK cancellation capability. The generated app does
+not embed authority cancellation protocol details.
 
 Before production go-live, run \`pnpm doctor:production\`. The doctor blocks launch if EIMS is still in mock mode, lacks production MoR URLs, lacks an HTTPS callback URL, uses local signing, or has Phase 0 strict mode disabled.
 `,

@@ -39,6 +39,7 @@ describe("EimsOfflineReplayService", () => {
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
 			pollBulkStatus: jest.fn(),
+			cancelInvoice: jest.fn(),
 		};
 		const pending = pendingStoreMock();
 		pending.claimForSync.mockResolvedValue(claim);
@@ -76,6 +77,7 @@ describe("EimsOfflineReplayService", () => {
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
 			pollBulkStatus: jest.fn(),
+			cancelInvoice: jest.fn(),
 		};
 		const pending = pendingStoreMock();
 		pending.claimForSync.mockResolvedValue(claim);
@@ -108,6 +110,7 @@ describe("EimsOfflineReplayService", () => {
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
 			pollBulkStatus: jest.fn(),
+			cancelInvoice: jest.fn(),
 		};
 		const pending = pendingStoreMock();
 		pending.claimForSync.mockResolvedValue(claim);
@@ -135,6 +138,7 @@ describe("EimsOfflineReplayService", () => {
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
 			pollBulkStatus: jest.fn(),
+			cancelInvoice: jest.fn(),
 		};
 		const pending = pendingStoreMock();
 		pending.listPending.mockResolvedValue([

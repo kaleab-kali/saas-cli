@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { EIMS_BACKEND_REPOSITORY, type EimsBackendRepository } from "../mock/eims-backend.repository";
 import type {
+	CancelInvoiceInput,
 	EimsExternalClient,
 	PollBulkStatusInput,
 	RegisterInvoiceInput,
@@ -89,6 +90,16 @@ export class MockEimsExternalClient implements EimsExternalClient {
 				],
 			},
 		};
+	}
+
+	async cancelInvoice(input: CancelInvoiceInput) {
+		return this.repository.cancelInvoice(input.organizationId, {
+			invoiceIrn: input.invoiceIrn,
+			reasonCode: input.reasonCode,
+			remark: input.remark,
+			sourceSystemId: input.sourceSystemId,
+			payload: input.payload,
+		});
 	}
 
 	async validateCredential(input: ValidateCredentialInput) {

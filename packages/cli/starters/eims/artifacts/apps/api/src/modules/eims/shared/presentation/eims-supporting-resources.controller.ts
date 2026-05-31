@@ -4,6 +4,7 @@ import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
 import { EimsBulkCallbackPersistenceService } from "../callbacks/eims-bulk-callback-persistence.service";
 import { EimsBulkReconciliationPollingService } from "../callbacks/eims-bulk-reconciliation-polling.service";
+import { EimsCancellationService } from "../cancellations/eims-cancellation.service";
 import { EimsCredentialPersistenceService } from "../crypto/eims-credential-persistence.service";
 import { EimsCredentialSecretService } from "../crypto/eims-credential-secret.service";
 import { EimsCredentialValidationService } from "../crypto/eims-credential-validation.service";
@@ -28,6 +29,7 @@ export class EimsSupportingResourcesController {
 		private readonly credentialValidation: EimsCredentialValidationService,
 		private readonly bulkReceiptStore: EimsBulkCallbackPersistenceService,
 		private readonly bulkPolling: EimsBulkReconciliationPollingService,
+		private readonly cancellationsService: EimsCancellationService,
 		private readonly offlinePending: EimsOfflinePendingSyncPersistenceService,
 		private readonly offlineReplay: EimsOfflineReplayService,
 		private readonly offlineReplayQueue: EimsOfflineReplayQueueService,
@@ -167,7 +169,14 @@ export class EimsSupportingResourcesController {
 	@Post("cancellations")
 	@RequirePermissions("invoice:cancel")
 	cancelInvoice(@Req() req: AuthedRequest, @Body() body: Record<string, unknown>) {
-		return this.repository.cancelInvoice(req.organizationId, body);
+		return this.cancellationsService.cancelInvoice({
+			organizationId: req.organizationId,
+			sourceSystemId: typeof body.sourceSystemId === "string" ? body.sourceSystemId : undefined,
+			invoiceIrn: typeof body.invoiceIrn === "string" ? body.invoiceIrn : undefined,
+			reasonCode: typeof body.reasonCode === "string" ? body.reasonCode : undefined,
+			remark: typeof body.remark === "string" ? body.remark : undefined,
+			payload: body,
+		});
 	}
 
 	@Get("buyers")

@@ -137,6 +137,61 @@ describe("EimsSdkExternalClient", () => {
 		});
 	});
 
+	it("delegates invoice cancellation to the configured EIMS SDK client", async () => {
+		const sdk = {
+			registerInvoice: jest.fn(),
+			cancelInvoice: jest.fn().mockResolvedValue({ data: { status: "accepted", reference: "CANCEL-1" } }),
+		};
+		const client = new EimsSdkExternalClient(sdk);
+
+		const response = await client.cancelInvoice({
+			organizationId: "org_1",
+			sourceSystemId: "src_front",
+			invoiceIrn: "IRN-1",
+			reasonCode: "4",
+			remark: "Customer returned the order",
+			payload: { Irn: "IRN-1", Reason: "4" },
+		});
+
+		expect(sdk.cancelInvoice).toHaveBeenCalledWith({
+			irn: "IRN-1",
+			reasonCode: "4",
+			remark: "Customer returned the order",
+			payload: { Irn: "IRN-1", Reason: "4" },
+			tenantConfig: {
+				organizationId: "org_1",
+				sourceSystemId: "src_front",
+				counter: undefined,
+				previousIrn: null,
+			},
+		});
+		expect(response.data).toMatchObject({ status: "accepted", reference: "CANCEL-1" });
+	});
+
+	it("accepts SDK cancellation aliases while keeping the SaaS adapter stable", async () => {
+		const sdk = {
+			registerInvoice: jest.fn(),
+			submitCancellation: jest.fn().mockResolvedValue({ data: { status: "accepted" } }),
+		};
+		const client = new EimsSdkExternalClient(sdk);
+
+		await expect(client.cancelInvoice({ organizationId: "org_1", invoiceIrn: "IRN-1" })).resolves.toEqual({
+			data: { status: "accepted" },
+		});
+		expect(sdk.submitCancellation).toHaveBeenCalledWith({
+			irn: "IRN-1",
+			reasonCode: undefined,
+			remark: undefined,
+			payload: {},
+			tenantConfig: {
+				organizationId: "org_1",
+				sourceSystemId: undefined,
+				counter: undefined,
+				previousIrn: null,
+			},
+		});
+	});
+
 	it("fails closed when production SDK provider is not configured", async () => {
 		const client = new EimsSdkExternalClient();
 

@@ -3,6 +3,7 @@ import { EimsBulkCallbackController } from "./callbacks/eims-bulk-callback.contr
 import { EimsBulkCallbackService } from "./callbacks/eims-bulk-callback.service";
 import { EimsBulkCallbackPersistenceService } from "./callbacks/eims-bulk-callback-persistence.service";
 import { EimsBulkReconciliationPollingService } from "./callbacks/eims-bulk-reconciliation-polling.service";
+import { EimsCancellationService } from "./cancellations/eims-cancellation.service";
 import { EIMS_EXTERNAL_CLIENT } from "./client/eims-external-client";
 import { EimsSdkClientProvider } from "./client/eims-sdk-client.provider";
 import { EimsSdkExternalClient } from "./client/eims-sdk-external.client";
@@ -32,6 +33,7 @@ import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source
 		EimsBulkCallbackService,
 		EimsBulkCallbackPersistenceService,
 		EimsBulkReconciliationPollingService,
+		EimsCancellationService,
 		EimsSubmissionQueueService,
 		EimsSubmissionQueuePersistenceService,
 		EimsCredentialPersistenceService,
@@ -61,6 +63,7 @@ import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source
 		EimsBulkCallbackService,
 		EimsBulkCallbackPersistenceService,
 		EimsBulkReconciliationPollingService,
+		EimsCancellationService,
 		EimsSubmissionQueueService,
 		EimsSubmissionQueuePersistenceService,
 		EimsCredentialPersistenceService,

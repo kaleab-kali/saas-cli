@@ -93,4 +93,24 @@ describe("MockEimsExternalClient", () => {
 			}),
 		});
 	});
+
+	it("cancels invoices through the same external client boundary", async () => {
+		const client = new MockEimsExternalClient(new EimsMockService());
+
+		await expect(
+			client.cancelInvoice({
+				organizationId,
+				sourceSystemId: "src_mock_1",
+				invoiceIrn: "IRN-001",
+				reasonCode: "4",
+				remark: "Customer returned the order",
+			}),
+		).resolves.toEqual({
+			data: expect.objectContaining({
+				message: "Cancellation submitted with reason and audit event",
+				status: "accepted",
+				reference: `${organizationId}:IRN-001`,
+			}),
+		});
+	});
 });

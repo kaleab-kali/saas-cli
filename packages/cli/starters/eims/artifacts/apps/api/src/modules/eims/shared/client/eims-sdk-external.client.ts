@@ -1,5 +1,6 @@
 import { Inject, Injectable, Optional, ServiceUnavailableException } from "@nestjs/common";
 import {
+	type CancelInvoiceInput,
 	EIMS_SDK_CLIENT,
 	type EimsExternalResponse,
 	type EimsSdkClient,
@@ -43,6 +44,20 @@ export class EimsSdkExternalClient {
 		if (!pollBulkStatus) throw new ServiceUnavailableException("EIMS SDK bulk status polling is not configured");
 		const response = await pollBulkStatus.call(sdk, {
 			conversationId: input.conversationId,
+			tenantConfig: this.tenantConfig(input),
+		});
+		return this.envelope(response);
+	}
+
+	async cancelInvoice(input: CancelInvoiceInput): Promise<EimsExternalResponse> {
+		const sdk = this.requireSdk();
+		const cancelInvoice = sdk.cancelInvoice ?? sdk.cancelDocument ?? sdk.cancelTaxInvoice ?? sdk.submitCancellation;
+		if (!cancelInvoice) throw new ServiceUnavailableException("EIMS SDK invoice cancellation is not configured");
+		const response = await cancelInvoice.call(sdk, {
+			irn: input.invoiceIrn,
+			reasonCode: input.reasonCode,
+			remark: input.remark,
+			payload: input.payload ?? {},
 			tenantConfig: this.tenantConfig(input),
 		});
 		return this.envelope(response);
