@@ -4,6 +4,7 @@ import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
 import { EimsCredentialSecretService } from "../crypto/eims-credential-secret.service";
 import { EIMS_BACKEND_REPOSITORY, type EimsBackendRepository } from "../mock/eims-backend.repository";
+import { type EimsPrintProofInput, EimsPrintProofService } from "../printing/eims-print-proof.service";
 
 interface AuthedRequest {
 	organizationId: string;
@@ -15,6 +16,7 @@ export class EimsSupportingResourcesController {
 	constructor(
 		@Inject(EIMS_BACKEND_REPOSITORY) private readonly repository: EimsBackendRepository,
 		private readonly credentialSecrets: EimsCredentialSecretService,
+		private readonly printProof: EimsPrintProofService,
 	) {}
 
 	@Get("credentials")
@@ -97,6 +99,12 @@ export class EimsSupportingResourcesController {
 	@RequirePermissions("invoice:read")
 	printLayouts(@Req() req: AuthedRequest) {
 		return this.repository.printLayouts(req.organizationId);
+	}
+
+	@Post("print-layouts/proof")
+	@RequirePermissions("invoice:read")
+	printLayoutProof(@Req() req: AuthedRequest, @Body() body: Omit<EimsPrintProofInput, "organizationId">) {
+		return this.printProof.generate({ ...body, organizationId: req.organizationId });
 	}
 
 	@Get("notifications")

@@ -7,6 +7,7 @@ import { EimsLookupService } from "./lookups/eims-lookup.service";
 import { EIMS_BACKEND_REPOSITORY } from "./mock/eims-backend.repository";
 import { EimsMockService } from "./mock/eims-mock.service";
 import { EimsSupportingResourcesController } from "./presentation/eims-supporting-resources.controller";
+import { EimsPrintProofService } from "./printing/eims-print-proof.service";
 import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.service";
 
 @Module({
@@ -15,6 +16,7 @@ import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.servi
 		EimsLookupService,
 		EimsSubmissionQueueService,
 		EimsCredentialSecretService,
+		EimsPrintProofService,
 		EimsMockService,
 		MockEimsExternalClient,
 		{ provide: EIMS_BACKEND_REPOSITORY, useExisting: EimsMockService },
@@ -24,6 +26,7 @@ import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.servi
 		EimsLookupService,
 		EimsSubmissionQueueService,
 		EimsCredentialSecretService,
+		EimsPrintProofService,
 		EimsMockService,
 		EIMS_BACKEND_REPOSITORY,
 		EIMS_EXTERNAL_CLIENT,

@@ -68,6 +68,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/constants/eims-lookup-values.ts",
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.ts",
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
+	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts",
+	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts",
 	"apps/api/src/modules/eims/setup/presentation/eims-setup.controller.ts",
@@ -243,6 +245,10 @@ function assertGeneratedStructure() {
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-credential-secret.service.spec.ts"),
 		"generated EIMS local test gate includes credential encryption tests",
+	);
+	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-print-proof.service.spec.ts"),
+		"generated EIMS local test gate includes print proof tests",
 	);
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-submission-queue.service.spec.ts"),
@@ -456,6 +462,8 @@ function assertGeneratedStructure() {
 	const credentialSecretsSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
 	);
+	const printProof = readProjectFile("apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts");
+	const printProofSpec = readProjectFile("apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts");
 	const supportingResourcesController = readProjectFile(
 		"apps/api/src/modules/eims/shared/presentation/eims-supporting-resources.controller.ts",
 	);
@@ -488,6 +496,16 @@ function assertGeneratedStructure() {
 		"EIMS credential API returns redaction metadata",
 	);
 	assert(eimsSharedModule.includes("EimsCredentialSecretService"), "EIMS shared module exports credential secret service");
+	assert(printProof.includes("PDFDocument"), "EIMS print proof service renders PDF output");
+	assert(printProof.includes("createHash"), "EIMS print proof service fingerprints generated PDFs");
+	assert(printProof.includes("Official print proof requires an accepted EIMS response"), "EIMS print proof requires acceptance");
+	assert(printProof.includes("signedQr?.includes(input.irn)"), "EIMS print proof validates QR source against IRN");
+	assert(printProof.includes("pdfBase64"), "EIMS print proof returns deterministic PDF evidence");
+	assert(printProofSpec.includes('toBe("%PDF")'), "EIMS print proof tests verify PDF bytes");
+	assert(printProofSpec.includes("pending_offline"), "EIMS print proof tests block pre-acceptance printing");
+	assert(printProofSpec.includes("signed QR payload to match"), "EIMS print proof tests validate QR/IRN matching");
+	assert(supportingResourcesController.includes('Post("print-layouts/proof")'), "EIMS API exposes print proof endpoint");
+	assert(eimsSharedModule.includes("EimsPrintProofService"), "EIMS shared module exports print proof service");
 	const eimsOnboardingSeed = readProjectFile("apps/api/prisma/seed-eims-onboarding-template.ts");
 	assert(eimsOnboardingSeed.includes('"eims-restaurant"'), "EIMS onboarding template uses eims-restaurant key");
 	assert(eimsOnboardingSeed.includes('"mor-portal-signup"'), "EIMS onboarding template includes MoR signup step");
