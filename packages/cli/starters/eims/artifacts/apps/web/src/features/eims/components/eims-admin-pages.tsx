@@ -168,6 +168,68 @@ const authorityDeskLanes = [
 	},
 ] as const;
 
+const adminMorInsaLaunchSteps = [
+	["1", "Tenant intake", "TIN, owner contact, payment proof"],
+	["2", "Subscription verified", "EIMS add-on and receipt confirmed"],
+	["3", "Organization shell", "Tenant, owner, settings, and VAT metadata"],
+	["4", "MoR portal signup", "Portal request and OTP handoff"],
+	["5", "Portal login and 2FA", "Changed password and backup codes"],
+	["6", "Register source system", "Register/POS source request submitted"],
+	["7", "MoR approval wait", "Authority status and follow-up notes"],
+	["8", "Capture API credentials", "Encrypted credential bundle"],
+	["9", "Generate CSR", "CSR and encrypted key material"],
+	["10", "Send INSA request", "Email package and request form"],
+	["11", "Upload certificate", "Issued cert validated against key and TIN"],
+	["12", "Controlled test invoice", "Sandbox IRN and signed QR evidence"],
+	["13", "Notify tenant", "SMS, email, and training appointment"],
+	["14", "First live invoice", "Production IRN observed with cashier"],
+	["15", "Evidence archive", "Launch dossier ready for audit"],
+] as const;
+
+function AdminMorInsaTimelinePanel() {
+	return (
+		<section className="rounded-md border bg-background">
+			<div className="grid gap-4 border-b bg-muted/25 p-4 lg:grid-cols-[1fr_340px]">
+				<div>
+					<p className="text-sm font-semibold">15-step EIMS launch queue</p>
+					<h2 className="mt-1 text-xl font-semibold tracking-normal">MoR and INSA operator timeline</h2>
+					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+						Every tenant moves through the same operational path, so support can identify exactly where authority
+						approval, credential capture, certificate issuance, or live invoice proof is stuck.
+					</p>
+				</div>
+				<div className="rounded-md border bg-background p-3">
+					<p className="text-xs font-medium uppercase text-muted-foreground">Default service mode</p>
+					<p className="mt-1 text-lg font-semibold">Concierge first, self-service only by exception</p>
+					<p className="mt-1 text-xs leading-5 text-muted-foreground">
+						The timeline keeps tenant handoffs and staff-only authority work in one operational view.
+					</p>
+				</div>
+			</div>
+			<div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5">
+				{adminMorInsaLaunchSteps.map(([number, title, proof], index) => (
+					<div key={title} className="rounded-md border p-3">
+						<div className="flex items-start justify-between gap-3">
+							<div>
+								<p className="text-xs font-medium uppercase text-muted-foreground">Step {number}</p>
+								<p className="mt-1 font-medium">{title}</p>
+							</div>
+							<span
+								className={`rounded-md border px-2 py-1 text-xs ${
+									index < 3 ? "bg-primary/5 text-primary" : index < 12 ? "bg-amber-50 text-amber-950" : ""
+								}`}
+							>
+								{index < 3 ? "intake" : index < 12 ? "authority" : "launch"}
+							</span>
+						</div>
+						<p className="mt-3 text-xs leading-5 text-muted-foreground">{proof}</p>
+					</div>
+				))}
+			</div>
+		</section>
+	);
+}
+
 function AdminConciergeQueuePanel({ stats }: { readonly stats: readonly (readonly [string, string])[] }) {
 	const tenantsTotal = stats.find(([label]) => label === "Tenants")?.[1] ?? "0";
 	const blocked = stats.find(([label]) => label === "Blocked")?.[1] ?? "0";
@@ -452,6 +514,7 @@ export function AdminEimsOverviewPage() {
 			<AdminOperationsHero stats={stats} />
 			<AdminConciergeQueuePanel stats={stats} />
 			<AdminAuthorityDeskPanel stats={stats} />
+			<AdminMorInsaTimelinePanel />
 			<div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
 				{stats.map(([label, value]) => (
 					<Card key={label}>

@@ -335,6 +335,8 @@ test.describe("tenant EIMS workflow is business-facing and backend-driven", () =
 		await expect(page.getByText("Cancellation rate")).toBeVisible();
 		await expect(page.getByText("Buyer registry coverage")).toBeVisible();
 		await expect(page.getByText("Operational launch board")).toBeVisible();
+		await expect(page.getByText("15-step MoR/INSA launch timeline")).toBeVisible();
+		await expect(page.getByText("First live invoice")).toBeVisible();
 		await expectVisibleTexts(page, [workspace.operationModeLabel, workspace.plainLanguageSummary]);
 		for (const requiredInput of workspace.requiredInputs) await expectVisibleTexts(page, [requiredInput]);
 		await expectVisibleTexts(page, [workspace.supportNote]);
@@ -382,6 +384,8 @@ test.describe("tenant EIMS workflow is business-facing and backend-driven", () =
 
 		await expect(page.getByRole("heading", { name: "MoR/INSA launch wizard" })).toBeVisible();
 		await expect(page.getByText("EIMS six-step launch wizard", { exact: false })).toBeVisible();
+		await expect(page.getByText("15-step MoR/INSA launch timeline")).toBeVisible();
+		await expect(page.getByText("MoR portal signup")).toBeVisible();
 		await expect(page.getByText("Authority handoff packet", { exact: false })).toBeVisible();
 		await expect(page.getByText("Current staff handoff")).toBeVisible();
 		await expect(page.getByText("Tenant handoff dossier")).toBeVisible();
@@ -629,6 +633,8 @@ test.describe("super-admin EIMS operations owns provider compliance and BSP evid
 		]);
 		await expect(page.getByText("MoR/INSA authority desk", { exact: false })).toBeVisible();
 		await expect(page.getByText("Cross-tenant launch blockers", { exact: false })).toBeVisible();
+		await expect(page.getByText("15-step EIMS launch queue", { exact: false })).toBeVisible();
+		await expect(page.getByText("MoR and INSA operator timeline", { exact: false })).toBeVisible();
 		for (const failure of overview.data.latestFailures) {
 			await expectRowContains(page, failure.tenant, [
 				failure.sourceSystem,

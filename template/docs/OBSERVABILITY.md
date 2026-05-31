@@ -13,12 +13,15 @@ Production services must be debuggable without shelling into the server.
 Expose operational metrics through the metrics module:
 
 - HTTP request count and latency.
+- Tenant request count with bounded organization-label cardinality.
 - Error count by route and status.
-- Queue depth and failed job count.
+- Queue job duration and failed job count.
 - Database query latency if enabled.
+- Authentication login attempt count.
+- Starter-pack business metric events through low-cardinality `business_metric_*` counters.
 - Process memory and uptime.
 
-Keep the metrics endpoint private or protected by infrastructure controls.
+Keep the metrics endpoint private or protected by infrastructure controls. Set `METRICS_TOKEN` to require `Authorization: Bearer <token>` on `GET /api/v1/metrics`.
 
 ## Health Endpoints
 
@@ -46,10 +49,14 @@ Create a dashboard with:
 - API p50/p95/p99 latency.
 - Request volume.
 - Error rate.
-- Queue depth.
+- Top tenant request volume.
+- Queue job latency.
 - Failed jobs.
-- Database connection count.
-- CPU, memory, and disk.
+- Database query latency.
+- Login attempts and starter-pack business metrics.
+- CPU, memory, and disk from Prometheus default process metrics.
+
+The importable Grafana dashboard is stored at `docs/observability/grafana-dashboard.json`. Import it into Grafana and select your Prometheus data source when prompted.
 
 ## Incident Notes
 

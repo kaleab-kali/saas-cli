@@ -18,12 +18,24 @@ interface RequestSample {
 	statusCode: number;
 }
 
+type QueueJobResult = "success" | "failed";
+type LoginAttemptResult = "success" | "failure" | "locked" | "mfa_required";
+
+const MAX_TENANT_METRIC_LABELS = 100;
+
 @Injectable()
 export class MetricsService {
 	private readonly registry = new Registry();
 	private readonly httpRequestsTotal: Counter<string>;
 	private readonly httpRequestDuration: Histogram<string>;
 	private readonly activeRequestsGauge: Gauge<string>;
+	private readonly tenantRequestCount: Counter<string>;
+	private readonly dbQueryDuration: Histogram<string>;
+	private readonly queueJobDuration: Histogram<string>;
+	private readonly queueJobsTotal: Counter<string>;
+	private readonly authLoginAttemptsTotal: Counter<string>;
+	private readonly businessMetricEventsTotal: Counter<string>;
+	private readonly tenantMetricLabels = new Set<string>();
 	private readonly startedAt = Date.now();
 	private readonly samples: RequestSample[] = [];
 	private totalRequests = 0;
@@ -50,6 +62,44 @@ export class MetricsService {
 			help: "Currently active HTTP requests",
 			registers: [this.registry],
 		});
+		this.tenantRequestCount = new Counter({
+			name: "tenant_request_count",
+			help: "Tenant-scoped HTTP request count with bounded organization label cardinality",
+			labelNames: ["organizationId"],
+			registers: [this.registry],
+		});
+		this.dbQueryDuration = new Histogram({
+			name: "db_query_duration_seconds",
+			help: "Database query duration in seconds",
+			labelNames: ["operation"],
+			buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5],
+			registers: [this.registry],
+		});
+		this.queueJobDuration = new Histogram({
+			name: "queue_job_duration_seconds",
+			help: "Background queue job duration in seconds",
+			labelNames: ["queue", "job"],
+			buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60],
+			registers: [this.registry],
+		});
+		this.queueJobsTotal = new Counter({
+			name: "queue_jobs_total",
+			help: "Background queue jobs completed by result",
+			labelNames: ["queue", "job", "result"],
+			registers: [this.registry],
+		});
+		this.authLoginAttemptsTotal = new Counter({
+			name: "auth_login_attempts_total",
+			help: "Authentication login attempts by result",
+			labelNames: ["result"],
+			registers: [this.registry],
+		});
+		this.businessMetricEventsTotal = new Counter({
+			name: "business_metric_events_total",
+			help: "Starter-pack business metric events. Metric label should be low-cardinality and documented by the pack.",
+			labelNames: ["metric"],
+			registers: [this.registry],
+		});
 	}
 
 	beginRequest() {
@@ -68,6 +118,30 @@ export class MetricsService {
 		this.httpRequestDuration.observe(labels, durationMs / 1000);
 		this.samples.push({ at: Date.now(), durationMs, statusCode });
 		this.trimSamples();
+	}
+
+	recordTenantRequest(organizationId: string | null | undefined) {
+		const label = this.tenantMetricLabel(organizationId);
+		if (!label) return;
+		this.tenantRequestCount.inc({ organizationId: label });
+	}
+
+	observeDbQuery(operation: string, durationMs: number) {
+		this.dbQueryDuration.observe({ operation: this.metricLabel(operation) }, this.seconds(durationMs));
+	}
+
+	observeQueueJob(queue: string, job: string, durationMs: number, result: QueueJobResult = "success") {
+		const labels = { queue: this.metricLabel(queue), job: this.metricLabel(job) };
+		this.queueJobDuration.observe(labels, this.seconds(durationMs));
+		this.queueJobsTotal.inc({ ...labels, result });
+	}
+
+	recordAuthLoginAttempt(result: LoginAttemptResult) {
+		this.authLoginAttemptsTotal.inc({ result });
+	}
+
+	incrementBusinessMetric(metric: string, amount = 1) {
+		this.businessMetricEventsTotal.inc({ metric: this.metricLabel(metric) }, amount);
 	}
 
 	async metrics() {
@@ -106,5 +180,25 @@ export class MetricsService {
 		if (sorted.length === 0) return 0;
 		const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * p) - 1));
 		return Math.round(sorted[index]);
+	}
+
+	private tenantMetricLabel(organizationId: string | null | undefined) {
+		if (!organizationId) return null;
+		const normalized = this.metricLabel(organizationId);
+		if (this.tenantMetricLabels.has(normalized)) return normalized;
+		if (this.tenantMetricLabels.size < MAX_TENANT_METRIC_LABELS) {
+			this.tenantMetricLabels.add(normalized);
+			return normalized;
+		}
+		return "__other__";
+	}
+
+	private metricLabel(value: string) {
+		const normalized = value.trim().replace(/[^a-zA-Z0-9_.:-]/g, "_");
+		return normalized.slice(0, 128) || "unknown";
+	}
+
+	private seconds(durationMs: number) {
+		return Math.max(0, durationMs) / 1000;
 	}
 }

@@ -382,6 +382,11 @@ function assertGeneratedStructure() {
 	assert(tenantPages.includes("MoR and INSA launch control"), "tenant EIMS UI names the MoR/INSA launch flow");
 	assert(tenantPages.includes("Launch gate timeline"), "tenant EIMS UI shows launch gates from intake to live invoices");
 	assert(tenantPages.includes("Operational launch board"), "tenant EIMS status page has a launch-focused workflow panel");
+	assert(
+		tenantPages.includes("15-step MoR/INSA launch timeline"),
+		"tenant EIMS UI shows the full MoR/INSA launch timeline",
+	);
+	assert(tenantPages.includes("First live invoice"), "tenant EIMS timeline includes the production launch checkpoint");
 	assert(tenantPages.includes("Current staff handoff"), "tenant EIMS setup page has a concierge handoff panel");
 	assert(tenantPages.includes("Tenant handoff dossier"), "tenant EIMS setup page keeps tenant blockers visible");
 	assert(tenantPages.includes("SharedDataTable"), "tenant EIMS pages use the shared DataTable surface");
@@ -392,6 +397,8 @@ function assertGeneratedStructure() {
 	assert(adminPages.includes("MoR/INSA queue"), "admin EIMS UI separates MoR and INSA launch queues");
 	assert(adminPages.includes("MoR/INSA authority desk"), "admin EIMS UI exposes authority blocker operations");
 	assert(adminPages.includes("Cross-tenant launch blockers"), "admin EIMS UI highlights cross-tenant blockers");
+	assert(adminPages.includes("15-step EIMS launch queue"), "admin EIMS UI shows the full launch queue timeline");
+	assert(adminPages.includes("MoR and INSA operator timeline"), "admin EIMS UI names the authority operator timeline");
 	assert(adminPages.includes("Controlled invoice proof lane"), "admin EIMS UI names the controlled invoice proof lane");
 	assert(adminPages.includes("MoR test environment"), "admin EIMS UI labels MoR test connectivity without sandbox jargon");
 	assert(!adminPages.includes("sandbox proof"), "admin EIMS UI avoids old sandbox proof wording");

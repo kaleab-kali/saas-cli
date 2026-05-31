@@ -3,12 +3,21 @@ import type { Request, Response } from "express";
 import { Observable, tap } from "rxjs";
 import { MetricsService } from "./metrics.service";
 
+interface MetricsRequest extends Request {
+	organizationId?: string;
+	session?: {
+		session?: {
+			activeOrganizationId?: string | null;
+		};
+	};
+}
+
 @Injectable()
 export class MetricsInterceptor implements NestInterceptor {
 	constructor(private readonly metrics: MetricsService) {}
 
 	intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-		const request = context.switchToHttp().getRequest<Request>();
+		const request = context.switchToHttp().getRequest<MetricsRequest>();
 		const response = context.switchToHttp().getResponse<Response>();
 		const started = Date.now();
 		let statusCode = 200;
@@ -30,8 +39,9 @@ export class MetricsInterceptor implements NestInterceptor {
 		);
 	}
 
-	private record(request: Request, statusCode: number, durationMs: number) {
+	private record(request: MetricsRequest, statusCode: number, durationMs: number) {
 		const route = request.route?.path ? `${request.baseUrl}${request.route.path}` : request.path;
+		this.metrics.recordTenantRequest(request.organizationId ?? request.session?.session?.activeOrganizationId);
 		this.metrics.endRequest(request.method, route || "unknown", statusCode, durationMs);
 	}
 }

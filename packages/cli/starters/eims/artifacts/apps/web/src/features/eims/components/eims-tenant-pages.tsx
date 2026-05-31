@@ -296,6 +296,99 @@ const conciergeStages = [
 	},
 ] as const;
 
+const morInsaLaunchTimeline = [
+	{
+		title: "Tenant intake",
+		owner: "Staff",
+		proof: "Legal name, TIN, owner contact, and payment proof",
+		action: "Create the onboarding task and confirm the restaurant launch mode.",
+	},
+	{
+		title: "Subscription verified",
+		owner: "Billing",
+		proof: "Paid subscription and receipt reference",
+		action: "Confirm the EIMS add-on is active before authority work starts.",
+	},
+	{
+		title: "Organization shell",
+		owner: "System",
+		proof: "Organization, owner user, and tenant settings created",
+		action: "Keep tenant branding, locale, currency, and VAT metadata available.",
+	},
+	{
+		title: "MoR portal signup",
+		owner: "Staff + tenant",
+		proof: "MoR account request submitted",
+		action: "Use the TIN and owner phone while the tenant handles OTP handoff.",
+	},
+	{
+		title: "Portal login and 2FA",
+		owner: "Staff",
+		proof: "Username, password change, and backup codes secured",
+		action: "Store credentials only through the encrypted backend path.",
+	},
+	{
+		title: "Register source system",
+		owner: "Staff",
+		proof: "Register or POS source submitted to MoR",
+		action: "Capture branch, source type, software version, and expected counter chain.",
+	},
+	{
+		title: "MoR approval wait",
+		owner: "Authority",
+		proof: "Source approval status tracked",
+		action: "Keep follow-up notes separate from credential and certificate work.",
+	},
+	{
+		title: "Capture API credentials",
+		owner: "Staff",
+		proof: "Client ID, client secret, API key, username, and system number",
+		action: "Run the credential test before CSR generation.",
+	},
+	{
+		title: "Generate CSR",
+		owner: "System",
+		proof: "CSR and private key created",
+		action: "Keep private key material encrypted and never render it back to the UI.",
+	},
+	{
+		title: "Send INSA request",
+		owner: "Staff",
+		proof: "CSR email package sent",
+		action: "Attach request form, CSR, and business identity evidence.",
+	},
+	{
+		title: "Upload certificate",
+		owner: "Staff",
+		proof: "Issued certificate imported and validated",
+		action: "Validate key match, CN/TIN, expiry window, and signature algorithm.",
+	},
+	{
+		title: "Controlled test invoice",
+		owner: "Staff",
+		proof: "Sandbox IRN and signed QR captured",
+		action: "Block live invoices until the controlled invoice is accepted.",
+	},
+	{
+		title: "Notify tenant",
+		owner: "Staff",
+		proof: "SMS, email, and training appointment sent",
+		action: "Send launch instructions and keep the first cashier session scheduled.",
+	},
+	{
+		title: "First live invoice",
+		owner: "Tenant + staff",
+		proof: "Production IRN accepted",
+		action: "Observe the first sale and confirm QR printing before handoff.",
+	},
+	{
+		title: "Evidence archive",
+		owner: "System",
+		proof: "Launch dossier complete",
+		action: "Archive MoR, INSA, invoice, training, and renewal evidence for audit.",
+	},
+] as const;
+
 const stepStatusTone = (status: string) => {
 	const normalized = status.toLowerCase();
 	if (doneStatuses.has(normalized)) return "border-primary/30 bg-primary/5";
@@ -304,6 +397,82 @@ const stepStatusTone = (status: string) => {
 		return "border-amber-300 bg-amber-50 text-amber-950";
 	return "border-border bg-background";
 };
+
+function MorInsaFifteenStepTimelinePanel({ workspace }: { readonly workspace: EimsTenantWorkspace }) {
+	const completedReadinessSteps = workspace.readiness.steps.filter((step) =>
+		doneStatuses.has(step.status.toLowerCase()),
+	).length;
+	const readinessTotal = Math.max(workspace.readiness.steps.length, 1);
+	const completedTimelineSteps = workspace.readiness.readyForLive
+		? morInsaLaunchTimeline.length
+		: Math.min(
+				morInsaLaunchTimeline.length - 1,
+				Math.floor((completedReadinessSteps / readinessTotal) * morInsaLaunchTimeline.length),
+			);
+	const currentTimelineIndex = workspace.readiness.readyForLive
+		? morInsaLaunchTimeline.length - 1
+		: Math.min(morInsaLaunchTimeline.length - 1, completedTimelineSteps);
+
+	return (
+		<section className="overflow-hidden rounded-md border bg-background">
+			<div className="grid gap-4 border-b bg-muted/25 p-4 xl:grid-cols-[1fr_360px]">
+				<div>
+					<p className="text-sm font-semibold">15-step MoR/INSA launch timeline</p>
+					<h2 className="mt-1 text-xl font-semibold tracking-normal">From tenant intake to first live invoice</h2>
+					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+						Concierge operators can see the full authority workflow instead of a generic setup checklist: tenant
+						intake, MoR source approval, encrypted credentials, INSA certificate, controlled invoice proof, and
+						production launch.
+					</p>
+				</div>
+				<div className="rounded-md border bg-background p-3">
+					<p className="text-xs font-medium uppercase text-muted-foreground">Launch checkpoint</p>
+					<p className="mt-1 text-lg font-semibold">{morInsaLaunchTimeline[currentTimelineIndex]?.title}</p>
+					<p className="mt-1 text-xs leading-5 text-muted-foreground">
+						{workspace.readiness.readyForLive
+							? "The tenant is ready for daily EIMS invoices."
+							: "The live invoice switch stays closed until every authority proof is captured."}
+					</p>
+				</div>
+			</div>
+			<div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
+				{morInsaLaunchTimeline.map((step, index) => {
+					const status =
+						workspace.readiness.readyForLive || index < completedTimelineSteps
+							? "complete"
+							: index === currentTimelineIndex
+								? "attention"
+								: "pending";
+					return (
+						<div
+							key={step.title}
+							className={`rounded-md border p-3 ${stepStatusTone(status)} ${index === currentTimelineIndex ? "ring-2 ring-primary/25" : ""}`}
+						>
+							<div className="flex items-start justify-between gap-3">
+								<div className="min-w-0">
+									<p className="text-xs font-medium uppercase text-muted-foreground">Step {index + 1}</p>
+									<p className="mt-1 font-semibold">{step.title}</p>
+								</div>
+								<StatusBadge status={status} />
+							</div>
+							<div className="mt-3 grid gap-2 text-xs">
+								<div className="rounded-md border bg-background/70 p-2">
+									<span className="font-medium">Owner: </span>
+									<span className="text-muted-foreground">{step.owner}</span>
+								</div>
+								<div className="rounded-md border bg-background/70 p-2">
+									<span className="font-medium">Proof: </span>
+									<span className="text-muted-foreground">{step.proof}</span>
+								</div>
+							</div>
+							<p className="mt-3 text-xs leading-5 text-muted-foreground">{step.action}</p>
+						</div>
+					);
+				})}
+			</div>
+		</section>
+	);
+}
 
 function SetupJourneyPanel({ workspace }: { readonly workspace: EimsTenantWorkspace }) {
 	const firstOpenStepIndex = workspace.readiness.steps.findIndex(
@@ -1427,6 +1596,7 @@ export function EimsOverviewPage() {
 				</div>
 			))}
 			<ConciergeOnboardingCockpit workspace={workspace} overview={overview} />
+			<MorInsaFifteenStepTimelinePanel workspace={workspace} />
 			<TenantLaunchPanel workspace={workspace} />
 			<AuthorityFlowPanel overview={overview} />
 			<StatCards overview={overview} />
@@ -1483,6 +1653,7 @@ export function EimsSetupPage() {
 				overview={overview}
 			/>
 			<EimsLaunchWizardPanel workspace={workspace} />
+			<MorInsaFifteenStepTimelinePanel workspace={workspace} />
 			<AuthorityHandoffPacketPanel setup={setup} workspace={workspace} />
 			<ConciergeOnboardingCockpit workspace={workspace} overview={overview} />
 			<SetupJourneyPanel workspace={workspace} />

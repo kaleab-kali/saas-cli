@@ -50,6 +50,7 @@ const mustExist = [
 	"apps/api/src/shared/errors/domain-error.ts",
 	"apps/api/src/shared/filters/global-exception.filter.spec.ts",
 	"apps/api/src/shared/interceptors/audit.interceptor.spec.ts",
+	"apps/api/src/shared/metrics/metrics.service.spec.ts",
 	"apps/api/src/shared/i18n/money.util.ts",
 	"apps/api/src/shared/i18n/time-zone.util.ts",
 	"apps/api/src/shared/i18n/money.util.property.spec.ts",
@@ -77,6 +78,7 @@ const mustExist = [
 	"scripts/deploy.mjs",
 	"scripts/restore-postgres.mjs",
 	"docs/DEPLOYMENT.md",
+	"docs/observability/grafana-dashboard.json",
 ];
 
 const textFilesWithoutEims = [
@@ -378,6 +380,11 @@ function assertHealthObservabilitySurface() {
 	const healthApiTest = readProjectFile("apps/api-tests/tests/health.spec.ts");
 	const openApiSmoke = readProjectFile("apps/api-tests/openapi/openapi-smoke.yaml");
 	const observabilityDocs = readProjectFile("docs/OBSERVABILITY.md");
+	const metricsService = readProjectFile("apps/api/src/shared/metrics/metrics.service.ts");
+	const metricsInterceptor = readProjectFile("apps/api/src/shared/metrics/metrics.interceptor.ts");
+	const metricsSpec = readProjectFile("apps/api/src/shared/metrics/metrics.service.spec.ts");
+	const grafanaDashboardText = readProjectFile("docs/observability/grafana-dashboard.json");
+	const grafanaDashboard = JSON.parse(grafanaDashboardText);
 	assert(healthModule.includes("DetailedHealthController"), "health module registers detailed health controller");
 	assert(healthModule.includes("HealthDiagnosticsService"), "health module registers diagnostics service");
 	assert(main.includes('path: "health/live"'), "liveness endpoint is excluded from global API prefix");
@@ -393,6 +400,24 @@ function assertHealthObservabilitySurface() {
 	assert(healthApiTest.includes("/api/v1/health/detailed"), "HTTP API tests cover detailed health access control");
 	assert(openApiSmoke.includes("/api/v1/health/detailed"), "OpenAPI smoke contract includes detailed health endpoint");
 	assert(observabilityDocs.includes("/api/v1/health/detailed"), "observability docs document detailed health endpoint");
+	assert(metricsService.includes("tenant_request_count"), "metrics service exposes tenant request counter");
+	assert(metricsService.includes("db_query_duration_seconds"), "metrics service exposes DB query duration histogram");
+	assert(metricsService.includes("queue_job_duration_seconds"), "metrics service exposes queue job duration histogram");
+	assert(metricsService.includes("queue_jobs_total"), "metrics service exposes queue job result counter");
+	assert(metricsService.includes("auth_login_attempts_total"), "metrics service exposes auth login attempt counter");
+	assert(metricsService.includes("business_metric_events_total"), "metrics service exposes starter-pack business metrics");
+	assert(metricsService.includes("MAX_TENANT_METRIC_LABELS = 100"), "metrics service bounds tenant metric cardinality");
+	assert(metricsInterceptor.includes("recordTenantRequest"), "metrics interceptor records tenant request volume");
+	assert(metricsSpec.includes("bounds tenant metric cardinality"), "metrics tests cover tenant cardinality guardrail");
+	assert(observabilityDocs.includes("grafana-dashboard.json"), "observability docs link the importable Grafana dashboard");
+	assert(grafanaDashboard.title === "Vyllion SaaS Operational Health", "Grafana dashboard has a production title");
+	assert(Array.isArray(grafanaDashboard.panels) && grafanaDashboard.panels.length >= 8, "Grafana dashboard has operational panels");
+	assert(grafanaDashboardText.includes("http_request_duration_seconds"), "Grafana dashboard charts HTTP latency");
+	assert(grafanaDashboardText.includes("tenant_request_count"), "Grafana dashboard charts tenant request volume");
+	assert(grafanaDashboardText.includes("db_query_duration_seconds"), "Grafana dashboard charts DB latency");
+	assert(grafanaDashboardText.includes("queue_jobs_total"), "Grafana dashboard charts queue job failures");
+	assert(grafanaDashboardText.includes("auth_login_attempts_total"), "Grafana dashboard charts auth login attempts");
+	assert(grafanaDashboardText.includes("business_metric_events_total"), "Grafana dashboard charts starter-pack business metrics");
 }
 
 function assertUploadHardeningSurface() {
