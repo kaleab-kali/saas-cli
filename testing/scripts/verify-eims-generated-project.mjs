@@ -234,6 +234,7 @@ function assertGeneratedStructure() {
 	assert(appModule.includes("InvoicingModule,"), "API app registers InvoicingModule");
 
 	const packageJson = JSON.parse(readProjectFile("package.json"));
+	const productionEnvExample = readProjectFile(".env.production.example");
 	assert(packageJson.scripts["test:eims:mock"]?.includes("test:eims:ui"), "generated package has full EIMS mock gate");
 	assert(packageJson.scripts["test:eims:api"]?.includes("api-tests"), "generated package has EIMS API tests");
 	assert(
@@ -264,6 +265,8 @@ function assertGeneratedStructure() {
 	const eimsStarter = scaffoldState.starters?.find((starter) => starter.name === "eims");
 	assert(eimsStarter, "scaffold state records EIMS starter installation");
 	assert(eimsStarter.envVars?.includes("EIMS_ENV"), "scaffold state records EIMS env metadata");
+	assert(eimsStarter.envVars?.includes("EIMS_PHASE0_STRICT"), "scaffold state records EIMS strict-mode env metadata");
+	assert(eimsStarter.envVars?.includes("EIMS_LOOKUP_CACHE_TTL_SECONDS"), "scaffold state records EIMS lookup cache env metadata");
 	assert(eimsStarter.routes?.includes("/eims/setup"), "scaffold state records EIMS route metadata");
 	assert(eimsStarter.models?.includes("EimsCredential"), "scaffold state records EIMS model metadata");
 	assert(eimsStarter.permissions?.includes("eims-submission:*"), "scaffold state records EIMS permission metadata");
@@ -280,6 +283,10 @@ function assertGeneratedStructure() {
 		apiTestsPackageJson.scripts?.["test:eims:mock"]?.includes("eims-http"),
 		"EIMS API mock test script is installed",
 	);
+	assert(productionEnvExample.includes("EIMS_ENV=production"), "EIMS production env example defaults to production");
+	assert(productionEnvExample.includes("EIMS_MOCK_MODE=false"), "EIMS production env example disables mock mode");
+	assert(productionEnvExample.includes("EIMS_SIGNING_PROVIDER=vault"), "EIMS production env example uses non-local signing");
+	assert(productionEnvExample.includes("EIMS_PHASE0_STRICT=true"), "EIMS production env example enables Phase 0 strict mode");
 	const webPackageJson = JSON.parse(readProjectFile("apps/web/package.json"));
 	assert(webPackageJson.scripts?.lint === "biome check .", "web workspace lint uses Biome");
 	assert(webPackageJson.scripts?.format === "biome check --write .", "web workspace format uses Biome");
@@ -336,6 +343,11 @@ function assertGeneratedStructure() {
 		eimsSecuritySmoke.includes("EIMS acceptance cases must stay admin-only"),
 		"EIMS security smoke enforces admin-only acceptance cases",
 	);
+	const eimsPhase0Runbook = readProjectFile("docs/EIMS_PHASE0_RUNBOOK.md");
+	assert(eimsPhase0Runbook.includes("pnpm doctor:production"), "EIMS runbook documents production doctor gate");
+	assert(eimsPhase0Runbook.includes("Phase 0 strict mode"), "EIMS runbook documents strict production readiness");
+	const eimsTenantOnboardingGuide = readProjectFile("docs/EIMS_TENANT_ONBOARDING.md");
+	assert(eimsTenantOnboardingGuide.includes("concierge launch console"), "EIMS tenant guide names onboarding as primary launch UI");
 
 	const appSidebar = readProjectFile("apps/web/src/components/layout/AppSidebar.tsx");
 	assert(appSidebar.includes('labelKey: "sidebar.eims"'), "tenant sidebar includes EIMS navigation group");

@@ -22,6 +22,8 @@ Use this checklist before moving a generated SaaS into production.
 - `BETTER_AUTH_SECRET` is unique to this environment.
 - `MASTER_KEY` is unique to this environment.
 - `FRONTEND_URL` and `BETTER_AUTH_URL` use HTTPS.
+- `METRICS_TOKEN` protects `/api/v1/metrics`.
+- `SMTP_HOST` and `SMTP_FROM` point at a verified sending domain.
 - Payment, email, object storage, and webhook secrets are set only in environment variables.
 
 ## Database
@@ -36,6 +38,7 @@ Use this checklist before moving a generated SaaS into production.
 
 - Health endpoint is reachable.
 - Metrics endpoint is protected or private.
+- Browser error reports reach `/api/v1/error-reports` and are visible in logs or your incident workflow.
 - Logs include request IDs and organization IDs where appropriate.
 - Queue workers are running.
 - Failed job retry process is documented.

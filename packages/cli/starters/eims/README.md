@@ -18,4 +18,6 @@ Refresh reapplies the starter-owned web UI, routes, EIMS browser tests, package 
 
 The installer copies EIMS source artifacts from `packages/cli/starters/eims/artifacts` and applies the required Prisma, route, permission, script, environment, seed, and sidebar patches. After install, authenticated users still land on `/onboarding` because the concierge workflow is the primary EIMS launch surface; tax operations stay available under `/eims`. The generated `db:seed` chain registers the `eims-restaurant` concierge onboarding template so `/admin/onboarding/new` can start the 15-step MoR, INSA, credential, sandbox, and production-readiness workflow.
 
+Production readiness is enforced by `pnpm doctor:production`. For an EIMS install it blocks launch when the app is still in mock mode, lacks production MoR/EIMS URLs, lacks an HTTPS callback URL, uses local signing, or has Phase 0 strict mode disabled.
+
 The `pack.json` manifest is the source-of-truth metadata for routes, models, permissions, environment variables, seed data, queues, and cron jobs.

@@ -1285,6 +1285,19 @@ EIMS_PHASE0_STRICT=false
 EIMS_CALLBACK_PUBLIC_URL=
 EIMS_LOOKUP_CACHE_TTL_SECONDS=300
 EIMS_QUEUE_PREFIX=eims`;
+	const productionBlock = `# --- EIMS / Ethiopian e-invoicing (optional starter) ---
+EIMS_ENV=production
+EIMS_BASE_URL_SANDBOX=
+EIMS_BASE_URL_PRODUCTION=https://eims.example.gov.et
+EIMS_BULK_URL_SANDBOX=
+EIMS_BULK_URL_PRODUCTION=https://eims-bulk.example.gov.et
+EIMS_SIGNING_PROVIDER=vault
+EIMS_CANONICALIZATION_VERSION=phase0-unlocked
+EIMS_MOCK_MODE=false
+EIMS_PHASE0_STRICT=true
+EIMS_CALLBACK_PUBLIC_URL=https://your-domain.com/api/v1/eims/callbacks
+EIMS_LOOKUP_CACHE_TTL_SECONDS=300
+EIMS_QUEUE_PREFIX=eims`;
 
 	await appendBlockIfMissing(
 		path.join(root, ".env.example"),
@@ -1294,7 +1307,7 @@ EIMS_QUEUE_PREFIX=eims`;
 	await appendBlockIfMissing(
 		path.join(root, ".env.production.example"),
 		"EIMS_ENV=",
-		block,
+		productionBlock,
 	);
 	await appendBlockIfMissing(
 		path.join(root, "apps/api/.env.example"),
@@ -5400,6 +5413,8 @@ Start with Phase 0 Layer A before implementing real MoR/EIMS calls.
 Layer A runs locally and proves signing, canonicalization, date, decimal, lookup, and counter assumptions without INSA sandbox credentials.
 
 Layer B runs against INSA/MoR sandbox after credentials and certificates are available.
+
+Before production go-live, run \`pnpm doctor:production\`. The doctor blocks launch if EIMS is still in mock mode, lacks production MoR URLs, lacks an HTTPS callback URL, uses local signing, or has Phase 0 strict mode disabled.
 `,
 		"EIMS_VAULT_RUNBOOK.md": `# EIMS Vault Runbook
 
@@ -5412,6 +5427,8 @@ Collect architecture diagrams, schema exports, RLS policies, audit hash-chain sa
 		"EIMS_TENANT_ONBOARDING.md": `# EIMS Tenant Onboarding
 
 Onboarding follows: 2FA setup, enterprise, establishment, source system, MoR approval, CSR/certificate, credentials, sandbox test, production switch.
+
+The concierge launch console is the primary UI for staff-assisted EIMS launches. EIMS tax operations remain available under \`/eims\`, but production approval should happen from the onboarding task after evidence, certificate, and first live invoice checks are complete.
 `,
 		"EIMS_DR_RUNBOOK.md": `# EIMS DR Runbook
 

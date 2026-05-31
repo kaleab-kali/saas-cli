@@ -36,7 +36,7 @@ pnpm gen:starter eims
 pnpm gen:starter:uninstall eims
 ```
 
-`pnpm doctor` checks env files, Prisma client state, database/Redis ports, and app ports. `pnpm doctor:production` turns missing production prerequisites into release blockers. `pnpm gen:module <name>` creates one generic API module and web feature route. `pnpm gen:starters` lists available starter packs. `pnpm gen:starter <pack>` installs an optional pack, and `pnpm gen:starter:uninstall <pack>` removes packs that support automated uninstall.
+`pnpm doctor` checks env files, Prisma client state, database/Redis ports, and app ports. `pnpm doctor:production` turns missing production prerequisites into release blockers, including HTTPS public URLs, deploy env, metrics protection, SMTP readiness, and installed starter-pack go-live settings. `pnpm gen:module <name>` creates one generic API module and web feature route. `pnpm gen:starters` lists available starter packs. `pnpm gen:starter <pack>` installs an optional pack, and `pnpm gen:starter:uninstall <pack>` removes packs that support automated uninstall.
 
 ## Quality Gates
 

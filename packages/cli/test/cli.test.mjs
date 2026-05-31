@@ -57,6 +57,7 @@ test("lists starter pack metadata", () => {
 	assert.match(output, /Manifest:/);
 	assert.match(output, /Env vars:/);
 	assert.match(output, /EIMS_ENV/);
+	assert.match(output, /EIMS_PHASE0_STRICT/);
 	assert.match(output, /Models:/);
 	assert.match(output, /EimsCredential/);
 	assert.match(output, /Seed data:/);
@@ -115,6 +116,52 @@ test("doctor checks installed starter env vars from pack metadata", () => {
 		assert.match(output, /starter state.*eims/);
 		assert.match(output, /starter:eims env/);
 		assert.match(output, /EIMS_BASE_URL_SANDBOX/);
+	} finally {
+		removeDir(targetDir);
+	}
+});
+
+test("production doctor blocks unsafe EIMS go-live settings", () => {
+	const targetDir = path.join(tmpRoot, `doctor-eims-production-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
+	removeDir(targetDir);
+
+	try {
+		mkdirSync(path.join(targetDir, "apps/api"), { recursive: true });
+		writeFileSync(path.join(targetDir, "package.json"), JSON.stringify({ scripts: {} }), "utf8");
+		writeFileSync(
+			path.join(targetDir, ".scaffold-state.json"),
+			JSON.stringify({ version: 1, starters: [{ name: "eims" }] }),
+			"utf8",
+		);
+		writeFileSync(
+			path.join(targetDir, "apps/api/.env"),
+			[
+				"NODE_ENV=production",
+				"DATABASE_URL=postgresql://app:secret@127.0.0.1:5432/app",
+				"REDIS_URL=redis://127.0.0.1:6379",
+				"MASTER_KEY=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+				"BETTER_AUTH_SECRET=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+				"BETTER_AUTH_URL=https://app.test",
+				"FRONTEND_URL=https://app.test",
+				"METRICS_TOKEN=metrics-token",
+				"SMTP_HOST=smtp.app.test",
+				"SMTP_FROM=noreply@app.test",
+				"API_RATE_LIMIT_PER_TENANT=60",
+				"EIMS_ENV=sandbox",
+				"EIMS_MOCK_MODE=true",
+				"EIMS_SIGNING_PROVIDER=local",
+				"EIMS_PHASE0_STRICT=false",
+			].join("\n"),
+			"utf8",
+		);
+
+		const result = runCli(["doctor", "--production"], { cwd: targetDir });
+		assert.notEqual(result.status, 0, outputOf(result));
+		const output = outputOf(result);
+		assert.match(output, /EIMS_ENV.*must be production/);
+		assert.match(output, /EIMS_MOCK_MODE.*must be false/);
+		assert.match(output, /EIMS_SIGNING_PROVIDER.*non-local signing provider/);
+		assert.match(output, /EIMS_PHASE0_STRICT.*must be true/);
 	} finally {
 		removeDir(targetDir);
 	}

@@ -77,6 +77,100 @@ const requireScript = (pkg, name) => {
 	else production ? status.fail(`script:${name}`, "required before deploy") : status.warn(`script:${name}`, "recommended");
 };
 
+const placeholderPattern = /change-me|generate_with|strong_password|your-domain|example\./i;
+
+const envValue = (values, key) => String(values[key] ?? "").trim();
+
+const requireEnvValue = (values, key, detail = "required before deploy") => {
+	const value = envValue(values, key);
+	if (value && !placeholderPattern.test(value)) {
+		status.ok(`${key} configured`);
+		return true;
+	}
+	production ? status.fail(key, detail) : status.warn(key, detail);
+	return false;
+};
+
+const requireHttpsEnvUrl = (values, key) => {
+	const value = envValue(values, key);
+	try {
+		const url = new URL(value);
+		if (url.protocol === "https:" && !["localhost", "127.0.0.1", "0.0.0.0"].includes(url.hostname) && !placeholderPattern.test(value)) {
+			status.ok(`${key} uses HTTPS`);
+			return true;
+		}
+	} catch {
+		// handled below
+	}
+	const detail = "must be a real HTTPS URL before production deploy";
+	production ? status.fail(key, detail) : status.warn(key, detail);
+	return false;
+};
+
+const requireDeployEnv = () => {
+	if (!existsSync(".env.deploy") && !existsSync(".env.deploy.production")) {
+		production
+			? status.fail("deploy env", "create .env.deploy.production from .env.deploy.example")
+			: status.warn("deploy env", "recommended for staging/production deploys");
+		return;
+	}
+
+	const deployEnv = { ...env(".env.deploy"), ...env(".env.deploy.production"), ...process.env };
+	if (deployEnv.DEPLOY_HOST && !placeholderPattern.test(deployEnv.DEPLOY_HOST)) status.ok("DEPLOY_HOST configured");
+	else production ? status.fail("DEPLOY_HOST", "required in .env.deploy.production") : status.warn("DEPLOY_HOST", "missing");
+};
+
+const checkProductionCoreEnv = (apiEnv) => {
+	if (!production) return;
+	apiEnv.NODE_ENV === "production" ? status.ok("NODE_ENV", "production") : status.fail("NODE_ENV", "must be production for release checks");
+	requireEnvValue(apiEnv, "DATABASE_URL");
+	requireEnvValue(apiEnv, "REDIS_URL");
+	requireHttpsEnvUrl(apiEnv, "BETTER_AUTH_URL");
+	requireHttpsEnvUrl(apiEnv, "FRONTEND_URL");
+	requireEnvValue(apiEnv, "METRICS_TOKEN", "protect /api/v1/metrics with a bearer token");
+	requireEnvValue(apiEnv, "SMTP_HOST", "configure an SMTP relay before launch");
+	requireEnvValue(apiEnv, "SMTP_FROM", "configure a verified sender before launch");
+	requireEnvValue(apiEnv, "API_RATE_LIMIT_PER_TENANT", "configure tenant rate limits before launch");
+	requireDeployEnv();
+
+	if (apiEnv.STORAGE_DRIVER === "object") {
+		requireEnvValue(apiEnv, "OBJECT_STORAGE_ENDPOINT");
+		requireEnvValue(apiEnv, "OBJECT_STORAGE_BUCKET");
+		requireEnvValue(apiEnv, "OBJECT_STORAGE_ACCESS_KEY");
+		requireEnvValue(apiEnv, "OBJECT_STORAGE_SECRET_KEY");
+	} else {
+		status.warn("STORAGE_DRIVER", "local uploads are acceptable for a single VPS, object storage is preferred for production scale");
+	}
+};
+
+const hasEnvKey = (values, key) => Object.prototype.hasOwnProperty.call(values, key);
+
+const checkEimsProductionEnv = (apiEnv, eimsInstalled) => {
+	if (!eimsInstalled && !hasEnvKey(apiEnv, "EIMS_ENV")) return;
+	if (!hasEnvKey(apiEnv, "EIMS_ENV")) {
+		production ? status.fail("EIMS_ENV", "missing for installed EIMS starter") : status.warn("EIMS_ENV", "missing for installed EIMS starter");
+		return;
+	}
+	if (!production) return;
+	apiEnv.EIMS_ENV === "production"
+		? status.ok("EIMS_ENV", "production")
+		: status.fail("EIMS_ENV", "must be production before real EIMS go-live");
+	apiEnv.EIMS_MOCK_MODE === "false"
+		? status.ok("EIMS_MOCK_MODE", "false")
+		: status.fail("EIMS_MOCK_MODE", "must be false before production go-live");
+	requireHttpsEnvUrl(apiEnv, "EIMS_BASE_URL_PRODUCTION");
+	requireHttpsEnvUrl(apiEnv, "EIMS_BULK_URL_PRODUCTION");
+	requireHttpsEnvUrl(apiEnv, "EIMS_CALLBACK_PUBLIC_URL");
+
+	const signingProvider = envValue(apiEnv, "EIMS_SIGNING_PROVIDER");
+	if (signingProvider && signingProvider !== "local") status.ok("EIMS_SIGNING_PROVIDER", signingProvider);
+	else status.fail("EIMS_SIGNING_PROVIDER", "use vault, kms, hsm, or another non-local signing provider before production");
+
+	apiEnv.EIMS_PHASE0_STRICT === "true"
+		? status.ok("EIMS_PHASE0_STRICT", "true")
+		: status.fail("EIMS_PHASE0_STRICT", "must be true before EIMS production launch");
+};
+
 const main = async () => {
 	console.log(`{{projectName}} doctor${production ? " --production" : ""}\n`);
 
@@ -96,6 +190,8 @@ const main = async () => {
 			: status.warn("Prisma client", "run pnpm db:generate");
 
 	const apiEnv = { ...env("apps/api/.env"), ...process.env };
+	const scaffoldState = json(".scaffold-state.json");
+	const eimsInstalled = Boolean(scaffoldState?.starters?.some((starter) => starter?.name === "eims"));
 	apiEnv.DATABASE_URL ? status.ok("DATABASE_URL") : status.warn("DATABASE_URL", "missing");
 	/^[a-f0-9]{64}$/i.test(apiEnv.MASTER_KEY ?? "")
 		? status.ok("MASTER_KEY", "32-byte hex")
@@ -107,9 +203,12 @@ const main = async () => {
 		: production
 			? status.fail("BETTER_AUTH_SECRET", "set a 32-byte hex secret with openssl rand -hex 32")
 			: status.warn("BETTER_AUTH_SECRET", "missing or weak");
+	checkProductionCoreEnv(apiEnv);
+	checkEimsProductionEnv(apiEnv, eimsInstalled);
 
 	for (const script of [
 		"lint:ci",
+		"deploy:check",
 		"deploy",
 		"build:api",
 		"build:web",
@@ -132,9 +231,17 @@ const main = async () => {
 		["scripts/backup-postgres.mjs", "Postgres backup script"],
 		["scripts/restore-postgres.mjs", "Postgres restore script"],
 		["scripts/deploy.mjs", "VPS deploy script"],
+		[".env.deploy.example", "deploy env example"],
 		[".gitleaks.toml", "gitleaks config"],
+		["ecosystem.config.cjs", "PM2 ecosystem config"],
+		["Caddyfile", "Caddy reverse-proxy config"],
+		["docs/DEPLOYMENT.md", "deployment guide"],
+		["docs/DISASTER_RECOVERY.md", "disaster recovery guide"],
+		["docs/MIGRATIONS_PLAYBOOK.md", "migration playbook"],
+		["docs/OBSERVABILITY.md", "observability guide"],
 		["docs/SECURITY.md", "security guide"],
 		["docs/PRE_LAUNCH_CHECKLIST.md", "pre-launch checklist"],
+		["docs/observability/grafana-dashboard.json", "Grafana dashboard"],
 	]) {
 		requirePath(path, label);
 	}
