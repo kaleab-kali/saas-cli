@@ -169,6 +169,9 @@ test("production doctor blocks unsafe EIMS go-live settings", () => {
 		assert.match(output, /EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED.*offline invoices/);
 		assert.match(output, /EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED.*bulk conversations/);
 		assert.match(output, /BULLMQ_QUEUES.*include EIMS queues/);
+		assert.match(output, /script:test:eims:sdk-contract.*production readiness/);
+		assert.match(output, /script:test:eims:production-readiness.*production readiness/);
+		assert.match(output, /EIMS production readiness preflight.*production readiness/);
 	} finally {
 		removeDir(targetDir);
 	}
@@ -231,6 +234,10 @@ test("adds and removes the EIMS starter without leaving generated residue", () =
 			existsSync(path.join(targetDir, "apps/performance/scripts/eims-mock-load.mjs")),
 			"EIMS performance smoke should be installed",
 		);
+		assert.ok(
+			existsSync(path.join(targetDir, "apps/security/scripts/eims-production-readiness.mjs")),
+			"EIMS production readiness preflight should be installed",
+		);
 
 		const removeResult = runCli(["remove", "starter", "eims"], { cwd: targetDir, timeout: 120_000 });
 		assert.equal(removeResult.status, 0, outputOf(removeResult));
@@ -238,6 +245,10 @@ test("adds and removes the EIMS starter without leaving generated residue", () =
 		assert.ok(
 			!existsSync(path.join(targetDir, "apps/performance/scripts/eims-mock-load.mjs")),
 			"EIMS performance smoke should be removed",
+		);
+		assert.ok(
+			!existsSync(path.join(targetDir, "apps/security/scripts/eims-production-readiness.mjs")),
+			"EIMS production readiness preflight should be removed",
 		);
 		assert.ok(
 			!existsSync(path.join(targetDir, "apps/api/prisma/seed-eims-onboarding-template.ts")),

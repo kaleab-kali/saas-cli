@@ -1229,10 +1229,23 @@ const patchEimsPackageScripts = async (root) => {
 		json.scripts["test:eims:ui:headed"] ??=
 			"pnpm --filter e2e test:eims:headed";
 		json.scripts["test:eims:security"] ??= "pnpm --filter security test:eims";
+		json.scripts["test:eims:production-readiness"] ??=
+			"pnpm --filter security test:eims:production-readiness";
 		json.scripts["test:eims:performance"] ??=
 			"pnpm --filter performance test:eims";
 		json.scripts["test:eims:mock"] ??=
-			"pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:api && pnpm test:eims:phase0 && pnpm test:eims:acceptance && pnpm test:eims:security && pnpm test:eims:performance && pnpm test:eims:ui";
+			"pnpm db:generate && pnpm lint && pnpm typecheck && pnpm test:eims:local && pnpm phase0:eims:local && pnpm test:eims:api && pnpm test:eims:phase0 && pnpm test:eims:acceptance && pnpm test:eims:production-readiness && pnpm test:eims:security && pnpm test:eims:performance && pnpm test:eims:ui";
+		if (
+			typeof json.scripts["test:eims:mock"] === "string" &&
+			!json.scripts["test:eims:mock"].includes("test:eims:production-readiness")
+		) {
+			json.scripts["test:eims:mock"] = json.scripts["test:eims:mock"].includes("pnpm test:eims:security")
+				? json.scripts["test:eims:mock"].replace(
+						"pnpm test:eims:security",
+						"pnpm test:eims:production-readiness && pnpm test:eims:security",
+					)
+				: `${json.scripts["test:eims:mock"]} && pnpm test:eims:production-readiness`;
+		}
 		return json;
 	});
 	await patchJsonFile(path.join(root, "apps/acceptance/package.json"), (json) => {
@@ -1256,6 +1269,8 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "apps/security/package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims"] ??= "node scripts/eims-security-smoke.mjs";
+		json.scripts["test:eims:production-readiness"] ??=
+			"node scripts/eims-production-readiness.mjs";
 		return json;
 	});
 	await patchJsonFile(path.join(root, "apps/performance/package.json"), (json) => {
@@ -6197,6 +6212,204 @@ if (failures.length > 0) {
 console.log("EIMS security smoke passed");
 `,
 	);
+	await writeNew(
+		path.join(root, "apps/security/scripts/eims-production-readiness.mjs"),
+		`import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { repoRoot } from "./lib.mjs";
+
+const failures = [];
+const eimsRoot = path.join(repoRoot, "apps/api/src/modules/eims");
+
+const fail = (message) => failures.push(message);
+
+const readRequired = (relPath) => {
+\tconst fullPath = path.join(repoRoot, relPath);
+\tif (!existsSync(fullPath)) {
+\t\tfail(\`\${relPath} is missing\`);
+\t\treturn "";
+\t}
+\treturn readFileSync(fullPath, "utf8");
+};
+
+const readJson = (relPath) => {
+\tconst text = readRequired(relPath);
+\tif (!text) return {};
+\ttry {
+\t\treturn JSON.parse(text);
+\t} catch {
+\t\tfail(\`\${relPath} must be valid JSON\`);
+\t\treturn {};
+\t}
+};
+
+const assertIncludes = (text, needle, message) => {
+\tif (!text.includes(needle)) fail(message);
+};
+
+const assertScriptIncludes = (pkg, scriptName, expected, message) => {
+\tconst script = pkg.scripts?.[scriptName];
+\tif (typeof script !== "string" || !script.includes(expected)) fail(message);
+};
+
+if (!existsSync(eimsRoot)) {
+\tconsole.log("EIMS production readiness preflight skipped because the EIMS starter is not installed.");
+\tprocess.exit(0);
+}
+
+const packageJson = readJson("package.json");
+const securityPackageJson = readJson("apps/security/package.json");
+assertScriptIncludes(
+\tpackageJson,
+\t"test:eims:sdk-contract",
+\t"scripts/eims-sdk-contract.ts",
+\t"EIMS root scripts must expose the SDK contract gate",
+);
+assertScriptIncludes(
+\tpackageJson,
+\t"test:eims:production-readiness",
+\t"test:eims:production-readiness",
+\t"EIMS root scripts must expose the production-readiness preflight",
+);
+assertScriptIncludes(
+\tpackageJson,
+\t"test:eims:mock",
+\t"test:eims:production-readiness",
+\t"EIMS mock gate must include the production-readiness preflight",
+);
+assertScriptIncludes(
+\tsecurityPackageJson,
+\t"test:eims:production-readiness",
+\t"eims-production-readiness.mjs",
+\t"EIMS security workspace must expose the production-readiness preflight",
+);
+
+const productionEnv = readRequired(".env.production.example");
+for (const [needle, message] of [
+\t["EIMS_ENV=production", "production env example must set EIMS_ENV=production"],
+\t["EIMS_SDK_PACKAGE_NAME=", "production env example must include the SDK package variable"],
+\t["EIMS_BASE_URL_PRODUCTION=https://", "production env example must require an HTTPS EIMS base URL"],
+\t["EIMS_BULK_URL_PRODUCTION=https://", "production env example must require an HTTPS EIMS bulk URL"],
+\t["EIMS_CALLBACK_PUBLIC_URL=https://", "production env example must require an HTTPS callback URL"],
+\t["EIMS_CALLBACK_HMAC_SECRET=", "production env example must include a callback HMAC secret"],
+\t["EIMS_SIGNING_PROVIDER=vault", "production env example must avoid local signing"],
+\t["EIMS_MOCK_MODE=false", "production env example must disable mock mode"],
+\t["EIMS_PHASE0_STRICT=true", "production env example must enable strict phase 0 checks"],
+\t["EIMS_WORKERS_ENABLED=true", "production env example must enable EIMS workers"],
+\t["EIMS_SUBMISSION_DISTRIBUTED_LOCKS=true", "production env example must enable distributed source locks"],
+\t[
+\t\t"EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED=true",
+\t\t"production env example must enable bulk reconciliation scheduling",
+\t],
+\t["EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED=true", "production env example must enable offline replay scheduling"],
+]) {
+\tassertIncludes(productionEnv, needle, message);
+}
+for (const queueName of ["eims-submission-retry", "eims-bulk-callback", "eims-offline-replay"]) {
+\tassertIncludes(productionEnv, queueName, \`production env example must register \${queueName}\`);
+}
+
+const sdkContract = readRequired("apps/api/scripts/eims-sdk-contract.ts");
+for (const capability of [
+\t"registerInvoice",
+\t"registerReceipt",
+\t"verifyIrn",
+\t"validateCredential",
+\t"submitBulk",
+\t"pollBulkStatus",
+\t"cancelInvoice",
+]) {
+\tassertIncludes(sdkContract, capability, \`SDK contract gate must prove \${capability} capability\`);
+}
+assertIncludes(
+\tsdkContract,
+\t"Set EIMS_SDK_PACKAGE_NAME to the published SDK package",
+\t"SDK contract gate must fail closed for placeholder packages",
+);
+assertIncludes(sdkContract, "process.exit(1)", "SDK contract gate must fail the process when proof is missing");
+
+const sdkProvider = readRequired("apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.ts");
+assertIncludes(sdkProvider, "EIMS_SDK_PACKAGE_NAME", "SDK provider must load the configured SDK package");
+assertIncludes(
+\tsdkProvider,
+\t"registerInvoice/registerReceipt/verifyIrn/validateCredential/submitBulk/pollBulkStatus/cancelInvoice-capable",
+\t"SDK provider must require every SaaS-consumed SDK capability",
+);
+const sdkAdapter = readRequired("apps/api/src/modules/eims/shared/client/eims-sdk-external.client.ts");
+for (const methodName of [
+\t"registerInvoice",
+\t"registerReceipt",
+\t"verifyIrn",
+\t"validateCredential",
+\t"submitBulk",
+\t"pollBulkStatus",
+\t"cancelInvoice",
+]) {
+\tassertIncludes(sdkAdapter, methodName, \`SaaS adapter must delegate \${methodName} to the SDK\`);
+}
+assertIncludes(sdkAdapter, "this.requireSdk()", "SaaS adapter must fail closed when SDK wiring is missing");
+
+const rlsPolicies = readRequired("apps/api/prisma/eims-rls-policies.sql");
+for (const table of [
+\t"eims_enterprise",
+\t"eims_establishment",
+\t"eims_source_system",
+\t"eims_credential",
+\t"eims_certificate",
+\t"eims_source_system_counter",
+\t"eims_counter_reservation",
+\t"user_establishment_assignment",
+\t"user_source_system_assignment",
+\t"tenant_buyer",
+\t"tax_invoice",
+\t"tax_invoice_line",
+\t"eims_submission",
+\t"eims_offline_pending_sync",
+\t"eims_bulk_callback_receipt",
+\t"eims_receipt",
+\t"eims_cancellation",
+\t"eims_audit_event",
+\t"eims_notification_log",
+]) {
+\tassertIncludes(rlsPolicies, \`ALTER TABLE \${table} ENABLE ROW LEVEL SECURITY\`, \`\${table} must enable RLS\`);
+\tassertIncludes(rlsPolicies, \`ALTER TABLE \${table} FORCE ROW LEVEL SECURITY\`, \`\${table} must force RLS\`);
+}
+assertIncludes(rlsPolicies, "app.current_organization_id", "RLS policies must bind to tenant context");
+assertIncludes(rlsPolicies, "WITH CHECK", "RLS policies must protect writes");
+
+const auditHashChain = readRequired("apps/api/prisma/eims-audit-hash-chain.sql");
+for (const [needle, message] of [
+\t["CREATE EXTENSION IF NOT EXISTS pgcrypto", "audit hash chain must use pgcrypto"],
+\t["trg_eims_audit_hash_chain", "audit hash chain trigger must be present"],
+\t["BEFORE INSERT ON eims_audit_event", "audit hash must be assigned before insert"],
+\t["BEFORE UPDATE ON eims_audit_event", "audit events must block updates"],
+\t["BEFORE DELETE ON eims_audit_event", "audit events must block deletes"],
+]) {
+\tassertIncludes(auditHashChain, needle, message);
+}
+
+const phase0Runbook = readRequired("docs/EIMS_PHASE0_RUNBOOK.md");
+assertIncludes(phase0Runbook, "pnpm test:eims:sdk-contract", "runbook must document SDK contract proof");
+assertIncludes(phase0Runbook, "pnpm doctor:production", "runbook must document production doctor gate");
+assertIncludes(
+\tphase0Runbook,
+\t"authority receipt protocol details",
+\t"runbook must state authority protocol behavior belongs behind the SDK",
+);
+const vaultRunbook = readRequired("docs/EIMS_VAULT_RUNBOOK.md");
+assertIncludes(vaultRunbook, "Vault Transit", "vault runbook must name the production signing boundary");
+const complianceEvidence = readRequired("docs/EIMS_COMPLIANCE_EVIDENCE.md");
+assertIncludes(complianceEvidence, "RLS policies", "compliance docs must require RLS evidence collection");
+
+if (failures.length > 0) {
+\tconsole.error("EIMS production readiness preflight failed:");
+\tfor (const failure of failures) console.error(\`- \${failure}\`);
+\tprocess.exit(1);
+}
+
+console.log("EIMS production readiness preflight passed");
+`,
+	);
 };
 
 const writeEimsDocs = async (root) => {
@@ -6239,7 +6452,11 @@ Cancellation requests are validated by the SaaS layer for tenant input shape and
 then submitted through the SDK cancellation capability. The generated app does
 not embed authority cancellation protocol details.
 
-Before production go-live, run \`pnpm doctor:production\`. The doctor blocks launch if EIMS is still in mock mode, lacks production MoR URLs, lacks an HTTPS callback URL, uses local signing, or has Phase 0 strict mode disabled.
+Before production go-live, run \`pnpm test:eims:production-readiness\` and
+\`pnpm doctor:production\`. The preflight checks SDK-bound contract wiring,
+production env examples, RLS SQL, audit hash-chain SQL, and runbook artifacts.
+The doctor blocks launch if EIMS is still in mock mode, lacks production MoR
+URLs, lacks an HTTPS callback URL, uses local signing, or has Phase 0 strict mode disabled.
 `,
 		"EIMS_VAULT_RUNBOOK.md": `# EIMS Vault Runbook
 

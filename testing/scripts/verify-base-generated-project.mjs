@@ -24,6 +24,7 @@ const mustNotExist = [
 	"apps/e2e/tests/eims-mock.spec.ts",
 	"apps/performance/k6/eims-submit.js",
 	"apps/performance/scripts/eims-mock-load.mjs",
+	"apps/security/scripts/eims-production-readiness.mjs",
 	"apps/security/scripts/eims-security-smoke.mjs",
 	"apps/web/src/features/eims",
 	"apps/web/src/routes/_authenticated/eims",

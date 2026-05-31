@@ -18,6 +18,7 @@ const EIMS_PATHS = [
 	"apps/e2e/tests/eims-mock.reference.txt",
 	"apps/performance/k6/eims-submit.js",
 	"apps/performance/scripts/eims-mock-load.mjs",
+	"apps/security/scripts/eims-production-readiness.mjs",
 	"apps/security/scripts/eims-security-smoke.mjs",
 	"apps/web/src/features/eims",
 	"apps/web/src/features/invoicing",
@@ -215,7 +216,10 @@ const stripPackageScripts = async (root) => {
 		"package.json",
 		"apps/api/package.json",
 		"apps/api-tests/package.json",
+		"apps/acceptance/package.json",
 		"apps/e2e/package.json",
+		"apps/performance/package.json",
+		"apps/security/package.json",
 	].map((file) => path.join(root, file));
 
 	let changed = false;

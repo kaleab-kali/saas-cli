@@ -250,6 +250,7 @@ export const runDoctor = async (cwd, options = {}) => {
 	const webEnvPath = path.join(cwd, "apps/web/.env");
 	const apiGenerated = path.join(cwd, "apps/api/src/generated/prisma/client.ts");
 	const scaffoldState = readJson(path.join(cwd, ".scaffold-state.json"));
+	const installedStarterNames = new Set((scaffoldState?.starters ?? []).map((starter) => starter?.name).filter(Boolean));
 
 	existsSync(rootPackage) ? ok("package.json") : fail("package.json", "run from a generated project root");
 	existsSync(apiEnvPath) ? ok("apps/api/.env") : warn("apps/api/.env", "copy .env.example or rerun scaffold");
@@ -303,8 +304,23 @@ export const runDoctor = async (cwd, options = {}) => {
 		requireScript(rootPkg, "test:security", production);
 		requireScript(rootPkg, "test:load:k6:mock", production);
 		requireScript(rootPkg, "test:mutation", production);
+		if (installedStarterNames.has("eims")) {
+			requireScript(rootPkg, "test:eims:sdk-contract", production);
+			requireScript(rootPkg, "test:eims:production-readiness", production);
+		}
 		requireScript(rootPkg, "gen:starter", false);
 		requireScript(rootPkg, "gen:starter:uninstall", false);
+	}
+
+	if (installedStarterNames.has("eims")) {
+		requirePath(
+			path.join(cwd, "apps/security/scripts/eims-production-readiness.mjs"),
+			"EIMS production readiness preflight",
+			production,
+		);
+		requirePath(path.join(cwd, "apps/api/scripts/eims-sdk-contract.ts"), "EIMS SDK contract gate", production);
+		requirePath(path.join(cwd, "apps/api/prisma/eims-rls-policies.sql"), "EIMS RLS policy export", production);
+		requirePath(path.join(cwd, "apps/api/prisma/eims-audit-hash-chain.sql"), "EIMS audit hash-chain SQL", production);
 	}
 
 	requirePath(path.join(cwd, "apps/security/package.json"), "security workspace", production);

@@ -138,6 +138,7 @@ const requiredFiles = [
 	"apps/e2e/tests/eims-mock.spec.ts",
 	"apps/performance/k6/eims-submit.js",
 	"apps/performance/scripts/eims-mock-load.mjs",
+	"apps/security/scripts/eims-production-readiness.mjs",
 	"apps/security/scripts/eims-security-smoke.mjs",
 	"apps/api/prisma/seed-eims-onboarding-template.ts",
 	"apps/api/prisma/eims-rls-policies.sql",
@@ -392,6 +393,11 @@ function assertGeneratedStructure() {
 		"generated package has EIMS security smoke command",
 	);
 	assert(
+		packageJson.scripts["test:eims:production-readiness"] ===
+			"pnpm --filter security test:eims:production-readiness",
+		"generated package has EIMS production readiness preflight command",
+	);
+	assert(
 		packageJson.scripts["test:eims:performance"] === "pnpm --filter performance test:eims",
 		"generated package has EIMS performance smoke command",
 	);
@@ -410,6 +416,10 @@ function assertGeneratedStructure() {
 	assert(
 		packageJson.scripts["test:eims:mock"]?.includes("test:eims:acceptance"),
 		"generated EIMS mock gate includes acceptance coverage",
+	);
+	assert(
+		packageJson.scripts["test:eims:mock"]?.includes("test:eims:production-readiness"),
+		"generated EIMS mock gate includes production readiness preflight",
 	);
 	const scaffoldState = JSON.parse(readProjectFile(".scaffold-state.json"));
 	const eimsStarter = scaffoldState.starters?.find((starter) => starter.name === "eims");
@@ -582,6 +592,33 @@ function assertGeneratedStructure() {
 		securityPackageJson.scripts?.["test:eims"] === "node scripts/eims-security-smoke.mjs",
 		"EIMS security smoke script is installed",
 	);
+	assert(
+		securityPackageJson.scripts?.["test:eims:production-readiness"] ===
+			"node scripts/eims-production-readiness.mjs",
+		"EIMS production readiness preflight script is installed",
+	);
+	const eimsProductionReadiness = readProjectFile("apps/security/scripts/eims-production-readiness.mjs");
+	assert(
+		eimsProductionReadiness.includes("EIMS production readiness preflight passed"),
+		"EIMS production readiness preflight has a pass signal",
+	);
+	assert(
+		eimsProductionReadiness.includes("registerReceipt") &&
+			eimsProductionReadiness.includes("SDK contract gate must prove"),
+		"EIMS production readiness preflight verifies SDK receipt capability",
+	);
+	assert(
+		eimsProductionReadiness.includes("production env example must enable bulk reconciliation scheduling"),
+		"EIMS production readiness preflight verifies bulk reconciliation deployment env",
+	);
+	assert(
+		eimsProductionReadiness.includes("RLS policies must protect writes"),
+		"EIMS production readiness preflight verifies RLS write protection",
+	);
+	assert(
+		eimsProductionReadiness.includes("audit events must block deletes"),
+		"EIMS production readiness preflight verifies audit immutability",
+	);
 	const eimsSecuritySmoke = readProjectFile("apps/security/scripts/eims-security-smoke.mjs");
 	assert(!eimsSecuritySmoke.includes("add secret redaction"), "EIMS security smoke is not a placeholder");
 	assert(
@@ -668,6 +705,10 @@ function assertGeneratedStructure() {
 	assert(eimsSecuritySmoke.includes("must block deletes"), "EIMS security smoke enforces audit immutability");
 	const eimsPhase0Runbook = readProjectFile("docs/EIMS_PHASE0_RUNBOOK.md");
 	assert(eimsPhase0Runbook.includes("pnpm test:eims:sdk-contract"), "EIMS runbook documents SDK contract gate");
+	assert(
+		eimsPhase0Runbook.includes("pnpm test:eims:production-readiness"),
+		"EIMS runbook documents production readiness preflight",
+	);
 	assert(eimsPhase0Runbook.includes("pnpm doctor:production"), "EIMS runbook documents production doctor gate");
 	assert(eimsPhase0Runbook.includes("Phase 0 strict mode"), "EIMS runbook documents strict production readiness");
 	const eimsTenantOnboardingGuide = readProjectFile("docs/EIMS_TENANT_ONBOARDING.md");

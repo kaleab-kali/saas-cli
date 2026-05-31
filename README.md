@@ -90,7 +90,7 @@ create-vyllion-saas add starter eims --refresh
 create-vyllion-saas remove starter eims
 ```
 
-`doctor` checks the generated project environment. `doctor --production` turns missing release prerequisites into a failing gate, including HTTPS public URLs, deploy env, metrics protection, SMTP readiness, and installed starter-pack go-live settings. Generated projects also include `pnpm readiness:smoke` to prove deploy, backup, and restore dry-run paths locally. `add module` creates one generic API + web feature slice. `list starters` shows available packs. `add starter` installs an optional pack; EIMS is not part of the base scaffold unless installed. For an existing EIMS install, `add starter eims --refresh` reapplies starter-owned UI, routes, tests, scripts, and sidebar patches without overwriting API modules.
+`doctor` checks the generated project environment. `doctor --production` turns missing release prerequisites into a failing gate, including HTTPS public URLs, deploy env, metrics protection, SMTP readiness, and installed starter-pack go-live settings. Generated projects also include `pnpm readiness:smoke` to prove deploy, backup, and restore dry-run paths locally. EIMS installs add `pnpm test:eims:production-readiness`, which proves SDK contract wiring, production env examples, RLS SQL, audit hash-chain SQL, and runbook artifacts before the security and performance smokes. `add module` creates one generic API + web feature slice. `list starters` shows available packs. `add starter` installs an optional pack; EIMS is not part of the base scaffold unless installed. For an existing EIMS install, `add starter eims --refresh` reapplies starter-owned UI, routes, tests, scripts, and sidebar patches without overwriting API modules.
 
 ---
 

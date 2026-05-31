@@ -23,6 +23,9 @@ What is done cleanly:
 - Browser tests navigate tenant and super-admin EIMS pages on desktop and mobile.
 - A headed Playwright CLI command has been run and added for repeatable visible
   UI verification.
+- Generated EIMS projects include `pnpm test:eims:production-readiness`, which
+  checks SDK-bound contract wiring, production env examples, RLS SQL, audit
+  hash-chain SQL, and runbook artifacts before the security/performance smokes.
 
 What is not done yet:
 
@@ -32,7 +35,6 @@ What is not done yet:
 - Applied production PostgreSQL RLS migrations beyond the generated policy export.
 - Running SDK-bound credential validation against the published SDK package and real sandbox credentials.
 - Production printer/device QR scan certification across real hardware.
-- Deployment-specific background bulk polling cadence around durable callback receipts.
 
 ## V3 Coverage Matrix
 
@@ -52,11 +54,11 @@ What is not done yet:
 | Print layouts | PDF proof service implemented, hardware scan certification pending | Unit/API/UI tests | Compact/A4 metadata and official-QR rule verified. Starter now renders PDF proof buffers, fingerprints them, and rejects official QR proof unless the invoice is accepted and the signed QR matches the IRN. Real printer/device QR scan certification is not complete. |
 | Receipts/withholding | SDK-bound submission boundary implemented, real sandbox proof pending | Unit/API/UI/Bruno mock | Sales and withholding states verified. Receipt POST validates the linked invoice IRN and calls `EIMS_EXTERNAL_CLIENT.registerReceipt`, which delegates to the configured SDK in production and the mock connector locally. Real receipt acceptance still requires the published SDK package and sandbox proof. |
 | Cancellation | SDK-bound submission boundary implemented, real sandbox proof pending | Unit/API/UI tests | Reason code 4/remark and limit state verified. Cancellation POST now validates tenant input in the SaaS layer and calls `EIMS_EXTERNAL_CLIENT.cancelInvoice`, which delegates to the configured SDK in production and the mock connector locally. Real cancellation acceptance still requires the published SDK package and sandbox proof. |
-| Bulk | SDK-bound submission, signed callback boundary, SDK-bound polling fallback, durable receipt persistence, and scheduled worker cadence implemented | Unit/API/UI tests | Bulk POST now calls `EIMS_EXTERNAL_CLIENT.submitBulk`, which delegates to the configured SDK in production and the mock connector locally, then seeds a durable processing conversation. Callback HMAC verification, timestamp replay window, known conversation validation, idempotency, count reconciliation, encrypted payload receipt storage, durable duplicate tracking, SDK-bound bulk status polling fallback, and BullMQ scheduled reconciliation jobs are covered. Deployment-specific worker sizing remains pending. |
+| Bulk | SDK-bound submission, signed callback boundary, SDK-bound polling fallback, durable receipt persistence, and scheduled worker cadence implemented | Unit/API/UI/preflight tests | Bulk POST now calls `EIMS_EXTERNAL_CLIENT.submitBulk`, which delegates to the configured SDK in production and the mock connector locally, then seeds a durable processing conversation. Callback HMAC verification, timestamp replay window, known conversation validation, idempotency, count reconciliation, encrypted payload receipt storage, durable duplicate tracking, SDK-bound bulk status polling fallback, and BullMQ scheduled reconciliation jobs are covered. Deployment-specific worker sizing remains pending. |
 | Offline pending-sync | Encrypted cache, durable Prisma persistence, SDK-bound replay, BullMQ replay queue, and scheduler implemented | Unit/API/UI tests | Pending state has no IRN/ackDate. Offline payloads are encrypted with `CipherService`, integrity-hashed, redacted from list responses, persisted in tenant-scoped `EimsOfflinePendingSync` rows, claimed only after hash verification, replayed through `EIMS_EXTERNAL_CLIENT`, marked synced on accepted IRN, marked retryable on SDK/authority failure, and poisoned on tamper before sync. `EimsOfflineReplaySchedulerService` scans durable pending organizations and enqueues tenant-scoped `eims-offline-replay` jobs; worker processing delegates back through the SDK-bound replay service. Production tuning remains limited to deployment-specific cadence and batch sizing. |
 | Buyer notifications | Mock API | API/UI tests | SMS/email providers and retry state verified. Real provider integration is not complete. |
-| Targeted RLS | SQL policy export implemented, migration application pending | Scaffold/security verifier | Generated `apps/api/prisma/eims-rls-policies.sql` enables and forces RLS for every EIMS tenant table using `app.current_organization_id` and write-side `WITH CHECK` policies. Running this against production PostgreSQL remains a deployment step. |
-| Audit hash chain | SQL trigger export implemented, migration application pending | Scaffold/security verifier | Generated `apps/api/prisma/eims-audit-hash-chain.sql` creates the pgcrypto-backed insert hash trigger and update/delete blockers for `eims_audit_event`. Running this against production PostgreSQL remains a deployment step. |
+| Targeted RLS | SQL policy export implemented, migration application pending | Scaffold/security/preflight verifier | Generated `apps/api/prisma/eims-rls-policies.sql` enables and forces RLS for every EIMS tenant table using `app.current_organization_id` and write-side `WITH CHECK` policies. The production-readiness preflight now checks this artifact before the mock gate continues. Running this against production PostgreSQL remains a deployment step. |
+| Audit hash chain | SQL trigger export implemented, migration application pending | Scaffold/security/preflight verifier | Generated `apps/api/prisma/eims-audit-hash-chain.sql` creates the pgcrypto-backed insert hash trigger and update/delete blockers for `eims_audit_event`. The production-readiness preflight now checks this artifact before the mock gate continues. Running this against production PostgreSQL remains a deployment step. |
 | Admin operations | Mock API/UI | API/UI tests | Tenants, failures, certificates, resources, compliance routes verified. |
 | Phase 0 Layer A | Implemented | `phase0:eims:local` | Local signing/canonicalization smoke passes. |
 | Phase 0 Layer B | Blocked | Not testable | Requires the published EIMS SDK package plus issued sandbox credentials/certificate. |
@@ -95,5 +97,5 @@ real Playwright route walkthroughs and include a headed CLI path.
 The implementation should not be described as production-complete EIMS. It is a
 clean V3 scaffold foundation with detailed mock API/UI verification. Production
 completion still requires the V3 phases for Vault, applying RLS/audit SQL in production, optional async
-submission worker process wiring, deployment-specific bulk polling cadence, deployment-specific offline replay tuning, real printer/device QR certification,
+submission worker process wiring, deployment-specific offline replay tuning, real printer/device QR certification,
 the production EIMS SDK package install/contract proof, and sandbox proof.
