@@ -66,6 +66,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/client/eims-external-client.ts",
 	"apps/api/src/modules/eims/shared/client/mock-eims-external.client.ts",
 	"apps/api/src/modules/eims/shared/constants/eims-lookup-values.ts",
+	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.ts",
+	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts",
 	"apps/api/src/modules/eims/setup/presentation/eims-setup.controller.ts",
@@ -238,6 +240,14 @@ function assertGeneratedStructure() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	const productionEnvExample = readProjectFile(".env.production.example");
 	assert(packageJson.scripts["test:eims:mock"]?.includes("test:eims:ui"), "generated package has full EIMS mock gate");
+	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-credential-secret.service.spec.ts"),
+		"generated EIMS local test gate includes credential encryption tests",
+	);
+	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-submission-queue.service.spec.ts"),
+		"generated EIMS local test gate includes queue coordinator tests",
+	);
 	assert(packageJson.scripts["test:eims:api"]?.includes("api-tests"), "generated package has EIMS API tests");
 	assert(
 		packageJson.scripts["test:eims:security"] === "pnpm --filter security test:eims",
@@ -442,6 +452,13 @@ function assertGeneratedStructure() {
 	const submissionService = readProjectFile("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");
 	const externalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-external-client.ts");
 	const eimsSharedModule = readProjectFile("apps/api/src/modules/eims/shared/eims-shared.module.ts");
+	const credentialSecrets = readProjectFile("apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.ts");
+	const credentialSecretsSpec = readProjectFile(
+		"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
+	);
+	const supportingResourcesController = readProjectFile(
+		"apps/api/src/modules/eims/shared/presentation/eims-supporting-resources.controller.ts",
+	);
 	assert(queueService.includes("enqueueInvoice"), "EIMS queue service exposes invoice enqueue boundary");
 	assert(queueService.includes("previousIrn"), "EIMS queue service carries previous IRN chain metadata");
 	assert(queueService.includes("lastAcceptedCounter"), "EIMS queue service tracks accepted counter state");
@@ -459,6 +476,18 @@ function assertGeneratedStructure() {
 	assert(externalClient.includes("counter?: number"), "EIMS external client contract includes reserved counter");
 	assert(externalClient.includes("previousIrn?: string | null"), "EIMS external client contract includes previous IRN");
 	assert(eimsSharedModule.includes("EimsSubmissionQueueService"), "EIMS shared module exports queue coordinator");
+	assert(credentialSecrets.includes("CipherService"), "EIMS credential secrets use platform CipherService");
+	assert(credentialSecrets.includes("delete persistablePayload[field]"), "EIMS credential secrets strip raw values");
+	assert(credentialSecrets.includes("encryptedSecrets"), "EIMS credential secrets persist encrypted payload fields");
+	assert(credentialSecrets.includes("secretsReturned: false"), "EIMS credential secret boundary keeps responses redacted");
+	assert(credentialSecretsSpec.includes("removes raw values"), "EIMS credential secret tests cover raw-value removal");
+	assert(credentialSecretsSpec.includes("without exposing ciphertext"), "EIMS credential secret tests cover response redaction");
+	assert(supportingResourcesController.includes("sealPayload(body)"), "EIMS credential API seals payloads before repository save");
+	assert(
+		supportingResourcesController.includes("withRedactionMetadata"),
+		"EIMS credential API returns redaction metadata",
+	);
+	assert(eimsSharedModule.includes("EimsCredentialSecretService"), "EIMS shared module exports credential secret service");
 	const eimsOnboardingSeed = readProjectFile("apps/api/prisma/seed-eims-onboarding-template.ts");
 	assert(eimsOnboardingSeed.includes('"eims-restaurant"'), "EIMS onboarding template uses eims-restaurant key");
 	assert(eimsOnboardingSeed.includes('"mor-portal-signup"'), "EIMS onboarding template includes MoR signup step");

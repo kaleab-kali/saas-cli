@@ -2,6 +2,7 @@ import { Body, Controller, Get, Inject, Post, Req, UseGuards } from "@nestjs/com
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
+import { EimsCredentialSecretService } from "../crypto/eims-credential-secret.service";
 import { EIMS_BACKEND_REPOSITORY, type EimsBackendRepository } from "../mock/eims-backend.repository";
 
 interface AuthedRequest {
@@ -11,7 +12,10 @@ interface AuthedRequest {
 @Controller("eims")
 @UseGuards(AuthGuard, PermissionsGuard)
 export class EimsSupportingResourcesController {
-	constructor(@Inject(EIMS_BACKEND_REPOSITORY) private readonly repository: EimsBackendRepository) {}
+	constructor(
+		@Inject(EIMS_BACKEND_REPOSITORY) private readonly repository: EimsBackendRepository,
+		private readonly credentialSecrets: EimsCredentialSecretService,
+	) {}
 
 	@Get("credentials")
 	@RequirePermissions("eims-credential:read")
@@ -22,7 +26,11 @@ export class EimsSupportingResourcesController {
 	@Post("credentials")
 	@RequirePermissions("eims-credential:create")
 	saveCredential(@Req() req: AuthedRequest, @Body() body: Record<string, unknown>) {
-		return this.repository.saveCredential(req.organizationId, body);
+		const sealed = this.credentialSecrets.sealPayload(body);
+		return this.credentialSecrets.withRedactionMetadata(
+			this.repository.saveCredential(req.organizationId, sealed.persistablePayload),
+			sealed,
+		);
 	}
 
 	@Post("credentials/test")

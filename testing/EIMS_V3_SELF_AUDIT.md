@@ -30,7 +30,7 @@ What is not done yet:
 - Real Vault Transit signing.
 - Persistent BullMQ workers for multi-node per-source submission queues.
 - Real targeted PostgreSQL RLS policies.
-- Real encrypted credential persistence.
+- Durable encrypted credential persistence and rotation workflows.
 - Real print PDF rendering and QR scan validation.
 - Real bulk callback security and reconciliation.
 - Real offline encrypted pending-sync cache.
@@ -45,7 +45,7 @@ What is not done yet:
 | Lookup/code registry | Implemented as seed/mock API | API tests | Document, transaction, source, cancellation, tax, payment, unit, nature, and region values verified. ETag/cache refresh is not implemented yet. |
 | Source approval guard | Partially implemented | Unit/API tests | Guard and mock approval states exist. Full MoR portal workflow is not production-built. |
 | Counter and PreviousIrn chain | Source-scoped coordinator implemented, persistence pending | Unit/API tests | Starter now serializes submissions per source, reserves counters, attaches `previousIrn`, and keeps retryable/unknown outcomes out of the accepted chain. Multi-node BullMQ workers and DB-backed reconciliation are still not complete. |
-| Credentials lifecycle | Mock API only | API/UI tests | Redaction is tested. Real encrypted storage and rotation workflows are not complete. |
+| Credentials lifecycle | Encryption boundary implemented, durable storage pending | Unit/API/UI tests | Credential POST payloads are sealed with `CipherService`, raw secret fields are stripped before repository save, and responses expose only redaction metadata. Real DB persistence and rotation workflows are not complete. |
 | Certificates/CSR | Mock API only | API/UI tests | Certificate metadata and expiry state are exposed. Real Vault/INSA certificate flow is not complete. |
 | 2FA enforcement | Planned/partially existing platform auth | Not EIMS-specific | EIMS-specific permission enforcement and bootstrap test coverage still need implementation. |
 | Buyer/government directory | Mock API + data model | API/UI tests | Buyer and government buyer data verified. CRUD/import is not complete. |
