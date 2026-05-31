@@ -103,6 +103,8 @@ const requiredFiles = [
 	"apps/performance/scripts/eims-mock-load.mjs",
 	"apps/security/scripts/eims-security-smoke.mjs",
 	"apps/api/prisma/seed-eims-onboarding-template.ts",
+	"apps/api/prisma/eims-rls-policies.sql",
+	"apps/api/prisma/eims-audit-hash-chain.sql",
 ];
 
 const requiredPrismaModels = [
@@ -387,6 +389,8 @@ function assertGeneratedStructure() {
 		eimsSecuritySmoke.includes("EIMS acceptance cases must stay admin-only"),
 		"EIMS security smoke enforces admin-only acceptance cases",
 	);
+	assert(eimsSecuritySmoke.includes("must enable RLS"), "EIMS security smoke enforces RLS policy coverage");
+	assert(eimsSecuritySmoke.includes("must block deletes"), "EIMS security smoke enforces audit immutability");
 	const eimsPhase0Runbook = readProjectFile("docs/EIMS_PHASE0_RUNBOOK.md");
 	assert(eimsPhase0Runbook.includes("pnpm doctor:production"), "EIMS runbook documents production doctor gate");
 	assert(eimsPhase0Runbook.includes("Phase 0 strict mode"), "EIMS runbook documents strict production readiness");
@@ -476,9 +480,43 @@ function assertGeneratedStructure() {
 	);
 
 	const prismaSchema = readProjectFile("apps/api/prisma/schema.prisma");
+	const eimsRlsPolicies = readProjectFile("apps/api/prisma/eims-rls-policies.sql");
+	const eimsAuditHashChain = readProjectFile("apps/api/prisma/eims-audit-hash-chain.sql");
 	for (const modelName of requiredPrismaModels) {
 		assert(prismaSchema.includes(modelName), `Prisma contains ${modelName}`);
 	}
+	for (const tableName of [
+		"eims_enterprise",
+		"eims_establishment",
+		"eims_source_system",
+		"eims_credential",
+		"eims_certificate",
+		"eims_source_system_counter",
+		"eims_counter_reservation",
+		"user_establishment_assignment",
+		"user_source_system_assignment",
+		"tenant_buyer",
+		"tax_invoice",
+		"tax_invoice_line",
+		"eims_submission",
+		"eims_receipt",
+		"eims_cancellation",
+		"eims_audit_event",
+		"eims_notification_log",
+	]) {
+		assert(
+			eimsRlsPolicies.includes(`ALTER TABLE ${tableName} ENABLE ROW LEVEL SECURITY`),
+			`EIMS RLS enables ${tableName}`,
+		);
+		assert(eimsRlsPolicies.includes(`ALTER TABLE ${tableName} FORCE ROW LEVEL SECURITY`), `EIMS RLS forces ${tableName}`);
+	}
+	assert(eimsRlsPolicies.includes("app.current_organization_id"), "EIMS RLS policies bind to app tenant context");
+	assert(eimsRlsPolicies.includes("WITH CHECK"), "EIMS RLS policies protect tenant-scoped writes");
+	assert(eimsAuditHashChain.includes("CREATE EXTENSION IF NOT EXISTS pgcrypto"), "EIMS audit hash chain enables pgcrypto");
+	assert(eimsAuditHashChain.includes("trg_eims_audit_hash_chain"), "EIMS audit hash chain installs insert trigger");
+	assert(eimsAuditHashChain.includes("FOR UPDATE"), "EIMS audit hash chain locks prior event hash");
+	assert(eimsAuditHashChain.includes("BEFORE UPDATE ON eims_audit_event"), "EIMS audit hash chain blocks updates");
+	assert(eimsAuditHashChain.includes("BEFORE DELETE ON eims_audit_event"), "EIMS audit hash chain blocks deletes");
 	const queueService = readProjectFile("apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts");
 	const queueSpec = readProjectFile("apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts");
 	const submissionService = readProjectFile("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");

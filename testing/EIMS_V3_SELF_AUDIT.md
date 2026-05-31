@@ -29,7 +29,7 @@ What is not done yet:
 - Real MoR/INSA integration.
 - Real Vault Transit signing.
 - Persistent BullMQ workers for multi-node per-source submission queues.
-- Real targeted PostgreSQL RLS policies.
+- Applied production PostgreSQL RLS migrations beyond the generated policy export.
 - Durable encrypted credential persistence and rotation workflows.
 - Production printer/device QR scan certification across real hardware.
 - Durable bulk callback storage/polling beyond the signed callback boundary.
@@ -55,8 +55,8 @@ What is not done yet:
 | Bulk | Signed callback boundary implemented, durable polling pending | Unit/API/UI tests | Callback HMAC verification, timestamp replay window, known conversation validation, idempotency, and count reconciliation are covered. Durable storage and authority polling are still pending. |
 | Offline pending-sync | Encrypted cache boundary implemented, durable storage pending | Unit/API/UI tests | Pending state has no IRN/ackDate. Offline payloads are encrypted with `CipherService`, integrity-hashed, redacted from list responses, and poisoned on tamper before sync. Durable DB/queue storage is still pending. |
 | Buyer notifications | Mock API | API/UI tests | SMS/email providers and retry state verified. Real provider integration is not complete. |
-| Targeted RLS | Data model/evidence item only | Scaffold verifier | Real SQL RLS policies and policy tests are not complete. |
-| Audit hash chain | Data model/evidence item only | Scaffold verifier | Real append-only trigger/hash-chain implementation is not complete. |
+| Targeted RLS | SQL policy export implemented, migration application pending | Scaffold/security verifier | Generated `apps/api/prisma/eims-rls-policies.sql` enables and forces RLS for every EIMS tenant table using `app.current_organization_id` and write-side `WITH CHECK` policies. Running this against production PostgreSQL remains a deployment step. |
+| Audit hash chain | SQL trigger export implemented, migration application pending | Scaffold/security verifier | Generated `apps/api/prisma/eims-audit-hash-chain.sql` creates the pgcrypto-backed insert hash trigger and update/delete blockers for `eims_audit_event`. Running this against production PostgreSQL remains a deployment step. |
 | Admin operations | Mock API/UI | API/UI tests | Tenants, failures, certificates, resources, compliance routes verified. |
 | Phase 0 Layer A | Implemented | `phase0:eims:local` | Local signing/canonicalization smoke passes. |
 | Phase 0 Layer B | Blocked | Not testable | Requires INSA/MoR sandbox credentials and issued certificate. |
@@ -94,6 +94,6 @@ real Playwright route walkthroughs and include a headed CLI path.
 
 The implementation should not be described as production-complete EIMS. It is a
 clean V3 scaffold foundation with detailed mock API/UI verification. Production
-completion still requires the V3 phases for Vault, RLS, persistent BullMQ/DB
+completion still requires the V3 phases for Vault, applying RLS/audit SQL in production, persistent BullMQ/DB
 durable callback polling, durable offline cache storage, real printer/device QR certification,
 real MoR APIs, and sandbox proof.

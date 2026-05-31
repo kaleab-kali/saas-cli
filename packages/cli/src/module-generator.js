@@ -4964,6 +4964,233 @@ const patchEimsRouteTree = async (root) => {
 
 const writeEimsPhase0Assets = async (root) => {
 	await writeNew(
+		path.join(root, "apps/api/prisma/eims-rls-policies.sql"),
+		`-- EIMS tenant isolation policies.
+-- Apply after Prisma migrations in PostgreSQL environments.
+
+CREATE SCHEMA IF NOT EXISTS app_private;
+
+CREATE OR REPLACE FUNCTION app_private.current_organization_id()
+RETURNS text
+LANGUAGE sql
+STABLE
+AS $$
+	SELECT NULLIF(current_setting('app.current_organization_id', true), '');
+$$;
+
+CREATE OR REPLACE FUNCTION app_private.is_platform_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+AS $$
+	SELECT COALESCE(NULLIF(current_setting('app.is_platform_admin', true), ''), 'false')::boolean;
+$$;
+
+CREATE OR REPLACE FUNCTION app_private.eims_tenant_visible(row_organization_id text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+AS $$
+	SELECT app_private.is_platform_admin()
+		OR row_organization_id = app_private.current_organization_id();
+$$;
+
+ALTER TABLE eims_enterprise ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_enterprise FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_enterprise_tenant_isolation ON eims_enterprise;
+CREATE POLICY eims_enterprise_tenant_isolation ON eims_enterprise
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE eims_establishment ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_establishment FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_establishment_tenant_isolation ON eims_establishment;
+CREATE POLICY eims_establishment_tenant_isolation ON eims_establishment
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE eims_source_system ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_source_system FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_source_system_tenant_isolation ON eims_source_system;
+CREATE POLICY eims_source_system_tenant_isolation ON eims_source_system
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE eims_credential ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_credential FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_credential_tenant_isolation ON eims_credential;
+CREATE POLICY eims_credential_tenant_isolation ON eims_credential
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE eims_certificate ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_certificate FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_certificate_tenant_isolation ON eims_certificate;
+CREATE POLICY eims_certificate_tenant_isolation ON eims_certificate
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE eims_source_system_counter ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_source_system_counter FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_source_system_counter_tenant_isolation ON eims_source_system_counter;
+CREATE POLICY eims_source_system_counter_tenant_isolation ON eims_source_system_counter
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE eims_counter_reservation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_counter_reservation FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_counter_reservation_tenant_isolation ON eims_counter_reservation;
+CREATE POLICY eims_counter_reservation_tenant_isolation ON eims_counter_reservation
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE user_establishment_assignment ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_establishment_assignment FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS user_establishment_assignment_tenant_isolation ON user_establishment_assignment;
+CREATE POLICY user_establishment_assignment_tenant_isolation ON user_establishment_assignment
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE user_source_system_assignment ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_source_system_assignment FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS user_source_system_assignment_tenant_isolation ON user_source_system_assignment;
+CREATE POLICY user_source_system_assignment_tenant_isolation ON user_source_system_assignment
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE tenant_buyer ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tenant_buyer FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_buyer_tenant_isolation ON tenant_buyer;
+CREATE POLICY tenant_buyer_tenant_isolation ON tenant_buyer
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE tax_invoice ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tax_invoice FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tax_invoice_tenant_isolation ON tax_invoice;
+CREATE POLICY tax_invoice_tenant_isolation ON tax_invoice
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE tax_invoice_line ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tax_invoice_line FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tax_invoice_line_tenant_isolation ON tax_invoice_line;
+CREATE POLICY tax_invoice_line_tenant_isolation ON tax_invoice_line
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE eims_submission ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_submission FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_submission_tenant_isolation ON eims_submission;
+CREATE POLICY eims_submission_tenant_isolation ON eims_submission
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE eims_receipt ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_receipt FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_receipt_tenant_isolation ON eims_receipt;
+CREATE POLICY eims_receipt_tenant_isolation ON eims_receipt
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE eims_cancellation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_cancellation FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_cancellation_tenant_isolation ON eims_cancellation;
+CREATE POLICY eims_cancellation_tenant_isolation ON eims_cancellation
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE eims_audit_event ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_audit_event FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_audit_event_tenant_isolation ON eims_audit_event;
+CREATE POLICY eims_audit_event_tenant_isolation ON eims_audit_event
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
+ALTER TABLE eims_notification_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_notification_log FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_notification_log_tenant_isolation ON eims_notification_log;
+CREATE POLICY eims_notification_log_tenant_isolation ON eims_notification_log
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+`,
+	);
+	await writeNew(
+		path.join(root, "apps/api/prisma/eims-audit-hash-chain.sql"),
+		`-- EIMS append-only audit hash chain.
+-- Apply after Prisma migrations in PostgreSQL environments.
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE SCHEMA IF NOT EXISTS app_private;
+
+CREATE OR REPLACE FUNCTION app_private.eims_set_audit_hash()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	previous_hash text;
+BEGIN
+	IF NEW."createdAt" IS NULL THEN
+		NEW."createdAt" := now();
+	END IF;
+
+	SELECT "hash"
+	INTO previous_hash
+	FROM eims_audit_event
+	WHERE "organizationId" = NEW."organizationId"
+	ORDER BY "createdAt" DESC, id DESC
+	LIMIT 1
+	FOR UPDATE;
+
+	NEW."prevHash" := previous_hash;
+	NEW."hash" := encode(
+		digest(
+			concat_ws(
+				'|',
+				NEW."organizationId",
+				COALESCE(previous_hash, ''),
+				NEW."eventType",
+				NEW."payloadJson"::text,
+				NEW."createdAt"::text
+			),
+			'sha256'
+		),
+		'hex'
+	);
+
+	RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION app_private.eims_prevent_audit_mutation()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+	RAISE EXCEPTION 'EIMS audit events are append-only and cannot be updated or deleted';
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_eims_audit_hash_chain ON eims_audit_event;
+CREATE TRIGGER trg_eims_audit_hash_chain
+	BEFORE INSERT ON eims_audit_event
+	FOR EACH ROW
+	EXECUTE FUNCTION app_private.eims_set_audit_hash();
+
+DROP TRIGGER IF EXISTS trg_eims_audit_prevent_update ON eims_audit_event;
+CREATE TRIGGER trg_eims_audit_prevent_update
+	BEFORE UPDATE ON eims_audit_event
+	FOR EACH ROW
+	EXECUTE FUNCTION app_private.eims_prevent_audit_mutation();
+
+DROP TRIGGER IF EXISTS trg_eims_audit_prevent_delete ON eims_audit_event;
+CREATE TRIGGER trg_eims_audit_prevent_delete
+	BEFORE DELETE ON eims_audit_event
+	FOR EACH ROW
+	EXECUTE FUNCTION app_private.eims_prevent_audit_mutation();
+`,
+	);
+	await writeNew(
 		path.join(root, "apps/api/scripts/phase0/layer-a/run-all.ts"),
 		`import { createHash, createSign, generateKeyPairSync } from "node:crypto";
 
@@ -5415,6 +5642,40 @@ const callbackService = read("apps/api/src/modules/eims/shared/callbacks/eims-bu
 assertIncludes(callbackService, "timingSafeEqual", "EIMS bulk callbacks must use constant-time signature checks");
 assertIncludes(callbackService, "EIMS_CALLBACK_HMAC_SECRET", "EIMS bulk callbacks must require an HMAC secret");
 assertIncludes(callbackService, "outside the allowed skew", "EIMS bulk callbacks must enforce replay windows");
+
+const rlsPolicies = read("apps/api/prisma/eims-rls-policies.sql");
+for (const table of [
+\t"eims_enterprise",
+\t"eims_establishment",
+\t"eims_source_system",
+\t"eims_credential",
+\t"eims_certificate",
+\t"eims_source_system_counter",
+\t"eims_counter_reservation",
+\t"user_establishment_assignment",
+\t"user_source_system_assignment",
+\t"tenant_buyer",
+\t"tax_invoice",
+\t"tax_invoice_line",
+\t"eims_submission",
+\t"eims_receipt",
+\t"eims_cancellation",
+\t"eims_audit_event",
+\t"eims_notification_log",
+]) {
+\tassertIncludes(rlsPolicies, \`ALTER TABLE \${table} ENABLE ROW LEVEL SECURITY\`, \`\${table} must enable RLS\`);
+\tassertIncludes(rlsPolicies, \`ALTER TABLE \${table} FORCE ROW LEVEL SECURITY\`, \`\${table} must force RLS\`);
+}
+assertIncludes(rlsPolicies, "app.current_organization_id", "EIMS RLS policies must bind to tenant context");
+assertIncludes(rlsPolicies, "WITH CHECK", "EIMS RLS policies must protect writes as well as reads");
+
+const auditHashChain = read("apps/api/prisma/eims-audit-hash-chain.sql");
+assertIncludes(auditHashChain, "CREATE EXTENSION IF NOT EXISTS pgcrypto", "EIMS audit hash chain must use pgcrypto");
+assertIncludes(auditHashChain, "trg_eims_audit_hash_chain", "EIMS audit hash chain trigger must be installed");
+assertIncludes(auditHashChain, "BEFORE INSERT ON eims_audit_event", "EIMS audit hash must be assigned before insert");
+assertIncludes(auditHashChain, "FOR UPDATE", "EIMS audit hash chain must lock previous event while linking hashes");
+assertIncludes(auditHashChain, "BEFORE UPDATE ON eims_audit_event", "EIMS audit events must block updates");
+assertIncludes(auditHashChain, "BEFORE DELETE ON eims_audit_event", "EIMS audit events must block deletes");
 
 const acceptanceTests = read("apps/api-tests/tests/eims-acceptance.spec.ts");
 assertIncludes(
