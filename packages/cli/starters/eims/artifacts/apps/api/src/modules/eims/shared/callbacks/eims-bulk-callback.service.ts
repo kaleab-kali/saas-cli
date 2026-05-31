@@ -35,7 +35,7 @@ export interface EimsBulkCallbackSummary {
 	conversationId: string;
 	idempotencyKey: string;
 	duplicate: boolean;
-	signatureStatus: "verified";
+	signatureStatus: "verified" | "polled";
 	reconciliationStatus: "accepted" | "attention" | "processing";
 	totals: {
 		submitted: number;
@@ -77,6 +77,41 @@ export const createEimsBulkCallbackSignature = ({
 		.update(`${timestamp}.${rawBody ?? stableEimsCallbackJson(payload)}`)
 		.digest("hex");
 
+export const summarizeEimsBulkCallbackPayload = (
+	payload: EimsBulkCallbackPayload,
+	idempotencyKey: string,
+	now: Date,
+	signatureStatus: EimsBulkCallbackSummary["signatureStatus"] = "verified",
+): EimsBulkCallbackSummary => {
+	const accepted = payload.results.filter((row) => row.status === "accepted").length;
+	const failed = payload.results.filter((row) => row.status === "failed").length;
+	const pending = payload.results.filter((row) => row.status === "pending").length;
+	const reconciliationStatus = failed > 0 ? "attention" : pending > 0 ? "processing" : "accepted";
+
+	return {
+		organizationId: payload.organizationId,
+		conversationId: payload.conversationId,
+		idempotencyKey,
+		duplicate: false,
+		signatureStatus,
+		reconciliationStatus,
+		totals: {
+			submitted: payload.results.length,
+			accepted,
+			failed,
+			pending,
+		},
+		failures: payload.results
+			.filter((row) => row.status === "failed")
+			.map((row) => ({
+				documentNumber: row.documentNumber,
+				errorCode: row.errorCode ?? null,
+				errorMessage: row.errorMessage ?? null,
+			})),
+		processedAt: now.toISOString(),
+	};
+};
+
 @Injectable()
 export class EimsBulkCallbackService {
 	private readonly processed = new Map<string, EimsBulkCallbackSummary>();
@@ -92,7 +127,7 @@ export class EimsBulkCallbackService {
 		const previous = this.processed.get(idempotencyKey);
 		if (previous) return { ...previous, duplicate: true };
 
-		const summary = this.summarize(input.payload, idempotencyKey, input.now ?? new Date());
+		const summary = summarizeEimsBulkCallbackPayload(input.payload, idempotencyKey, input.now ?? new Date());
 		this.processed.set(idempotencyKey, summary);
 		return summary;
 	}
@@ -150,35 +185,5 @@ export class EimsBulkCallbackService {
 			input.payload.callbackId ??
 			`${input.payload.organizationId}:${input.payload.conversationId}:${input.timestamp}`
 		);
-	}
-
-	private summarize(payload: EimsBulkCallbackPayload, idempotencyKey: string, now: Date): EimsBulkCallbackSummary {
-		const accepted = payload.results.filter((row) => row.status === "accepted").length;
-		const failed = payload.results.filter((row) => row.status === "failed").length;
-		const pending = payload.results.filter((row) => row.status === "pending").length;
-		const reconciliationStatus = failed > 0 ? "attention" : pending > 0 ? "processing" : "accepted";
-
-		return {
-			organizationId: payload.organizationId,
-			conversationId: payload.conversationId,
-			idempotencyKey,
-			duplicate: false,
-			signatureStatus: "verified",
-			reconciliationStatus,
-			totals: {
-				submitted: payload.results.length,
-				accepted,
-				failed,
-				pending,
-			},
-			failures: payload.results
-				.filter((row) => row.status === "failed")
-				.map((row) => ({
-					documentNumber: row.documentNumber,
-					errorCode: row.errorCode ?? null,
-					errorMessage: row.errorMessage ?? null,
-				})),
-			processedAt: now.toISOString(),
-		};
 	}
 }

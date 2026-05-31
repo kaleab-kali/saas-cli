@@ -5388,6 +5388,11 @@ const main = async () => {
 \t\tregisterInvoice: typeof client.registerInvoice === "function",
 \t\tregisterReceipt: typeof client.registerReceipt === "function",
 \t\tverifyIrn: typeof client.verifyIrn === "function",
+\t\tpollBulkStatus:
+\t\t\ttypeof client.pollBulkStatus === "function" ||
+\t\t\ttypeof client.pollBulkConversation === "function" ||
+\t\t\ttypeof client.getBulkStatus === "function" ||
+\t\t\ttypeof client.getBulkConversationStatus === "function",
 \t\tvalidateCredential:
 \t\t\ttypeof client.validateCredential === "function" || typeof client.validateCredentials === "function",
 \t};
@@ -5905,6 +5910,7 @@ assertIncludes(callbackService, "outside the allowed skew", "EIMS bulk callbacks
 const callbackPersistence = read(
 \t"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.ts",
 );
+const callbackPolling = read("apps/api/src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.ts");
 assertIncludes(callbackPersistence, "PrismaService", "EIMS bulk callback receipts must use durable Prisma persistence");
 assertIncludes(
 \tcallbackPersistence,
@@ -5920,6 +5926,18 @@ assertIncludes(
 \tcallbackPersistence,
 \t"duplicateCount: { increment: 1 }",
 \t"EIMS bulk callback receipts must persist duplicate retry counts",
+);
+assertIncludes(
+\tcallbackPersistence,
+\t"storePolledReconciliation",
+\t"EIMS bulk callback receipts must store SDK-polled reconciliation rows",
+);
+assertIncludes(callbackPolling, "EIMS_EXTERNAL_CLIENT", "EIMS bulk polling must use the SDK adapter boundary");
+assertIncludes(callbackPolling, "pollBulkStatus", "EIMS bulk polling must call SDK bulk status capability");
+assertIncludes(
+\tcallbackPolling,
+\t"storePolledReconciliation",
+\t"EIMS bulk polling must persist durable reconciliation receipts",
 );
 
 const offlinePersistence = read(
@@ -6037,13 +6055,14 @@ assertIncludes(sdkClientProvider, "EIMS_SDK_PACKAGE_NAME", "EIMS SDK provider mu
 assertIncludes(sdkClientProvider, "createEimsSdkClientFromModule", "EIMS SDK provider must validate SDK module shape");
 assertIncludes(
 \tsdkClientProvider,
-\t"registerInvoice/registerReceipt/verifyIrn/validateCredential-capable",
+\t"registerInvoice/registerReceipt/verifyIrn/validateCredential/pollBulkStatus-capable",
 \t"EIMS SDK provider must fail closed for incompatible SDK clients",
 );
 assertIncludes(sdkExternalClient, "registerInvoice", "EIMS SDK adapter must submit invoices through the SDK");
 assertIncludes(sdkExternalClient, "registerReceipt", "EIMS SDK adapter must submit receipts through the SDK");
 assertIncludes(sdkExternalClient, "verifyIrn", "EIMS SDK adapter must verify IRNs through the SDK");
 assertIncludes(sdkExternalClient, "validateCredential", "EIMS SDK adapter must validate credentials through the SDK");
+assertIncludes(sdkExternalClient, "pollBulkStatus", "EIMS SDK adapter must poll bulk status through the SDK");
 assertIncludes(
 \tsdkExternalClient,
 \t"ServiceUnavailableException",
@@ -6126,13 +6145,18 @@ Layer B runs against INSA/MoR sandbox after credentials and certificates are ava
 After publishing or linking the real SDK package, set \`EIMS_SDK_PACKAGE_NAME\`
 and run \`pnpm test:eims:sdk-contract\`. This imports the SDK package, builds the
 same options used by the Nest provider, and verifies the package exposes the
-\`registerInvoice\`, \`registerReceipt\`, \`verifyIrn\`, and credential validation
+\`registerInvoice\`, \`registerReceipt\`, \`verifyIrn\`, bulk-status polling, and credential validation
 methods consumed by the SaaS adapter before sandbox credentials are exercised.
 
 Invoice submission lanes persist counter reservations before SDK dispatch and
 hydrate source counter state from durable rows after restart. Multi-node
 production deployments should replace the in-process coordinator with
 BullMQ/Redis workers that keep the same reservation contract.
+
+Bulk callback handling is SaaS-side, but delayed callback reconciliation must
+still go through the SDK. The \`/eims/bulk/reconcile\` endpoint calls the SDK
+bulk-status capability and stores the polled result as a durable callback
+receipt for audit and operator review.
 
 Before production go-live, run \`pnpm doctor:production\`. The doctor blocks launch if EIMS is still in mock mode, lacks production MoR URLs, lacks an HTTPS callback URL, uses local signing, or has Phase 0 strict mode disabled.
 `,

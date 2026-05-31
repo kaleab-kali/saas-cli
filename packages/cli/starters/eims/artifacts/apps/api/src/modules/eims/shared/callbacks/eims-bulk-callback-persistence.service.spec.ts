@@ -156,6 +156,44 @@ describe("EimsBulkCallbackPersistenceService", () => {
 		});
 	});
 
+	it("stores SDK-polled reconciliation receipts without callback signatures", async () => {
+		const prisma = prismaMock();
+		prisma.eimsBulkCallbackReceipt.findUnique.mockResolvedValue(null);
+		prisma.eimsBulkCallbackReceipt.create.mockImplementation((args: { data: Record<string, unknown> }) =>
+			Promise.resolve(
+				callbackReceiptRow({
+					...args.data,
+					id: "receipt_polled_1",
+					createdAt: processedAt,
+					updatedAt: processedAt,
+				}),
+			),
+		);
+		const service = new EimsBulkCallbackPersistenceService(new FakeCipher() as never, prisma as never);
+
+		const stored = await service.storePolledReconciliation({
+			payload,
+			summary: {
+				...summary,
+				idempotencyKey: "poll:BATCH-20260526-001:hash",
+				signatureStatus: "polled",
+			},
+		});
+		const createData = prisma.eimsBulkCallbackReceipt.create.mock.calls[0][0].data;
+
+		expect(createData).toMatchObject({
+			callbackId: "poll:BATCH-20260526-001",
+			idempotencyKey: "poll:BATCH-20260526-001:hash",
+			signatureSha256: null,
+			signatureStatus: "polled",
+		});
+		expect(stored).toMatchObject({
+			signatureStatus: "polled",
+			duplicate: false,
+			reconciliationStatus: "attention",
+		});
+	});
+
 	it("lists tenant-scoped callback receipts without exposing encrypted payloads", async () => {
 		const prisma = prismaMock();
 		prisma.eimsBulkCallbackReceipt.findMany.mockResolvedValue([

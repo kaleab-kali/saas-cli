@@ -20,7 +20,7 @@ interface EimsBulkCallbackReceiptRow {
 	payloadSha256: string;
 	payloadBytes: number;
 	signatureSha256: string | null;
-	signatureStatus: "verified";
+	signatureStatus: "verified" | "polled";
 	reconciliationStatus: "accepted" | "attention" | "processing";
 	submitted: number;
 	accepted: number;
@@ -52,6 +52,45 @@ export class EimsBulkCallbackPersistenceService {
 		signature?: string;
 		summary: EimsBulkCallbackSummary;
 	}): Promise<EimsBulkCallbackSummary> {
+		return this.storeReceipt({ payload, rawBody, signature, summary, callbackId: payload.callbackId ?? null });
+	}
+
+	async storePolledReconciliation({
+		payload,
+		rawBody,
+		summary,
+	}: {
+		payload: EimsBulkCallbackPayload;
+		rawBody?: string;
+		summary: EimsBulkCallbackSummary;
+	}): Promise<EimsBulkCallbackSummary> {
+		return this.storeReceipt({ payload, rawBody, summary, callbackId: `poll:${payload.conversationId}` });
+	}
+
+	async listReceipts(organizationId: string, conversationId?: string): Promise<EimsBulkCallbackSummary[]> {
+		const rows = await this.prisma.eimsBulkCallbackReceipt.findMany({
+			where: {
+				organizationId,
+				...(conversationId ? { conversationId } : {}),
+			},
+			orderBy: [{ processedAt: "desc" }, { createdAt: "desc" }],
+		});
+		return rows.map((row) => this.toSummary(row as EimsBulkCallbackReceiptRow, row.duplicateCount > 0));
+	}
+
+	private async storeReceipt({
+		payload,
+		rawBody,
+		signature,
+		summary,
+		callbackId,
+	}: {
+		payload: EimsBulkCallbackPayload;
+		rawBody?: string;
+		signature?: string;
+		summary: EimsBulkCallbackSummary;
+		callbackId: string | null;
+	}): Promise<EimsBulkCallbackSummary> {
 		const payloadJson = rawBody ?? stableEimsCallbackJson(payload);
 		const payloadSha256 = this.sha256(payloadJson);
 		const existing = await this.prisma.eimsBulkCallbackReceipt.findUnique({
@@ -78,7 +117,7 @@ export class EimsBulkCallbackPersistenceService {
 			data: {
 				organizationId: summary.organizationId,
 				conversationId: summary.conversationId,
-				callbackId: payload.callbackId ?? null,
+				callbackId,
 				idempotencyKey: summary.idempotencyKey,
 				encryptedPayload: Buffer.from(this.cipher.encrypt(payloadJson), "utf8"),
 				payloadKeyVersion: "cipher:v1",
@@ -97,17 +136,6 @@ export class EimsBulkCallbackPersistenceService {
 		});
 
 		return this.toSummary(receipt as EimsBulkCallbackReceiptRow, false);
-	}
-
-	async listReceipts(organizationId: string, conversationId?: string): Promise<EimsBulkCallbackSummary[]> {
-		const rows = await this.prisma.eimsBulkCallbackReceipt.findMany({
-			where: {
-				organizationId,
-				...(conversationId ? { conversationId } : {}),
-			},
-			orderBy: [{ processedAt: "desc" }, { createdAt: "desc" }],
-		});
-		return rows.map((row) => this.toSummary(row as EimsBulkCallbackReceiptRow, row.duplicateCount > 0));
 	}
 
 	private toSummary(row: EimsBulkCallbackReceiptRow, duplicate: boolean): EimsBulkCallbackSummary {

@@ -3,6 +3,7 @@ import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
 import { EimsBulkCallbackPersistenceService } from "../callbacks/eims-bulk-callback-persistence.service";
+import { EimsBulkReconciliationPollingService } from "../callbacks/eims-bulk-reconciliation-polling.service";
 import { EimsCredentialPersistenceService } from "../crypto/eims-credential-persistence.service";
 import { EimsCredentialSecretService } from "../crypto/eims-credential-secret.service";
 import { EimsCredentialValidationService } from "../crypto/eims-credential-validation.service";
@@ -26,6 +27,7 @@ export class EimsSupportingResourcesController {
 		private readonly credentialSecrets: EimsCredentialSecretService,
 		private readonly credentialValidation: EimsCredentialValidationService,
 		private readonly bulkReceiptStore: EimsBulkCallbackPersistenceService,
+		private readonly bulkPolling: EimsBulkReconciliationPollingService,
 		private readonly offlinePending: EimsOfflinePendingSyncPersistenceService,
 		private readonly offlineReplay: EimsOfflineReplayService,
 		private readonly offlineReplayQueue: EimsOfflineReplayQueueService,
@@ -96,8 +98,12 @@ export class EimsSupportingResourcesController {
 
 	@Post("bulk/reconcile")
 	@RequirePermissions("eims-bulk:retry")
-	reconcileBulk(@Req() req: AuthedRequest, @Body() body: { conversationId?: string }) {
-		return this.repository.reconcileBulk(req.organizationId, body.conversationId);
+	reconcileBulk(@Req() req: AuthedRequest, @Body() body: { conversationId?: string; sourceSystemId?: string }) {
+		return this.bulkPolling.pollConversation({
+			organizationId: req.organizationId,
+			conversationId: body.conversationId,
+			sourceSystemId: body.sourceSystemId,
+		});
 	}
 
 	@Get("bulk/callback-receipts")

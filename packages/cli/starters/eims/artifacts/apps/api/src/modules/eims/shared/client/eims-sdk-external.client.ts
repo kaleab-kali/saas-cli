@@ -3,6 +3,7 @@ import {
 	EIMS_SDK_CLIENT,
 	type EimsExternalResponse,
 	type EimsSdkClient,
+	type PollBulkStatusInput,
 	type RegisterInvoiceInput,
 	type RegisterReceiptInput,
 	type ValidateCredentialInput,
@@ -30,6 +31,18 @@ export class EimsSdkExternalClient {
 		if (!sdk.verifyIrn) throw new ServiceUnavailableException("EIMS SDK verifyIrn is not configured");
 		const response = await sdk.verifyIrn({
 			irn: input.irn,
+			tenantConfig: this.tenantConfig(input),
+		});
+		return this.envelope(response);
+	}
+
+	async pollBulkStatus(input: PollBulkStatusInput): Promise<EimsExternalResponse> {
+		const sdk = this.requireSdk();
+		const pollBulkStatus =
+			sdk.pollBulkStatus ?? sdk.pollBulkConversation ?? sdk.getBulkStatus ?? sdk.getBulkConversationStatus;
+		if (!pollBulkStatus) throw new ServiceUnavailableException("EIMS SDK bulk status polling is not configured");
+		const response = await pollBulkStatus.call(sdk, {
+			conversationId: input.conversationId,
 			tenantConfig: this.tenantConfig(input),
 		});
 		return this.envelope(response);

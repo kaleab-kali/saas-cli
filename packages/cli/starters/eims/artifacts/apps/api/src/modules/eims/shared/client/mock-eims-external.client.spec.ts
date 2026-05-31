@@ -70,4 +70,27 @@ describe("MockEimsExternalClient", () => {
 			}),
 		});
 	});
+
+	it("polls mock bulk status through the same external client boundary", async () => {
+		const client = new MockEimsExternalClient(new EimsMockService());
+
+		await expect(
+			client.pollBulkStatus({
+				organizationId,
+				sourceSystemId: "src_mock_1",
+				conversationId: "BATCH-20260526-001",
+			}),
+		).resolves.toEqual({
+			data: expect.objectContaining({
+				organizationId,
+				conversationId: "BATCH-20260526-001",
+				status: "processing",
+				results: expect.arrayContaining([
+					expect.objectContaining({ documentNumber: expect.stringContaining("ACCEPTED"), status: "accepted" }),
+					expect.objectContaining({ documentNumber: expect.stringContaining("FAILED"), status: "failed" }),
+					expect.objectContaining({ documentNumber: expect.stringContaining("PENDING"), status: "pending" }),
+				]),
+			}),
+		});
+	});
 });

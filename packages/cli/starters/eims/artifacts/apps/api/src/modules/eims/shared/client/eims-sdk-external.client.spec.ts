@@ -57,6 +57,7 @@ describe("EimsSdkExternalClient", () => {
 	it("delegates credential validation to the configured EIMS SDK client", async () => {
 		const sdk = {
 			registerInvoice: jest.fn(),
+			pollBulkStatus: jest.fn(),
 			validateCredential: jest.fn().mockResolvedValue({ data: { status: "valid", valid: true } }),
 		};
 		const client = new EimsSdkExternalClient(sdk);
@@ -83,6 +84,57 @@ describe("EimsSdkExternalClient", () => {
 			},
 		});
 		expect(response.data).toMatchObject({ status: "valid", valid: true });
+	});
+
+	it("delegates bulk status polling to the configured EIMS SDK client", async () => {
+		const sdk = {
+			registerInvoice: jest.fn(),
+			pollBulkStatus: jest.fn().mockResolvedValue({
+				data: {
+					conversationId: "BATCH-1",
+					results: [{ documentNumber: "INV-1", status: "accepted" }],
+				},
+			}),
+		};
+		const client = new EimsSdkExternalClient(sdk);
+
+		const response = await client.pollBulkStatus({
+			organizationId: "org_1",
+			sourceSystemId: "src_front",
+			conversationId: "BATCH-1",
+		});
+
+		expect(sdk.pollBulkStatus).toHaveBeenCalledWith({
+			conversationId: "BATCH-1",
+			tenantConfig: {
+				organizationId: "org_1",
+				sourceSystemId: "src_front",
+				counter: undefined,
+				previousIrn: null,
+			},
+		});
+		expect(response.data).toMatchObject({ conversationId: "BATCH-1" });
+	});
+
+	it("accepts SDK bulk polling aliases while keeping the SaaS adapter stable", async () => {
+		const sdk = {
+			registerInvoice: jest.fn(),
+			getBulkConversationStatus: jest.fn().mockResolvedValue({ data: { status: "processing" } }),
+		};
+		const client = new EimsSdkExternalClient(sdk);
+
+		await expect(client.pollBulkStatus({ organizationId: "org_1", conversationId: "BATCH-1" })).resolves.toEqual({
+			data: { status: "processing" },
+		});
+		expect(sdk.getBulkConversationStatus).toHaveBeenCalledWith({
+			conversationId: "BATCH-1",
+			tenantConfig: {
+				organizationId: "org_1",
+				sourceSystemId: undefined,
+				counter: undefined,
+				previousIrn: null,
+			},
+		});
 	});
 
 	it("fails closed when production SDK provider is not configured", async () => {
