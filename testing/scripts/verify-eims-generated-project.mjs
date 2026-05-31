@@ -35,6 +35,7 @@ const requiredDirs = [
 	"apps/api/src/modules/eims/setup/infrastructure/repositories",
 	"apps/api/src/modules/eims/setup/presentation",
 	"apps/api/src/modules/eims/shared/client",
+	"apps/api/src/modules/eims/shared/callbacks",
 	"apps/api/src/modules/eims/shared/canonicalization",
 	"apps/api/src/modules/eims/shared/constants",
 	"apps/api/src/modules/eims/shared/crypto",
@@ -65,6 +66,9 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/eims.module.ts",
 	"apps/api/src/modules/eims/shared/client/eims-external-client.ts",
 	"apps/api/src/modules/eims/shared/client/mock-eims-external.client.ts",
+	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.controller.ts",
+	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.ts",
+	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts",
 	"apps/api/src/modules/eims/shared/constants/eims-lookup-values.ts",
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.ts",
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
@@ -247,6 +251,10 @@ function assertGeneratedStructure() {
 		"generated EIMS local test gate includes credential encryption tests",
 	);
 	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-bulk-callback.service.spec.ts"),
+		"generated EIMS local test gate includes bulk callback security tests",
+	);
+	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-print-proof.service.spec.ts"),
 		"generated EIMS local test gate includes print proof tests",
 	);
@@ -284,6 +292,7 @@ function assertGeneratedStructure() {
 	assert(eimsStarter, "scaffold state records EIMS starter installation");
 	assert(eimsStarter.envVars?.includes("EIMS_ENV"), "scaffold state records EIMS env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_PHASE0_STRICT"), "scaffold state records EIMS strict-mode env metadata");
+	assert(eimsStarter.envVars?.includes("EIMS_CALLBACK_HMAC_SECRET"), "scaffold state records EIMS callback HMAC env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_LOOKUP_CACHE_TTL_SECONDS"), "scaffold state records EIMS lookup cache env metadata");
 	assert(eimsStarter.routes?.includes("/eims/setup"), "scaffold state records EIMS route metadata");
 	assert(eimsStarter.models?.includes("EimsCredential"), "scaffold state records EIMS model metadata");
@@ -305,6 +314,7 @@ function assertGeneratedStructure() {
 	assert(productionEnvExample.includes("EIMS_MOCK_MODE=false"), "EIMS production env example disables mock mode");
 	assert(productionEnvExample.includes("EIMS_SIGNING_PROVIDER=vault"), "EIMS production env example uses non-local signing");
 	assert(productionEnvExample.includes("EIMS_PHASE0_STRICT=true"), "EIMS production env example enables Phase 0 strict mode");
+	assert(productionEnvExample.includes("EIMS_CALLBACK_HMAC_SECRET="), "EIMS production env example documents callback HMAC secret");
 	const webPackageJson = JSON.parse(readProjectFile("apps/web/package.json"));
 	assert(webPackageJson.scripts?.lint === "biome check .", "web workspace lint uses Biome");
 	assert(webPackageJson.scripts?.format === "biome check --write .", "web workspace format uses Biome");
@@ -356,6 +366,10 @@ function assertGeneratedStructure() {
 	assert(
 		eimsSecuritySmoke.includes("EIMS bulk reconcile must require retry permission"),
 		"EIMS security smoke enforces bulk reconcile permission",
+	);
+	assert(
+		eimsSecuritySmoke.includes("EIMS bulk callbacks must require an HMAC secret"),
+		"EIMS security smoke enforces bulk callback HMAC verification",
 	);
 	assert(
 		eimsSecuritySmoke.includes("EIMS acceptance cases must stay admin-only"),
@@ -458,6 +472,9 @@ function assertGeneratedStructure() {
 	const submissionService = readProjectFile("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");
 	const externalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-external-client.ts");
 	const eimsSharedModule = readProjectFile("apps/api/src/modules/eims/shared/eims-shared.module.ts");
+	const bulkCallbackService = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.ts");
+	const bulkCallbackController = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.controller.ts");
+	const bulkCallbackSpec = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts");
 	const credentialSecrets = readProjectFile("apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.ts");
 	const credentialSecretsSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
@@ -484,6 +501,16 @@ function assertGeneratedStructure() {
 	assert(externalClient.includes("counter?: number"), "EIMS external client contract includes reserved counter");
 	assert(externalClient.includes("previousIrn?: string | null"), "EIMS external client contract includes previous IRN");
 	assert(eimsSharedModule.includes("EimsSubmissionQueueService"), "EIMS shared module exports queue coordinator");
+	assert(bulkCallbackService.includes("timingSafeEqual"), "EIMS bulk callback verification uses constant-time signature compare");
+	assert(bulkCallbackService.includes("EIMS_CALLBACK_HMAC_SECRET"), "EIMS bulk callback service requires callback HMAC secret");
+	assert(bulkCallbackService.includes("knownConversationIds"), "EIMS bulk callback service validates known conversations");
+	assert(bulkCallbackService.includes("idempotencyKey"), "EIMS bulk callback service deduplicates callback retries");
+	assert(bulkCallbackService.includes("reconciliationStatus"), "EIMS bulk callback service emits reconciliation status");
+	assert(bulkCallbackController.includes('Controller("eims/callbacks")'), "EIMS API exposes signed callback route namespace");
+	assert(bulkCallbackController.includes('Headers("x-eims-signature")'), "EIMS callback route reads signature header");
+	assert(bulkCallbackSpec.includes("rejects stale callback timestamps"), "EIMS callback tests cover timestamp replay window");
+	assert(bulkCallbackSpec.includes("deduplicates callback retries"), "EIMS callback tests cover idempotent retries");
+	assert(eimsSharedModule.includes("EimsBulkCallbackService"), "EIMS shared module exports bulk callback verifier");
 	assert(credentialSecrets.includes("CipherService"), "EIMS credential secrets use platform CipherService");
 	assert(credentialSecrets.includes("delete persistablePayload[field]"), "EIMS credential secrets strip raw values");
 	assert(credentialSecrets.includes("encryptedSecrets"), "EIMS credential secrets persist encrypted payload fields");

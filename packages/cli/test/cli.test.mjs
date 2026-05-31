@@ -160,6 +160,7 @@ test("production doctor blocks unsafe EIMS go-live settings", () => {
 		const output = outputOf(result);
 		assert.match(output, /EIMS_ENV.*must be production/);
 		assert.match(output, /EIMS_MOCK_MODE.*must be false/);
+		assert.match(output, /EIMS_CALLBACK_HMAC_SECRET.*callback HMAC secret/);
 		assert.match(output, /EIMS_SIGNING_PROVIDER.*non-local signing provider/);
 		assert.match(output, /EIMS_PHASE0_STRICT.*must be true/);
 	} finally {

@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { EimsBulkCallbackController } from "./callbacks/eims-bulk-callback.controller";
+import { EimsBulkCallbackService } from "./callbacks/eims-bulk-callback.service";
 import { EIMS_EXTERNAL_CLIENT } from "./client/eims-external-client";
 import { MockEimsExternalClient } from "./client/mock-eims-external.client";
 import { EimsCredentialSecretService } from "./crypto/eims-credential-secret.service";
@@ -11,9 +13,10 @@ import { EimsPrintProofService } from "./printing/eims-print-proof.service";
 import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.service";
 
 @Module({
-	controllers: [EimsLookupController, EimsSupportingResourcesController],
+	controllers: [EimsLookupController, EimsSupportingResourcesController, EimsBulkCallbackController],
 	providers: [
 		EimsLookupService,
+		EimsBulkCallbackService,
 		EimsSubmissionQueueService,
 		EimsCredentialSecretService,
 		EimsPrintProofService,
@@ -24,6 +27,7 @@ import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.servi
 	],
 	exports: [
 		EimsLookupService,
+		EimsBulkCallbackService,
 		EimsSubmissionQueueService,
 		EimsCredentialSecretService,
 		EimsPrintProofService,

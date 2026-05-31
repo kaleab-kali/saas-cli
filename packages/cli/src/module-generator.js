@@ -105,6 +105,7 @@ const EIMS_DIRECTORY_SKELETON = [
 	"apps/api/src/modules/eims/setup/infrastructure/repositories",
 	"apps/api/src/modules/eims/setup/presentation",
 	"apps/api/src/modules/eims/shared/client",
+	"apps/api/src/modules/eims/shared/callbacks",
 	"apps/api/src/modules/eims/shared/canonicalization",
 	"apps/api/src/modules/eims/shared/constants",
 	"apps/api/src/modules/eims/shared/crypto",
@@ -1211,7 +1212,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:api"] ??=
@@ -1283,6 +1284,7 @@ EIMS_CANONICALIZATION_VERSION=phase0-unlocked
 EIMS_MOCK_MODE=true
 EIMS_PHASE0_STRICT=false
 EIMS_CALLBACK_PUBLIC_URL=
+EIMS_CALLBACK_HMAC_SECRET=
 EIMS_LOOKUP_CACHE_TTL_SECONDS=300
 EIMS_QUEUE_PREFIX=eims`;
 	const productionBlock = `# --- EIMS / Ethiopian e-invoicing (optional starter) ---
@@ -1296,6 +1298,7 @@ EIMS_CANONICALIZATION_VERSION=phase0-unlocked
 EIMS_MOCK_MODE=false
 EIMS_PHASE0_STRICT=true
 EIMS_CALLBACK_PUBLIC_URL=https://your-domain.com/api/v1/eims/callbacks
+EIMS_CALLBACK_HMAC_SECRET=replace-with-32-byte-random-callback-secret
 EIMS_LOOKUP_CACHE_TTL_SECONDS=300
 EIMS_QUEUE_PREFIX=eims`;
 
@@ -5328,8 +5331,13 @@ for (const file of controllerFiles) {
 \tconst text = readFileSync(file, "utf8");
 \tconst isAdminController =
 \t\trelative.includes("/admin/") || relative.includes("/compliance/presentation/eims-acceptance");
+\tconst isAuthorityCallbackController = relative.includes("/shared/callbacks/");
 
-\tif (isAdminController) {
+\tif (isAuthorityCallbackController) {
+\t\tassertIncludes(text, 'Headers("x-eims-signature")', \`\${relative} must verify callback signatures\`);
+\t\tassertIncludes(text, 'Headers("x-eims-timestamp")', \`\${relative} must verify callback timestamps\`);
+\t\tassertIncludes(text, "knownConversationIds", \`\${relative} must bind callbacks to known conversations\`);
+\t} else if (isAdminController) {
 \t\tassertIncludes(text, "SuperAdminGuard", \`\${relative} must require the platform super-admin guard\`);
 \t\tassertIncludes(text, "@UseGuards(SuperAdminGuard)", \`\${relative} must bind the platform super-admin guard\`);
 \t} else {
@@ -5401,6 +5409,11 @@ assertIncludes(
 \t"/api/v1/eims/bulk/reconcile",
 \t"EIMS API mock tests must cover bulk callback reconciliation flow",
 );
+
+const callbackService = read("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.ts");
+assertIncludes(callbackService, "timingSafeEqual", "EIMS bulk callbacks must use constant-time signature checks");
+assertIncludes(callbackService, "EIMS_CALLBACK_HMAC_SECRET", "EIMS bulk callbacks must require an HMAC secret");
+assertIncludes(callbackService, "outside the allowed skew", "EIMS bulk callbacks must enforce replay windows");
 
 const acceptanceTests = read("apps/api-tests/tests/eims-acceptance.spec.ts");
 assertIncludes(

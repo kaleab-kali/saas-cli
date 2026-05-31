@@ -150,6 +150,7 @@ const checkEimsProductionEnv = (apiEnv, production) => {
 	requireHttpsEnvUrl(apiEnv, "EIMS_BASE_URL_PRODUCTION", production);
 	requireHttpsEnvUrl(apiEnv, "EIMS_BULK_URL_PRODUCTION", production);
 	requireHttpsEnvUrl(apiEnv, "EIMS_CALLBACK_PUBLIC_URL", production);
+	requireEnvValue(apiEnv, "EIMS_CALLBACK_HMAC_SECRET", production, "configure a non-placeholder callback HMAC secret before production");
 
 	const signingProvider = envValue(apiEnv, "EIMS_SIGNING_PROVIDER");
 	if (signingProvider && signingProvider !== "local") ok("EIMS_SIGNING_PROVIDER", signingProvider);
