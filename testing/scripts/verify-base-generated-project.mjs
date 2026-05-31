@@ -45,6 +45,7 @@ const mustExist = [
 	"apps/api/src/modules/auth/guards/permissions.guard.spec.ts",
 	"apps/api/src/modules/health/detailed-health.controller.ts",
 	"apps/api/src/modules/health/health-diagnostics.service.ts",
+	"apps/api/scripts/run-module-mutation.mjs",
 	"apps/api/src/shared/decorators/audit.decorator.ts",
 	"apps/api/src/shared/errors/domain-error.ts",
 	"apps/api/src/shared/filters/global-exception.filter.spec.ts",
@@ -146,6 +147,7 @@ function assertDeployGateBuilds() {
 	const performanceRunK6 = readProjectFile("apps/performance/scripts/run-k6.mjs");
 	const performanceMockK6 = readProjectFile("apps/performance/scripts/mock-k6.mjs");
 	const strykerConfig = readProjectFile("apps/api/stryker.conf.mjs");
+	const moduleMutationRunner = readProjectFile("apps/api/scripts/run-module-mutation.mjs");
 	const testingGuide = readProjectFile("docs/TESTING_GUIDE.md");
 	const deployCheck = packageJson.scripts?.["deploy:check"] ?? "";
 	const testCi = packageJson.scripts?.["test:ci"] ?? "";
@@ -218,11 +220,19 @@ function assertDeployGateBuilds() {
 	assert(apiPackageJson.scripts?.["test:property"]?.includes("phone.util.property.spec.ts"), "property test gate includes phone utilities");
 	assert(packageJson.scripts?.["test:coverage"] === "pnpm --filter api test:coverage", "base package exposes API coverage command");
 	assert(testAll.includes("test:mutation"), "full local gate includes mutation testing");
+	assert(
+		packageJson.scripts?.["test:mutation:module"] === "pnpm --filter api test:mutation:module",
+		"base package exposes module-scoped mutation command",
+	);
 	assert(testAll.includes("test:performance"), "full local gate includes performance testing");
 	assert(testAll.includes("test:security"), "full local gate includes security testing");
 	assert(packageJson.scripts?.["test:full"] === "pnpm test:all", "base package exposes full test category alias");
 	assert(apiPackageJson.scripts?.["test:unit"] === "jest --runInBand", "API workspace exposes unit test command");
 	assert(apiPackageJson.scripts?.["test:integration"]?.includes("jest-e2e.json"), "API workspace exposes integration test command");
+	assert(
+		apiPackageJson.scripts?.["test:mutation:module"] === "node scripts/run-module-mutation.mjs",
+		"API workspace exposes module-scoped mutation command",
+	);
 	assert(apiE2eSpec.includes("local-api-e2e-harness"), "API e2e has deterministic local fallback harness");
 	assert(!apiE2eSpec.includes("describe.skip"), "API e2e does not silently skip when no base URL is set");
 	assert(!apiE2eSpec.includes("Skipping API e2e"), "API e2e fallback executes instead of logging a skip");
@@ -262,11 +272,17 @@ function assertDeployGateBuilds() {
 	);
 	assert(strykerConfig.includes("testRunnerNodeArgs"), "mutation test config sets explicit test-runner Node args");
 	assert(strykerConfig.includes("--max-old-space-size=4096"), "mutation test runner has heap headroom");
+	assert(moduleMutationRunner.includes("process.env.MODULE"), "module mutation runner reads MODULE env var");
+	assert(moduleMutationRunner.includes("--dry-run"), "module mutation runner supports dry-run validation");
+	assert(moduleMutationRunner.includes("src/modules"), "module mutation runner scopes to API module folders");
+	assert(moduleMutationRunner.includes(".stryker-module"), "module mutation runner writes generated Stryker config");
+	assert(moduleMutationRunner.includes("STRYKER_MODULE_BREAK"), "module mutation runner supports configurable mutation break threshold");
 	assert(testingGuide.includes("excludes generated Prisma code"), "testing docs explain actionable coverage scope");
 	assert(
 		testingGuide.includes("concierge onboarding workflow state"),
 		"testing docs explain onboarding coverage threshold",
 	);
+	assert(testingGuide.includes("test:mutation:module"), "testing docs document module-scoped mutation testing");
 	assert(packageJson.scripts?.["db:backup"]?.includes("backup-postgres.mjs"), "base package has Postgres backup script");
 	assert(packageJson.scripts?.["db:restore"]?.includes("restore-postgres.mjs"), "base package has Postgres restore script");
 }

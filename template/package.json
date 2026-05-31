@@ -49,6 +49,7 @@
 		"test:integration": "pnpm test:api:e2e && pnpm test:api:http:mock && pnpm test:api:contract:smoke",
 		"test:property": "pnpm --filter api test:property",
 		"test:mutation": "pnpm --filter api test:mutation",
+		"test:mutation:module": "pnpm --filter api test:mutation:module",
 		"test:coverage": "pnpm --filter api test:coverage",
 		"test:smoke": "pnpm typecheck && pnpm test:api && pnpm test:property && pnpm test:api:http:mock && pnpm test:api:bruno:mock && pnpm test:api:contract && pnpm test:e2e:smoke && pnpm test:acceptance && pnpm test:load:k6:mock && pnpm test:security:source && pnpm test:security:api && pnpm test:security:tooling && pnpm test:ai",
 		"test:ci": "pnpm db:generate && pnpm typecheck && pnpm test:api && pnpm test:property && pnpm test:api:http:mock && pnpm test:api:bruno:mock && pnpm test:api:contract && pnpm test:acceptance && pnpm test:security:source && pnpm test:security:api && pnpm test:security:tooling && pnpm test:ai",

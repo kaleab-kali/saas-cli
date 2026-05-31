@@ -21,6 +21,7 @@
 		"test:integration": "jest --config ./test/jest-e2e.json",
 		"test:property": "jest --runTestsByPath src/modules/billing/application/services/policy.service.property.spec.ts src/modules/billing/domain/value-objects/billing.property.spec.ts src/shared/i18n/money.util.property.spec.ts src/shared/i18n/phone.util.property.spec.ts --runInBand",
 		"test:mutation": "stryker run",
+		"test:mutation:module": "node scripts/run-module-mutation.mjs",
 		"test:coverage": "jest --coverage --runInBand",
 		"test:e2e": "jest --config ./test/jest-e2e.json",
 		"db:generate": "prisma generate && node ../../scripts/trim-generated-prisma.mjs",

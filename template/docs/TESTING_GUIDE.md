@@ -80,6 +80,8 @@ pnpm test:unit
 pnpm test:coverage
 pnpm test:property
 pnpm test:mutation
+MODULE=billing pnpm test:mutation:module
+MODULE=billing pnpm test:mutation:module -- --dry-run
 ```
 
 Use these for domain logic, billing rules, entitlement enforcement, and Nest service/controller tests.
@@ -89,6 +91,8 @@ Generated modules and starter-pack modules include a starter handler spec under 
 `pnpm test:coverage` excludes generated Prisma code, DTOs, Nest modules, entity shape files, presentation controllers, and mapper boilerplate so the report stays focused on executable business logic. It enforces a low global scaffold baseline plus strict per-file thresholds for currently covered critical logic: billing policy decisions, concierge onboarding workflow state, tenant-scoped throttling, permission checks, audit logging, sanitized exception responses, and encryption.
 
 `pnpm test:mutation` runs Stryker against the current high-signal billing policy target and writes the HTML report under `apps/api/reports/mutation/`. The Stryker test runner uses explicit Node heap headroom so the command can run as a reliable nightly/full gate instead of restarting under memory pressure on fresh scaffolds.
+
+`pnpm test:mutation:module` runs Stryker against one module folder under `apps/api/src/modules`. Set `MODULE=<module-folder>` such as `billing`, `onboarding`, or `organization-settings`. The runner validates the module, discovers that module's `.spec.ts` and `.test.ts` files, writes a generated config under `apps/api/.stryker-module/`, and scopes mutation patterns to the selected module. Use `-- --dry-run` to verify the generated config without running Stryker.
 
 ## HTTP API Tests
 

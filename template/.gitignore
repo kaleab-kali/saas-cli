@@ -40,6 +40,7 @@ apps/e2e/test-results/
 apps/api-tests/playwright-report/
 apps/api-tests/test-results/
 apps/api/.stryker-tmp/
+apps/api/.stryker-module/
 apps/api/stryker-tmp/
 apps/api/reports/
 apps/security/security-results/
