@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
+	type AdminSubscriptionDetail,
+	type DunningLogEntry,
 	useAdminSubscription,
 	useChangeSubscriptionPlan,
 	useCreateManualInvoice,
@@ -14,8 +17,9 @@ import {
 	useSendInvoice,
 	useVoidInvoice,
 } from "#features/admin/api/admin-billing.hooks";
-import { useUsageHistory } from "#features/admin/api/admin-billing-dashboard.hooks";
+import { type UsageHistorySnapshot, useUsageHistory } from "#features/admin/api/admin-billing-dashboard.hooks";
 import { useAdminPlans } from "#features/admin/api/admin-plans.hooks";
+import { DataTable } from "#shared/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +28,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const METHODS = ["manual_bank", "manual_other", "stripe_card", "chapa_telebirr", "chapa_cbe", "chapa_card"] as const;
@@ -41,6 +44,8 @@ const FORCE_STATUSES = [
 
 const formatMinor = (amountMinor: number, currency: string) =>
 	new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amountMinor / 100);
+
+type SubscriptionInvoice = AdminSubscriptionDetail["invoices"][number];
 
 const SubscriptionDetail = React.memo(
 	() => {
@@ -121,6 +126,235 @@ const SubscriptionDetail = React.memo(
 				setPaymentDialogInvoiceId(null);
 			},
 			[paymentForm, recordPayment],
+		);
+
+		const invoiceColumns = React.useMemo<ColumnDef<SubscriptionInvoice>[]>(
+			() => [
+				{
+					accessorKey: "number",
+					header: t("admin.billing.col.number", { defaultValue: "Number" }),
+					cell: ({ row }) => <span className="font-medium">{row.original.number}</span>,
+					meta: { filter: { type: "text" } },
+				},
+				{
+					accessorKey: "status",
+					header: t("admin.billing.col.status", { defaultValue: "Status" }),
+					cell: ({ row }) => (
+						<Badge variant="outline" className="capitalize text-xs">
+							{row.original.status}
+						</Badge>
+					),
+					meta: {
+						filter: {
+							type: "select",
+							options: [
+								{ value: "draft", label: "Draft" },
+								{ value: "sent", label: "Sent" },
+								{ value: "paid", label: "Paid" },
+								{ value: "overdue", label: "Overdue" },
+								{ value: "void", label: "Void" },
+							],
+						},
+					},
+				},
+				{
+					accessorKey: "dueDate",
+					header: t("admin.billing.col.due", { defaultValue: "Due" }),
+					cell: ({ row }) => new Date(row.original.dueDate).toLocaleDateString(),
+					meta: { filter: { type: "date-range" } },
+				},
+				{
+					accessorKey: "totalMinor",
+					header: t("admin.billing.col.total", { defaultValue: "Total" }),
+					cell: ({ row }) => (
+						<span className="font-mono">{formatMinor(row.original.totalMinor, row.original.currency)}</span>
+					),
+					meta: { className: "text-right", headerClassName: "text-right", filter: { type: "number-range" } },
+				},
+				{
+					accessorKey: "amountPaidMinor",
+					header: t("admin.billing.col.paid", { defaultValue: "Paid" }),
+					cell: ({ row }) => (
+						<span className="font-mono">{formatMinor(row.original.amountPaidMinor, row.original.currency)}</span>
+					),
+					meta: { className: "text-right", headerClassName: "text-right", filter: { type: "number-range" } },
+				},
+				{
+					id: "actions",
+					header: t("common.actions"),
+					enableSorting: false,
+					enableColumnFilter: false,
+					cell: ({ row }) => {
+						const inv = row.original;
+						return (
+							<div className="flex flex-wrap justify-end gap-1">
+								{inv.status === "draft" && (
+									<Button
+										size="sm"
+										variant="outline"
+										onClick={() => sendInvoice.mutate(inv.id)}
+										disabled={sendInvoice.isPending}
+									>
+										{t("admin.billing.send", { defaultValue: "Send" })}
+									</Button>
+								)}
+								{inv.status !== "paid" && inv.status !== "void" && (
+									<Dialog
+										open={paymentDialogInvoiceId === inv.id}
+										onOpenChange={(open) => setPaymentDialogInvoiceId(open ? inv.id : null)}
+									>
+										<DialogTrigger asChild>
+											<Button size="sm">{t("admin.billing.recordPayment", { defaultValue: "Pay" })}</Button>
+										</DialogTrigger>
+										<DialogContent>
+											<DialogHeader>
+												<DialogTitle>
+													{t("admin.billing.recordPayment", { defaultValue: "Record payment" })} - {inv.number}
+												</DialogTitle>
+											</DialogHeader>
+											<div className="space-y-3">
+												<div className="grid grid-cols-2 gap-2">
+													<div className="space-y-1">
+														<Label htmlFor={`payment-amount-${inv.id}`}>
+															{t("admin.billing.amountMinor", { defaultValue: "Amount (minor units)" })}
+														</Label>
+														<Input
+															id={`payment-amount-${inv.id}`}
+															type="number"
+															value={paymentForm.amountMinor}
+															onChange={(e) => setPaymentForm((f) => ({ ...f, amountMinor: e.target.value }))}
+														/>
+													</div>
+													<div className="space-y-1">
+														<Label>{t("admin.billing.method", { defaultValue: "Method" })}</Label>
+														<Select
+															value={paymentForm.method}
+															onValueChange={(v) => setPaymentForm((f) => ({ ...f, method: v }))}
+														>
+															<SelectTrigger>
+																<SelectValue />
+															</SelectTrigger>
+															<SelectContent>
+																{METHODS.map((m) => (
+																	<SelectItem key={m} value={m}>
+																		{m.replace("_", " ")}
+																	</SelectItem>
+																))}
+															</SelectContent>
+														</Select>
+													</div>
+													<div className="space-y-1">
+														<Label htmlFor={`payment-receipt-${inv.id}`}>
+															{t("admin.billing.receiptNo", { defaultValue: "Receipt No" })}
+														</Label>
+														<Input
+															id={`payment-receipt-${inv.id}`}
+															value={paymentForm.receiptNumber}
+															onChange={(e) => setPaymentForm((f) => ({ ...f, receiptNumber: e.target.value }))}
+														/>
+													</div>
+													<div className="space-y-1">
+														<Label>{t("admin.billing.bankRef", { defaultValue: "Bank Ref" })}</Label>
+														<Input
+															value={paymentForm.bankReference}
+															onChange={(e) => setPaymentForm((f) => ({ ...f, bankReference: e.target.value }))}
+														/>
+													</div>
+													<div className="space-y-1">
+														<Label>{t("admin.billing.paidAt", { defaultValue: "Paid On" })}</Label>
+														<Input
+															type="date"
+															value={paymentForm.paidAt}
+															onChange={(e) => setPaymentForm((f) => ({ ...f, paidAt: e.target.value }))}
+														/>
+													</div>
+													<div className="space-y-1">
+														<Label>{t("admin.billing.note", { defaultValue: "Note" })}</Label>
+														<Input
+															value={paymentForm.note}
+															onChange={(e) => setPaymentForm((f) => ({ ...f, note: e.target.value }))}
+														/>
+													</div>
+												</div>
+											</div>
+											<DialogFooter>
+												<Button onClick={() => handleRecordPayment(inv.id)} disabled={recordPayment.isPending}>
+													{recordPayment.isPending
+														? t("common.saving")
+														: t("admin.billing.confirmPayment", { defaultValue: "Confirm Payment" })}
+												</Button>
+											</DialogFooter>
+										</DialogContent>
+									</Dialog>
+								)}
+								{inv.status !== "paid" && inv.status !== "void" && (
+									<Button
+										size="sm"
+										variant="ghost"
+										className="text-destructive"
+										onClick={() => {
+											if (window.confirm(t("admin.billing.voidConfirm", { defaultValue: "Void invoice?" })))
+												voidInvoice.mutate(inv.id);
+										}}
+									>
+										{t("admin.billing.void", { defaultValue: "Void" })}
+									</Button>
+								)}
+							</div>
+						);
+					},
+					meta: { className: "text-right", headerClassName: "text-right" },
+				},
+			],
+			[handleRecordPayment, paymentDialogInvoiceId, paymentForm, recordPayment.isPending, sendInvoice, t, voidInvoice],
+		);
+
+		const dunningColumns = React.useMemo<ColumnDef<DunningLogEntry>[]>(
+			() => [
+				{
+					accessorKey: "sentAt",
+					header: "When",
+					cell: ({ row }) => new Date(row.original.sentAt).toLocaleString(),
+					meta: { filter: { type: "date-range" } },
+				},
+				{
+					accessorKey: "type",
+					header: "Type",
+					cell: ({ row }) => <span className="capitalize">{row.original.type.replace("_", " ")}</span>,
+					meta: {
+						filter: {
+							type: "select",
+							options: [
+								{ value: "reminder", label: "Reminder" },
+								{ value: "overdue", label: "Overdue" },
+								{ value: "grace", label: "Grace" },
+								{ value: "read_only", label: "Read only" },
+								{ value: "locked", label: "Locked" },
+								{ value: "renewal", label: "Renewal" },
+							],
+						},
+					},
+				},
+				{ accessorKey: "subject", header: "Subject", meta: { filter: { type: "text" } } },
+				{ accessorKey: "sentTo", header: "To", meta: { filter: { type: "text" } } },
+				{
+					accessorKey: "status",
+					header: "Status",
+					cell: ({ row }) => (
+						<Badge variant={row.original.status === "sent" ? "default" : "destructive"}>{row.original.status}</Badge>
+					),
+					meta: {
+						filter: {
+							type: "select",
+							options: [
+								{ value: "sent", label: "Sent" },
+								{ value: "failed", label: "Failed" },
+							],
+						},
+					},
+				},
+			],
+			[],
 		);
 
 		if (isLoading || !sub) return <Skeleton className="h-96 w-full" />;
@@ -240,7 +474,7 @@ const SubscriptionDetail = React.memo(
 					<TabsContent value="invoices" className="mt-4 space-y-4">
 						<Card>
 							<CardHeader>
-								<CardTitle className="text-base">
+								<CardTitle className="text-base" role="heading" aria-level={2}>
 									{t("admin.billing.createManualInvoice", { defaultValue: "Create manual invoice" })}
 								</CardTitle>
 							</CardHeader>
@@ -299,177 +533,24 @@ const SubscriptionDetail = React.memo(
 						</Card>
 
 						<Card>
-							<CardContent className="p-0 overflow-x-auto">
-								<Table className="w-full text-sm">
-									<TableHeader className="bg-muted/40">
-										<TableRow>
-											<TableHead className="text-left p-2">
-												{t("admin.billing.col.number", { defaultValue: "Number" })}
-											</TableHead>
-											<TableHead className="text-left p-2">
-												{t("admin.billing.col.status", { defaultValue: "Status" })}
-											</TableHead>
-											<TableHead className="text-left p-2">
-												{t("admin.billing.col.due", { defaultValue: "Due" })}
-											</TableHead>
-											<TableHead className="text-right p-2">
-												{t("admin.billing.col.total", { defaultValue: "Total" })}
-											</TableHead>
-											<TableHead className="text-right p-2">
-												{t("admin.billing.col.paid", { defaultValue: "Paid" })}
-											</TableHead>
-											<TableHead className="text-right p-2">{t("common.actions")}</TableHead>
-										</TableRow>
-									</TableHeader>
-									<TableBody>
-										{sub.invoices.map((inv) => (
-											<TableRow key={inv.id} className="border-t">
-												<TableCell className="p-2 font-medium">{inv.number}</TableCell>
-												<TableCell className="p-2">
-													<Badge variant="outline" className="capitalize text-xs">
-														{inv.status}
-													</Badge>
-												</TableCell>
-												<TableCell className="p-2">{new Date(inv.dueDate).toLocaleDateString()}</TableCell>
-												<TableCell className="p-2 text-right font-mono">
-													{formatMinor(inv.totalMinor, inv.currency)}
-												</TableCell>
-												<TableCell className="p-2 text-right font-mono">
-													{formatMinor(inv.amountPaidMinor, inv.currency)}
-												</TableCell>
-												<TableCell className="p-2 text-right space-x-1">
-													{inv.status === "draft" && (
-														<Button
-															size="sm"
-															variant="outline"
-															onClick={() => sendInvoice.mutate(inv.id)}
-															disabled={sendInvoice.isPending}
-														>
-															{t("admin.billing.send", { defaultValue: "Send" })}
-														</Button>
-													)}
-													{inv.status !== "paid" && inv.status !== "void" && (
-														<Dialog
-															open={paymentDialogInvoiceId === inv.id}
-															onOpenChange={(open) => setPaymentDialogInvoiceId(open ? inv.id : null)}
-														>
-															<DialogTrigger asChild>
-																<Button size="sm">{t("admin.billing.recordPayment", { defaultValue: "Pay" })}</Button>
-															</DialogTrigger>
-															<DialogContent>
-																<DialogHeader>
-																	<DialogTitle>
-																		{t("admin.billing.recordPayment", { defaultValue: "Record payment" })} —{" "}
-																		{inv.number}
-																	</DialogTitle>
-																</DialogHeader>
-																<div className="space-y-3">
-																	<div className="grid grid-cols-2 gap-2">
-																		<div className="space-y-1">
-																			<Label htmlFor={`payment-amount-${inv.id}`}>
-																				{t("admin.billing.amountMinor", { defaultValue: "Amount (minor units)" })}
-																			</Label>
-																			<Input
-																				id={`payment-amount-${inv.id}`}
-																				type="number"
-																				value={paymentForm.amountMinor}
-																				onChange={(e) => setPaymentForm((f) => ({ ...f, amountMinor: e.target.value }))}
-																			/>
-																		</div>
-																		<div className="space-y-1">
-																			<Label>{t("admin.billing.method", { defaultValue: "Method" })}</Label>
-																			<Select
-																				value={paymentForm.method}
-																				onValueChange={(v) => setPaymentForm((f) => ({ ...f, method: v }))}
-																			>
-																				<SelectTrigger>
-																					<SelectValue />
-																				</SelectTrigger>
-																				<SelectContent>
-																					{METHODS.map((m) => (
-																						<SelectItem key={m} value={m}>
-																							{m.replace("_", " ")}
-																						</SelectItem>
-																					))}
-																				</SelectContent>
-																			</Select>
-																		</div>
-																		<div className="space-y-1">
-																			<Label htmlFor={`payment-receipt-${inv.id}`}>
-																				{t("admin.billing.receiptNo", { defaultValue: "Receipt No" })}
-																			</Label>
-																			<Input
-																				id={`payment-receipt-${inv.id}`}
-																				value={paymentForm.receiptNumber}
-																				onChange={(e) =>
-																					setPaymentForm((f) => ({ ...f, receiptNumber: e.target.value }))
-																				}
-																			/>
-																		</div>
-																		<div className="space-y-1">
-																			<Label>{t("admin.billing.bankRef", { defaultValue: "Bank Ref" })}</Label>
-																			<Input
-																				value={paymentForm.bankReference}
-																				onChange={(e) =>
-																					setPaymentForm((f) => ({ ...f, bankReference: e.target.value }))
-																				}
-																			/>
-																		</div>
-																		<div className="space-y-1">
-																			<Label>{t("admin.billing.paidAt", { defaultValue: "Paid On" })}</Label>
-																			<Input
-																				type="date"
-																				value={paymentForm.paidAt}
-																				onChange={(e) => setPaymentForm((f) => ({ ...f, paidAt: e.target.value }))}
-																			/>
-																		</div>
-																		<div className="space-y-1">
-																			<Label>{t("admin.billing.note", { defaultValue: "Note" })}</Label>
-																			<Input
-																				value={paymentForm.note}
-																				onChange={(e) => setPaymentForm((f) => ({ ...f, note: e.target.value }))}
-																			/>
-																		</div>
-																	</div>
-																</div>
-																<DialogFooter>
-																	<Button
-																		onClick={() => handleRecordPayment(inv.id)}
-																		disabled={recordPayment.isPending}
-																	>
-																		{recordPayment.isPending
-																			? t("common.saving")
-																			: t("admin.billing.confirmPayment", { defaultValue: "Confirm Payment" })}
-																	</Button>
-																</DialogFooter>
-															</DialogContent>
-														</Dialog>
-													)}
-													{inv.status !== "paid" && inv.status !== "void" && (
-														<Button
-															size="sm"
-															variant="ghost"
-															className="text-destructive"
-															onClick={() => {
-																if (window.confirm(t("admin.billing.voidConfirm", { defaultValue: "Void invoice?" })))
-																	voidInvoice.mutate(inv.id);
-															}}
-														>
-															{t("admin.billing.void", { defaultValue: "Void" })}
-														</Button>
-													)}
-												</TableCell>
-											</TableRow>
-										))}
-										{sub.invoices.length === 0 && (
-											<TableRow>
-												<TableCell colSpan={6} className="p-4 text-center text-muted-foreground text-xs">
-													{t("admin.billing.noInvoices", { defaultValue: "No invoices" })}
-												</TableCell>
-											</TableRow>
-										)}
-									</TableBody>
-								</Table>
+							<CardHeader>
+								<CardTitle className="text-base" role="heading" aria-level={2}>
+									{t("admin.billing.tab.invoices", { defaultValue: "Invoices" })}
+								</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<DataTable
+									columns={invoiceColumns}
+									data={sub.invoices}
+									searchPlaceholder="Search invoices..."
+									emptyTitle={t("admin.billing.noInvoices", { defaultValue: "No invoices" })}
+									emptyMessage="Create a manual invoice or wait for the billing lifecycle job to generate one."
+									pageSize={10}
+									enableCsvExport
+									exportFilename={`subscription-${subscriptionId}-invoices.csv`}
+									savedViewsEntity={`admin-subscription-${subscriptionId}-invoices`}
+									getRowId={(invoice) => invoice.id}
+								/>
 							</CardContent>
 						</Card>
 					</TabsContent>
@@ -477,7 +558,7 @@ const SubscriptionDetail = React.memo(
 					<TabsContent value="actions" className="mt-4 space-y-4">
 						<Card>
 							<CardHeader>
-								<CardTitle className="text-base">
+								<CardTitle className="text-base" role="heading" aria-level={2}>
 									{t("admin.billing.extendAction", { defaultValue: "Extend subscription" })}
 								</CardTitle>
 							</CardHeader>
@@ -509,7 +590,7 @@ const SubscriptionDetail = React.memo(
 
 						<Card>
 							<CardHeader>
-								<CardTitle className="text-base">
+								<CardTitle className="text-base" role="heading" aria-level={2}>
 									{t("admin.billing.creditAction", { defaultValue: "Credit / Debit account" })}
 								</CardTitle>
 							</CardHeader>
@@ -549,7 +630,7 @@ const SubscriptionDetail = React.memo(
 
 						<Card>
 							<CardHeader>
-								<CardTitle className="text-base">
+								<CardTitle className="text-base" role="heading" aria-level={2}>
 									{t("admin.billing.changePlanAction", { defaultValue: "Change plan" })}
 								</CardTitle>
 							</CardHeader>
@@ -561,7 +642,7 @@ const SubscriptionDetail = React.memo(
 									<SelectContent>
 										{plans.map((p) => (
 											<SelectItem key={p.id} value={p.id}>
-												{p.nameEn} — {p.slug}
+												{p.nameEn} - {p.slug}
 											</SelectItem>
 										))}
 									</SelectContent>
@@ -580,7 +661,7 @@ const SubscriptionDetail = React.memo(
 
 						<Card>
 							<CardHeader>
-								<CardTitle className="text-base">
+								<CardTitle className="text-base" role="heading" aria-level={2}>
 									{t("admin.billing.forceStatusAction", { defaultValue: "Force status (danger)" })}
 								</CardTitle>
 							</CardHeader>
@@ -627,7 +708,9 @@ const SubscriptionDetail = React.memo(
 					<TabsContent value="dunning" className="mt-4 space-y-4">
 						<Card>
 							<CardHeader>
-								<CardTitle className="text-base">Send dunning email</CardTitle>
+								<CardTitle className="text-base" role="heading" aria-level={2}>
+									Send dunning email
+								</CardTitle>
 							</CardHeader>
 							<CardContent className="space-y-2">
 								<div className="flex flex-wrap gap-2">
@@ -656,37 +739,23 @@ const SubscriptionDetail = React.memo(
 
 						<Card>
 							<CardHeader>
-								<CardTitle className="text-base">Dunning history</CardTitle>
+								<CardTitle className="text-base" role="heading" aria-level={2}>
+									Dunning history
+								</CardTitle>
 							</CardHeader>
-							<CardContent className="p-0 overflow-x-auto">
-								{dunningLog.length === 0 ? (
-									<p className="text-sm text-muted-foreground p-4 text-center">No dunning emails sent.</p>
-								) : (
-									<Table className="w-full text-sm">
-										<TableHeader className="bg-muted/40">
-											<TableRow>
-												<TableHead className="text-left p-2">When</TableHead>
-												<TableHead className="text-left p-2">Type</TableHead>
-												<TableHead className="text-left p-2">Subject</TableHead>
-												<TableHead className="text-left p-2">To</TableHead>
-												<TableHead className="text-left p-2">Status</TableHead>
-											</TableRow>
-										</TableHeader>
-										<TableBody>
-											{dunningLog.map((d) => (
-												<TableRow key={d.id} className="border-t">
-													<TableCell className="p-2">{new Date(d.sentAt).toLocaleString()}</TableCell>
-													<TableCell className="p-2 capitalize">{d.type.replace("_", " ")}</TableCell>
-													<TableCell className="p-2">{d.subject}</TableCell>
-													<TableCell className="p-2 text-muted-foreground">{d.sentTo}</TableCell>
-													<TableCell className="p-2">
-														<Badge variant={d.status === "sent" ? "default" : "destructive"}>{d.status}</Badge>
-													</TableCell>
-												</TableRow>
-											))}
-										</TableBody>
-									</Table>
-								)}
+							<CardContent>
+								<DataTable
+									columns={dunningColumns}
+									data={dunningLog}
+									searchPlaceholder="Search dunning history..."
+									emptyTitle="No dunning emails sent"
+									emptyMessage="Send a reminder or lifecycle email to create the first dunning record."
+									pageSize={10}
+									enableCsvExport
+									exportFilename={`subscription-${subscriptionId}-dunning.csv`}
+									savedViewsEntity={`admin-subscription-${subscriptionId}-dunning`}
+									getRowId={(entry) => entry.id}
+								/>
 							</CardContent>
 						</Card>
 					</TabsContent>
@@ -705,45 +774,67 @@ SubscriptionDetail.displayName = "AdminSubscriptionDetail";
 const UsageHistoryPanel = React.memo(
 	({ subscriptionId }: { readonly subscriptionId: string }) => {
 		const { data = [], isLoading } = useUsageHistory(subscriptionId);
+		const usageColumns = React.useMemo<ColumnDef<UsageHistorySnapshot>[]>(
+			() => [
+				{
+					accessorKey: "snapshotDate",
+					header: "Date",
+					cell: ({ row }) => new Date(row.original.snapshotDate).toLocaleDateString(),
+					meta: { filter: { type: "date-range" } },
+				},
+				{
+					accessorKey: "userCount",
+					header: "Users",
+					cell: ({ row }) => <span className="font-mono">{row.original.userCount}</span>,
+					meta: { className: "text-right", headerClassName: "text-right", filter: { type: "number-range" } },
+				},
+				{
+					accessorKey: "apiCallCount",
+					header: "API calls",
+					cell: ({ row }) => <span className="font-mono">{row.original.apiCallCount}</span>,
+					meta: { className: "text-right", headerClassName: "text-right", filter: { type: "number-range" } },
+				},
+				{
+					accessorKey: "emailCount",
+					header: "Emails",
+					cell: ({ row }) => <span className="font-mono">{row.original.emailCount}</span>,
+					meta: { className: "text-right", headerClassName: "text-right", filter: { type: "number-range" } },
+				},
+				{
+					accessorKey: "metricsJson",
+					header: "Metrics",
+					cell: ({ row }) => (
+						<span className="text-xs text-muted-foreground">
+							{row.original.metricsJson ? JSON.stringify(row.original.metricsJson) : "None"}
+						</span>
+					),
+					enableSorting: false,
+					meta: { filter: { type: "text" } },
+				},
+			],
+			[],
+		);
 		if (isLoading) return <Skeleton className="h-64 w-full" />;
-		if (data.length === 0)
-			return (
-				<Card>
-					<CardContent className="py-8 text-sm text-muted-foreground text-center">
-						No usage snapshots yet. Cron will collect daily at 04:00.
-					</CardContent>
-				</Card>
-			);
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">Daily usage snapshots (last 90)</CardTitle>
+					<CardTitle className="text-base" role="heading" aria-level={2}>
+						Daily usage snapshots (last 90)
+					</CardTitle>
 				</CardHeader>
-				<CardContent className="p-0 overflow-x-auto">
-					<Table className="w-full text-sm">
-						<TableHeader className="bg-muted/40">
-							<TableRow>
-								<TableHead className="text-left p-2">Date</TableHead>
-								<TableHead className="text-right p-2">Users</TableHead>
-								<TableHead className="text-right p-2">API calls</TableHead>
-								<TableHead className="text-right p-2">Emails</TableHead>
-								<TableHead className="text-left p-2">Metrics</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{data.map((s) => (
-								<TableRow key={s.id} className="border-t">
-									<TableCell className="p-2">{new Date(s.snapshotDate).toLocaleDateString()}</TableCell>
-									<TableCell className="p-2 text-right font-mono">{s.userCount}</TableCell>
-									<TableCell className="p-2 text-right font-mono">{s.apiCallCount}</TableCell>
-									<TableCell className="p-2 text-right font-mono">{s.emailCount}</TableCell>
-									<TableCell className="p-2 text-xs text-muted-foreground">
-										{s.metricsJson ? JSON.stringify(s.metricsJson) : "None"}
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
+				<CardContent>
+					<DataTable
+						columns={usageColumns}
+						data={data}
+						searchPlaceholder="Search usage snapshots..."
+						emptyTitle="No usage snapshots yet"
+						emptyMessage="The usage cron collects daily snapshots at 04:00."
+						pageSize={10}
+						enableCsvExport
+						exportFilename={`subscription-${subscriptionId}-usage.csv`}
+						savedViewsEntity={`admin-subscription-${subscriptionId}-usage`}
+						getRowId={(snapshot) => snapshot.id}
+					/>
 				</CardContent>
 			</Card>
 		);

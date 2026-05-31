@@ -310,6 +310,35 @@ async function installAdminMocks(page: Page) {
 			await route.fulfill(ok({ data: ["platform.api-keys", "platform.reports"] }));
 			return;
 		}
+		if (/\/admin\/plans(?:\?|$)/.test(url)) {
+			await route.fulfill(
+				ok({
+					data: [
+						{
+							id: "plan_pro",
+							slug: "pro",
+							nameEn: "Pro",
+							nameAm: "Pro",
+							description: "Production plan",
+							priceMonthlyMinor: 450000,
+							priceAnnualMinor: 4500000,
+							currency: "ETB",
+							userCap: 25,
+							supportSlaHours: 24,
+							stripeSupported: false,
+							chapaSupported: true,
+							manualSupported: true,
+							active: true,
+							sortOrder: 10,
+							entitlements: [],
+							createdAt: now(),
+							updatedAt: now(),
+						},
+					],
+				}),
+			);
+			return;
+		}
 		if (/\/admin\/plans\/plan_pro(?:\?|$)/.test(url)) {
 			await route.fulfill(
 				ok({
@@ -407,6 +436,97 @@ async function installAdminMocks(page: Page) {
 						upcomingRenewals30d: 1,
 						byPlan: { pro: { count: 1, mrrMinor: 450000 }, starter: { count: 1, mrrMinor: 0 } },
 						totalSubs: 2,
+					},
+				}),
+			);
+			return;
+		}
+		if (url.includes("/admin/billing/subscriptions/sub_smoke/dunning-log")) {
+			await route.fulfill(
+				ok({
+					data: [
+						{
+							id: "dunning_smoke",
+							type: "overdue",
+							subject: "Your invoice is overdue",
+							sentTo: "owner@example.test",
+							status: "sent",
+							errorMessage: null,
+							sentAt: now(),
+						},
+					],
+				}),
+			);
+			return;
+		}
+		if (url.includes("/admin/billing/subscriptions/sub_smoke/usage-history")) {
+			await route.fulfill(
+				ok({
+					data: [
+						{
+							id: "usage_smoke",
+							snapshotDate: now(),
+							userCount: 2,
+							apiCallCount: 128,
+							emailCount: 6,
+							metricsJson: { invoices: 12 },
+						},
+					],
+				}),
+			);
+			return;
+		}
+		if (/\/admin\/billing\/subscriptions\/sub_smoke(?:\?|$)/.test(url)) {
+			await route.fulfill(
+				ok({
+					data: {
+						id: "sub_smoke",
+						organizationId: "org_smoke",
+						organizationName: "Demo Cafe",
+						organizationSlug: "demo-cafe",
+						organization: { id: "org_smoke", name: "Demo Cafe", slug: "demo-cafe" },
+						planId: "plan_pro",
+						plan: { nameEn: "Pro", nameAm: "Pro", slug: "pro" },
+						status: "active",
+						billingInterval: "monthly",
+						currency: "ETB",
+						currentPeriodStart: now(),
+						currentPeriodEnd: now(),
+						gracePeriodEndsAt: null,
+						readOnlyModeEndsAt: null,
+						lockedAt: null,
+						creditBalanceMinor: 15000,
+						lifecycle: {
+							status: "active",
+							periodEnd: now(),
+							gracePeriodEndsAt: null,
+							readOnlyModeEndsAt: null,
+							lockedAt: null,
+							daysUntilReadOnly: null,
+							daysUntilLocked: null,
+							daysExpired: 0,
+							isWriteBlocked: false,
+							isFullyLocked: false,
+						},
+						invoices: [
+							{
+								id: "invoice_smoke",
+								number: "INV-DETAIL-001",
+								status: "draft",
+								issueDate: now(),
+								dueDate: now(),
+								periodStart: now(),
+								periodEnd: now(),
+								currency: "ETB",
+								subtotalMinor: 450000,
+								taxMinor: 0,
+								totalMinor: 450000,
+								amountPaidMinor: 0,
+								lineType: "subscription",
+								description: "Pro monthly subscription",
+								payments: [],
+							},
+						],
 					},
 				}),
 			);
@@ -720,6 +840,36 @@ test("admin billing smoke renders searchable subscription table", async ({ page 
 	await expect(page.getByText("Demo Cafe")).toBeVisible();
 	await expect(page.getByText("Overdue Trading")).toBeVisible();
 	await expect(page.getByRole("link", { name: "Manage" }).first()).toBeVisible();
+
+	assertNoErrors();
+});
+
+test("admin subscription detail smoke renders lifecycle DataTables", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAdminMocks(page);
+
+	await page.goto("/admin/billing/sub_smoke", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Demo Cafe" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Invoices" })).toBeVisible();
+	await expect(page.getByRole("textbox", { name: /Search invoices/i })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Saved views" })).toBeVisible();
+	await expect(page.getByText("INV-DETAIL-001")).toBeVisible();
+	await expect(page.getByRole("button", { name: "Send" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Pay" })).toBeVisible();
+
+	await page.getByRole("tab", { name: /Dunning/i }).click();
+	await expect(page.getByRole("heading", { name: "Dunning history" })).toBeVisible();
+	await expect(page.getByRole("textbox", { name: /Search dunning history/i })).toBeVisible();
+	await expect(page.getByText("Your invoice is overdue")).toBeVisible();
+
+	await page.getByRole("tab", { name: "Usage" }).click();
+	await expect(page.getByRole("heading", { name: "Daily usage snapshots (last 90)" })).toBeVisible();
+	await expect(page.getByRole("textbox", { name: /Search usage snapshots/i })).toBeVisible();
+	await expect(page.getByText("128")).toBeVisible();
+	await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible();
 
 	assertNoErrors();
 });

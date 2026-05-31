@@ -63,20 +63,20 @@ export const useVerifyPayment = () => {
 	});
 };
 
+export interface UsageHistorySnapshot {
+	readonly id: string;
+	readonly snapshotDate: string;
+	readonly userCount: number;
+	readonly apiCallCount: number;
+	readonly emailCount: number;
+	readonly metricsJson: Record<string, number> | null;
+}
+
 export const useUsageHistory = (subscriptionId: string) =>
 	useQuery({
 		queryKey: ["admin-billing-usage-history", subscriptionId],
 		queryFn: () =>
-			api.get<{
-				data: Array<{
-					id: string;
-					snapshotDate: string;
-					userCount: number;
-					apiCallCount: number;
-					emailCount: number;
-					metricsJson: Record<string, number> | null;
-				}>;
-			}>(`/admin/billing/subscriptions/${subscriptionId}/usage-history`),
+			api.get<{ data: UsageHistorySnapshot[] }>(`/admin/billing/subscriptions/${subscriptionId}/usage-history`),
 		select: (r) => r.data,
 		enabled: !!subscriptionId,
 	});

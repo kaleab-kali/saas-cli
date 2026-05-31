@@ -46,6 +46,8 @@ Included billing primitives:
 
 The subscription index uses the shared DataTable surface for searchable account review, status filtering, column controls, saved views, and CSV export before staff drill into a subscription.
 
+Subscription detail pages use DataTable for invoice lifecycle review, dunning history, and usage snapshots so finance staff can search, filter, export, and save operational views without losing payment and dunning actions.
+
 Plan detail pages use DataTable for feature entitlement review so admins can search feature keys, filter enabled state, export entitlement matrices, and preserve saved views while editing limits.
 
 The billing dashboard uses DataTable for revenue by plan, past-due invoice follow-up, and pending manual payment verification so finance operators can search, export, and save operational review views.

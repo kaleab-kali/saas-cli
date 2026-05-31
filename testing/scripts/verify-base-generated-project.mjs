@@ -441,6 +441,7 @@ function assertFrontendImprovementSurface() {
 	const adminAuditLogs = readProjectFile("apps/web/src/routes/admin/audit-logs/index.tsx");
 	const adminAuditHandler = readProjectFile("apps/api/src/modules/admin/application/queries/list-platform-audit-logs.handler.ts");
 	const adminBilling = readProjectFile("apps/web/src/routes/admin/billing/index.tsx");
+	const adminBillingDetail = readProjectFile("apps/web/src/routes/admin/billing/$subscriptionId.tsx");
 	const adminBillingDashboard = readProjectFile("apps/web/src/routes/admin/billing/dashboard.tsx");
 	const adminPlanDetail = readProjectFile("apps/web/src/routes/admin/plans/$planId.tsx");
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
@@ -535,6 +536,16 @@ function assertFrontendImprovementSurface() {
 	assert(adminBilling.includes("enableCsvExport"), "admin billing subscriptions export CSV");
 	assert(adminBilling.includes("savedViewsEntity"), "admin billing subscriptions have saved views");
 	assert(opsGuide.includes("subscription index uses the shared DataTable"), "admin operations guide documents billing table");
+	assert(adminBillingDetail.includes("<DataTable"), "admin subscription detail uses shared DataTable");
+	assert(adminBillingDetail.includes("Search invoices"), "admin subscription invoices are searchable");
+	assert(adminBillingDetail.includes("Search dunning history"), "admin subscription dunning history is searchable");
+	assert(adminBillingDetail.includes("Search usage snapshots"), "admin subscription usage history is searchable");
+	assert(adminBillingDetail.includes("enableCsvExport"), "admin subscription detail tables export CSV");
+	assert(adminBillingDetail.includes("savedViewsEntity"), "admin subscription detail tables have saved views");
+	assert(
+		opsGuide.includes("Subscription detail pages use DataTable for invoice lifecycle review"),
+		"admin operations guide documents subscription detail tables",
+	);
 	assert(adminPlanDetail.includes("<DataTable"), "admin plan detail entitlements use shared DataTable");
 	assert(adminPlanDetail.includes("Search entitlements"), "admin plan detail entitlements are searchable");
 	assert(adminPlanDetail.includes("enableCsvExport"), "admin plan detail entitlements export CSV");
@@ -584,6 +595,10 @@ function assertFrontendImprovementSurface() {
 	assert(
 		e2eSmoke.includes("admin billing smoke renders searchable subscription table"),
 		"E2E smoke covers admin billing subscription table",
+	);
+	assert(
+		e2eSmoke.includes("admin subscription detail smoke renders lifecycle DataTables"),
+		"E2E smoke covers admin subscription detail tables",
 	);
 	assert(
 		e2eSmoke.includes("admin plan detail smoke renders editable entitlement table"),
