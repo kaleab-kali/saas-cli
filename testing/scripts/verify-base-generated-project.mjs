@@ -121,6 +121,8 @@ function assertNoEimsScripts() {
 function assertDeployGateBuilds() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
+	const securityPackageJson = JSON.parse(readProjectFile("apps/security/package.json"));
+	const securityTooling = readProjectFile("apps/security/scripts/tooling-smoke.mjs");
 	const strykerConfig = readProjectFile("apps/api/stryker.conf.mjs");
 	const testingGuide = readProjectFile("docs/TESTING_GUIDE.md");
 	const deployCheck = packageJson.scripts?.["deploy:check"] ?? "";
@@ -141,6 +143,11 @@ function assertDeployGateBuilds() {
 	assert(testCi.includes("test:security:api"), "CI test gate includes deterministic API security checks");
 	assert(testSmoke.includes("test:e2e:smoke"), "smoke test gate includes browser E2E smoke");
 	assert(testSmoke.includes("test:security:source"), "smoke test gate includes deterministic source security checks");
+	assert(testSmoke.includes("test:security:tooling"), "smoke test gate includes security tooling visibility");
+	assert(securityPackageJson.scripts?.["test:tooling"] === "node scripts/tooling-smoke.mjs", "security workspace exposes tooling smoke command");
+	assert(securityTooling.includes("missingTools"), "security tooling smoke tracks missing scanner tools");
+	assert(securityTooling.includes("SECURITY_STRICT_TOOLS"), "security tooling smoke supports strict production mode");
+	assert(securityTooling.includes("process.exit(1)"), "security tooling smoke fails when strict tools are missing");
 	assert(packageJson.scripts?.["test:unit"] === "pnpm test:api", "base package exposes fast unit test category");
 	assert(testIntegration.includes("test:api:e2e"), "integration test category includes API e2e harness");
 	assert(testIntegration.includes("test:api:http:mock"), "integration test category includes mock HTTP API tests");
