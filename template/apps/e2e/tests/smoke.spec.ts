@@ -168,6 +168,42 @@ async function installAuthenticatedMocks(page: Page) {
 			await route.fulfill(ok({ data: {} }));
 			return;
 		}
+		if (url.includes("/notifications/email-deliveries")) {
+			await route.fulfill(
+				ok({
+					data: [
+						{
+							id: "delivery_smoke_1",
+							toEmail: "owner@example.test",
+							subject: "Invoice ready",
+							source: "invoice",
+							sourceRef: "inv_smoke",
+							status: "delivered",
+							messageId: "msg_smoke_1",
+							error: null,
+							attemptCount: 1,
+							sentAt: "2026-05-31T08:30:00.000Z",
+							createdAt: "2026-05-31T08:25:00.000Z",
+						},
+						{
+							id: "delivery_smoke_2",
+							toEmail: "ops@example.test",
+							subject: "Digest failed",
+							source: "digest",
+							sourceRef: "digest_smoke",
+							status: "failed",
+							messageId: null,
+							error: "SMTP rejected",
+							attemptCount: 2,
+							sentAt: null,
+							createdAt: "2026-05-31T07:55:00.000Z",
+						},
+					],
+					meta: { total: 2, page: 1, limit: 20, totalPages: 1 },
+				}),
+			);
+			return;
+		}
 		if (url.includes("/notifications")) {
 			await route.fulfill(ok({ data: [], meta: { total: 0, unread: 0, page: 1, limit: 10, totalPages: 1 } }));
 			return;
@@ -699,6 +735,28 @@ test("tenant onboarding smoke renders workflow and command palette", async ({ pa
 	await page.keyboard.press(process.platform === "darwin" ? "Meta+K" : "Control+K");
 	await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
 	await expect(page.getByRole("button", { name: /Organization settings/i })).toBeVisible();
+
+	assertNoErrors();
+});
+
+test("notification deliveries smoke renders searchable delivery table", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAuthenticatedMocks(page);
+
+	await page.goto("/notifications/deliveries?search=invoice&limit=20", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Email Deliveries" })).toBeVisible();
+	const search = page.getByRole("textbox", { name: /Search deliveries/i });
+	await expect(search).toHaveValue("invoice");
+	await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Saved views" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save view" })).toBeVisible();
+	await expect(page.getByRole("cell", { name: /owner@example.test/i })).toBeVisible();
+	await expect(page.getByRole("cell", { name: /Invoice ready/i })).toBeVisible();
+
+	await search.fill("digest");
+	await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe("digest");
 
 	assertNoErrors();
 });

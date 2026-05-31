@@ -18,6 +18,8 @@ export class EmailDeliveryController {
 		@Query("source") source: string | undefined,
 		@Query("page") page: string | undefined,
 		@Query("limit") limit: string | undefined,
+		@Query("search") search: string | undefined,
+		@Query("sort") sort: string | undefined,
 		@Req() req: { organizationId: string },
 	) {
 		return this.listH.execute(req.organizationId, {
@@ -25,6 +27,8 @@ export class EmailDeliveryController {
 			source,
 			page: page ? Number(page) : undefined,
 			limit: limit ? Number(limit) : undefined,
+			search,
+			sort,
 		});
 	}
 }

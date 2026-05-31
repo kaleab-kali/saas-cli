@@ -454,6 +454,11 @@ function assertFrontendImprovementSurface() {
 	const adminBillingDetail = readProjectFile("apps/web/src/routes/admin/billing/$subscriptionId.tsx");
 	const adminBillingDashboard = readProjectFile("apps/web/src/routes/admin/billing/dashboard.tsx");
 	const adminPlanDetail = readProjectFile("apps/web/src/routes/admin/plans/$planId.tsx");
+	const notificationHooks = readProjectFile("apps/web/src/features/notifications/api/notification.hooks.ts");
+	const notificationDeliveries = readProjectFile("apps/web/src/routes/_authenticated/notifications/deliveries.tsx");
+	const emailDeliveryHandler = readProjectFile(
+		"apps/api/src/modules/notification/application/queries/list-email-deliveries.handler.ts",
+	);
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
 	const frontendConventions = readProjectFile("docs/FRONTEND_CONVENTIONS.md");
 	const opsGuide = readProjectFile("docs/ADMIN_OPERATIONS_GUIDE.md");
@@ -617,6 +622,22 @@ function assertFrontendImprovementSurface() {
 		opsGuide.includes("billing dashboard uses DataTable for revenue by plan"),
 		"admin operations guide documents billing dashboard tables",
 	);
+	assert(notificationHooks.includes("emailDeliveryList"), "notification hooks export email delivery query key factory");
+	assert(notificationHooks.includes("useEmailDeliveries"), "notification delivery history uses feature query hook");
+	assert(notificationDeliveries.includes("<DataTable"), "notification deliveries use shared DataTable");
+	assert(notificationDeliveries.includes("useDataTableState"), "notification deliveries sync table controls to URL");
+	assert(notificationDeliveries.includes("tableState.setSearchParams"), "notification delivery filters sync to the URL");
+	assert(notificationDeliveries.includes("enableCsvExport"), "notification deliveries export CSV");
+	assert(
+		notificationDeliveries.includes('savedViewsEntity="notification-deliveries"'),
+		"notification deliveries support saved views",
+	);
+	assert(
+		!notificationDeliveries.includes("@/components/ui/table"),
+		"notification deliveries avoid raw table primitives",
+	);
+	assert(emailDeliveryHandler.includes("emailDeliverySort(q.sort)"), "email delivery API applies server-side sorting");
+	assert(emailDeliveryHandler.includes("q.search?.trim()"), "email delivery API applies server-side search");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
 	assert(e2eSmoke.includes("Admin command"), "E2E smoke covers admin command palette trigger");
 	assert(e2eSmoke.includes("Billing dashboard"), "E2E smoke covers admin command palette routes");
@@ -659,6 +680,10 @@ function assertFrontendImprovementSurface() {
 	assert(
 		e2eSmoke.includes("admin billing dashboard smoke renders operational tables"),
 		"E2E smoke covers admin billing dashboard tables",
+	);
+	assert(
+		e2eSmoke.includes("notification deliveries smoke renders searchable delivery table"),
+		"E2E smoke covers notification delivery DataTable",
 	);
 }
 

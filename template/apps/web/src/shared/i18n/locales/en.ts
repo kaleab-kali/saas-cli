@@ -99,6 +99,37 @@ export const en = {
 	notifications: {
 		title: "Notifications",
 		templatesTitle: "Notification Templates",
+		deliveriesTitle: "Email Deliveries",
+		deliveriesPage: {
+			subtitle: "Track delivery attempts, provider responses, and retry failures across tenant email workflows.",
+			searchPlaceholder: "Search deliveries...",
+			noEmailsTitle: "No email deliveries",
+			noEmails: "No email delivery attempts match the current filters.",
+			statusFilters: {
+				all: "All statuses",
+				queued: "Queued",
+				sent: "Sent",
+				delivered: "Delivered",
+				failed: "Failed",
+				bounced: "Bounced",
+			},
+			sourceFilters: {
+				all: "All sources",
+				bulk: "Bulk",
+				transactional: "Transactional",
+				invoice: "Invoice",
+				digest: "Digest",
+			},
+			columns: {
+				time: "Time",
+				to: "Recipient",
+				subject: "Subject",
+				source: "Source",
+				status: "Status",
+				attempts: "Attempts",
+				error: "Error",
+			},
+		},
 	},
 	settings: {
 		title: "Settings",

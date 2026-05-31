@@ -24,12 +24,24 @@ export interface NotificationMeta {
 	totalPages: number;
 }
 
+export type EmailDeliveryListParams = Record<string, string | number | boolean | undefined> & {
+	status?: string;
+	source?: string;
+	page?: number;
+	limit?: number;
+	search?: string;
+	sort?: string;
+};
+
 export const notifKeys = {
 	all: ["notifications"] as const,
-	list: (p: Record<string, unknown>) => ["notifications", "list", p] as const,
-	prefs: ["notifications", "prefs"] as const,
-	templates: ["notifications", "templates"] as const,
-	bulk: ["notifications", "bulk"] as const,
+	list: (p: Record<string, unknown>) => [...notifKeys.all, "list", p] as const,
+	prefs: () => [...notifKeys.all, "prefs"] as const,
+	templates: () => [...notifKeys.all, "templates"] as const,
+	bulk: () => [...notifKeys.all, "bulk"] as const,
+	bulkList: (status?: string) => [...notifKeys.bulk(), "list", status ?? "all"] as const,
+	emailDeliveries: () => [...notifKeys.all, "email-deliveries"] as const,
+	emailDeliveryList: (params: EmailDeliveryListParams) => [...notifKeys.emailDeliveries(), "list", params] as const,
 };
 
 export const useNotifications = (params: { category?: string; read?: boolean; page?: number; limit?: number } = {}) =>
@@ -76,7 +88,7 @@ export interface NotificationPreference {
 
 export const usePreferences = () =>
 	useQuery({
-		queryKey: notifKeys.prefs,
+		queryKey: notifKeys.prefs(),
 		queryFn: () => api.get<{ data: NotificationPreference[] }>("/notifications/preferences/me"),
 		select: (r) => r.data,
 	});
@@ -86,7 +98,7 @@ export const useUpsertPreference = () => {
 	return useMutation({
 		mutationFn: (dto: { eventKey: string; inApp?: boolean; email?: string; sms?: boolean }) =>
 			api.patch("/notifications/preferences/me", dto),
-		onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.prefs }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.prefs() }),
 		meta: { successMessage: "Preference saved" },
 	});
 };
@@ -102,7 +114,7 @@ export interface NotificationTemplate {
 
 export const useTemplates = () =>
 	useQuery({
-		queryKey: notifKeys.templates,
+		queryKey: notifKeys.templates(),
 		queryFn: () => api.get<{ data: NotificationTemplate[] }>("/notifications/templates"),
 		select: (r) => r.data,
 	});
@@ -112,7 +124,7 @@ export const useUpsertTemplate = () => {
 	return useMutation({
 		mutationFn: (dto: { eventKey: string; subject: string; bodyHtml: string; bodyText?: string; active?: boolean }) =>
 			api.post("/notifications/templates", dto),
-		onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.templates }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.templates() }),
 		meta: { successMessage: "Template saved" },
 	});
 };
@@ -121,7 +133,7 @@ export const useDeleteTemplate = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (id: string) => api.delete(`/notifications/templates/${id}`),
-		onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.templates }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.templates() }),
 		meta: { successMessage: "Template deleted" },
 	});
 };
@@ -143,7 +155,7 @@ export interface BulkCommunication {
 
 export const useBulkList = (status?: string) =>
 	useQuery({
-		queryKey: [...notifKeys.bulk, status],
+		queryKey: notifKeys.bulkList(status),
 		queryFn: () => api.get<{ data: BulkCommunication[] }>("/notifications/bulk", { params: status ? { status } : {} }),
 		select: (r) => r.data,
 	});
@@ -158,7 +170,7 @@ export const useCreateBulk = () => {
 			audienceType: string;
 			audienceRef?: string;
 		}) => api.post<{ data: BulkCommunication }>("/notifications/bulk", dto),
-		onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.bulk }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.bulk() }),
 		meta: { successMessage: "Draft created" },
 	});
 };
@@ -168,7 +180,7 @@ export const useScheduleBulk = () => {
 	return useMutation({
 		mutationFn: (p: { id: string; scheduledAt: string }) =>
 			api.post(`/notifications/bulk/${p.id}/schedule`, { scheduledAt: p.scheduledAt }),
-		onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.bulk }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.bulk() }),
 		meta: { successMessage: "Scheduled" },
 	});
 };
@@ -177,7 +189,30 @@ export const useSendBulk = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (id: string) => api.post(`/notifications/bulk/${id}/send`, {}),
-		onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.bulk }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: notifKeys.bulk() }),
 		meta: { successMessage: "Sent" },
 	});
 };
+
+export interface EmailDelivery {
+	id: string;
+	toEmail: string;
+	subject: string;
+	source: string;
+	sourceRef?: string | null;
+	status: string;
+	messageId?: string | null;
+	error?: string | null;
+	attemptCount: number;
+	sentAt?: string | null;
+	createdAt: string;
+}
+
+export const useEmailDeliveries = (params: EmailDeliveryListParams) =>
+	useQuery({
+		queryKey: notifKeys.emailDeliveryList(params),
+		queryFn: () =>
+			api.get<{ data: EmailDelivery[]; meta: Omit<NotificationMeta, "unread"> }>("/notifications/email-deliveries", {
+				params,
+			}),
+	});
