@@ -72,6 +72,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/client/eims-sdk-external.client.spec.ts",
 	"apps/api/src/modules/eims/shared/client/mock-eims-external.client.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.controller.ts",
+	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.ts",
+	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts",
 	"apps/api/src/modules/eims/shared/constants/eims-lookup-values.ts",
@@ -130,6 +132,7 @@ const requiredPrismaModels = [
 	"model TaxInvoiceLine",
 	"model EimsSubmission",
 	"model EimsOfflinePendingSync",
+	"model EimsBulkCallbackReceipt",
 	"model EimsReceipt",
 	"model EimsCancellation",
 	"model EimsAuditEvent",
@@ -433,6 +436,10 @@ function assertGeneratedStructure() {
 		"EIMS security smoke enforces bulk callback HMAC verification",
 	);
 	assert(
+		eimsSecuritySmoke.includes("EIMS bulk callback receipts must create durable rows"),
+		"EIMS security smoke enforces durable bulk callback receipt persistence",
+	);
+	assert(
 		eimsSecuritySmoke.includes("EIMS acceptance cases must stay admin-only"),
 		"EIMS security smoke enforces admin-only acceptance cases",
 	);
@@ -544,6 +551,15 @@ function assertGeneratedStructure() {
 		prismaSchema.includes("@@index([organizationId, syncStatus, capturedAt])"),
 		"Prisma EimsOfflinePendingSync indexes pending replay order",
 	);
+	assert(prismaSchema.includes("model EimsBulkCallbackReceipt"), "Prisma contains EimsBulkCallbackReceipt");
+	assert(
+		prismaSchema.includes("@@unique([organizationId, idempotencyKey])"),
+		"Prisma EimsBulkCallbackReceipt deduplicates callback idempotency keys",
+	);
+	assert(
+		prismaSchema.includes("@@index([organizationId, reconciliationStatus, processedAt])"),
+		"Prisma EimsBulkCallbackReceipt indexes reconciliation status",
+	);
 	for (const tableName of [
 		"eims_enterprise",
 		"eims_establishment",
@@ -559,6 +575,7 @@ function assertGeneratedStructure() {
 		"tax_invoice_line",
 		"eims_submission",
 		"eims_offline_pending_sync",
+		"eims_bulk_callback_receipt",
 		"eims_receipt",
 		"eims_cancellation",
 		"eims_audit_event",
@@ -592,6 +609,12 @@ function assertGeneratedStructure() {
 	const bulkCallbackService = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.ts");
 	const bulkCallbackController = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.controller.ts");
 	const bulkCallbackSpec = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts");
+	const bulkCallbackPersistence = readProjectFile(
+		"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.ts",
+	);
+	const bulkCallbackPersistenceSpec = readProjectFile(
+		"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts",
+	);
 	const credentialPersistence = readProjectFile(
 		"apps/api/src/modules/eims/shared/crypto/eims-credential-persistence.service.ts",
 	);
@@ -665,9 +688,38 @@ function assertGeneratedStructure() {
 	assert(bulkCallbackService.includes("reconciliationStatus"), "EIMS bulk callback service emits reconciliation status");
 	assert(bulkCallbackController.includes('Controller("eims/callbacks")'), "EIMS API exposes signed callback route namespace");
 	assert(bulkCallbackController.includes('Headers("x-eims-signature")'), "EIMS callback route reads signature header");
+	assert(
+		bulkCallbackController.includes("storeVerifiedCallback"),
+		"EIMS callback route persists verified callback receipts",
+	);
 	assert(bulkCallbackSpec.includes("rejects stale callback timestamps"), "EIMS callback tests cover timestamp replay window");
 	assert(bulkCallbackSpec.includes("deduplicates callback retries"), "EIMS callback tests cover idempotent retries");
 	assert(eimsSharedModule.includes("EimsBulkCallbackService"), "EIMS shared module exports bulk callback verifier");
+	assert(bulkCallbackPersistence.includes("PrismaService"), "EIMS bulk callback persistence uses Prisma");
+	assert(
+		bulkCallbackPersistence.includes("eimsBulkCallbackReceipt.create"),
+		"EIMS bulk callback persistence creates durable receipts",
+	);
+	assert(
+		bulkCallbackPersistence.includes("Buffer.from(this.cipher.encrypt"),
+		"EIMS bulk callback persistence stores encrypted payload bytes",
+	);
+	assert(
+		bulkCallbackPersistence.includes("duplicateCount: { increment: 1 }"),
+		"EIMS bulk callback persistence tracks duplicate retries durably",
+	);
+	assert(
+		bulkCallbackPersistenceSpec.includes("stores verified callback receipts durably"),
+		"EIMS bulk callback persistence tests cover durable encrypted receipt storage",
+	);
+	assert(
+		bulkCallbackPersistenceSpec.includes("process restarts"),
+		"EIMS bulk callback persistence tests cover idempotency after restart",
+	);
+	assert(
+		eimsSharedModule.includes("EimsBulkCallbackPersistenceService"),
+		"EIMS shared module exports durable bulk callback persistence",
+	);
 	assert(offlineCache.includes("CipherService"), "EIMS offline cache encrypts pending payloads");
 	assert(offlineCache.includes("payloadSha256"), "EIMS offline cache stores payload integrity hashes");
 	assert(offlineCache.includes("payloadReturned: false"), "EIMS offline cache redacts pending payloads from list responses");
@@ -701,6 +753,11 @@ function assertGeneratedStructure() {
 		supportingResourcesController.includes('Controller("eims")') &&
 			supportingResourcesController.includes('"offline-pending"'),
 		"EIMS API exposes durable offline pending-sync endpoints",
+	);
+	assert(
+		supportingResourcesController.includes('"bulk/callback-receipts"') &&
+			supportingResourcesController.includes("listReceipts"),
+		"EIMS API exposes durable bulk callback receipt endpoints",
 	);
 	assert(credentialPersistence.includes("PrismaService"), "EIMS credential persistence uses Prisma");
 	assert(credentialPersistence.includes("eimsCredential.create"), "EIMS credential persistence creates durable rows");

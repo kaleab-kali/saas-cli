@@ -32,7 +32,7 @@ What is not done yet:
 - Applied production PostgreSQL RLS migrations beyond the generated policy export.
 - Real credential validation and rotation through the EIMS SDK.
 - Production printer/device QR scan certification across real hardware.
-- Durable bulk callback storage/polling beyond the signed callback boundary.
+- Durable authority polling/replay workers around bulk callback receipts.
 
 ## V3 Coverage Matrix
 
@@ -52,7 +52,7 @@ What is not done yet:
 | Print layouts | PDF proof service implemented, hardware scan certification pending | Unit/API/UI tests | Compact/A4 metadata and official-QR rule verified. Starter now renders PDF proof buffers, fingerprints them, and rejects official QR proof unless the invoice is accepted and the signed QR matches the IRN. Real printer/device QR scan certification is not complete. |
 | Receipts/withholding | Mock API | API/UI/Bruno mock | Sales and withholding states verified. Real EIMS receipt submission is not complete. |
 | Cancellation | Mock API | API/UI tests | Reason code 4/remark and limit state verified. Real cancellation validation still requires SDK-backed sandbox proof. |
-| Bulk | Signed callback boundary implemented, durable polling pending | Unit/API/UI tests | Callback HMAC verification, timestamp replay window, known conversation validation, idempotency, and count reconciliation are covered. Durable storage and authority polling are still pending. |
+| Bulk | Signed callback boundary and durable receipt persistence implemented, polling pending | Unit/API/UI tests | Callback HMAC verification, timestamp replay window, known conversation validation, idempotency, count reconciliation, encrypted payload receipt storage, and durable duplicate tracking are covered. Authority polling/replay workers are still pending. |
 | Offline pending-sync | Encrypted cache and durable Prisma persistence implemented, replay worker pending | Unit/API/UI tests | Pending state has no IRN/ackDate. Offline payloads are encrypted with `CipherService`, integrity-hashed, redacted from list responses, persisted in tenant-scoped `EimsOfflinePendingSync` rows, claimed only after hash verification, and poisoned on tamper before sync. Production replay workers still need to submit through the real SDK and reconcile retry policy. |
 | Buyer notifications | Mock API | API/UI tests | SMS/email providers and retry state verified. Real provider integration is not complete. |
 | Targeted RLS | SQL policy export implemented, migration application pending | Scaffold/security verifier | Generated `apps/api/prisma/eims-rls-policies.sql` enables and forces RLS for every EIMS tenant table using `app.current_organization_id` and write-side `WITH CHECK` policies. Running this against production PostgreSQL remains a deployment step. |

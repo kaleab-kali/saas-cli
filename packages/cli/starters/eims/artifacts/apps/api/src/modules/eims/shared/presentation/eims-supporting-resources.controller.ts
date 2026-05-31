@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Inject, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
+import { EimsBulkCallbackPersistenceService } from "../callbacks/eims-bulk-callback-persistence.service";
 import { EimsCredentialPersistenceService } from "../crypto/eims-credential-persistence.service";
 import { EimsCredentialSecretService } from "../crypto/eims-credential-secret.service";
 import { EIMS_BACKEND_REPOSITORY, type EimsBackendRepository } from "../mock/eims-backend.repository";
@@ -20,6 +21,7 @@ export class EimsSupportingResourcesController {
 		@Inject(EIMS_BACKEND_REPOSITORY) private readonly repository: EimsBackendRepository,
 		private readonly credentialStore: EimsCredentialPersistenceService,
 		private readonly credentialSecrets: EimsCredentialSecretService,
+		private readonly bulkReceiptStore: EimsBulkCallbackPersistenceService,
 		private readonly offlinePending: EimsOfflinePendingSyncPersistenceService,
 		private readonly printProof: EimsPrintProofService,
 	) {}
@@ -90,6 +92,12 @@ export class EimsSupportingResourcesController {
 	@RequirePermissions("eims-bulk:retry")
 	reconcileBulk(@Req() req: AuthedRequest, @Body() body: { conversationId?: string }) {
 		return this.repository.reconcileBulk(req.organizationId, body.conversationId);
+	}
+
+	@Get("bulk/callback-receipts")
+	@RequirePermissions("eims-bulk:read")
+	bulkCallbackReceipts(@Req() req: AuthedRequest, @Query("conversationId") conversationId?: string) {
+		return this.bulkReceiptStore.listReceipts(req.organizationId, conversationId);
 	}
 
 	@Get("offline-pending")

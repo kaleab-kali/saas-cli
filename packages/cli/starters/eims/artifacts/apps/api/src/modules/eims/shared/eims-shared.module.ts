@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { EimsBulkCallbackController } from "./callbacks/eims-bulk-callback.controller";
 import { EimsBulkCallbackService } from "./callbacks/eims-bulk-callback.service";
+import { EimsBulkCallbackPersistenceService } from "./callbacks/eims-bulk-callback-persistence.service";
 import { EIMS_EXTERNAL_CLIENT } from "./client/eims-external-client";
 import { EimsSdkClientProvider } from "./client/eims-sdk-client.provider";
 import { EimsSdkExternalClient } from "./client/eims-sdk-external.client";
@@ -22,6 +23,7 @@ import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.servi
 	providers: [
 		EimsLookupService,
 		EimsBulkCallbackService,
+		EimsBulkCallbackPersistenceService,
 		EimsSubmissionQueueService,
 		EimsCredentialPersistenceService,
 		EimsCredentialSecretService,
@@ -43,6 +45,7 @@ import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.servi
 	exports: [
 		EimsLookupService,
 		EimsBulkCallbackService,
+		EimsBulkCallbackPersistenceService,
 		EimsSubmissionQueueService,
 		EimsCredentialPersistenceService,
 		EimsCredentialSecretService,

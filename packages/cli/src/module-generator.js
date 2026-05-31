@@ -1213,7 +1213,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:api"] ??=
@@ -1688,6 +1688,36 @@ model EimsOfflinePendingSync {
   @@index([organizationId, sourceSystemId, syncStatus])
   @@index([organizationId, syncStatus, capturedAt])
   @@map("eims_offline_pending_sync")
+}
+
+model EimsBulkCallbackReceipt {
+  id                   String    @id @default(cuid())
+  organizationId       String
+  conversationId       String
+  callbackId           String?
+  idempotencyKey       String
+  encryptedPayload     Bytes
+  payloadKeyVersion    String    @default("cipher:v1")
+  payloadSha256        String
+  payloadBytes         Int
+  signatureSha256      String?
+  signatureStatus      String    @default("verified")
+  reconciliationStatus String
+  submitted            Int
+  accepted             Int
+  failed               Int
+  pending              Int
+  failures             Json?
+  processedAt          DateTime
+  duplicateCount       Int       @default(0)
+  lastDuplicateAt      DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, conversationId])
+  @@index([organizationId, reconciliationStatus, processedAt])
+  @@map("eims_bulk_callback_receipt")
 }
 
 model EimsReceipt {
@@ -3646,8 +3676,8 @@ export function EimsReceiptsPage() {
 export function EimsBulkPage() {
 \treturn (
 \t\t<div className="space-y-5">
-\t\t\t<PageHeader title="EIMS Bulk" description="Bulk conversations, callback idempotency, and reconciliation polling are ready for sandbox wiring." />
-\t\t\t<Card><CardContent className="grid gap-3 p-4 md:grid-cols-3"><div><p className="text-xs uppercase text-muted-foreground">Endpoint</p><p className="mt-1 font-medium">Phase 0 confirms /bulkInvoice vs /bulk/register</p></div><div><p className="text-xs uppercase text-muted-foreground">Callback</p><p className="mt-1 font-medium">Idempotent by conversationId</p></div><div><p className="text-xs uppercase text-muted-foreground">Reconciliation</p><p className="mt-1 font-medium">15 minute default threshold</p></div></CardContent></Card>
+\t\t\t<PageHeader title="EIMS Bulk" description="Signed callbacks, encrypted receipt persistence, and reconciliation checks are ready for SDK sandbox wiring." />
+\t\t\t<Card><CardContent className="grid gap-3 p-4 md:grid-cols-3"><div><p className="text-xs uppercase text-muted-foreground">Endpoint</p><p className="mt-1 font-medium">Phase 0 confirms /bulkInvoice vs /bulk/register</p></div><div><p className="text-xs uppercase text-muted-foreground">Callback</p><p className="mt-1 font-medium">HMAC verified and tenant-known</p></div><div><p className="text-xs uppercase text-muted-foreground">Receipts</p><p className="mt-1 font-medium">Encrypted by idempotency key</p></div></CardContent></Card>
 \t\t</div>
 \t);
 }
@@ -4168,15 +4198,16 @@ export function EimsReceiptsPage() {
 export function EimsBulkPage() {
 \tconst rows = [
 \t\t["Endpoint", "Phase 0 confirms /bulkInvoice vs /bulk/register"],
-\t\t["Callback", "Idempotent by conversationId"],
-\t\t["Reconciliation", "15 minute default threshold"],
+\t\t["Callback", "HMAC verified and tenant-known"],
+\t\t["Receipts", "Encrypted by idempotency key"],
+\t\t["Reconciliation", "Failures and pending rows ready for polling worker"],
 \t];
 
 \treturn (
 \t\t<div className="space-y-5">
 \t\t\t<PageHeader
 \t\t\t\ttitle="EIMS Bulk"
-\t\t\t\tdescription="Bulk conversations, callback idempotency, and reconciliation polling are ready for sandbox wiring."
+\t\t\t\tdescription="Signed callbacks, encrypted receipt persistence, and reconciliation checks are ready for SDK sandbox wiring."
 \t\t\t/>
 \t\t\t<Card>
 \t\t\t\t<CardContent className="p-0">
@@ -5132,6 +5163,13 @@ CREATE POLICY eims_offline_pending_sync_tenant_isolation ON eims_offline_pending
 	USING (app_private.eims_tenant_visible("organizationId"))
 	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
 
+ALTER TABLE eims_bulk_callback_receipt ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_bulk_callback_receipt FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_bulk_callback_receipt_tenant_isolation ON eims_bulk_callback_receipt;
+CREATE POLICY eims_bulk_callback_receipt_tenant_isolation ON eims_bulk_callback_receipt
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
 ALTER TABLE eims_receipt ENABLE ROW LEVEL SECURITY;
 ALTER TABLE eims_receipt FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS eims_receipt_tenant_isolation ON eims_receipt;
@@ -5705,6 +5743,26 @@ assertIncludes(callbackService, "timingSafeEqual", "EIMS bulk callbacks must use
 assertIncludes(callbackService, "EIMS_CALLBACK_HMAC_SECRET", "EIMS bulk callbacks must require an HMAC secret");
 assertIncludes(callbackService, "outside the allowed skew", "EIMS bulk callbacks must enforce replay windows");
 
+const callbackPersistence = read(
+\t"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.ts",
+);
+assertIncludes(callbackPersistence, "PrismaService", "EIMS bulk callback receipts must use durable Prisma persistence");
+assertIncludes(
+\tcallbackPersistence,
+\t"eimsBulkCallbackReceipt.create",
+\t"EIMS bulk callback receipts must create durable rows",
+);
+assertIncludes(
+\tcallbackPersistence,
+\t"Buffer.from(this.cipher.encrypt",
+\t"EIMS bulk callback receipts must store encrypted payload bytes",
+);
+assertIncludes(
+\tcallbackPersistence,
+\t"duplicateCount: { increment: 1 }",
+\t"EIMS bulk callback receipts must persist duplicate retry counts",
+);
+
 const offlinePersistence = read(
 \t"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.ts",
 );
@@ -5763,6 +5821,7 @@ for (const table of [
 \t"tax_invoice_line",
 \t"eims_submission",
 \t"eims_offline_pending_sync",
+\t"eims_bulk_callback_receipt",
 \t"eims_receipt",
 \t"eims_cancellation",
 \t"eims_audit_event",
