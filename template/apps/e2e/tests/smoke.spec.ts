@@ -253,6 +253,10 @@ async function installAdminMocks(page: Page) {
 			);
 			return;
 		}
+		if (/\/admin\/onboarding\/task_smoke(?:\?|$)/.test(url)) {
+			await route.fulfill(ok({ data: onboardingTask }));
+			return;
+		}
 		if (/\/admin\/organizations\/org_smoke(?:\?|$)/.test(url)) {
 			await route.fulfill(
 				ok({
@@ -795,6 +799,22 @@ test("admin onboarding smoke renders filterable operations table", async ({ page
 	await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
 	await expect(page.getByRole("button", { name: /Billing dashboard/i })).toBeVisible();
 	await expect(page.getByRole("button", { name: /New tenant onboarding/i })).toBeVisible();
+
+	assertNoErrors();
+});
+
+test("admin onboarding detail exposes staff ownership and tenant impersonation actions", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAdminMocks(page);
+
+	await page.goto("/admin/onboarding/task_smoke", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Demo Cafe" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Assign to me" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Impersonate tenant" })).toBeEnabled();
+	await expect(page.getByText("Current action panel")).toBeVisible();
+	await expect(page.getByRole("link", { name: "Send email" })).toHaveAttribute("href", "mailto:owner@example.test");
+	await expect(page.getByText("Step timeline")).toBeVisible();
 
 	assertNoErrors();
 });

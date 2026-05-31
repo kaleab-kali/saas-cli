@@ -1,7 +1,9 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
-import { useAdminOrgList, useAdminUserList } from "#features/admin/api/admin.queries";
+import { useAdminOrgDetail, useAdminOrgList, useAdminUserList } from "#features/admin/api/admin.queries";
+import { useAdminSession } from "#features/admin/api/admin-auth";
+import { impersonateUrl } from "#features/admin/api/admin-user-actions.hooks";
 import {
 	type OnboardingMode,
 	type OnboardingStep,
@@ -1120,7 +1122,9 @@ export function AdminOnboardingListPage() {
 
 export function AdminOnboardingDetailPage({ taskId }: { readonly taskId: string }) {
 	const { data: task, isLoading } = useAdminOnboardingTask(taskId);
+	const { data: session } = useAdminSession();
 	const { data: users } = useAdminUserList({ limit: 100 });
+	const { data: organizationDetail } = useAdminOrgDetail(task?.organizationId ?? "");
 	const staffUsers = Array.isArray(users?.data) ? users.data : [];
 	const complete = useCompleteAdminOnboardingStep(taskId);
 	const assign = useAssignOnboardingTask(taskId);
@@ -1145,6 +1149,27 @@ export function AdminOnboardingDetailPage({ taskId }: { readonly taskId: string 
 		if (window.confirm("Cancel this onboarding task?")) cancel.mutate();
 	}, [cancel]);
 
+	const tenantUser = React.useMemo(() => {
+		if (!task || !organizationDetail?.members?.length) return null;
+		return (
+			organizationDetail.members.find((member) => member.user.email === task.contactEmail)?.user ??
+			organizationDetail.members.find((member) => member.role.toLowerCase() === "owner")?.user ??
+			organizationDetail.members[0]?.user ??
+			null
+		);
+	}, [organizationDetail?.members, task]);
+
+	const assignToMe = React.useCallback(() => {
+		if (session?.user.id) assign.mutate(session.user.id);
+	}, [assign, session?.user.id]);
+
+	const impersonateTenant = React.useCallback(() => {
+		if (!tenantUser) return;
+		if (window.confirm(`Impersonate ${tenantUser.email} for 15 minutes? This action is logged.`)) {
+			window.location.href = impersonateUrl(tenantUser.id);
+		}
+	}, [tenantUser]);
+
 	if (isLoading) return <LoadingState rows={6} />;
 	if (!task) return <EmptyState title="Onboarding task not found" />;
 
@@ -1163,6 +1188,16 @@ export function AdminOnboardingDetailPage({ taskId }: { readonly taskId: string 
 						<Link to="/admin/onboarding">
 							<Button variant="outline">Back</Button>
 						</Link>
+						<Button
+							variant="outline"
+							onClick={assignToMe}
+							disabled={!session?.user.id || task.assignedToUserId === session.user.id || assign.isPending}
+						>
+							Assign to me
+						</Button>
+						<Button variant="outline" onClick={impersonateTenant} disabled={!tenantUser}>
+							Impersonate tenant
+						</Button>
 						<Select
 							value={task.assignedToUserId ?? "UNASSIGNED"}
 							onValueChange={(value) => assign.mutate(value === "UNASSIGNED" ? null : value)}

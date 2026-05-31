@@ -593,6 +593,8 @@ function assertFrontendImprovementSurface() {
 	assert(onboarding.includes("enableCsvExport"), "admin onboarding table enables CSV export");
 	assert(onboarding.includes("savedViewsEntity"), "admin onboarding table enables saved views");
 	assert(onboarding.includes("bulkActions"), "admin onboarding table enables bulk actions");
+	assert(onboarding.includes("Assign to me"), "admin onboarding detail exposes staff self-assignment");
+	assert(onboarding.includes("Impersonate tenant"), "admin onboarding detail exposes tenant impersonation handoff");
 	assert(adminOrganizations.includes("<DataTable"), "admin organizations use shared DataTable");
 	assert(adminOrganizations.includes("useDataTableState"), "admin organizations sync table controls to URL");
 	assert(adminOrganizations.includes("savedViewsEntity"), "admin organizations enable saved views");
@@ -718,6 +720,10 @@ function assertFrontendImprovementSurface() {
 		"E2E smoke covers new tenant concierge intake",
 	);
 	assert(e2eSmoke.includes("Create a staff-owned workflow"), "E2E smoke covers new onboarding handoff summary");
+	assert(
+		e2eSmoke.includes("admin onboarding detail exposes staff ownership and tenant impersonation actions"),
+		"E2E smoke covers onboarding detail ownership and impersonation actions",
+	);
 	assert(e2eSmoke.includes("search=Demo"), "E2E smoke covers bookmarkable admin table search");
 	assert(e2eSmoke.includes("admin feature flags smoke renders rollout table"), "E2E smoke covers admin feature flag table");
 	assert(e2eSmoke.includes("Toggle platform.api-keys globally"), "E2E smoke covers feature flag switch controls");
