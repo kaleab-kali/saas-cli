@@ -37,4 +37,4 @@ Validate the k6 toolchain with a mock health server:
 pnpm --filter performance test:k6:mock
 ```
 
-If k6 is not installed, the command skips by default. Set `PERFORMANCE_STRICT_TOOLS=1` to fail when k6 is missing.
+If k6 is not installed, the command skips by default. Set `PERFORMANCE_STRICT_TOOLS=1` or run `pnpm test:k6:strict` to fail when k6 is missing. The production deploy gate uses strict mode.

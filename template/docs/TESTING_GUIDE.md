@@ -20,11 +20,13 @@ Free external CLIs are optional and intentionally not installed as Node dependen
 - semgrep: https://semgrep.dev/docs/getting-started/
 - nuclei: https://docs.projectdiscovery.io/tools/nuclei/install
 
-External CLI wrappers are optional for local development. Security wrappers skip missing external scanners unless strict mode is enabled; the mock performance gate runs a built-in HTTP load smoke when k6 is missing. Use strict mode in CI when you want external tools to be mandatory:
+External CLI wrappers are optional for local development. Security wrappers skip missing external scanners unless strict mode is enabled; the mock performance gate runs a built-in HTTP load smoke when k6 is missing. Production deploy checks use strict modes so external security scanners and k6 must be installed:
 
 ```bash
 SECURITY_STRICT_TOOLS=1 pnpm test:security
 PERFORMANCE_STRICT_TOOLS=1 pnpm test:load:k6:mock
+pnpm test:security:tooling:strict
+pnpm test:performance:tooling:strict
 ```
 
 ## Test App Layout
@@ -61,7 +63,7 @@ pnpm deploy:check
 
 `test:full` is an explicit alias for `test:all` so teams can wire nightly jobs to the plan's "full" test category without remembering scaffold-specific naming.
 
-`deploy:check` is the pre-release gate. It runs Prisma generation, production doctor checks, CI lint/type checks, API and web production builds, then the broad smoke suite. That means deploy readiness includes mock HTTP and Bruno API checks, browser smoke, acceptance, deterministic source/API security checks, security tooling smoke tests, AI eval harnesses, and the mock k6 load check.
+`deploy:check` is the pre-release gate. It runs Prisma generation, production doctor checks, strict external-tool checks for security scanners and k6, CI lint/type checks, API and web production builds, then the broad smoke suite. That means deploy readiness includes mock HTTP and Bruno API checks, browser smoke, acceptance, deterministic source/API security checks, security tooling smoke tests, AI eval harnesses, and the mock k6 load check.
 
 The generated GitHub workflows enforce these checks:
 

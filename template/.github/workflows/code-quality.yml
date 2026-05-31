@@ -103,6 +103,7 @@ jobs:
           go install github.com/gitleaks/gitleaks/v8@latest
           go install github.com/google/osv-scanner/v2/cmd/osv-scanner@latest
           go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+          go install go.k6.io/k6@latest
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           echo "$HOME/go/bin" >> "$GITHUB_PATH"
       - name: Generate throwaway CI secrets

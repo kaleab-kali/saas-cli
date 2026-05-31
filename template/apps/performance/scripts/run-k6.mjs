@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 
 const script = process.argv[2] ?? "k6/health.js";
-const strict = process.env.PERFORMANCE_STRICT_TOOLS === "1";
+const strict = process.env.PERFORMANCE_STRICT_TOOLS === "1" || process.argv.includes("--strict");
 
 const hasK6 =
 	spawnSync(process.platform === "win32" ? "where" : "which", ["k6"], {
@@ -12,7 +12,10 @@ const hasK6 =
 if (!hasK6) {
 	console.log("k6 is not installed. Skipping k6 performance run.");
 	console.log("Install k6 from https://grafana.com/docs/k6/latest/set-up/install-k6/");
-	if (strict) process.exit(1);
+	if (strict) {
+		console.error("Install k6 before running production deploy checks.");
+		process.exit(1);
+	}
 	process.exit(0);
 }
 

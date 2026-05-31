@@ -8,6 +8,7 @@
 		"test:k6": "node scripts/run-k6.mjs k6/health.js",
 		"test:k6:api": "node scripts/run-k6.mjs k6/tenant-api.js",
 		"test:k6:mock": "node scripts/mock-k6.mjs",
+		"test:k6:strict": "node scripts/mock-k6.mjs --strict",
 		"test:load": "pnpm test:k6"
 	}
 }

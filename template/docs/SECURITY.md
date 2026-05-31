@@ -20,7 +20,7 @@ Run this before deploy:
 pnpm deploy:check
 ```
 
-The gate runs Prisma generation, production doctor checks, a strict security-tooling check, lint/type checks, API and web production builds, CI tests, deterministic source/API security checks, and mock load checks. Unlike local smoke checks, production deploy checks fail if `gitleaks`, `osv-scanner`, `semgrep`, or `nuclei` are not installed.
+The gate runs Prisma generation, production doctor checks, strict security/performance tooling checks, lint/type checks, API and web production builds, CI tests, deterministic source/API security checks, and mock load checks. Unlike local smoke checks, production deploy checks fail if `gitleaks`, `osv-scanner`, `semgrep`, `nuclei`, or `k6` are not installed.
 
 ## Authentication And Sessions
 

@@ -2,7 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { performance } from "node:perf_hooks";
 
-const strict = process.env.PERFORMANCE_STRICT_TOOLS === "1";
+const strict = process.env.PERFORMANCE_STRICT_TOOLS === "1" || process.argv.includes("--strict");
 const port = Number(process.env.K6_MOCK_PORT ?? 4299);
 const target = `http://127.0.0.1:${port}/health`;
 const p95ThresholdMs = Number(process.env.K6_P95_MS ?? 750);
@@ -19,7 +19,10 @@ const hasK6 =
 if (!hasK6) {
 	console.log("k6 is not installed.");
 	console.log("Install k6 from https://grafana.com/docs/k6/latest/set-up/install-k6/");
-	if (strict) process.exit(1);
+	if (strict) {
+		console.error("Install k6 before running production deploy checks.");
+		process.exit(1);
+	}
 	console.log("Running built-in mock HTTP load smoke instead.");
 }
 
