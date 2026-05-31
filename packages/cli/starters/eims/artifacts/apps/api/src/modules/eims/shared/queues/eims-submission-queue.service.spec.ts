@@ -120,4 +120,65 @@ describe("EimsSubmissionQueueService", () => {
 			nextCounter: 3,
 		});
 	});
+
+	it("hydrates durable state and records reservations around SDK dispatch", async () => {
+		const persistence = {
+			loadSourceState: jest.fn(async () => ({
+				lastAcceptedCounter: 41,
+				lastAcceptedIrn: "IRN-041",
+				nextCounter: 42,
+				lastReservationStatus: "accepted",
+			})),
+			recordReservation: jest.fn(async () => undefined),
+			markAccepted: jest.fn(async () => undefined),
+			markOutcome: jest.fn(async () => undefined),
+		};
+		const queue = new EimsSubmissionQueueService(persistence as never);
+		const dispatch = jest.fn(async (queued) => ({
+			data: {
+				id: "sub_042",
+				status: "accepted",
+				irn: "IRN-042",
+				counter: queued.counter,
+				previousIrn: queued.previousIrn,
+			},
+		}));
+
+		const response = await queue.enqueueInvoice(
+			{
+				organizationId: "org_test",
+				sourceSystemId: "src_front",
+				documentNumber: "INV-042",
+				payload: { documentType: "INV" },
+			},
+			dispatch,
+		);
+
+		expect(persistence.loadSourceState).toHaveBeenCalledWith("org_test", "src_front");
+		expect(dispatch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				counter: 42,
+				previousIrn: "IRN-041",
+				reservationId: "org_test:src_front:42",
+			}),
+		);
+		expect(persistence.recordReservation).toHaveBeenCalledWith(
+			expect.objectContaining({
+				counter: 42,
+				documentNumber: "INV-042",
+				previousIrn: "IRN-041",
+			}),
+		);
+		expect(persistence.markAccepted).toHaveBeenCalledWith(
+			expect.objectContaining({ counter: 42, sourceSystemId: "src_front" }),
+			"IRN-042",
+		);
+		expect(persistence.markOutcome).not.toHaveBeenCalled();
+		expect(response.meta?.queue).toMatchObject({
+			counter: 42,
+			previousIrn: "IRN-041",
+			reservationStatus: "accepted",
+			persistenceStatus: "outcome_recorded",
+		});
+	});
 });

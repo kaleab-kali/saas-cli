@@ -8,8 +8,11 @@ boundary for invoice submission ordering:
 
 - one serial lane per organization/source system
 - local counter reservation metadata on each outbound EIMS call
+- durable `EimsCounterReservation` rows before SDK dispatch
+- restart hydration from `EimsSourceSystemCounter` and latest reservation rows
 - previous-IRN chaining from the last accepted response only
 - retryable/unknown outcomes kept out of the accepted counter chain
 
 Replace the in-process coordinator with BullMQ-backed workers when enabling
-multi-node production deployment; keep the same payload metadata contract.
+multi-node production deployment; keep the same payload metadata contract and
+Prisma reservation audit trail.

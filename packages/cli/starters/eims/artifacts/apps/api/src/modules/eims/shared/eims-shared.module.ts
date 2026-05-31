@@ -18,6 +18,7 @@ import { EimsOfflineReplayService } from "./offline/eims-offline-replay.service"
 import { EimsSupportingResourcesController } from "./presentation/eims-supporting-resources.controller";
 import { EimsPrintProofService } from "./printing/eims-print-proof.service";
 import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.service";
+import { EimsSubmissionQueuePersistenceService } from "./queues/eims-submission-queue-persistence.service";
 
 @Module({
 	controllers: [EimsLookupController, EimsSupportingResourcesController, EimsBulkCallbackController],
@@ -26,6 +27,7 @@ import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.servi
 		EimsBulkCallbackService,
 		EimsBulkCallbackPersistenceService,
 		EimsSubmissionQueueService,
+		EimsSubmissionQueuePersistenceService,
 		EimsCredentialPersistenceService,
 		EimsCredentialSecretService,
 		EimsOfflinePendingSyncCacheService,
@@ -49,6 +51,7 @@ import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.servi
 		EimsBulkCallbackService,
 		EimsBulkCallbackPersistenceService,
 		EimsSubmissionQueueService,
+		EimsSubmissionQueuePersistenceService,
 		EimsCredentialPersistenceService,
 		EimsCredentialSecretService,
 		EimsOfflinePendingSyncCacheService,

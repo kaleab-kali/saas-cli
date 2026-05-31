@@ -1213,7 +1213,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:sdk-contract"] ??=
@@ -5880,6 +5880,37 @@ assertIncludes(offlineReplay, "registerInvoice", "EIMS offline replay must submi
 assertIncludes(offlineReplay, "markSynced", "EIMS offline replay must mark accepted offline invoices synced");
 assertIncludes(offlineReplay, "markRetryableFailure", "EIMS offline replay must preserve failed rows for retry");
 
+const queuePersistence = read("apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.ts");
+assertIncludes(queuePersistence, "PrismaService", "EIMS queue reservations must use durable Prisma persistence");
+assertIncludes(
+	queuePersistence,
+	"eimsSourceSystemCounter.upsert",
+	"EIMS source counter state must be persisted durably",
+);
+assertIncludes(
+	queuePersistence,
+	"eimsCounterReservation.upsert",
+	"EIMS queue reservations must be persisted before SDK dispatch",
+);
+assertIncludes(
+	queuePersistence,
+	"loadSourceState",
+	"EIMS queues must hydrate counters from durable state after restart",
+);
+
+const submissionQueue = read("apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts");
+assertIncludes(
+	submissionQueue,
+	"recordReservation",
+	"EIMS submission queue must record reservations before SDK dispatch",
+);
+assertIncludes(submissionQueue, "markAccepted", "EIMS submission queue must persist accepted counter outcomes");
+assertIncludes(
+	submissionQueue,
+	"persistenceStatus",
+	"EIMS submission metadata must report durable reservation outcome status",
+);
+
 const sdkExternalClient = read("apps/api/src/modules/eims/shared/client/eims-sdk-external.client.ts");
 const sdkClientProvider = read("apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.ts");
 assertIncludes(
@@ -5979,6 +6010,11 @@ After publishing or linking the real SDK package, set \`EIMS_SDK_PACKAGE_NAME\`
 and run \`pnpm test:eims:sdk-contract\`. This imports the SDK package, builds the
 same options used by the Nest provider, and verifies the package exposes a
 \`registerInvoice\`-capable client before sandbox credentials are exercised.
+
+Invoice submission lanes persist counter reservations before SDK dispatch and
+hydrate source counter state from durable rows after restart. Multi-node
+production deployments should replace the in-process coordinator with
+BullMQ/Redis workers that keep the same reservation contract.
 
 Before production go-live, run \`pnpm doctor:production\`. The doctor blocks launch if EIMS is still in mock mode, lacks production MoR URLs, lacks an HTTPS callback URL, uses local signing, or has Phase 0 strict mode disabled.
 `,

@@ -1,4 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Optional } from "@nestjs/common";
+import {
+	type EimsQueueReservationOutcome,
+	EimsSubmissionQueuePersistenceService,
+} from "./eims-submission-queue-persistence.service";
 
 export interface EimsSubmissionQueueInput {
 	organizationId: string;
@@ -37,6 +41,7 @@ export interface QueueMetadata {
 	counter: number;
 	previousIrn: string | null;
 	reservationStatus: string;
+	persistenceStatus: "not_configured" | "reservation_recorded" | "outcome_recorded" | "outcome_persist_failed";
 	pendingDepth: number;
 }
 
@@ -50,6 +55,11 @@ type EimsQueuedResponse<T extends DispatchResult> = T & { meta: Record<string, u
 export class EimsSubmissionQueueService {
 	private readonly states = new Map<string, SourceQueueState>();
 	private readonly tails = new Map<string, Promise<unknown>>();
+
+	constructor(
+		@Optional()
+		private readonly persistence?: EimsSubmissionQueuePersistenceService,
+	) {}
 
 	seedSourceState(organizationId: string, sourceSystemId: string, seed: EimsSourceQueueSeed) {
 		const key = this.sourceKey(organizationId, sourceSystemId);
@@ -107,6 +117,7 @@ export class EimsSubmissionQueueService {
 		state: SourceQueueState,
 		dispatch: (queued: EimsQueuedSubmissionInput) => Promise<T>,
 	): Promise<EimsQueuedResponse<T>> {
+		await this.hydrateFromPersistence(input.organizationId, sourceSystemId, state);
 		state.pendingDepth = Math.max(0, state.pendingDepth - 1);
 		state.inFlight += 1;
 		const counter = state.nextCounter;
@@ -121,15 +132,22 @@ export class EimsSubmissionQueueService {
 			counter,
 			previousIrn,
 		};
+		let persistenceStatus: QueueMetadata["persistenceStatus"] = "not_configured";
+		if (this.persistence) {
+			await this.persistence.recordReservation(queued);
+			persistenceStatus = "reservation_recorded";
+		}
 
 		try {
 			const response = await dispatch(queued);
 			const reservationStatus = this.reservationStatusFromResponse(response);
+			const acceptedIrn = this.extractIrn(response) ?? previousIrn;
 			state.lastReservationStatus = reservationStatus;
 			if (reservationStatus === "accepted") {
 				state.lastAcceptedCounter = counter;
-				state.lastAcceptedIrn = this.extractIrn(response) ?? previousIrn;
+				state.lastAcceptedIrn = acceptedIrn;
 			}
+			persistenceStatus = await this.persistOutcome(queued, reservationStatus, acceptedIrn, response);
 
 			return this.withQueueMetadata(response, {
 				queueName: queued.queueName,
@@ -138,13 +156,48 @@ export class EimsSubmissionQueueService {
 				counter,
 				previousIrn,
 				reservationStatus,
+				persistenceStatus,
 				pendingDepth: state.pendingDepth,
 			});
 		} catch (error) {
 			state.lastReservationStatus = "failed_retryable";
+			await this.persistOutcome(queued, "failed_retryable", null, error);
 			throw error;
 		} finally {
 			state.inFlight = Math.max(0, state.inFlight - 1);
+		}
+	}
+
+	private async hydrateFromPersistence(organizationId: string, sourceSystemId: string, state: SourceQueueState) {
+		if (!this.persistence) return;
+		const durable = await this.persistence.loadSourceState(organizationId, sourceSystemId);
+		if (!durable) return;
+		state.lastAcceptedCounter = Math.max(state.lastAcceptedCounter, durable.lastAcceptedCounter);
+		state.lastAcceptedIrn = durable.lastAcceptedIrn ?? state.lastAcceptedIrn;
+		state.nextCounter = Math.max(state.nextCounter, durable.nextCounter);
+		state.lastReservationStatus = durable.lastReservationStatus ?? state.lastReservationStatus;
+	}
+
+	private async persistOutcome<T extends DispatchResult>(
+		queued: EimsQueuedSubmissionInput,
+		reservationStatus: string,
+		acceptedIrn: string | null,
+		detail: T | unknown,
+	): Promise<QueueMetadata["persistenceStatus"]> {
+		if (!this.persistence) return "not_configured";
+		try {
+			if (reservationStatus === "accepted") {
+				await this.persistence.markAccepted(queued, acceptedIrn);
+			} else {
+				await this.persistence.markOutcome(
+					queued,
+					this.durableOutcomeStatus(reservationStatus),
+					this.objectValue((detail as DispatchResult)?.data) ?? detail,
+				);
+			}
+			return "outcome_recorded";
+		} catch {
+			return "outcome_persist_failed";
 		}
 	}
 
@@ -155,6 +208,13 @@ export class EimsSubmissionQueueService {
 		if (status === "failed_retryable") return "unknown";
 		if (status === "rejected") return "rejected_consumed";
 		return "manual_review";
+	}
+
+	private durableOutcomeStatus(status: string): Exclude<EimsQueueReservationOutcome, "accepted"> {
+		if (status === "rejected_consumed") return "rejected_consumed";
+		if (status === "manual_review") return "manual_review";
+		if (status === "failed_retryable") return "failed_retryable";
+		return "unknown";
 	}
 
 	private extractIrn(response: DispatchResult) {

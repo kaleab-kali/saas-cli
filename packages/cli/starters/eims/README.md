@@ -20,4 +20,6 @@ The installer copies EIMS source artifacts from `packages/cli/starters/eims/arti
 
 Production readiness is enforced by `pnpm doctor:production`. For an EIMS install it blocks launch when the app is still in mock mode, still points at the placeholder SDK package name, lacks production EIMS SDK endpoint configuration, lacks an HTTPS callback URL, lacks a callback HMAC secret, uses local signing, or has Phase 0 strict mode disabled. The SaaS starter consumes the EIMS SDK through the `EIMS_SDK_CLIENT` adapter boundary. In production mode the generated app dynamically loads `EIMS_SDK_PACKAGE_NAME` and fails closed if that package is missing or does not expose a `registerInvoice`-capable client. Direct authority request/signing logic belongs in the SDK.
 
+Invoice submission lanes persist `EimsCounterReservation` rows before calling the SDK and hydrate source counters from durable state after restart. Multi-node production still needs BullMQ/Redis workers using the same reservation contract.
+
 The `pack.json` manifest is the source-of-truth metadata for routes, models, permissions, environment variables, seed data, queues, and cron jobs.

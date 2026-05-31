@@ -90,6 +90,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts",
+	"apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.ts",
+	"apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts",
 	"apps/api/src/modules/eims/setup/presentation/eims-setup.controller.ts",
@@ -312,6 +314,10 @@ function assertGeneratedStructure() {
 		"generated EIMS local test gate includes queue coordinator tests",
 	);
 	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-submission-queue-persistence.service.spec.ts"),
+		"generated EIMS local test gate includes queue persistence tests",
+	);
+	assert(
 		packageJson.scripts["test:eims:sdk-contract"]?.includes("scripts/eims-sdk-contract.ts"),
 		"generated package has EIMS SDK contract command",
 	);
@@ -453,6 +459,10 @@ function assertGeneratedStructure() {
 	assert(
 		eimsSecuritySmoke.includes("EIMS offline replay must dispatch through the SDK adapter boundary"),
 		"EIMS security smoke enforces SDK-bound offline replay",
+	);
+	assert(
+		eimsSecuritySmoke.includes("EIMS queue reservations must be persisted before SDK dispatch"),
+		"EIMS security smoke enforces durable queue reservation persistence",
 	);
 	assert(
 		eimsSecuritySmoke.includes("EIMS acceptance cases must stay admin-only"),
@@ -612,6 +622,12 @@ function assertGeneratedStructure() {
 	assert(eimsAuditHashChain.includes("BEFORE DELETE ON eims_audit_event"), "EIMS audit hash chain blocks deletes");
 	const queueService = readProjectFile("apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts");
 	const queueSpec = readProjectFile("apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts");
+	const queuePersistence = readProjectFile(
+		"apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.ts",
+	);
+	const queuePersistenceSpec = readProjectFile(
+		"apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts",
+	);
 	const submissionService = readProjectFile("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");
 	const externalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-external-client.ts");
 	const sdkClientProvider = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.ts");
@@ -664,10 +680,24 @@ function assertGeneratedStructure() {
 	assert(queueService.includes("lastAcceptedCounter"), "EIMS queue service tracks accepted counter state");
 	assert(queueService.includes("reservationStatus"), "EIMS queue service records counter reservation status");
 	assert(queueService.includes("failed_retryable"), "EIMS queue service classifies retryable failures");
+	assert(queueService.includes("recordReservation"), "EIMS queue service persists reservations before SDK dispatch");
+	assert(queueService.includes("persistenceStatus"), "EIMS queue metadata reports durable reservation status");
+	assert(queuePersistence.includes("PrismaService"), "EIMS queue persistence uses Prisma");
+	assert(queuePersistence.includes("eimsSourceSystemCounter.upsert"), "EIMS queue persistence upserts source counters");
+	assert(queuePersistence.includes("eimsCounterReservation.upsert"), "EIMS queue persistence upserts reservations");
+	assert(queuePersistence.includes("loadSourceState"), "EIMS queue persistence hydrates source counters after restart");
 	assert(queueSpec.includes("serializes submissions per source"), "EIMS queue tests cover per-source serialization");
 	assert(
 		queueSpec.includes("keeps retryable and unknown outcomes out of the accepted counter chain"),
 		"EIMS queue tests cover retryable counter handling",
+	);
+	assert(
+		queueSpec.includes("hydrates durable state and records reservations around SDK dispatch"),
+		"EIMS queue tests cover durable reservation integration",
+	);
+	assert(
+		queuePersistenceSpec.includes("stores a durable reservation before SDK dispatch"),
+		"EIMS queue persistence tests cover durable reservation writes",
 	);
 	assert(
 		submissionService.includes("EimsSubmissionQueueService"),
