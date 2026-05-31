@@ -18,6 +18,12 @@ boundary for invoice submission ordering:
 `EIMS_SUBMISSION_DISTRIBUTED_LOCKS=true` with `REDIS_URL` in production so only
 one API or worker process can reserve and submit for the same source at a time.
 
+`EimsBulkReconciliationSchedulerService` scans durable processing bulk
+conversations every minute when `EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED=true`.
+`EimsBulkReconciliationQueueService` enqueues tenant-scoped polling jobs into
+`eims-bulk-callback`; the worker calls the SDK-bound bulk polling service and
+never talks to the authority directly.
+
 `EimsOfflineReplaySchedulerService` scans durable pending offline records every
 minute when `EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED=true`.
 `EimsOfflineReplayQueueService` enqueues tenant-scoped replay jobs into

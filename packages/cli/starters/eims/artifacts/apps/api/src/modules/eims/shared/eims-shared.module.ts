@@ -4,6 +4,7 @@ import { EimsBulkCallbackController } from "./callbacks/eims-bulk-callback.contr
 import { EimsBulkCallbackService } from "./callbacks/eims-bulk-callback.service";
 import { EimsBulkCallbackPersistenceService } from "./callbacks/eims-bulk-callback-persistence.service";
 import { EimsBulkReconciliationPollingService } from "./callbacks/eims-bulk-reconciliation-polling.service";
+import { EimsBulkReconciliationSchedulerService } from "./callbacks/eims-bulk-reconciliation-scheduler.service";
 import { EimsCancellationService } from "./cancellations/eims-cancellation.service";
 import { EIMS_EXTERNAL_CLIENT } from "./client/eims-external-client";
 import { EimsSdkClientProvider } from "./client/eims-sdk-client.provider";
@@ -22,6 +23,7 @@ import { EimsOfflineReplayService } from "./offline/eims-offline-replay.service"
 import { EimsOfflineReplaySchedulerService } from "./offline/eims-offline-replay-scheduler.service";
 import { EimsSupportingResourcesController } from "./presentation/eims-supporting-resources.controller";
 import { EimsPrintProofService } from "./printing/eims-print-proof.service";
+import { EimsBulkReconciliationQueueService } from "./queues/eims-bulk-reconciliation-queue.service";
 import { EimsOfflineReplayQueueService } from "./queues/eims-offline-replay-queue.service";
 import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.service";
 import { EimsSubmissionQueuePersistenceService } from "./queues/eims-submission-queue-persistence.service";
@@ -34,6 +36,7 @@ import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source
 		EimsBulkCallbackService,
 		EimsBulkCallbackPersistenceService,
 		EimsBulkReconciliationPollingService,
+		EimsBulkReconciliationSchedulerService,
 		EimsBulkSubmissionService,
 		EimsCancellationService,
 		EimsSubmissionQueueService,
@@ -45,6 +48,7 @@ import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source
 		EimsOfflinePendingSyncPersistenceService,
 		EimsOfflineReplayService,
 		EimsOfflineReplaySchedulerService,
+		EimsBulkReconciliationQueueService,
 		EimsOfflineReplayQueueService,
 		EimsPrintProofService,
 		EimsSubmissionSourceLockService,
@@ -65,6 +69,7 @@ import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source
 		EimsBulkCallbackService,
 		EimsBulkCallbackPersistenceService,
 		EimsBulkReconciliationPollingService,
+		EimsBulkReconciliationSchedulerService,
 		EimsBulkSubmissionService,
 		EimsCancellationService,
 		EimsSubmissionQueueService,
@@ -76,6 +81,7 @@ import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source
 		EimsOfflinePendingSyncPersistenceService,
 		EimsOfflineReplayService,
 		EimsOfflineReplaySchedulerService,
+		EimsBulkReconciliationQueueService,
 		EimsOfflineReplayQueueService,
 		EimsPrintProofService,
 		EimsSubmissionSourceLockService,

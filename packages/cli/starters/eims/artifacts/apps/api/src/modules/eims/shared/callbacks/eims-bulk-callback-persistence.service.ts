@@ -20,7 +20,7 @@ interface EimsBulkCallbackReceiptRow {
 	payloadSha256: string;
 	payloadBytes: number;
 	signatureSha256: string | null;
-	signatureStatus: "verified" | "polled";
+	signatureStatus: "verified" | "polled" | "submitted";
 	reconciliationStatus: "accepted" | "attention" | "processing";
 	submitted: number;
 	accepted: number;
@@ -67,6 +67,18 @@ export class EimsBulkCallbackPersistenceService {
 		return this.storeReceipt({ payload, rawBody, summary, callbackId: `poll:${payload.conversationId}` });
 	}
 
+	async storeSubmittedBatch({
+		payload,
+		rawBody,
+		summary,
+	}: {
+		payload: EimsBulkCallbackPayload;
+		rawBody?: string;
+		summary: EimsBulkCallbackSummary;
+	}): Promise<EimsBulkCallbackSummary> {
+		return this.storeReceipt({ payload, rawBody, summary, callbackId: `submitted:${payload.conversationId}` });
+	}
+
 	async listReceipts(organizationId: string, conversationId?: string): Promise<EimsBulkCallbackSummary[]> {
 		const rows = await this.prisma.eimsBulkCallbackReceipt.findMany({
 			where: {
@@ -76,6 +88,45 @@ export class EimsBulkCallbackPersistenceService {
 			orderBy: [{ processedAt: "desc" }, { createdAt: "desc" }],
 		});
 		return rows.map((row) => this.toSummary(row as EimsBulkCallbackReceiptRow, row.duplicateCount > 0));
+	}
+
+	async listPendingPollingConversations(limit = 50): Promise<
+		Array<{
+			organizationId: string;
+			conversationId: string;
+			submitted: number;
+			pending: number;
+			processedAt: string;
+		}>
+	> {
+		const boundedLimit = this.positiveLimit(limit, 50);
+		const rows = await this.prisma.eimsBulkCallbackReceipt.findMany({
+			where: { reconciliationStatus: "processing" },
+			orderBy: [{ processedAt: "asc" }, { createdAt: "asc" }],
+			take: boundedLimit * 3,
+		});
+		const seen = new Set<string>();
+		const conversations: Array<{
+			organizationId: string;
+			conversationId: string;
+			submitted: number;
+			pending: number;
+			processedAt: string;
+		}> = [];
+		for (const row of rows as EimsBulkCallbackReceiptRow[]) {
+			const key = `${row.organizationId}:${row.conversationId}`;
+			if (seen.has(key)) continue;
+			seen.add(key);
+			conversations.push({
+				organizationId: row.organizationId,
+				conversationId: row.conversationId,
+				submitted: row.submitted,
+				pending: row.pending,
+				processedAt: row.processedAt.toISOString(),
+			});
+			if (conversations.length >= boundedLimit) break;
+		}
+		return conversations;
 	}
 
 	private async storeReceipt({
@@ -159,5 +210,10 @@ export class EimsBulkCallbackPersistenceService {
 
 	private sha256(value: string) {
 		return createHash("sha256").update(value).digest("hex");
+	}
+
+	private positiveLimit(value: unknown, fallback: number) {
+		const parsed = Number(value);
+		return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
 	}
 }

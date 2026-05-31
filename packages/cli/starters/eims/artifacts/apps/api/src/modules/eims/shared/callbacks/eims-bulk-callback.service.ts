@@ -35,7 +35,7 @@ export interface EimsBulkCallbackSummary {
 	conversationId: string;
 	idempotencyKey: string;
 	duplicate: boolean;
-	signatureStatus: "verified" | "polled";
+	signatureStatus: "verified" | "polled" | "submitted";
 	reconciliationStatus: "accepted" | "attention" | "processing";
 	totals: {
 		submitted: number;

@@ -1213,7 +1213,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/bulk/eims-bulk-submission.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.spec.ts src/modules/eims/shared/cancellations/eims-cancellation.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/bulk/eims-bulk-submission.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-scheduler.service.spec.ts src/modules/eims/shared/cancellations/eims-cancellation.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.spec.ts src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:sdk-contract"] ??=
@@ -1317,6 +1317,9 @@ EIMS_SUBMISSION_DISTRIBUTED_LOCKS=false
 EIMS_SUBMISSION_LOCK_TTL_MS=30000
 EIMS_SUBMISSION_LOCK_WAIT_MS=10000
 EIMS_WORKERS_ENABLED=false
+EIMS_BULK_RECONCILIATION_ATTEMPTS=5
+EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED=false
+EIMS_BULK_RECONCILIATION_BATCH_LIMIT=25
 EIMS_OFFLINE_REPLAY_ATTEMPTS=5
 EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED=false
 EIMS_OFFLINE_REPLAY_BATCH_LIMIT=10
@@ -1343,6 +1346,9 @@ EIMS_SUBMISSION_DISTRIBUTED_LOCKS=true
 EIMS_SUBMISSION_LOCK_TTL_MS=30000
 EIMS_SUBMISSION_LOCK_WAIT_MS=10000
 EIMS_WORKERS_ENABLED=true
+EIMS_BULK_RECONCILIATION_ATTEMPTS=5
+EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED=true
+EIMS_BULK_RECONCILIATION_BATCH_LIMIT=25
 EIMS_OFFLINE_REPLAY_ATTEMPTS=5
 EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED=true
 EIMS_OFFLINE_REPLAY_BATCH_LIMIT=10
@@ -5922,6 +5928,12 @@ const callbackPersistence = read(
 \t"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.ts",
 );
 const callbackPolling = read("apps/api/src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.ts");
+const callbackScheduler = read(
+\t"apps/api/src/modules/eims/shared/callbacks/eims-bulk-reconciliation-scheduler.service.ts",
+);
+const bulkReconciliationQueue = read(
+\t"apps/api/src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.ts",
+);
 const cancellationService = read("apps/api/src/modules/eims/shared/cancellations/eims-cancellation.service.ts");
 assertIncludes(callbackPersistence, "PrismaService", "EIMS bulk callback receipts must use durable Prisma persistence");
 assertIncludes(
@@ -5944,6 +5956,16 @@ assertIncludes(
 \t"storePolledReconciliation",
 \t"EIMS bulk callback receipts must store SDK-polled reconciliation rows",
 );
+assertIncludes(
+\tcallbackPersistence,
+\t"storeSubmittedBatch",
+\t"EIMS bulk submission must seed durable polling conversations",
+);
+assertIncludes(
+\tcallbackPersistence,
+\t"listPendingPollingConversations",
+\t"EIMS bulk polling scheduler must scan durable pending conversations",
+);
 assertIncludes(callbackPolling, "EIMS_EXTERNAL_CLIENT", "EIMS bulk polling must use the SDK adapter boundary");
 assertIncludes(callbackPolling, "pollBulkStatus", "EIMS bulk polling must call SDK bulk status capability");
 assertIncludes(
@@ -5953,6 +5975,24 @@ assertIncludes(
 );
 assertIncludes(bulkSubmission, "EIMS_EXTERNAL_CLIENT", "EIMS bulk submission must use the SDK adapter boundary");
 assertIncludes(bulkSubmission, "submitBulk", "EIMS bulk submission must call SDK bulk submit capability");
+assertIncludes(bulkSubmission, "storeSubmittedBatch", "EIMS bulk submission must create a durable polling seed");
+assertIncludes(callbackScheduler, "@Cron", "EIMS bulk reconciliation scheduler must have scheduled cadence");
+assertIncludes(
+\tcallbackScheduler,
+\t"EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED",
+\t"EIMS bulk reconciliation scheduler must be explicitly enabled",
+);
+assertIncludes(
+\tcallbackScheduler,
+\t"enqueueReconciliation",
+\t"EIMS bulk reconciliation scheduler must enqueue worker jobs",
+);
+assertIncludes(bulkReconciliationQueue, "Worker", "EIMS bulk reconciliation queue must register a BullMQ worker");
+assertIncludes(
+\tbulkReconciliationQueue,
+\t"pollConversation",
+\t"EIMS bulk reconciliation queue must process jobs through SDK-bound polling",
+);
 assertIncludes(cancellationService, "EIMS_EXTERNAL_CLIENT", "EIMS cancellation must use the SDK adapter boundary");
 assertIncludes(cancellationService, "cancelInvoice", "EIMS cancellation must call SDK cancellation capability");
 assertIncludes(
@@ -6173,13 +6213,14 @@ methods consumed by the SaaS adapter before sandbox credentials are exercised.
 
 Invoice submission lanes persist counter reservations before SDK dispatch and
 hydrate source counter state from durable rows after restart. Multi-node
-production deployments should replace the in-process coordinator with
-BullMQ/Redis workers that keep the same reservation contract.
+production deployments must run Redis-backed workers and source locks with the
+same reservation contract.
 
 Bulk callback handling is SaaS-side, but batch submission and delayed callback
 reconciliation must still go through the SDK. The \`/eims/bulk\` endpoint calls
-the SDK bulk submission capability, and \`/eims/bulk/reconcile\` calls the SDK
-bulk-status capability and stores the polled result as a durable callback
+the SDK bulk submission capability and stores a durable processing conversation.
+\`/eims/bulk/reconcile\` and the scheduled \`eims-bulk-callback\` worker call
+the SDK bulk-status capability and store the polled result as a durable callback
 receipt for audit and operator review.
 
 Cancellation requests are validated by the SaaS layer for tenant input shape and

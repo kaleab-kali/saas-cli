@@ -78,6 +78,9 @@
 		"EIMS_SUBMISSION_LOCK_TTL_MS",
 		"EIMS_SUBMISSION_LOCK_WAIT_MS",
 		"EIMS_WORKERS_ENABLED",
+		"EIMS_BULK_RECONCILIATION_ATTEMPTS",
+		"EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED",
+		"EIMS_BULK_RECONCILIATION_BATCH_LIMIT",
 		"EIMS_OFFLINE_REPLAY_ATTEMPTS",
 		"EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED",
 		"EIMS_OFFLINE_REPLAY_BATCH_LIMIT",
@@ -96,6 +99,7 @@
 	"addsCrons": [
 		"certificate-expiry-daily",
 		"retry-queued-submissions",
+		"bulk-reconciliation-every-minute",
 		"offline-replay-every-minute",
 		"stale-source-followup"
 	],

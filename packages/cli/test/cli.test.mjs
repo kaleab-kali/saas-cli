@@ -167,6 +167,7 @@ test("production doctor blocks unsafe EIMS go-live settings", () => {
 		assert.match(output, /EIMS_WORKERS_ENABLED.*BullMQ replay workers/);
 		assert.match(output, /EIMS_SUBMISSION_DISTRIBUTED_LOCKS.*per-source counters/);
 		assert.match(output, /EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED.*offline invoices/);
+		assert.match(output, /EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED.*bulk conversations/);
 		assert.match(output, /BULLMQ_QUEUES.*include EIMS queues/);
 	} finally {
 		removeDir(targetDir);

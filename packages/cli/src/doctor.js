@@ -184,6 +184,14 @@ const checkEimsProductionEnv = (apiEnv, production) => {
 	if (apiEnv.EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED === "true") ok("EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED", "true");
 	else fail("EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED", "must be true so durable offline invoices are replayed automatically");
 
+	if (apiEnv.EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED === "true")
+		ok("EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED", "true");
+	else
+		fail(
+			"EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED",
+			"must be true so submitted bulk conversations are reconciled automatically",
+		);
+
 	requireEnvListIncludes(
 		apiEnv,
 		"BULLMQ_QUEUES",

@@ -80,6 +80,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.spec.ts",
+	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-reconciliation-scheduler.service.ts",
+	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-reconciliation-scheduler.service.spec.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts",
 	"apps/api/src/modules/eims/shared/cancellations/eims-cancellation.service.ts",
@@ -102,6 +104,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts",
+	"apps/api/src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.ts",
+	"apps/api/src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-offline-replay-queue.service.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.ts",
@@ -321,6 +325,10 @@ function assertGeneratedStructure() {
 		"generated EIMS local test gate includes SDK-bound bulk polling tests",
 	);
 	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-bulk-reconciliation-scheduler.service.spec.ts"),
+		"generated EIMS local test gate includes bulk polling scheduler tests",
+	);
+	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-cancellation.service.spec.ts"),
 		"generated EIMS local test gate includes SDK-bound cancellation tests",
 	);
@@ -355,6 +363,10 @@ function assertGeneratedStructure() {
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-offline-replay-queue.service.spec.ts"),
 		"generated EIMS local test gate includes offline replay queue tests",
+	);
+	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-bulk-reconciliation-queue.service.spec.ts"),
+		"generated EIMS local test gate includes bulk reconciliation queue tests",
 	);
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-submission-queue-persistence.service.spec.ts"),
@@ -414,6 +426,18 @@ function assertGeneratedStructure() {
 	);
 	assert(eimsStarter.envVars?.includes("EIMS_WORKERS_ENABLED"), "scaffold state records EIMS worker env metadata");
 	assert(
+		eimsStarter.envVars?.includes("EIMS_BULK_RECONCILIATION_ATTEMPTS"),
+		"scaffold state records EIMS bulk reconciliation attempt metadata",
+	);
+	assert(
+		eimsStarter.envVars?.includes("EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED"),
+		"scaffold state records EIMS bulk reconciliation scheduler env metadata",
+	);
+	assert(
+		eimsStarter.envVars?.includes("EIMS_BULK_RECONCILIATION_BATCH_LIMIT"),
+		"scaffold state records EIMS bulk reconciliation batch env metadata",
+	);
+	assert(
 		eimsStarter.envVars?.includes("EIMS_OFFLINE_REPLAY_ATTEMPTS"),
 		"scaffold state records EIMS offline replay attempt metadata",
 	);
@@ -434,8 +458,13 @@ function assertGeneratedStructure() {
 	assert(eimsStarter.permissions?.includes("eims-submission:*"), "scaffold state records EIMS permission metadata");
 	assert(eimsStarter.seedData?.includes("eims-entitlements"), "scaffold state records EIMS seed metadata");
 	assert(eimsStarter.queues?.includes("eims-submission-retry"), "scaffold state records EIMS queue metadata");
+	assert(eimsStarter.queues?.includes("eims-bulk-callback"), "scaffold state records EIMS bulk queue metadata");
 	assert(eimsStarter.queues?.includes("eims-offline-replay"), "scaffold state records EIMS offline replay queue metadata");
 	assert(eimsStarter.crons?.includes("certificate-expiry-daily"), "scaffold state records EIMS cron metadata");
+	assert(
+		eimsStarter.crons?.includes("bulk-reconciliation-every-minute"),
+		"scaffold state records EIMS bulk reconciliation cron metadata",
+	);
 	assert(eimsStarter.crons?.includes("offline-replay-every-minute"), "scaffold state records EIMS offline replay cron metadata");
 	assert(eimsStarter.dependencies?.["@yourcompany/eims-sdk"], "scaffold state records EIMS SDK dependency metadata");
 	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
@@ -472,6 +501,18 @@ function assertGeneratedStructure() {
 		"EIMS production env example configures submission lock wait",
 	);
 	assert(productionEnvExample.includes("EIMS_WORKERS_ENABLED=true"), "EIMS production env example enables workers");
+	assert(
+		productionEnvExample.includes("EIMS_BULK_RECONCILIATION_ATTEMPTS=5"),
+		"EIMS production env example configures bulk reconciliation attempts",
+	);
+	assert(
+		productionEnvExample.includes("EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED=true"),
+		"EIMS production env example enables bulk reconciliation scheduler",
+	);
+	assert(
+		productionEnvExample.includes("EIMS_BULK_RECONCILIATION_BATCH_LIMIT=25"),
+		"EIMS production env example configures bulk reconciliation batch size",
+	);
 	assert(
 		productionEnvExample.includes("EIMS_OFFLINE_REPLAY_ATTEMPTS=5"),
 		"EIMS production env example configures offline replay attempts",
@@ -580,6 +621,14 @@ function assertGeneratedStructure() {
 	assert(
 		eimsSecuritySmoke.includes("EIMS bulk polling must persist durable reconciliation receipts"),
 		"EIMS security smoke enforces durable bulk polling receipts",
+	);
+	assert(
+		eimsSecuritySmoke.includes("EIMS bulk submission must seed durable polling conversations"),
+		"EIMS security smoke enforces submitted bulk polling seeds",
+	);
+	assert(
+		eimsSecuritySmoke.includes("EIMS bulk reconciliation scheduler must enqueue worker jobs"),
+		"EIMS security smoke enforces scheduled bulk reconciliation",
 	);
 	assert(
 		eimsSecuritySmoke.includes("EIMS bulk submission must use the SDK adapter boundary"),
@@ -773,6 +822,12 @@ function assertGeneratedStructure() {
 	const offlineReplayQueueSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts",
 	);
+	const bulkReconciliationQueue = readProjectFile(
+		"apps/api/src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.ts",
+	);
+	const bulkReconciliationQueueSpec = readProjectFile(
+		"apps/api/src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.spec.ts",
+	);
 	const submissionService = readProjectFile("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");
 	const externalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-external-client.ts");
 	const sdkClientProvider = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.ts");
@@ -800,6 +855,12 @@ function assertGeneratedStructure() {
 	);
 	const bulkReconciliationPollingSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.spec.ts",
+	);
+	const bulkReconciliationScheduler = readProjectFile(
+		"apps/api/src/modules/eims/shared/callbacks/eims-bulk-reconciliation-scheduler.service.ts",
+	);
+	const bulkReconciliationSchedulerSpec = readProjectFile(
+		"apps/api/src/modules/eims/shared/callbacks/eims-bulk-reconciliation-scheduler.service.spec.ts",
 	);
 	const cancellationService = readProjectFile("apps/api/src/modules/eims/shared/cancellations/eims-cancellation.service.ts");
 	const cancellationServiceSpec = readProjectFile(
@@ -892,6 +953,24 @@ function assertGeneratedStructure() {
 		offlineReplayQueueSpec.includes("existing SDK-bound replay service"),
 		"EIMS offline replay queue tests cover worker delegation",
 	);
+	assert(bulkReconciliationQueue.includes("Worker"), "EIMS bulk reconciliation queue registers a BullMQ worker");
+	assert(
+		bulkReconciliationQueue.includes("EIMS_WORKERS_ENABLED"),
+		"EIMS bulk reconciliation queue is explicitly enabled by env",
+	);
+	assert(
+		bulkReconciliationQueue.includes("processReconciliationJob") &&
+			bulkReconciliationQueue.includes("pollConversation"),
+		"EIMS bulk reconciliation queue processes jobs through the SDK-bound polling service",
+	);
+	assert(
+		bulkReconciliationQueueSpec.includes("deterministic job ids"),
+		"EIMS bulk reconciliation queue tests cover tenant-scoped job ids",
+	);
+	assert(
+		bulkReconciliationQueueSpec.includes("SDK-bound bulk polling service"),
+		"EIMS bulk reconciliation queue tests cover worker delegation",
+	);
 	assert(
 		submissionService.includes("EimsSubmissionQueueService"),
 		"EIMS submission service uses queue/counter coordinator",
@@ -946,8 +1025,16 @@ assert(sdkExternalClient.includes("cancelInvoice"), "EIMS SDK adapter delegates 
 	assert(eimsSharedModule.includes("EimsSubmissionQueueService"), "EIMS shared module exports queue coordinator");
 	assert(eimsSharedModule.includes("EimsSubmissionSourceLockService"), "EIMS shared module exports source lock service");
 	assert(eimsSharedModule.includes("EimsOfflineReplayQueueService"), "EIMS shared module exports offline replay queue");
+	assert(
+		eimsSharedModule.includes("EimsBulkReconciliationQueueService"),
+		"EIMS shared module exports bulk reconciliation queue",
+	);
 	assert(eimsSharedModule.includes("EimsBulkSubmissionService"), "EIMS shared module exports bulk submission service");
 	assert(eimsSharedModule.includes("EimsBulkReconciliationPollingService"), "EIMS shared module exports bulk polling service");
+	assert(
+		eimsSharedModule.includes("EimsBulkReconciliationSchedulerService"),
+		"EIMS shared module exports bulk reconciliation scheduler",
+	);
 	assert(eimsSharedModule.includes("EimsCancellationService"), "EIMS shared module exports cancellation service");
 	assert(lookupService.includes("createHash"), "EIMS lookup service generates deterministic ETags");
 	assert(lookupService.includes("EIMS_LOOKUP_CACHE_TTL_SECONDS"), "EIMS lookup service honors lookup cache TTL env");
@@ -989,12 +1076,28 @@ assert(sdkExternalClient.includes("cancelInvoice"), "EIMS SDK adapter delegates 
 		"EIMS bulk callback persistence stores SDK-polled reconciliation receipts",
 	);
 	assert(
+		bulkCallbackPersistence.includes("storeSubmittedBatch"),
+		"EIMS bulk callback persistence stores submitted conversations for polling",
+	);
+	assert(
+		bulkCallbackPersistence.includes("listPendingPollingConversations"),
+		"EIMS bulk callback persistence lists pending conversations for scheduled polling",
+	);
+	assert(
 		bulkCallbackPersistenceSpec.includes("stores verified callback receipts durably"),
 		"EIMS bulk callback persistence tests cover durable encrypted receipt storage",
 	);
 	assert(
 		bulkCallbackPersistenceSpec.includes("SDK-polled reconciliation receipts"),
 		"EIMS bulk callback persistence tests cover polled receipt storage",
+	);
+	assert(
+		bulkCallbackPersistenceSpec.includes("submitted bulk conversations"),
+		"EIMS bulk callback persistence tests cover submitted polling seeds",
+	);
+	assert(
+		bulkCallbackPersistenceSpec.includes("scheduled SDK polling"),
+		"EIMS bulk callback persistence tests cover pending conversation scans",
 	);
 	assert(
 		bulkCallbackPersistenceSpec.includes("process restarts"),
@@ -1006,9 +1109,14 @@ assert(sdkExternalClient.includes("cancelInvoice"), "EIMS SDK adapter delegates 
 	);
 	assert(bulkSubmission.includes("EIMS_EXTERNAL_CLIENT"), "EIMS bulk submission service uses SDK client boundary");
 	assert(bulkSubmission.includes("submitBulk"), "EIMS bulk submission service delegates to SDK");
+	assert(bulkSubmission.includes("storeSubmittedBatch"), "EIMS bulk submission service seeds durable polling conversations");
 	assert(
 		bulkSubmissionSpec.includes("through the EIMS external client boundary"),
 		"EIMS bulk submission tests cover SDK-bound batch submission",
+	);
+	assert(
+		bulkSubmissionSpec.includes("storeSubmittedBatch"),
+		"EIMS bulk submission tests cover durable polling seed creation",
 	);
 	assert(
 		bulkReconciliationPolling.includes("EIMS_EXTERNAL_CLIENT") &&
@@ -1022,6 +1130,23 @@ assert(sdkExternalClient.includes("cancelInvoice"), "EIMS SDK adapter delegates 
 	assert(
 		bulkReconciliationPollingSpec.includes("through the EIMS external client"),
 		"EIMS bulk polling tests cover SDK-bound status refresh",
+	);
+	assert(bulkReconciliationScheduler.includes("@Cron"), "EIMS bulk reconciliation scheduler has scheduled polling cadence");
+	assert(
+		bulkReconciliationScheduler.includes("EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED"),
+		"EIMS bulk reconciliation scheduler is explicitly enabled",
+	);
+	assert(
+		bulkReconciliationScheduler.includes("listPendingPollingConversations"),
+		"EIMS bulk reconciliation scheduler scans durable pending conversations",
+	);
+	assert(
+		bulkReconciliationScheduler.includes("enqueueReconciliation"),
+		"EIMS bulk reconciliation scheduler enqueues worker jobs instead of direct authority calls",
+	);
+	assert(
+		bulkReconciliationSchedulerSpec.includes("pending durable conversations"),
+		"EIMS bulk reconciliation scheduler tests cover durable conversation scans",
 	);
 	assert(cancellationService.includes("EIMS_EXTERNAL_CLIENT"), "EIMS cancellation service uses SDK client boundary");
 	assert(cancellationService.includes("cancelInvoice"), "EIMS cancellation service delegates to SDK");

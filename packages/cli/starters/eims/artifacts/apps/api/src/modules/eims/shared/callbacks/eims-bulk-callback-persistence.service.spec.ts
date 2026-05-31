@@ -194,6 +194,50 @@ describe("EimsBulkCallbackPersistenceService", () => {
 		});
 	});
 
+	it("stores submitted bulk conversations so workers can poll them later", async () => {
+		const prisma = prismaMock();
+		prisma.eimsBulkCallbackReceipt.findUnique.mockResolvedValue(null);
+		prisma.eimsBulkCallbackReceipt.create.mockImplementation((args: { data: Record<string, unknown> }) =>
+			Promise.resolve(
+				callbackReceiptRow({
+					...args.data,
+					id: "receipt_submitted_1",
+					createdAt: processedAt,
+					updatedAt: processedAt,
+				}),
+			),
+		);
+		const service = new EimsBulkCallbackPersistenceService(new FakeCipher() as never, prisma as never);
+
+		const stored = await service.storeSubmittedBatch({
+			payload,
+			summary: {
+				...summary,
+				idempotencyKey: "submitted:BATCH-20260526-001:hash",
+				signatureStatus: "submitted",
+				reconciliationStatus: "processing",
+				totals: { submitted: 3, accepted: 0, failed: 0, pending: 3 },
+				failures: [],
+			},
+		});
+		const createData = prisma.eimsBulkCallbackReceipt.create.mock.calls[0][0].data;
+
+		expect(createData).toMatchObject({
+			callbackId: "submitted:BATCH-20260526-001",
+			idempotencyKey: "submitted:BATCH-20260526-001:hash",
+			signatureSha256: null,
+			signatureStatus: "submitted",
+			reconciliationStatus: "processing",
+			pending: 3,
+		});
+		expect(stored).toMatchObject({
+			signatureStatus: "submitted",
+			duplicate: false,
+			reconciliationStatus: "processing",
+			totals: { submitted: 3, accepted: 0, failed: 0, pending: 3 },
+		});
+	});
+
 	it("lists tenant-scoped callback receipts without exposing encrypted payloads", async () => {
 		const prisma = prismaMock();
 		prisma.eimsBulkCallbackReceipt.findMany.mockResolvedValue([
@@ -215,5 +259,57 @@ describe("EimsBulkCallbackPersistenceService", () => {
 		expect(receipts[0]).toMatchObject({ duplicate: false, idempotencyKey: "idem-1" });
 		expect(receipts[1]).toMatchObject({ duplicate: true, idempotencyKey: "idem-2" });
 		expect(receipts[0]).not.toHaveProperty("encryptedPayload");
+	});
+
+	it("lists unique processing conversations for scheduled SDK polling", async () => {
+		const prisma = prismaMock();
+		prisma.eimsBulkCallbackReceipt.findMany.mockResolvedValue([
+			callbackReceiptRow({
+				id: "receipt_pending_1",
+				reconciliationStatus: "processing",
+				submitted: 2,
+				pending: 2,
+			}),
+			callbackReceiptRow({
+				id: "receipt_pending_2",
+				reconciliationStatus: "processing",
+				submitted: 2,
+				pending: 2,
+				idempotencyKey: "submitted:BATCH-20260526-001:duplicate",
+			}),
+			callbackReceiptRow({
+				id: "receipt_pending_3",
+				organizationId: "org_2",
+				conversationId: "BATCH-20260526-002",
+				reconciliationStatus: "processing",
+				submitted: 1,
+				pending: 1,
+			}),
+		]);
+		const service = new EimsBulkCallbackPersistenceService(new FakeCipher() as never, prisma as never);
+
+		const conversations = await service.listPendingPollingConversations(2);
+
+		expect(prisma.eimsBulkCallbackReceipt.findMany).toHaveBeenCalledWith({
+			where: { reconciliationStatus: "processing" },
+			orderBy: [{ processedAt: "asc" }, { createdAt: "asc" }],
+			take: 6,
+		});
+		expect(conversations).toEqual([
+			{
+				organizationId: "org_1",
+				conversationId: "BATCH-20260526-001",
+				submitted: 2,
+				pending: 2,
+				processedAt: processedAt.toISOString(),
+			},
+			{
+				organizationId: "org_2",
+				conversationId: "BATCH-20260526-002",
+				submitted: 1,
+				pending: 1,
+				processedAt: processedAt.toISOString(),
+			},
+		]);
 	});
 });
