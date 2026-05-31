@@ -253,6 +253,10 @@ async function installAdminMocks(page: Page) {
 			);
 			return;
 		}
+		if (url.includes("/saved-views")) {
+			await route.fulfill(ok({ data: [] }));
+			return;
+		}
 		if (url.includes("/admin/onboarding")) {
 			onboardingListRequests.push(url);
 			await route.fulfill(
@@ -322,8 +326,13 @@ test("admin onboarding smoke renders filterable operations table", async ({ page
 	await expect(search).toHaveValue("Demo");
 	await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Saved views" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save view" })).toBeVisible();
 	await expect(page.getByRole("columnheader", { name: /Current step/i })).toBeVisible();
 	await expect(page.getByRole("cell", { name: /Demo Cafe/i })).toBeVisible();
+	await page.getByRole("checkbox", { name: "Select row task_smoke" }).check();
+	await expect(page.getByText("1 selected")).toBeVisible();
+	await expect(page.getByRole("button", { name: "Bulk actions" })).toBeVisible();
 	await expect
 		.poll(() => onboardingListRequests.some((url) => new URL(url).searchParams.get("search") === "Demo"))
 		.toBe(true);

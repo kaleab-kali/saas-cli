@@ -11,6 +11,7 @@ import {
 	type Header,
 	type OnChangeFn,
 	type PaginationState,
+	type RowSelectionState,
 	type SortingState,
 	type Table as TanStackTable,
 	type Updater,
@@ -20,11 +21,13 @@ import {
 import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { type SavedView, useCreateSavedView, useDeleteSavedView, useSavedViews } from "#shared/api/saved-view.hooks";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
+	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
@@ -49,6 +52,14 @@ type FilterValue = {
 	readonly min?: string;
 	readonly max?: string;
 };
+
+export interface DataTableBulkAction<TData> {
+	readonly id: string;
+	readonly label: string;
+	readonly variant?: "default" | "destructive";
+	readonly disabled?: boolean;
+	readonly onSelect: (rows: readonly TData[]) => void | Promise<void>;
+}
 
 declare module "@tanstack/react-table" {
 	interface ColumnMeta<TData, TValue> {
@@ -76,7 +87,10 @@ interface DataTableProps<TData, TValue> {
 	readonly enableColumnFilters?: boolean;
 	readonly enableColumnVisibility?: boolean;
 	readonly enableCsvExport?: boolean;
+	readonly enableRowSelection?: boolean;
 	readonly exportFilename?: string;
+	readonly savedViewsEntity?: string;
+	readonly bulkActions?: readonly DataTableBulkAction<TData>[];
 	readonly virtualizeRows?: boolean;
 	readonly estimateRowHeight?: number;
 	readonly toolbarActions?: React.ReactNode;
@@ -289,6 +303,9 @@ const hasFilterValue = (value: unknown) => {
 	return Boolean(filter.value || filter.min || filter.max);
 };
 
+const isDataTableRowSelectionEnabled = (enableRowSelection: boolean, bulkActionCount: number) =>
+	enableRowSelection || bulkActionCount > 0;
+
 const csvValue = (value: unknown) => {
 	const text = value instanceof Date ? value.toISOString() : String(value ?? "");
 	const escaped = text.replaceAll('"', '""');
@@ -308,6 +325,114 @@ const downloadCsv = (filename: string, rows: readonly (readonly unknown[])[]) =>
 	link.click();
 	URL.revokeObjectURL(url);
 };
+
+interface SavedDataTableState {
+	globalFilterInput: string;
+	columnFilters: ColumnFiltersState;
+	sorting: SortingState;
+	columnVisibility: VisibilityState;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isSortingState = (value: unknown): value is SortingState =>
+	Array.isArray(value) &&
+	value.every(
+		(item) =>
+			isRecord(item) && typeof item.id === "string" && (typeof item.desc === "boolean" || item.desc === undefined),
+	);
+
+const isColumnFiltersState = (value: unknown): value is ColumnFiltersState =>
+	Array.isArray(value) && value.every((item) => isRecord(item) && typeof item.id === "string");
+
+const isVisibilityState = (value: unknown): value is VisibilityState =>
+	isRecord(value) && Object.values(value).every((entry) => typeof entry === "boolean");
+
+const stateFromSavedView = (view: SavedView): Partial<SavedDataTableState> => {
+	const filters = view.filtersJson;
+	const sort = view.sortJson;
+	const columns = view.columnsJson;
+	const state: Partial<SavedDataTableState> = {};
+	if (isRecord(filters) && typeof filters.globalFilterInput === "string")
+		state.globalFilterInput = filters.globalFilterInput;
+	if (isRecord(filters) && isColumnFiltersState(filters.columnFilters)) state.columnFilters = filters.columnFilters;
+	if (isRecord(sort) && isSortingState(sort.sorting)) state.sorting = sort.sorting;
+	if (isRecord(columns) && isVisibilityState(columns.columnVisibility))
+		state.columnVisibility = columns.columnVisibility;
+	return state;
+};
+
+function DataTableCheckbox({
+	checked,
+	indeterminate = false,
+	disabled = false,
+	label,
+	onChange,
+}: {
+	readonly checked: boolean;
+	readonly indeterminate?: boolean;
+	readonly disabled?: boolean;
+	readonly label: string;
+	readonly onChange: (checked: boolean) => void;
+}) {
+	const ref = React.useRef<HTMLInputElement>(null);
+	React.useEffect(() => {
+		if (ref.current) ref.current.indeterminate = indeterminate;
+	}, [indeterminate]);
+
+	return (
+		<input
+			ref={ref}
+			type="checkbox"
+			aria-label={label}
+			checked={checked}
+			disabled={disabled}
+			onClick={(event) => event.stopPropagation()}
+			onChange={(event) => onChange(event.target.checked)}
+			className="h-4 w-4 rounded border-border accent-primary"
+		/>
+	);
+}
+
+function useDataTableColumns<TData, TValue>({
+	columns,
+	enableRowSelection,
+}: {
+	readonly columns: ColumnDef<TData, TValue>[];
+	readonly enableRowSelection: boolean;
+}) {
+	const selectionColumn = React.useMemo<ColumnDef<TData, TValue>>(
+		() => ({
+			id: "__select",
+			header: ({ table }) => (
+				<DataTableCheckbox
+					label="Select all rows"
+					checked={table.getIsAllPageRowsSelected()}
+					indeterminate={table.getIsSomePageRowsSelected()}
+					onChange={(checked) => table.toggleAllPageRowsSelected(checked)}
+				/>
+			),
+			cell: ({ row }) => (
+				<DataTableCheckbox
+					label={`Select row ${row.id}`}
+					checked={row.getIsSelected()}
+					disabled={!row.getCanSelect()}
+					onChange={(checked) => row.toggleSelected(checked)}
+				/>
+			),
+			enableSorting: false,
+			enableColumnFilter: false,
+			enableHiding: false,
+			meta: { className: "w-10", headerClassName: "w-10" },
+		}),
+		[],
+	);
+	return React.useMemo<ColumnDef<TData, TValue>[]>(
+		() => (enableRowSelection ? [selectionColumn, ...columns] : columns),
+		[columns, enableRowSelection, selectionColumn],
+	);
+}
 
 function useDataTableCsvExport<TData>(table: TanStackTable<TData>, exportFilename: string) {
 	return React.useCallback(() => {
@@ -348,6 +473,193 @@ function useDataTableVirtualRows<TData>({
 		virtualItems,
 		virtualPaddingTop,
 		virtualPaddingBottom,
+	};
+}
+
+function DataTableSavedViews({
+	entity,
+	currentState,
+	onApply,
+}: {
+	readonly entity: string;
+	readonly currentState: SavedDataTableState;
+	readonly onApply: (state: Partial<SavedDataTableState>) => void;
+}) {
+	const { data: views = [] } = useSavedViews(entity);
+	const createView = useCreateSavedView(entity);
+	const deleteView = useDeleteSavedView(entity);
+	const saveCurrentView = React.useCallback(() => {
+		const name = window.prompt("Saved view name");
+		const trimmed = name?.trim();
+		if (!trimmed) return;
+		createView.mutate({
+			entity,
+			name: trimmed,
+			filtersJson: {
+				globalFilterInput: currentState.globalFilterInput,
+				columnFilters: currentState.columnFilters,
+			},
+			sortJson: { sorting: currentState.sorting },
+			columnsJson: { columnVisibility: currentState.columnVisibility },
+			viewMode: "table",
+		});
+	}, [createView, currentState, entity]);
+
+	return (
+		<div className="flex items-center gap-2">
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<Button variant="outline" size="sm">
+						Saved views
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end" className="min-w-64">
+					<DropdownMenuLabel>Apply saved view</DropdownMenuLabel>
+					<DropdownMenuSeparator />
+					{views.length === 0 && <DropdownMenuItem disabled>No saved views</DropdownMenuItem>}
+					{views.map((view) => (
+						<React.Fragment key={view.id}>
+							<DropdownMenuItem onSelect={() => onApply(stateFromSavedView(view))}>{view.name}</DropdownMenuItem>
+							<DropdownMenuItem variant="destructive" onSelect={() => deleteView.mutate(view.id)}>
+								Delete {view.name}
+							</DropdownMenuItem>
+						</React.Fragment>
+					))}
+				</DropdownMenuContent>
+			</DropdownMenu>
+			<Button variant="outline" size="sm" onClick={saveCurrentView} disabled={createView.isPending}>
+				Save view
+			</Button>
+		</div>
+	);
+}
+
+function DataTableBulkActions<TData>({
+	selectedRows,
+	actions,
+	onClearSelection,
+}: {
+	readonly selectedRows: readonly TData[];
+	readonly actions: readonly DataTableBulkAction<TData>[];
+	readonly onClearSelection: () => void;
+}) {
+	if (selectedRows.length === 0) return null;
+
+	return (
+		<div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-2 py-1">
+			<span className="text-sm text-muted-foreground">{selectedRows.length} selected</span>
+			{actions.length > 0 && (
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button variant="outline" size="sm">
+							Bulk actions
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="start">
+						<DropdownMenuLabel>Selected rows</DropdownMenuLabel>
+						<DropdownMenuSeparator />
+						{actions.map((action) => (
+							<DropdownMenuItem
+								key={action.id}
+								variant={action.variant}
+								disabled={action.disabled}
+								onSelect={() => void action.onSelect(selectedRows)}
+							>
+								{action.label}
+							</DropdownMenuItem>
+						))}
+					</DropdownMenuContent>
+				</DropdownMenu>
+			)}
+			<Button variant="ghost" size="sm" onClick={onClearSelection}>
+				Clear
+			</Button>
+		</div>
+	);
+}
+
+function useSavedViewApplier({
+	currentPageSize,
+	onGlobalFilterInputChange,
+	setColumnFilters,
+	setColumnVisibility,
+	setGlobalFilterInput,
+	setInternalGlobalFilter,
+	setPagination,
+	setRowSelection,
+	setSorting,
+}: {
+	readonly currentPageSize: number;
+	readonly onGlobalFilterInputChange?: (value: string) => void;
+	readonly setColumnFilters: OnChangeFn<ColumnFiltersState>;
+	readonly setColumnVisibility: React.Dispatch<React.SetStateAction<VisibilityState>>;
+	readonly setGlobalFilterInput: React.Dispatch<React.SetStateAction<string>>;
+	readonly setInternalGlobalFilter: React.Dispatch<React.SetStateAction<string>>;
+	readonly setPagination: OnChangeFn<PaginationState>;
+	readonly setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+	readonly setSorting: OnChangeFn<SortingState>;
+}) {
+	return React.useCallback(
+		(savedState: Partial<SavedDataTableState>) => {
+			if (savedState.globalFilterInput !== undefined) {
+				setGlobalFilterInput(savedState.globalFilterInput);
+				setInternalGlobalFilter(savedState.globalFilterInput);
+				onGlobalFilterInputChange?.(savedState.globalFilterInput);
+			}
+			if (savedState.columnFilters) setColumnFilters(savedState.columnFilters);
+			if (savedState.sorting) setSorting(savedState.sorting);
+			if (savedState.columnVisibility) setColumnVisibility(savedState.columnVisibility);
+			setPagination({ pageIndex: 0, pageSize: currentPageSize });
+			setRowSelection({});
+		},
+		[
+			currentPageSize,
+			onGlobalFilterInputChange,
+			setColumnFilters,
+			setColumnVisibility,
+			setGlobalFilterInput,
+			setInternalGlobalFilter,
+			setPagination,
+			setRowSelection,
+			setSorting,
+		],
+	);
+}
+
+function createDataTableToolbarControls<TData>({
+	bulkActions,
+	columnFilters,
+	columnVisibility,
+	enableRowSelection,
+	globalFilterInput,
+	onApplySavedView,
+	onClearSelection,
+	savedViewsEntity,
+	selectedRows,
+	sorting,
+}: {
+	readonly bulkActions: readonly DataTableBulkAction<TData>[];
+	readonly columnFilters: ColumnFiltersState;
+	readonly columnVisibility: VisibilityState;
+	readonly enableRowSelection: boolean;
+	readonly globalFilterInput: string;
+	readonly onApplySavedView: (state: Partial<SavedDataTableState>) => void;
+	readonly onClearSelection: () => void;
+	readonly savedViewsEntity?: string;
+	readonly selectedRows: readonly TData[];
+	readonly sorting: SortingState;
+}) {
+	return {
+		savedViewsControl: savedViewsEntity ? (
+			<DataTableSavedViews
+				entity={savedViewsEntity}
+				currentState={{ globalFilterInput, columnFilters, sorting, columnVisibility }}
+				onApply={onApplySavedView}
+			/>
+		) : undefined,
+		bulkActionsControl: enableRowSelection ? (
+			<DataTableBulkActions selectedRows={selectedRows} actions={bulkActions} onClearSelection={onClearSelection} />
+		) : undefined,
 	};
 }
 
@@ -486,6 +798,8 @@ function DataTableToolbar<TData>({
 	hasFilters,
 	resetFilters,
 	toolbarActions,
+	bulkActionsControl,
+	savedViewsControl,
 	enableColumnVisibility,
 	enableCsvExport,
 	exportDisabled,
@@ -499,13 +813,26 @@ function DataTableToolbar<TData>({
 	readonly hasFilters: boolean;
 	readonly resetFilters: () => void;
 	readonly toolbarActions?: React.ReactNode;
+	readonly bulkActionsControl?: React.ReactNode;
+	readonly savedViewsControl?: React.ReactNode;
 	readonly enableColumnVisibility: boolean;
 	readonly enableCsvExport: boolean;
 	readonly exportDisabled: boolean;
 	readonly onExportCsv: () => void;
 	readonly table: TanStackTable<TData>;
 }) {
-	if (!(enableSearch || toolbarActions || enableColumnVisibility || enableCsvExport || hasFilters)) return null;
+	if (
+		!(
+			enableSearch ||
+			toolbarActions ||
+			bulkActionsControl ||
+			savedViewsControl ||
+			enableColumnVisibility ||
+			enableCsvExport ||
+			hasFilters
+		)
+	)
+		return null;
 
 	return (
 		<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -523,9 +850,11 @@ function DataTableToolbar<TData>({
 						Reset filters
 					</Button>
 				)}
+				{bulkActionsControl}
 			</div>
 			<div className="flex flex-wrap items-center gap-2">
 				{toolbarActions}
+				{savedViewsControl}
 				{enableCsvExport && (
 					<Button variant="outline" size="sm" onClick={onExportCsv} disabled={exportDisabled}>
 						Export CSV
@@ -786,7 +1115,10 @@ export function DataTable<TData, TValue>({
 	enableColumnFilters = true,
 	enableColumnVisibility = true,
 	enableCsvExport = false,
+	enableRowSelection = false,
 	exportFilename = "table-export.csv",
+	savedViewsEntity,
+	bulkActions = [],
 	virtualizeRows = false,
 	estimateRowHeight = 48,
 	toolbarActions,
@@ -810,6 +1142,7 @@ export function DataTable<TData, TValue>({
 	const [internalGlobalFilter, setInternalGlobalFilter] = React.useState("");
 	const [internalColumnFilters, setInternalColumnFilters] = React.useState<ColumnFiltersState>([]);
 	const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+	const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 	const [internalPagination, setInternalPagination] = React.useState<PaginationState>({
 		pageIndex: 0,
 		pageSize: pageSize,
@@ -827,6 +1160,7 @@ export function DataTable<TData, TValue>({
 	const setSorting = onSortingChange ?? setInternalSorting;
 	const setColumnFilters = onColumnFiltersChange ?? setInternalColumnFilters;
 	const setPagination = onPaginationChange ?? setInternalPagination;
+	const shouldEnableRowSelection = isDataTableRowSelectionEnabled(enableRowSelection, bulkActions.length);
 
 	React.useEffect(() => {
 		const nextGlobalFilter = state?.globalFilterInput;
@@ -847,12 +1181,13 @@ export function DataTable<TData, TValue>({
 	}, [debouncedGlobalFilter, onGlobalFilterInputChange, state?.globalFilterInput]);
 
 	const mutableData = React.useMemo(() => [...data], [data]);
+	const tableColumns = useDataTableColumns({ columns, enableRowSelection: shouldEnableRowSelection });
 	const manualPageCount =
 		pageCount ?? (totalCount !== undefined ? Math.ceil(totalCount / pagination.pageSize) : undefined);
 
 	const table = useReactTable({
 		data: mutableData,
-		columns,
+		columns: tableColumns,
 		getRowId,
 		state: {
 			sorting,
@@ -860,15 +1195,18 @@ export function DataTable<TData, TValue>({
 			columnFilters,
 			columnVisibility,
 			pagination,
+			rowSelection,
 		},
 		onSortingChange: setSorting,
 		onGlobalFilterChange: setInternalGlobalFilter,
 		onColumnFiltersChange: setColumnFilters,
 		onColumnVisibilityChange: setColumnVisibility,
 		onPaginationChange: setPagination,
+		onRowSelectionChange: setRowSelection,
 		defaultColumn: {
 			filterFn: dataTableFilter,
 		},
+		enableRowSelection: shouldEnableRowSelection,
 		manualPagination,
 		manualSorting,
 		manualFiltering,
@@ -900,12 +1238,24 @@ export function DataTable<TData, TValue>({
 	}, [onGlobalFilterInputChange, setColumnFilters, table]);
 
 	const exportCsv = useDataTableCsvExport(table, exportFilename);
+	const pageIndex = pagination.pageIndex;
+	const currentPageSize = pagination.pageSize;
+	const selectedRows = table.getSelectedRowModel().flatRows.map((row) => row.original);
+	const applySavedView = useSavedViewApplier({
+		currentPageSize,
+		onGlobalFilterInputChange,
+		setColumnFilters,
+		setColumnVisibility,
+		setGlobalFilterInput,
+		setInternalGlobalFilter,
+		setPagination,
+		setRowSelection,
+		setSorting,
+	});
 
 	const hasFilters = Boolean(
 		globalFilterInput || globalFilter || columnFilters.some((filter) => hasFilterValue(filter.value)),
 	);
-	const pageIndex = pagination.pageIndex;
-	const currentPageSize = pagination.pageSize;
 	const resolvedPageCount = manualPagination ? (manualPageCount ?? 0) : table.getPageCount();
 	const filteredRows = table.getFilteredRowModel().rows.length;
 	const totalRows = totalCount ?? filteredRows;
@@ -923,6 +1273,18 @@ export function DataTable<TData, TValue>({
 		enabled: shouldVirtualizeRows,
 		estimateRowHeight,
 	});
+	const { savedViewsControl, bulkActionsControl } = createDataTableToolbarControls({
+		bulkActions,
+		columnFilters,
+		columnVisibility,
+		enableRowSelection: shouldEnableRowSelection,
+		globalFilterInput,
+		onApplySavedView: applySavedView,
+		onClearSelection: () => setRowSelection({}),
+		savedViewsEntity,
+		selectedRows,
+		sorting,
+	});
 
 	return (
 		<div className="space-y-4">
@@ -934,6 +1296,8 @@ export function DataTable<TData, TValue>({
 				hasFilters={hasFilters}
 				resetFilters={resetFilters}
 				toolbarActions={toolbarActions}
+				bulkActionsControl={bulkActionsControl}
+				savedViewsControl={savedViewsControl}
 				enableColumnVisibility={enableColumnVisibility}
 				enableCsvExport={enableCsvExport}
 				exportDisabled={table.getRowModel().rows.length === 0}

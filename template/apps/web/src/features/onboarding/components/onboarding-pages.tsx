@@ -21,7 +21,7 @@ import {
 	useOnboardingTemplates,
 	useTenantOnboarding,
 } from "#features/onboarding/api/onboarding.hooks";
-import { DataTable, useDataTableState } from "#shared/components/DataTable";
+import { DataTable, type DataTableBulkAction, useDataTableState } from "#shared/components/DataTable";
 import { EmptyState, LoadingState, MetricCard, PageHeader } from "#shared/components/PageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,6 +77,14 @@ const taskMetadata = (task: OnboardingTask): OnboardingTaskMetadata =>
 		: {};
 
 const displayValue = (value: unknown, fallback = "-") => (typeof value === "string" && value.trim() ? value : fallback);
+
+const copyRowsToClipboard = (label: string, text: string) => {
+	if (navigator.clipboard?.writeText) {
+		void navigator.clipboard.writeText(text);
+		return;
+	}
+	window.prompt(label, text);
+};
 
 const daysSince = (date: string | null | undefined) => {
 	if (!date) return 0;
@@ -849,6 +857,22 @@ export function AdminOnboardingListPage() {
 	const tasks = data?.data ?? [];
 	const summary = data?.summary;
 	const avgCompletedDays = averageCompletedDays(tasks);
+	const bulkActions = React.useMemo<readonly DataTableBulkAction<OnboardingTask>[]>(
+		() => [
+			{
+				id: "copy-contact-emails",
+				label: "Copy contact emails",
+				onSelect: (rows) =>
+					copyRowsToClipboard("Copy contact emails", rows.map((task) => task.contactEmail).join("\n")),
+			},
+			{
+				id: "copy-contact-phones",
+				label: "Copy phone numbers",
+				onSelect: (rows) => copyRowsToClipboard("Copy phone numbers", rows.map((task) => task.contactPhone).join("\n")),
+			},
+		],
+		[],
+	);
 
 	const columns = React.useMemo<ColumnDef<OnboardingTask, unknown>[]>(
 		() => [
@@ -1081,7 +1105,11 @@ export function AdminOnboardingListPage() {
 						pageCount={data?.meta.totalPages}
 						toolbarActions={toolbarActions}
 						enableCsvExport
+						enableRowSelection
 						exportFilename="onboarding-tasks.csv"
+						savedViewsEntity="onboarding-tasks"
+						bulkActions={bulkActions}
+						getRowId={(task) => task.id}
 						{...tableState.tableProps}
 					/>
 				</CardContent>

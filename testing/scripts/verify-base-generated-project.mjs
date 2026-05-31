@@ -441,6 +441,10 @@ function assertFrontendImprovementSurface() {
 	assert(dataTable.includes("downloadCsv"), "DataTable implements reusable CSV download");
 	assert(dataTable.includes("useVirtualizer"), "DataTable uses TanStack Virtual for large row sets");
 	assert(dataTable.includes("virtualizeRows"), "DataTable exposes opt-in row virtualization");
+	assert(dataTable.includes("DataTableSavedViews"), "DataTable integrates saved views");
+	assert(dataTable.includes("useSavedViews"), "DataTable uses saved-view hooks");
+	assert(dataTable.includes("DataTableBulkActions"), "DataTable exposes bulk actions for selected rows");
+	assert(dataTable.includes("RowSelectionState"), "DataTable supports row selection state");
 	assert(onboarding.includes("Concierge launch workflow"), "tenant onboarding uses visible launch workflow console");
 	assert(onboarding.includes("AssistedLaunchDesk"), "tenant onboarding shows assisted launch desk");
 	assert(onboarding.includes("Concierge onboarding"), "admin onboarding uses concierge operations copy");
@@ -455,10 +459,14 @@ function assertFrontendImprovementSurface() {
 	assert(onboarding.includes("preferredChannel"), "new onboarding page persists tenant contact channel metadata");
 	assert(onboarding.includes("staleDays"), "admin onboarding table exposes stuck-task filtering");
 	assert(onboarding.includes("enableCsvExport"), "admin onboarding table enables CSV export");
+	assert(onboarding.includes("savedViewsEntity"), "admin onboarding table enables saved views");
+	assert(onboarding.includes("bulkActions"), "admin onboarding table enables bulk actions");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
 	assert(e2eSmoke.includes("Operational handoff map"), "E2E smoke covers assisted launch desk");
 	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
 	assert(e2eSmoke.includes("Export CSV"), "E2E smoke covers admin onboarding CSV export control");
+	assert(e2eSmoke.includes("Saved views"), "E2E smoke covers admin onboarding saved-view controls");
+	assert(e2eSmoke.includes("Bulk actions"), "E2E smoke covers admin onboarding bulk actions");
 	assert(e2eSmoke.includes("Queue by owner and risk"), "E2E smoke covers admin concierge queue board");
 	assert(
 		e2eSmoke.includes("admin onboarding new tenant renders concierge intake workflow"),
