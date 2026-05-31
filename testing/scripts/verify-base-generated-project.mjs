@@ -438,6 +438,7 @@ function assertFrontendImprovementSurface() {
 	const adminUsersHandler = readProjectFile("apps/api/src/modules/admin/application/queries/list-users.handler.ts");
 	const adminAuditLogs = readProjectFile("apps/web/src/routes/admin/audit-logs/index.tsx");
 	const adminAuditHandler = readProjectFile("apps/api/src/modules/admin/application/queries/list-platform-audit-logs.handler.ts");
+	const adminBilling = readProjectFile("apps/web/src/routes/admin/billing/index.tsx");
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
 	const opsGuide = readProjectFile("docs/ADMIN_OPERATIONS_GUIDE.md");
 	const e2eSmoke = readProjectFile("apps/e2e/tests/smoke.spec.ts");
@@ -519,6 +520,11 @@ function assertFrontendImprovementSurface() {
 	assert(adminUsersHandler.includes("userSort(params.sort)"), "admin users apply server-side sorting");
 	assert(adminUsersHandler.includes("parseBooleanFilter(params.verified)"), "admin users apply verified-email filtering");
 	assert(opsGuide.includes("Platform User Management"), "admin operations guide documents platform user table");
+	assert(adminBilling.includes("<DataTable"), "admin billing subscriptions use shared DataTable");
+	assert(adminBilling.includes("Search subscriptions"), "admin billing subscriptions are searchable");
+	assert(adminBilling.includes("enableCsvExport"), "admin billing subscriptions export CSV");
+	assert(adminBilling.includes("savedViewsEntity"), "admin billing subscriptions have saved views");
+	assert(opsGuide.includes("subscription index uses the shared DataTable"), "admin operations guide documents billing table");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
 	assert(e2eSmoke.includes("Operational handoff map"), "E2E smoke covers assisted launch desk");
 	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
@@ -543,6 +549,10 @@ function assertFrontendImprovementSurface() {
 	assert(
 		e2eSmoke.includes("admin organization detail smoke renders member and entitlement tables"),
 		"E2E smoke covers admin organization detail tables",
+	);
+	assert(
+		e2eSmoke.includes("admin billing smoke renders searchable subscription table"),
+		"E2E smoke covers admin billing subscription table",
 	);
 }
 

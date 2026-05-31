@@ -310,6 +310,49 @@ async function installAdminMocks(page: Page) {
 			await route.fulfill(ok({ data: ["platform.api-keys", "platform.reports"] }));
 			return;
 		}
+		if (url.includes("/admin/billing/subscriptions")) {
+			await route.fulfill(
+				ok({
+					data: [
+						{
+							id: "sub_smoke",
+							organizationId: "org_smoke",
+							organizationName: "Demo Cafe",
+							organizationSlug: "demo-cafe",
+							planId: "plan_pro",
+							plan: { nameEn: "Pro", nameAm: "Pro", slug: "pro" },
+							status: "active",
+							billingInterval: "monthly",
+							currency: "ETB",
+							currentPeriodStart: now(),
+							currentPeriodEnd: now(),
+							gracePeriodEndsAt: null,
+							readOnlyModeEndsAt: null,
+							lockedAt: null,
+							creditBalanceMinor: 15000,
+						},
+						{
+							id: "sub_past_due",
+							organizationId: "org_overdue",
+							organizationName: "Overdue Trading",
+							organizationSlug: "overdue-trading",
+							planId: "plan_starter",
+							plan: { nameEn: "Starter", nameAm: "Starter", slug: "starter" },
+							status: "past_due",
+							billingInterval: "annual",
+							currency: "ETB",
+							currentPeriodStart: now(),
+							currentPeriodEnd: now(),
+							gracePeriodEndsAt: null,
+							readOnlyModeEndsAt: null,
+							lockedAt: null,
+							creditBalanceMinor: 0,
+						},
+					],
+				}),
+			);
+			return;
+		}
 		if (url.includes("/admin/users")) {
 			await route.fulfill(
 				ok({
@@ -550,6 +593,25 @@ test("admin organization detail smoke renders member and entitlement tables", as
 	await expect(page.getByRole("button", { name: "Remove" })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Export CSV" })).toHaveCount(2);
 	await expect(page.getByRole("button", { name: "Saved views" })).toHaveCount(2);
+
+	assertNoErrors();
+});
+
+test("admin billing smoke renders searchable subscription table", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAdminMocks(page);
+
+	await page.goto("/admin/billing", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Billing" })).toBeVisible();
+	await expect(page.getByRole("link", { name: /KPI Dashboard/i })).toBeVisible();
+	await expect(page.getByRole("textbox", { name: /Search subscriptions/i })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Saved views" })).toBeVisible();
+	await expect(page.getByText("Demo Cafe")).toBeVisible();
+	await expect(page.getByText("Overdue Trading")).toBeVisible();
+	await expect(page.getByRole("link", { name: "Manage" }).first()).toBeVisible();
 
 	assertNoErrors();
 });

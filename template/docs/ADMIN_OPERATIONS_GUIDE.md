@@ -39,6 +39,8 @@ Included billing primitives:
 - Dunning email templates and logs
 - Daily lifecycle and usage snapshot jobs
 
+The subscription index uses the shared DataTable surface for searchable account review, status filtering, column controls, saved views, and CSV export before staff drill into a subscription.
+
 ## Server Management
 Route: `/admin/server`
 
