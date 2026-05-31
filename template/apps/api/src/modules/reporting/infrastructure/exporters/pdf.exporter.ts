@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import PDFDocument from "pdfkit";
+import { formatDateTimeInTimeZone } from "#shared/i18n/time-zone.util";
 
 @Injectable()
 export class PdfExporter {
@@ -13,7 +14,7 @@ export class PdfExporter {
 
 			doc.fontSize(16).text(title, { align: "left" });
 			doc.moveDown(0.5);
-			doc.fontSize(8).text(`Generated ${new Date().toLocaleString()}`, { align: "left" });
+			doc.fontSize(8).text(`Generated ${formatDateTimeInTimeZone(Date.now())}`, { align: "left" });
 			doc.moveDown();
 
 			const colCount = headers.length;

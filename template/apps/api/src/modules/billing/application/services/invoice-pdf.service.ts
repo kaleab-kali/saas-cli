@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import PDFDocument from "pdfkit";
 import { minorToDecimalString } from "#shared/i18n/money.util";
+import { formatDateInTimeZone } from "#shared/i18n/time-zone.util";
 import type { SubscriptionInvoice } from "../../domain/entities/subscription-invoice.entity";
 
 interface CompanyInfo {
@@ -64,8 +65,8 @@ export class InvoicePdfService {
 				if (customer.address) doc.text(customer.address);
 				doc.moveDown();
 
-				doc.text(`Issue date: ${p.issueDate.toLocaleDateString("en-GB")}`);
-				doc.text(`Due date:   ${p.dueDate.toLocaleDateString("en-GB")}`);
+				doc.text(`Issue date: ${formatDateInTimeZone(p.issueDate)}`);
+				doc.text(`Due date:   ${formatDateInTimeZone(p.dueDate)}`);
 				doc.moveDown();
 
 				doc.fontSize(11).text(p.description ?? "Subscription", { underline: true });

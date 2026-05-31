@@ -542,6 +542,22 @@ function assertWebTableMarkupPolicy() {
 	assert(sourceSecurity.includes("renders raw table markup"), "source security gate enforces shared table primitives");
 }
 
+function assertApiFormattingPolicy() {
+	const sourceSecurity = readProjectFile("apps/security/scripts/source-security-check.mjs");
+	const apiSourceFiles = listProjectFiles("apps/api/src").filter((relPath) => /\.[cm]?[tj]sx?$/.test(relPath));
+	const adHocFormatFiles = apiSourceFiles.filter((relPath) => {
+		const normalizedPath = relPath.replaceAll("\\", "/");
+		if (normalizedPath.startsWith("apps/api/src/shared/i18n/")) return false;
+		return (
+			/\.(toLocaleString|toLocaleDateString|toFixed)\s*\(/.test(readProjectFile(relPath)) ||
+			/\bIntl\.(NumberFormat|DateTimeFormat)\s*\(/.test(readProjectFile(relPath))
+		);
+	});
+
+	assert(adHocFormatFiles.length === 0, "API source uses shared i18n formatters", adHocFormatFiles.join(", "));
+	assert(sourceSecurity.includes("uses ad hoc formatting"), "source security gate enforces shared i18n formatters");
+}
+
 function readEnv(relPath) {
 	const out = {};
 	for (const line of readProjectFile(relPath).split(/\r?\n/)) {
@@ -607,6 +623,7 @@ async function main() {
 	assertOnboardingServerTableQuery();
 	assertWebBundleImportPolicy();
 	assertWebTableMarkupPolicy();
+	assertApiFormattingPolicy();
 	assertGeneratedSecrets();
 
 	console.log(`Base generated-project verification passed: ${checks.length} checks`);

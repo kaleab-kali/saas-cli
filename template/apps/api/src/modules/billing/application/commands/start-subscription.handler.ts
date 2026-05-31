@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "#shared/database/prisma.service";
 import { DomainEventBus } from "#shared/events/domain-event.bus";
+import { formatDateInTimeZone } from "#shared/i18n/time-zone.util";
 import { Subscription } from "../../domain/entities/subscription.entity";
 import { SubscriptionInvoice } from "../../domain/entities/subscription-invoice.entity";
 import { BILLING_EVENTS } from "../../domain/events/billing.events";
@@ -87,7 +88,7 @@ export class StartSubscriptionHandler {
 			subtotalMinor,
 			amountPaidMinor: 0,
 			lineType: "subscription",
-			description: `${p.nameEn} — ${dto.billingInterval} (${now.toLocaleDateString("en-GB")} — ${end.toLocaleDateString("en-GB")})`,
+			description: `${p.nameEn} - ${dto.billingInterval} (${formatDateInTimeZone(now)} - ${formatDateInTimeZone(end)})`,
 			stripeInvoiceId: null,
 			chapaTxRef: null,
 			checkoutUrl: null,

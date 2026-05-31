@@ -101,6 +101,15 @@ for (const file of allSource) {
 	) {
 		fail(`${relative} renders raw table markup; use DataTable or the shared table primitives`);
 	}
+
+	if (
+		relative.startsWith("apps/api/src/") &&
+		!relative.startsWith("apps/api/src/shared/i18n/") &&
+		(/\.(toLocaleString|toLocaleDateString|toFixed)\s*\(/.test(text) ||
+			/\bIntl\.(NumberFormat|DateTimeFormat)\s*\(/.test(text))
+	) {
+		fail(`${relative} uses ad hoc formatting; use shared i18n utilities for money and tenant-local dates`);
+	}
 }
 
 if (failures.length > 0) {

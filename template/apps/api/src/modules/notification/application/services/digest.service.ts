@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { PrismaService } from "#shared/database/prisma.service";
+import { formatDateTimeInTimeZone } from "#shared/i18n/time-zone.util";
 import { EmailDispatcherService } from "./email-dispatcher.service";
 
 @Injectable()
@@ -53,11 +54,11 @@ export class DigestService {
 			const orgId = notifications[0].organizationId;
 
 			const list = notifications
-				.map((n) => `<li><strong>${n.title}</strong> — ${new Date(n.createdAt).toLocaleString()}</li>`)
+				.map((n) => `<li><strong>${n.title}</strong> - ${formatDateTimeInTimeZone(n.createdAt)}</li>`)
 				.join("");
 			const appName = process.env.APP_NAME ?? "SaaS Platform";
 			const html = `<p>Hi ${user.name ?? "there"},</p><p>Your ${frequency} ${appName} digest (${notifications.length} events):</p><ul>${list}</ul>`;
-			const text = notifications.map((n) => `- ${n.title} (${new Date(n.createdAt).toLocaleString()})`).join("\n");
+			const text = notifications.map((n) => `- ${n.title} (${formatDateTimeInTimeZone(n.createdAt)})`).join("\n");
 
 			await this.dispatcher.dispatch({
 				organizationId: orgId,

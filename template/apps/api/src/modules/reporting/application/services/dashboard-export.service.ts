@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { formatDateTimeInTimeZone } from "#shared/i18n/time-zone.util";
 import type { ExportFormat } from "../../domain/value-objects/report.vo";
 import { CsvExporter } from "../../infrastructure/exporters/csv.exporter";
 import { PdfExporter } from "../../infrastructure/exporters/pdf.exporter";
@@ -102,7 +103,7 @@ export class DashboardExportService {
 
 			doc.fontSize(18).text(title, { align: "left" });
 			doc.moveDown(0.3);
-			doc.fontSize(8).text(`Generated ${new Date().toLocaleString()}`, { align: "left" });
+			doc.fontSize(8).text(`Generated ${formatDateTimeInTimeZone(Date.now())}`, { align: "left" });
 			doc.moveDown();
 
 			for (const section of sections) {
