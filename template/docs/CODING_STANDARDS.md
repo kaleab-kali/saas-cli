@@ -7,4 +7,5 @@
 - Scope tenant data by `organizationId`.
 - Add permissions for every new protected resource.
 - Format money and tenant-local dates through `#shared/i18n` utilities instead of ad hoc `toFixed` or `toLocaleDateString` calls.
+- Normalize tenant phone numbers through `#shared/i18n/phone.util` and reuse `#shared/types/address` for address payloads.
 - Prefer typed API hooks on the frontend instead of ad hoc `fetch` calls.

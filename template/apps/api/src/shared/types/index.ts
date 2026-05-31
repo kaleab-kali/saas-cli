@@ -1,3 +1,5 @@
+export type { Address } from "./address";
+
 export interface PaginationParams {
 	page?: number;
 	limit?: number;

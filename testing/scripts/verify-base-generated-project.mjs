@@ -50,9 +50,12 @@ const mustExist = [
 	"apps/api/src/shared/i18n/money.util.ts",
 	"apps/api/src/shared/i18n/time-zone.util.ts",
 	"apps/api/src/shared/i18n/money.util.property.spec.ts",
+	"apps/api/src/shared/i18n/phone.util.ts",
+	"apps/api/src/shared/i18n/phone.util.property.spec.ts",
 	"apps/api/src/shared/rate-limit/rate-limit.config.ts",
 	"apps/api/src/shared/rate-limit/tenant-throttler.guard.ts",
 	"apps/api/src/shared/rate-limit/tenant-throttler.guard.spec.ts",
+	"apps/api/src/shared/types/address.ts",
 	"apps/api-tests/scripts/with-mock-api.mjs",
 	"apps/api-tests/scripts/run-http.mjs",
 	"apps/api-tests/tests/tenant-isolation.spec.ts",
@@ -130,6 +133,9 @@ function assertDeployGateBuilds() {
 	const moneyUtil = readProjectFile("apps/api/src/shared/i18n/money.util.ts");
 	const timeZoneUtil = readProjectFile("apps/api/src/shared/i18n/time-zone.util.ts");
 	const moneyPropertySpec = readProjectFile("apps/api/src/shared/i18n/money.util.property.spec.ts");
+	const phoneUtil = readProjectFile("apps/api/src/shared/i18n/phone.util.ts");
+	const phonePropertySpec = readProjectFile("apps/api/src/shared/i18n/phone.util.property.spec.ts");
+	const addressType = readProjectFile("apps/api/src/shared/types/address.ts");
 	const apiHttpRunner = readProjectFile("apps/api-tests/scripts/run-http.mjs");
 	const brunoRunner = readProjectFile("apps/api-tests/scripts/run-bruno.mjs");
 	const securityPackageJson = JSON.parse(readProjectFile("apps/security/package.json"));
@@ -202,7 +208,12 @@ function assertDeployGateBuilds() {
 	assert(moneyUtil.includes("decimalStringToMinor"), "API shared i18n has decimal-to-minor parser");
 	assert(timeZoneUtil.includes("formatDateInTimeZone"), "API shared i18n has tenant timezone date formatting");
 	assert(moneyPropertySpec.includes("round-trips safe minor-unit amounts"), "money utilities have property coverage");
+	assert(phoneUtil.includes("normalizePhoneNumber"), "API shared i18n has phone normalization");
+	assert(phoneUtil.includes("E164_PATTERN"), "phone utility validates E.164 output");
+	assert(phonePropertySpec.includes("Ethiopian local mobile numbers"), "phone utilities have property coverage");
+	assert(addressType.includes("subCity") && addressType.includes("woreda"), "API shared types include reusable address value object");
 	assert(apiPackageJson.scripts?.["test:property"]?.includes("money.util.property.spec.ts"), "property test gate includes money utilities");
+	assert(apiPackageJson.scripts?.["test:property"]?.includes("phone.util.property.spec.ts"), "property test gate includes phone utilities");
 	assert(packageJson.scripts?.["test:coverage"] === "pnpm --filter api test:coverage", "base package exposes API coverage command");
 	assert(testAll.includes("test:mutation"), "full local gate includes mutation testing");
 	assert(testAll.includes("test:performance"), "full local gate includes performance testing");

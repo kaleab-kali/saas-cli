@@ -147,7 +147,7 @@ describe("OnboardingService", () => {
 				templateKey: "generic-saas-setup",
 				mode: "CONCIERGE",
 				contactName: " Demo Owner ",
-				contactPhone: " +251911000000 ",
+				contactPhone: "0911000000",
 				contactEmail: "OWNER@EXAMPLE.TEST ",
 				assignedToUserId: "staff_1",
 				metadata: { preferredChannel: "WhatsApp" },

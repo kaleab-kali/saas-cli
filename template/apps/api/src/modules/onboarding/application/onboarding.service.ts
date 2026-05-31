@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { PrismaService } from "#shared/database/prisma.service";
+import { normalizePhoneNumber } from "#shared/i18n/phone.util";
 import type { Prisma } from "../../../generated/prisma/client";
 import { OnboardingStepCompletedEvent } from "../domain/events/onboarding-step-completed.event";
 import { OnboardingTaskBlockedEvent } from "../domain/events/onboarding-task-blocked.event";
@@ -261,7 +262,7 @@ export class OnboardingService {
 					currentStepKey: firstStep.key,
 					assignedToUserId: dto.assignedToUserId || null,
 					contactName: dto.contactName.trim(),
-					contactPhone: dto.contactPhone.trim(),
+					contactPhone: normalizePhoneNumber(dto.contactPhone),
 					contactEmail: dto.contactEmail.toLowerCase().trim(),
 					metadata: (dto.metadata ?? {}) as never,
 				},
