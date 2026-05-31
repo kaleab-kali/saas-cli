@@ -1216,6 +1216,8 @@ const patchEimsPackageScripts = async (root) => {
 			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
+		json.scripts["test:eims:sdk-contract"] ??=
+			"pnpm --filter api exec tsx scripts/eims-sdk-contract.ts";
 		json.scripts["test:eims:api"] ??=
 			"pnpm --filter api-tests test:eims:mock";
 		json.scripts["test:eims:phase0"] ??=
@@ -5300,6 +5302,90 @@ const payloadHash = createHash("sha256").update(canonicalJson).digest("hex");
 console.log(JSON.stringify({ ok: true, canonicalJson, payloadHash, signatureLength: signature.length }, null, 2));
 `,
 	);
+	await writeNew(
+		path.join(root, "apps/api/scripts/eims-sdk-contract.ts"),
+		`import {
+\tbuildEimsSdkOptions,
+\tcreateEimsSdkClientFromModule,
+\tDEFAULT_EIMS_SDK_PACKAGE_NAME,
+\tgetEimsSdkPackageName,
+} from "../src/modules/eims/shared/client/eims-sdk-client.provider";
+
+const placeholderPattern = /change-me|replace-with|example|yourcompany/i;
+
+const config = {
+\tget: <T = string>(key: string, fallback?: T) => {
+\t\tconst value = process.env[key];
+\t\treturn (value === undefined || value === "" ? fallback : value) as T;
+\t},
+};
+
+const packageName = getEimsSdkPackageName(config);
+if (packageName === DEFAULT_EIMS_SDK_PACKAGE_NAME || placeholderPattern.test(packageName)) {
+\tconsole.error(
+\t\tJSON.stringify(
+\t\t\t{
+\t\t\t\tok: false,
+\t\t\t\tpackageName,
+\t\t\t\terror: "Set EIMS_SDK_PACKAGE_NAME to the published SDK package before running the contract check.",
+\t\t\t},
+\t\t\tnull,
+\t\t\t2,
+\t\t),
+\t);
+\tprocess.exit(1);
+}
+
+const main = async () => {
+\tconst options = buildEimsSdkOptions(config);
+\tconst sdkModule = await import(packageName);
+\tconst client = await createEimsSdkClientFromModule(sdkModule, options);
+\tconst capabilities = {
+\t\tregisterInvoice: typeof client.registerInvoice === "function",
+\t\tregisterReceipt: typeof client.registerReceipt === "function",
+\t\tverifyIrn: typeof client.verifyIrn === "function",
+\t};
+\tif (!capabilities.registerInvoice) throw new Error("SDK client does not expose registerInvoice");
+
+\tconsole.log(
+\t\tJSON.stringify(
+\t\t\t{
+\t\t\t\tok: true,
+\t\t\t\tpackageName,
+\t\t\t\toptions: {
+\t\t\t\t\tenvironment: options.environment,
+\t\t\t\t\tapiUrlConfigured: Boolean(options.apiUrl),
+\t\t\t\t\tbaseUrlConfigured: Boolean(options.baseUrl),
+\t\t\t\t\tbulkUrlConfigured: Boolean(options.bulkUrl),
+\t\t\t\t\tcallbackPublicUrlConfigured: Boolean(options.callbackPublicUrl),
+\t\t\t\t\ttimeoutMs: options.timeoutMs,
+\t\t\t\t\tmaxRetries: options.maxRetries,
+\t\t\t\t\tqueuePrefix: options.queuePrefix,
+\t\t\t\t},
+\t\t\t\tcapabilities,
+\t\t\t},
+\t\t\tnull,
+\t\t\t2,
+\t\t),
+\t);
+};
+
+main().catch((error) => {
+\tconsole.error(
+\t\tJSON.stringify(
+\t\t\t{
+\t\t\t\tok: false,
+\t\t\t\tpackageName,
+\t\t\t\terror: error instanceof Error ? error.message : "EIMS SDK contract check failed",
+\t\t\t},
+\t\t\tnull,
+\t\t\t2,
+\t\t),
+\t);
+\tprocess.exit(1);
+});
+`,
+	);
 	await writeIfMissing(
 		path.join(root, "apps/api-tests/bruno/EIMS-Phase0/collection.bru"),
 		`meta {
@@ -5888,6 +5974,11 @@ Start with Phase 0 Layer A before implementing real MoR/EIMS calls.
 Layer A runs locally and proves signing, canonicalization, date, decimal, lookup, and counter assumptions without INSA sandbox credentials.
 
 Layer B runs against INSA/MoR sandbox after credentials and certificates are available.
+
+After publishing or linking the real SDK package, set \`EIMS_SDK_PACKAGE_NAME\`
+and run \`pnpm test:eims:sdk-contract\`. This imports the SDK package, builds the
+same options used by the Nest provider, and verifies the package exposes a
+\`registerInvoice\`-capable client before sandbox credentials are exercised.
 
 Before production go-live, run \`pnpm doctor:production\`. The doctor blocks launch if EIMS is still in mock mode, lacks production MoR URLs, lacks an HTTPS callback URL, uses local signing, or has Phase 0 strict mode disabled.
 `,

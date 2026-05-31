@@ -99,6 +99,7 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/admin/presentation/eims-admin.controller.ts",
 	"apps/api/src/modules/eims/shared/presentation/eims-supporting-resources.controller.ts",
 	"apps/api/src/modules/invoicing/domain/canonical-invoice.ts",
+	"apps/api/scripts/eims-sdk-contract.ts",
 	"apps/api-tests/bruno/EIMS-Phase0/01-overview.bru",
 	"apps/api-tests/bruno/EIMS-Phase0/02-lookups.bru",
 	"apps/api-tests/bruno/EIMS-Phase0/03-submit-invoice.bru",
@@ -310,6 +311,10 @@ function assertGeneratedStructure() {
 		packageJson.scripts["test:eims:local"]?.includes("eims-submission-queue.service.spec.ts"),
 		"generated EIMS local test gate includes queue coordinator tests",
 	);
+	assert(
+		packageJson.scripts["test:eims:sdk-contract"]?.includes("scripts/eims-sdk-contract.ts"),
+		"generated package has EIMS SDK contract command",
+	);
 	assert(packageJson.scripts["test:eims:api"]?.includes("api-tests"), "generated package has EIMS API tests");
 	assert(
 		packageJson.scripts["test:eims:security"] === "pnpm --filter security test:eims",
@@ -456,6 +461,7 @@ function assertGeneratedStructure() {
 	assert(eimsSecuritySmoke.includes("must enable RLS"), "EIMS security smoke enforces RLS policy coverage");
 	assert(eimsSecuritySmoke.includes("must block deletes"), "EIMS security smoke enforces audit immutability");
 	const eimsPhase0Runbook = readProjectFile("docs/EIMS_PHASE0_RUNBOOK.md");
+	assert(eimsPhase0Runbook.includes("pnpm test:eims:sdk-contract"), "EIMS runbook documents SDK contract gate");
 	assert(eimsPhase0Runbook.includes("pnpm doctor:production"), "EIMS runbook documents production doctor gate");
 	assert(eimsPhase0Runbook.includes("Phase 0 strict mode"), "EIMS runbook documents strict production readiness");
 	const eimsTenantOnboardingGuide = readProjectFile("docs/EIMS_TENANT_ONBOARDING.md");
@@ -612,6 +618,7 @@ function assertGeneratedStructure() {
 	const sdkClientProviderSpec = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts");
 	const sdkExternalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-external.client.ts");
 	const sdkExternalClientSpec = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-external.client.spec.ts");
+	const sdkContractScript = readProjectFile("apps/api/scripts/eims-sdk-contract.ts");
 	const eimsSharedModule = readProjectFile("apps/api/src/modules/eims/shared/eims-shared.module.ts");
 	const lookupService = readProjectFile("apps/api/src/modules/eims/shared/lookups/eims-lookup.service.ts");
 	const lookupController = readProjectFile("apps/api/src/modules/eims/shared/lookups/eims-lookup.controller.ts");
@@ -675,6 +682,13 @@ function assertGeneratedStructure() {
 	assert(sdkClientProvider.includes("registerInvoice-capable"), "EIMS SDK provider fails closed for incompatible SDK modules");
 	assert(sdkClientProviderSpec.includes("createEimsClient factory"), "EIMS SDK provider tests cover SDK factory wiring");
 	assert(sdkClientProviderSpec.includes("fails closed"), "EIMS SDK provider tests cover incompatible SDK packages");
+	assert(sdkContractScript.includes("EIMS_SDK_PACKAGE_NAME"), "EIMS SDK contract script reads configured package name");
+	assert(sdkContractScript.includes("createEimsSdkClientFromModule"), "EIMS SDK contract script uses provider shape validation");
+	assert(sdkContractScript.includes("registerInvoice"), "EIMS SDK contract script verifies invoice capability");
+	assert(
+		sdkContractScript.includes("placeholderPattern"),
+		"EIMS SDK contract script rejects placeholder package names",
+	);
 	assert(sdkExternalClient.includes("EIMS_SDK_CLIENT"), "EIMS SDK adapter uses SDK injection token");
 	assert(sdkExternalClient.includes("registerInvoice"), "EIMS SDK adapter delegates invoice registration");
 	assert(sdkExternalClient.includes("registerReceipt"), "EIMS SDK adapter delegates receipt registration");

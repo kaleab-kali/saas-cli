@@ -26,7 +26,7 @@ What is done cleanly:
 
 What is not done yet:
 
-- Production EIMS SDK package install and contract proof against the real package.
+- Production EIMS SDK package install and running contract proof against the real package.
 - Real Vault Transit signing.
 - Persistent BullMQ workers for multi-node per-source submission queues.
 - Applied production PostgreSQL RLS migrations beyond the generated policy export.
@@ -44,7 +44,7 @@ What is not done yet:
 | Lookup/code registry | Seeded with ETag/cache metadata | Unit/API tests | Document, transaction, source, cancellation, tax, payment, unit, nature, and region values verified. The Nest lookup service emits deterministic ETags, cache-control metadata, and conditional 304 support; live authority refresh is still pending. |
 | Source approval guard | Partially implemented | Unit/API tests | Guard and mock approval states exist. Full MoR portal workflow is not production-built. |
 | Counter and PreviousIrn chain | Source-scoped coordinator implemented, persistence pending | Unit/API tests | Starter now serializes submissions per source, reserves counters, attaches `previousIrn`, and keeps retryable/unknown outcomes out of the accepted chain. Multi-node BullMQ workers and DB-backed reconciliation are still not complete. |
-| EIMS SDK boundary | Adapter/provider boundary implemented, real SDK contract proof pending | Unit/scaffold/security tests | `EIMS_EXTERNAL_CLIENT` switches from the mock client to `EimsSdkExternalClient` when `EIMS_MOCK_MODE=false`; the generated provider dynamically loads `EIMS_SDK_PACKAGE_NAME`, validates that the SDK exposes a `registerInvoice`-capable client, and fails closed if the package is missing or incompatible. Contract proof against the real SDK package remains pending. |
+| EIMS SDK boundary | Adapter/provider boundary and explicit contract command implemented, real package proof pending | Unit/scaffold/security tests | `EIMS_EXTERNAL_CLIENT` switches from the mock client to `EimsSdkExternalClient` when `EIMS_MOCK_MODE=false`; the generated provider dynamically loads `EIMS_SDK_PACKAGE_NAME`, validates that the SDK exposes a `registerInvoice`-capable client, and fails closed if the package is missing or incompatible. Generated projects now include `pnpm test:eims:sdk-contract`; running it against the published SDK package remains pending. |
 | Credentials lifecycle | Encryption, rotation boundary, and durable Prisma persistence implemented | Unit/API/UI tests | Credential POST and rotate payloads are sealed with `CipherService`, raw secret fields are stripped, encrypted secret material is persisted in `EimsCredential` byte columns, rotation evidence/revisions are stored, test proof updates the durable row, and responses expose only redaction/evidence metadata. Real credential validation through the EIMS SDK remains pending. |
 | Certificates/CSR | Mock API only | API/UI tests | Certificate metadata and expiry state are exposed. Real Vault/INSA certificate flow is not complete. |
 | 2FA enforcement | Planned/partially existing platform auth | Not EIMS-specific | EIMS-specific permission enforcement and bootstrap test coverage still need implementation. |
