@@ -4,8 +4,21 @@ import path from "node:path";
 
 const baseUrl = process.env.BRUNO_BASE_URL ?? process.env.API_BASE_URL;
 if (!baseUrl) {
-	console.log("BRUNO_BASE_URL/API_BASE_URL is not set. Skipping Bruno API collection.");
-	process.exit(0);
+	console.log(
+		"BRUNO_BASE_URL/API_BASE_URL is not set. Running Bruno API collection against local deterministic mock API.",
+	);
+	const child = spawn(process.execPath, ["scripts/with-mock-api.mjs", "bruno"], {
+		stdio: "inherit",
+		cwd: process.cwd(),
+	});
+	const code = await new Promise((resolve) => {
+		child.on("exit", (exitCode) => resolve(exitCode ?? 1));
+		child.on("error", (error) => {
+			console.error(error);
+			resolve(1);
+		});
+	});
+	process.exit(code);
 }
 
 const localBru = path.join(process.cwd(), "node_modules", ".bin", process.platform === "win32" ? "bru.cmd" : "bru");

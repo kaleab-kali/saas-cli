@@ -119,9 +119,12 @@ pnpm test:api:http
 Bruno collections are Git-tracked API examples and smoke checks under `apps/api-tests/bruno`.
 
 ```bash
+pnpm test:api:bruno
 BRUNO_BASE_URL=http://127.0.0.1:3000 pnpm test:api:bruno
 pnpm test:api:bruno:mock
 ```
+
+When `BRUNO_BASE_URL` and `API_BASE_URL` are unset, `pnpm test:api:bruno` starts the deterministic local mock API and runs the collection against it instead of skipping. Set either variable to point the same collection at a live API.
 
 Use Bruno for manual API exploration, team handoff, and simple repeatable request collections. Use Playwright API tests for deeper dynamic assertions.
 

@@ -121,7 +121,9 @@ function assertNoEimsScripts() {
 function assertDeployGateBuilds() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
+	const apiTestsPackageJson = JSON.parse(readProjectFile("apps/api-tests/package.json"));
 	const apiE2eSpec = readProjectFile("apps/api/test/app.e2e-spec.ts");
+	const brunoRunner = readProjectFile("apps/api-tests/scripts/run-bruno.mjs");
 	const securityPackageJson = JSON.parse(readProjectFile("apps/security/package.json"));
 	const performancePackageJson = JSON.parse(readProjectFile("apps/performance/package.json"));
 	const securityTooling = readProjectFile("apps/security/scripts/tooling-smoke.mjs");
@@ -145,6 +147,10 @@ function assertDeployGateBuilds() {
 	assert(!deployCheck.includes("test:ci &&"), "deploy gate does not bypass browser smoke via narrow CI gate");
 	assert(testCi.includes("test:api:http:mock"), "CI test gate includes mock HTTP API tests");
 	assert(testCi.includes("test:api:bruno:mock"), "CI test gate includes mock Bruno API tests");
+	assert(apiTestsPackageJson.scripts?.["test:bruno"] === "node scripts/run-bruno.mjs", "Bruno API command uses runner");
+	assert(brunoRunner.includes("local deterministic mock API"), "Bruno API command has deterministic mock fallback");
+	assert(brunoRunner.includes("scripts/with-mock-api.mjs"), "Bruno API command runs the mock API fallback");
+	assert(!brunoRunner.includes("Skipping Bruno API collection"), "Bruno API command does not silently skip");
 	assert(testCi.includes("test:security:source"), "CI test gate includes deterministic source security checks");
 	assert(testCi.includes("test:security:api"), "CI test gate includes deterministic API security checks");
 	assert(testSmoke.includes("test:e2e:smoke"), "smoke test gate includes browser E2E smoke");
