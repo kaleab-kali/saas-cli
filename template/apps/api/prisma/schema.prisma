@@ -102,6 +102,7 @@ model Organization {
   lookups     Lookup[]
   fileAssets  FileAsset[]
   onboardingTask OnboardingTask?
+  webhookEndpoints WebhookEndpoint[]
 
   @@map("organization")
 }
@@ -818,6 +819,53 @@ model ApiKey {
   @@index([organizationId])
   @@index([organizationId, revokedAt])
   @@map("api_key")
+}
+
+model WebhookEndpoint {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name            String
+  url             String
+  events          Json
+  secretEncrypted String
+  active          Boolean           @default(true)
+  createdByUserId String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  deliveries WebhookDelivery[]
+
+  @@index([organizationId, active])
+  @@map("webhook_endpoint")
+}
+
+model WebhookDelivery {
+  id             String                @id @default(cuid())
+  organizationId String
+  endpointId     String
+  endpoint       WebhookEndpoint       @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  eventType      String
+  payload        Json
+  status         WebhookDeliveryStatus @default(PENDING)
+  attempts       Int                   @default(0)
+  responseStatus Int?
+  responseBody   String?
+  errorMessage   String?
+  nextAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([organizationId, eventType, createdAt])
+  @@index([endpointId, status])
+  @@map("webhook_delivery")
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
 }
 
 model AuditLog {

@@ -218,6 +218,16 @@ export type SecuritySettings = Prisma.SecuritySettingsModel
  */
 export type ApiKey = Prisma.ApiKeyModel
 /**
+ * Model WebhookEndpoint
+ *
+ */
+export type WebhookEndpoint = Prisma.WebhookEndpointModel
+/**
+ * Model WebhookDelivery
+ *
+ */
+export type WebhookDelivery = Prisma.WebhookDeliveryModel
+/**
  * Model AuditLog
  *
  */

@@ -211,6 +211,7 @@ export type OrganizationWhereInput = {
   lookups?: Prisma.LookupListRelationFilter
   fileAssets?: Prisma.FileAssetListRelationFilter
   onboardingTask?: Prisma.XOR<Prisma.OnboardingTaskNullableScalarRelationFilter, Prisma.OnboardingTaskWhereInput> | null
+  webhookEndpoints?: Prisma.WebhookEndpointListRelationFilter
 }
 
 export type OrganizationOrderByWithRelationInput = {
@@ -227,6 +228,7 @@ export type OrganizationOrderByWithRelationInput = {
   lookups?: Prisma.LookupOrderByRelationAggregateInput
   fileAssets?: Prisma.FileAssetOrderByRelationAggregateInput
   onboardingTask?: Prisma.OnboardingTaskOrderByWithRelationInput
+  webhookEndpoints?: Prisma.WebhookEndpointOrderByRelationAggregateInput
 }
 
 export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -246,6 +248,7 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   lookups?: Prisma.LookupListRelationFilter
   fileAssets?: Prisma.FileAssetListRelationFilter
   onboardingTask?: Prisma.XOR<Prisma.OnboardingTaskNullableScalarRelationFilter, Prisma.OnboardingTaskWhereInput> | null
+  webhookEndpoints?: Prisma.WebhookEndpointListRelationFilter
 }, "id" | "slug">
 
 export type OrganizationOrderByWithAggregationInput = {
@@ -290,6 +293,7 @@ export type OrganizationCreateInput = {
   lookups?: Prisma.LookupCreateNestedManyWithoutOrganizationInput
   fileAssets?: Prisma.FileAssetCreateNestedManyWithoutOrganizationInput
   onboardingTask?: Prisma.OnboardingTaskCreateNestedOneWithoutOrganizationInput
+  webhookEndpoints?: Prisma.WebhookEndpointCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateInput = {
@@ -306,6 +310,7 @@ export type OrganizationUncheckedCreateInput = {
   lookups?: Prisma.LookupUncheckedCreateNestedManyWithoutOrganizationInput
   fileAssets?: Prisma.FileAssetUncheckedCreateNestedManyWithoutOrganizationInput
   onboardingTask?: Prisma.OnboardingTaskUncheckedCreateNestedOneWithoutOrganizationInput
+  webhookEndpoints?: Prisma.WebhookEndpointUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUpdateInput = {
@@ -322,6 +327,7 @@ export type OrganizationUpdateInput = {
   lookups?: Prisma.LookupUpdateManyWithoutOrganizationNestedInput
   fileAssets?: Prisma.FileAssetUpdateManyWithoutOrganizationNestedInput
   onboardingTask?: Prisma.OnboardingTaskUpdateOneWithoutOrganizationNestedInput
+  webhookEndpoints?: Prisma.WebhookEndpointUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateInput = {
@@ -338,6 +344,7 @@ export type OrganizationUncheckedUpdateInput = {
   lookups?: Prisma.LookupUncheckedUpdateManyWithoutOrganizationNestedInput
   fileAssets?: Prisma.FileAssetUncheckedUpdateManyWithoutOrganizationNestedInput
   onboardingTask?: Prisma.OnboardingTaskUncheckedUpdateOneWithoutOrganizationNestedInput
+  webhookEndpoints?: Prisma.WebhookEndpointUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateManyInput = {
@@ -481,6 +488,20 @@ export type OrganizationUpdateOneRequiredWithoutFileAssetsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutFileAssetsInput, Prisma.OrganizationUpdateWithoutFileAssetsInput>, Prisma.OrganizationUncheckedUpdateWithoutFileAssetsInput>
 }
 
+export type OrganizationCreateNestedOneWithoutWebhookEndpointsInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutWebhookEndpointsInput, Prisma.OrganizationUncheckedCreateWithoutWebhookEndpointsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutWebhookEndpointsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutWebhookEndpointsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutWebhookEndpointsInput, Prisma.OrganizationUncheckedCreateWithoutWebhookEndpointsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutWebhookEndpointsInput
+  upsert?: Prisma.OrganizationUpsertWithoutWebhookEndpointsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutWebhookEndpointsInput, Prisma.OrganizationUpdateWithoutWebhookEndpointsInput>, Prisma.OrganizationUncheckedUpdateWithoutWebhookEndpointsInput>
+}
+
 export type OrganizationCreateWithoutMembersInput = {
   id: string
   name: string
@@ -494,6 +515,7 @@ export type OrganizationCreateWithoutMembersInput = {
   lookups?: Prisma.LookupCreateNestedManyWithoutOrganizationInput
   fileAssets?: Prisma.FileAssetCreateNestedManyWithoutOrganizationInput
   onboardingTask?: Prisma.OnboardingTaskCreateNestedOneWithoutOrganizationInput
+  webhookEndpoints?: Prisma.WebhookEndpointCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutMembersInput = {
@@ -509,6 +531,7 @@ export type OrganizationUncheckedCreateWithoutMembersInput = {
   lookups?: Prisma.LookupUncheckedCreateNestedManyWithoutOrganizationInput
   fileAssets?: Prisma.FileAssetUncheckedCreateNestedManyWithoutOrganizationInput
   onboardingTask?: Prisma.OnboardingTaskUncheckedCreateNestedOneWithoutOrganizationInput
+  webhookEndpoints?: Prisma.WebhookEndpointUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutMembersInput = {
@@ -540,6 +563,7 @@ export type OrganizationUpdateWithoutMembersInput = {
   lookups?: Prisma.LookupUpdateManyWithoutOrganizationNestedInput
   fileAssets?: Prisma.FileAssetUpdateManyWithoutOrganizationNestedInput
   onboardingTask?: Prisma.OnboardingTaskUpdateOneWithoutOrganizationNestedInput
+  webhookEndpoints?: Prisma.WebhookEndpointUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutMembersInput = {
@@ -555,6 +579,7 @@ export type OrganizationUncheckedUpdateWithoutMembersInput = {
   lookups?: Prisma.LookupUncheckedUpdateManyWithoutOrganizationNestedInput
   fileAssets?: Prisma.FileAssetUncheckedUpdateManyWithoutOrganizationNestedInput
   onboardingTask?: Prisma.OnboardingTaskUncheckedUpdateOneWithoutOrganizationNestedInput
+  webhookEndpoints?: Prisma.WebhookEndpointUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutInvitationsInput = {
@@ -570,6 +595,7 @@ export type OrganizationCreateWithoutInvitationsInput = {
   lookups?: Prisma.LookupCreateNestedManyWithoutOrganizationInput
   fileAssets?: Prisma.FileAssetCreateNestedManyWithoutOrganizationInput
   onboardingTask?: Prisma.OnboardingTaskCreateNestedOneWithoutOrganizationInput
+  webhookEndpoints?: Prisma.WebhookEndpointCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutInvitationsInput = {
@@ -585,6 +611,7 @@ export type OrganizationUncheckedCreateWithoutInvitationsInput = {
   lookups?: Prisma.LookupUncheckedCreateNestedManyWithoutOrganizationInput
   fileAssets?: Prisma.FileAssetUncheckedCreateNestedManyWithoutOrganizationInput
   onboardingTask?: Prisma.OnboardingTaskUncheckedCreateNestedOneWithoutOrganizationInput
+  webhookEndpoints?: Prisma.WebhookEndpointUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutInvitationsInput = {
@@ -616,6 +643,7 @@ export type OrganizationUpdateWithoutInvitationsInput = {
   lookups?: Prisma.LookupUpdateManyWithoutOrganizationNestedInput
   fileAssets?: Prisma.FileAssetUpdateManyWithoutOrganizationNestedInput
   onboardingTask?: Prisma.OnboardingTaskUpdateOneWithoutOrganizationNestedInput
+  webhookEndpoints?: Prisma.WebhookEndpointUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
@@ -631,6 +659,7 @@ export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
   lookups?: Prisma.LookupUncheckedUpdateManyWithoutOrganizationNestedInput
   fileAssets?: Prisma.FileAssetUncheckedUpdateManyWithoutOrganizationNestedInput
   onboardingTask?: Prisma.OnboardingTaskUncheckedUpdateOneWithoutOrganizationNestedInput
+  webhookEndpoints?: Prisma.WebhookEndpointUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutOnboardingTaskInput = {
@@ -646,6 +675,7 @@ export type OrganizationCreateWithoutOnboardingTaskInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   lookups?: Prisma.LookupCreateNestedManyWithoutOrganizationInput
   fileAssets?: Prisma.FileAssetCreateNestedManyWithoutOrganizationInput
+  webhookEndpoints?: Prisma.WebhookEndpointCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutOnboardingTaskInput = {
@@ -661,6 +691,7 @@ export type OrganizationUncheckedCreateWithoutOnboardingTaskInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   lookups?: Prisma.LookupUncheckedCreateNestedManyWithoutOrganizationInput
   fileAssets?: Prisma.FileAssetUncheckedCreateNestedManyWithoutOrganizationInput
+  webhookEndpoints?: Prisma.WebhookEndpointUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutOnboardingTaskInput = {
@@ -692,6 +723,7 @@ export type OrganizationUpdateWithoutOnboardingTaskInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   lookups?: Prisma.LookupUpdateManyWithoutOrganizationNestedInput
   fileAssets?: Prisma.FileAssetUpdateManyWithoutOrganizationNestedInput
+  webhookEndpoints?: Prisma.WebhookEndpointUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutOnboardingTaskInput = {
@@ -707,6 +739,7 @@ export type OrganizationUncheckedUpdateWithoutOnboardingTaskInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   lookups?: Prisma.LookupUncheckedUpdateManyWithoutOrganizationNestedInput
   fileAssets?: Prisma.FileAssetUncheckedUpdateManyWithoutOrganizationNestedInput
+  webhookEndpoints?: Prisma.WebhookEndpointUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutLookupsInput = {
@@ -722,6 +755,7 @@ export type OrganizationCreateWithoutLookupsInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   fileAssets?: Prisma.FileAssetCreateNestedManyWithoutOrganizationInput
   onboardingTask?: Prisma.OnboardingTaskCreateNestedOneWithoutOrganizationInput
+  webhookEndpoints?: Prisma.WebhookEndpointCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutLookupsInput = {
@@ -737,6 +771,7 @@ export type OrganizationUncheckedCreateWithoutLookupsInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   fileAssets?: Prisma.FileAssetUncheckedCreateNestedManyWithoutOrganizationInput
   onboardingTask?: Prisma.OnboardingTaskUncheckedCreateNestedOneWithoutOrganizationInput
+  webhookEndpoints?: Prisma.WebhookEndpointUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutLookupsInput = {
@@ -768,6 +803,7 @@ export type OrganizationUpdateWithoutLookupsInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   fileAssets?: Prisma.FileAssetUpdateManyWithoutOrganizationNestedInput
   onboardingTask?: Prisma.OnboardingTaskUpdateOneWithoutOrganizationNestedInput
+  webhookEndpoints?: Prisma.WebhookEndpointUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutLookupsInput = {
@@ -783,6 +819,7 @@ export type OrganizationUncheckedUpdateWithoutLookupsInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   fileAssets?: Prisma.FileAssetUncheckedUpdateManyWithoutOrganizationNestedInput
   onboardingTask?: Prisma.OnboardingTaskUncheckedUpdateOneWithoutOrganizationNestedInput
+  webhookEndpoints?: Prisma.WebhookEndpointUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutFileAssetsInput = {
@@ -798,6 +835,7 @@ export type OrganizationCreateWithoutFileAssetsInput = {
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   lookups?: Prisma.LookupCreateNestedManyWithoutOrganizationInput
   onboardingTask?: Prisma.OnboardingTaskCreateNestedOneWithoutOrganizationInput
+  webhookEndpoints?: Prisma.WebhookEndpointCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutFileAssetsInput = {
@@ -813,6 +851,7 @@ export type OrganizationUncheckedCreateWithoutFileAssetsInput = {
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   lookups?: Prisma.LookupUncheckedCreateNestedManyWithoutOrganizationInput
   onboardingTask?: Prisma.OnboardingTaskUncheckedCreateNestedOneWithoutOrganizationInput
+  webhookEndpoints?: Prisma.WebhookEndpointUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutFileAssetsInput = {
@@ -844,6 +883,7 @@ export type OrganizationUpdateWithoutFileAssetsInput = {
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   lookups?: Prisma.LookupUpdateManyWithoutOrganizationNestedInput
   onboardingTask?: Prisma.OnboardingTaskUpdateOneWithoutOrganizationNestedInput
+  webhookEndpoints?: Prisma.WebhookEndpointUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutFileAssetsInput = {
@@ -859,6 +899,87 @@ export type OrganizationUncheckedUpdateWithoutFileAssetsInput = {
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   lookups?: Prisma.LookupUncheckedUpdateManyWithoutOrganizationNestedInput
   onboardingTask?: Prisma.OnboardingTaskUncheckedUpdateOneWithoutOrganizationNestedInput
+  webhookEndpoints?: Prisma.WebhookEndpointUncheckedUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutWebhookEndpointsInput = {
+  id: string
+  name: string
+  slug?: string | null
+  logo?: string | null
+  metadata?: string | null
+  createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
+  members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  lookups?: Prisma.LookupCreateNestedManyWithoutOrganizationInput
+  fileAssets?: Prisma.FileAssetCreateNestedManyWithoutOrganizationInput
+  onboardingTask?: Prisma.OnboardingTaskCreateNestedOneWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutWebhookEndpointsInput = {
+  id: string
+  name: string
+  slug?: string | null
+  logo?: string | null
+  metadata?: string | null
+  createdAt?: Date | string
+  suspendedAt?: Date | string | null
+  suspendReason?: string | null
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  lookups?: Prisma.LookupUncheckedCreateNestedManyWithoutOrganizationInput
+  fileAssets?: Prisma.FileAssetUncheckedCreateNestedManyWithoutOrganizationInput
+  onboardingTask?: Prisma.OnboardingTaskUncheckedCreateNestedOneWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutWebhookEndpointsInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutWebhookEndpointsInput, Prisma.OrganizationUncheckedCreateWithoutWebhookEndpointsInput>
+}
+
+export type OrganizationUpsertWithoutWebhookEndpointsInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutWebhookEndpointsInput, Prisma.OrganizationUncheckedUpdateWithoutWebhookEndpointsInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutWebhookEndpointsInput, Prisma.OrganizationUncheckedCreateWithoutWebhookEndpointsInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutWebhookEndpointsInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutWebhookEndpointsInput, Prisma.OrganizationUncheckedUpdateWithoutWebhookEndpointsInput>
+}
+
+export type OrganizationUpdateWithoutWebhookEndpointsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  lookups?: Prisma.LookupUpdateManyWithoutOrganizationNestedInput
+  fileAssets?: Prisma.FileAssetUpdateManyWithoutOrganizationNestedInput
+  onboardingTask?: Prisma.OnboardingTaskUpdateOneWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutWebhookEndpointsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  lookups?: Prisma.LookupUncheckedUpdateManyWithoutOrganizationNestedInput
+  fileAssets?: Prisma.FileAssetUncheckedUpdateManyWithoutOrganizationNestedInput
+  onboardingTask?: Prisma.OnboardingTaskUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 
@@ -871,6 +992,7 @@ export type OrganizationCountOutputType = {
   invitations: number
   lookups: number
   fileAssets: number
+  webhookEndpoints: number
 }
 
 export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -878,6 +1000,7 @@ export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Exte
   invitations?: boolean | OrganizationCountOutputTypeCountInvitationsArgs
   lookups?: boolean | OrganizationCountOutputTypeCountLookupsArgs
   fileAssets?: boolean | OrganizationCountOutputTypeCountFileAssetsArgs
+  webhookEndpoints?: boolean | OrganizationCountOutputTypeCountWebhookEndpointsArgs
 }
 
 /**
@@ -918,6 +1041,13 @@ export type OrganizationCountOutputTypeCountFileAssetsArgs<ExtArgs extends runti
   where?: Prisma.FileAssetWhereInput
 }
 
+/**
+ * OrganizationCountOutputType without action
+ */
+export type OrganizationCountOutputTypeCountWebhookEndpointsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.WebhookEndpointWhereInput
+}
+
 
 export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -933,6 +1063,7 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   lookups?: boolean | Prisma.Organization$lookupsArgs<ExtArgs>
   fileAssets?: boolean | Prisma.Organization$fileAssetsArgs<ExtArgs>
   onboardingTask?: boolean | Prisma.Organization$onboardingTaskArgs<ExtArgs>
+  webhookEndpoints?: boolean | Prisma.Organization$webhookEndpointsArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["organization"]>
 
@@ -976,6 +1107,7 @@ export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.Interna
   lookups?: boolean | Prisma.Organization$lookupsArgs<ExtArgs>
   fileAssets?: boolean | Prisma.Organization$fileAssetsArgs<ExtArgs>
   onboardingTask?: boolean | Prisma.Organization$onboardingTaskArgs<ExtArgs>
+  webhookEndpoints?: boolean | Prisma.Organization$webhookEndpointsArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -989,6 +1121,7 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
     lookups: Prisma.$LookupPayload<ExtArgs>[]
     fileAssets: Prisma.$FileAssetPayload<ExtArgs>[]
     onboardingTask: Prisma.$OnboardingTaskPayload<ExtArgs> | null
+    webhookEndpoints: Prisma.$WebhookEndpointPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1398,6 +1531,7 @@ export interface Prisma__OrganizationClient<T, Null = never, ExtArgs extends run
   lookups<T extends Prisma.Organization$lookupsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$lookupsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LookupPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   fileAssets<T extends Prisma.Organization$fileAssetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$fileAssetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FileAssetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   onboardingTask<T extends Prisma.Organization$onboardingTaskArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$onboardingTaskArgs<ExtArgs>>): Prisma.Prisma__OnboardingTaskClient<runtime.Types.Result.GetResult<Prisma.$OnboardingTaskPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  webhookEndpoints<T extends Prisma.Organization$webhookEndpointsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$webhookEndpointsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WebhookEndpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1940,6 +2074,30 @@ export type Organization$onboardingTaskArgs<ExtArgs extends runtime.Types.Extens
    */
   include?: Prisma.OnboardingTaskInclude<ExtArgs> | null
   where?: Prisma.OnboardingTaskWhereInput
+}
+
+/**
+ * Organization.webhookEndpoints
+ */
+export type Organization$webhookEndpointsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the WebhookEndpoint
+   */
+  select?: Prisma.WebhookEndpointSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the WebhookEndpoint
+   */
+  omit?: Prisma.WebhookEndpointOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WebhookEndpointInclude<ExtArgs> | null
+  where?: Prisma.WebhookEndpointWhereInput
+  orderBy?: Prisma.WebhookEndpointOrderByWithRelationInput | Prisma.WebhookEndpointOrderByWithRelationInput[]
+  cursor?: Prisma.WebhookEndpointWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.WebhookEndpointScalarFieldEnum | Prisma.WebhookEndpointScalarFieldEnum[]
 }
 
 /**

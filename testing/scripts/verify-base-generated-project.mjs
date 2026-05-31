@@ -47,6 +47,10 @@ const mustExist = [
 	"apps/api/src/modules/health/health-diagnostics.service.ts",
 	"apps/api/src/modules/notification/application/services/notification-stream.service.ts",
 	"apps/api/src/modules/notification/application/services/notification-stream.service.spec.ts",
+	"apps/api/src/modules/webhook/application/webhook.service.ts",
+	"apps/api/src/modules/webhook/application/webhook.service.spec.ts",
+	"apps/api/src/modules/webhook/presentation/webhook.controller.ts",
+	"apps/api/src/modules/webhook/webhook.module.ts",
 	"apps/api/scripts/run-module-mutation.mjs",
 	"apps/api/src/shared/decorators/audit.decorator.ts",
 	"apps/api/src/shared/errors/domain-error.ts",
@@ -959,6 +963,31 @@ function assertAdminJobsQueueSurface() {
 	assert(opsGuide.includes("can be retried directly"), "admin operations guide documents failed queue retries");
 }
 
+function assertWebhookSurface() {
+	const schema = readProjectFile("apps/api/prisma/schema.prisma");
+	const appModule = readProjectFile("apps/api/src/app.module.ts");
+	const permissions = readProjectFile("apps/api/src/modules/auth/permissions.ts");
+	const service = readProjectFile("apps/api/src/modules/webhook/application/webhook.service.ts");
+	const controller = readProjectFile("apps/api/src/modules/webhook/presentation/webhook.controller.ts");
+	const spec = readProjectFile("apps/api/src/modules/webhook/application/webhook.service.spec.ts");
+	const guide = readProjectFile("docs/WEBHOOK_GUIDE.md");
+	assert(schema.includes("model WebhookEndpoint"), "schema includes outbound webhook endpoints");
+	assert(schema.includes("model WebhookDelivery"), "schema records outbound webhook deliveries");
+	assert(schema.includes("enum WebhookDeliveryStatus"), "schema tracks webhook delivery status");
+	assert(appModule.includes("WebhookModule"), "API app registers webhook module");
+	assert(permissions.includes("webhook: ["), "permissions include webhook resource");
+	assert(service.includes("CipherService"), "webhook endpoint secrets use CipherService");
+	assert(service.includes("createHmac"), "webhook deliveries are HMAC signed");
+	assert(service.includes("Webhook URL must use HTTPS"), "webhook service requires HTTPS endpoints");
+	assert(controller.includes("@AuditResource(\"webhook:endpoint\")"), "webhook controller is audit-scoped");
+	assert(controller.includes("@RequirePermissions(\"webhook:create\")"), "webhook create endpoint is permission protected");
+	assert(controller.includes("@RequirePermissions(\"webhook:test\")"), "webhook test endpoint is permission protected");
+	assert(spec.includes("signs payloads with timestamp-bound HMAC"), "webhook tests cover HMAC signatures");
+	assert(spec.includes("rejects non-HTTPS endpoint URLs"), "webhook tests cover HTTPS enforcement");
+	assert(guide.includes("POST /api/v1/webhooks/endpoints"), "webhook guide documents endpoint creation");
+	assert(guide.includes("v1=<hex hmac-sha256>"), "webhook guide documents signature format");
+}
+
 function readEnv(relPath) {
 	const out = {};
 	for (const line of readProjectFile(relPath).split(/\r?\n/)) {
@@ -1026,6 +1055,7 @@ async function main() {
 	assertWebTableMarkupPolicy();
 	assertApiFormattingPolicy();
 	assertAdminJobsQueueSurface();
+	assertWebhookSurface();
 	assertGeneratedSecrets();
 
 	console.log(`Base generated-project verification passed: ${checks.length} checks`);

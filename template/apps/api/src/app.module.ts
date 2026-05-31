@@ -21,6 +21,7 @@ import { RoleModule } from "#modules/role/role.module";
 import { SecuritySettingsModule } from "#modules/security-settings/security-settings.module";
 import { TeamModule } from "#modules/team/team.module";
 import { UploadModule } from "#modules/upload/upload.module";
+import { WebhookModule } from "#modules/webhook/webhook.module";
 import { CryptoModule } from "#shared/crypto/crypto.module";
 import { PrismaModule } from "#shared/database/prisma.module";
 import { TenantContextModule } from "#shared/database/tenant-context";
@@ -80,6 +81,7 @@ import { StorageModule } from "#shared/storage/storage.module";
 		RoleModule,
 		TeamModule,
 		UploadModule,
+		WebhookModule,
 		ErrorReportingModule,
 	],
 	providers: [
