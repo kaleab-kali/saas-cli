@@ -33,7 +33,7 @@ What is not done yet:
 - Durable encrypted credential persistence and rotation workflows.
 - Production printer/device QR scan certification across real hardware.
 - Durable bulk callback storage/polling beyond the signed callback boundary.
-- Real offline encrypted pending-sync cache.
+- Durable offline pending-sync storage beyond the encrypted cache boundary.
 
 ## V3 Coverage Matrix
 
@@ -53,7 +53,7 @@ What is not done yet:
 | Receipts/withholding | Mock API | API/UI/Bruno mock | Sales and withholding states verified. Real EIMS receipt submission is not complete. |
 | Cancellation | Mock API | API/UI tests | Reason code 4/remark and limit state verified. Real MoR cancellation rules still require sandbox. |
 | Bulk | Signed callback boundary implemented, durable polling pending | Unit/API/UI tests | Callback HMAC verification, timestamp replay window, known conversation validation, idempotency, and count reconciliation are covered. Durable storage and authority polling are still pending. |
-| Offline pending-sync | Mock state only | API/UI tests | Pending state has no IRN/ackDate. Real encrypted offline cache is not complete. |
+| Offline pending-sync | Encrypted cache boundary implemented, durable storage pending | Unit/API/UI tests | Pending state has no IRN/ackDate. Offline payloads are encrypted with `CipherService`, integrity-hashed, redacted from list responses, and poisoned on tamper before sync. Durable DB/queue storage is still pending. |
 | Buyer notifications | Mock API | API/UI tests | SMS/email providers and retry state verified. Real provider integration is not complete. |
 | Targeted RLS | Data model/evidence item only | Scaffold verifier | Real SQL RLS policies and policy tests are not complete. |
 | Audit hash chain | Data model/evidence item only | Scaffold verifier | Real append-only trigger/hash-chain implementation is not complete. |
@@ -95,5 +95,5 @@ real Playwright route walkthroughs and include a headed CLI path.
 The implementation should not be described as production-complete EIMS. It is a
 clean V3 scaffold foundation with detailed mock API/UI verification. Production
 completion still requires the V3 phases for Vault, RLS, persistent BullMQ/DB
-durable callback polling, offline cache, real printer/device QR certification,
+durable callback polling, durable offline cache storage, real printer/device QR certification,
 real MoR APIs, and sandbox proof.

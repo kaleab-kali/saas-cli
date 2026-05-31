@@ -43,6 +43,7 @@ const requiredDirs = [
 	"apps/api/src/modules/eims/shared/lookups",
 	"apps/api/src/modules/eims/shared/mock",
 	"apps/api/src/modules/eims/shared/notifications",
+	"apps/api/src/modules/eims/shared/offline",
 	"apps/api/src/modules/eims/shared/presentation",
 	"apps/api/src/modules/eims/shared/printing",
 	"apps/api/src/modules/eims/shared/queues",
@@ -72,6 +73,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/constants/eims-lookup-values.ts",
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.ts",
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
+	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.ts",
+	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts",
@@ -253,6 +256,10 @@ function assertGeneratedStructure() {
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-bulk-callback.service.spec.ts"),
 		"generated EIMS local test gate includes bulk callback security tests",
+	);
+	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-offline-pending-sync-cache.service.spec.ts"),
+		"generated EIMS local test gate includes offline cache tests",
 	);
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-print-proof.service.spec.ts"),
@@ -479,6 +486,10 @@ function assertGeneratedStructure() {
 	const credentialSecretsSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
 	);
+	const offlineCache = readProjectFile("apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.ts");
+	const offlineCacheSpec = readProjectFile(
+		"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts",
+	);
 	const printProof = readProjectFile("apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts");
 	const printProofSpec = readProjectFile("apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts");
 	const supportingResourcesController = readProjectFile(
@@ -511,6 +522,13 @@ function assertGeneratedStructure() {
 	assert(bulkCallbackSpec.includes("rejects stale callback timestamps"), "EIMS callback tests cover timestamp replay window");
 	assert(bulkCallbackSpec.includes("deduplicates callback retries"), "EIMS callback tests cover idempotent retries");
 	assert(eimsSharedModule.includes("EimsBulkCallbackService"), "EIMS shared module exports bulk callback verifier");
+	assert(offlineCache.includes("CipherService"), "EIMS offline cache encrypts pending payloads");
+	assert(offlineCache.includes("payloadSha256"), "EIMS offline cache stores payload integrity hashes");
+	assert(offlineCache.includes("payloadReturned: false"), "EIMS offline cache redacts pending payloads from list responses");
+	assert(offlineCache.includes("syncStatus = \"poisoned\""), "EIMS offline cache poisons tampered payloads");
+	assert(offlineCacheSpec.includes("encrypts pending offline payloads"), "EIMS offline cache tests cover encrypted storage");
+	assert(offlineCacheSpec.includes("poisons tampered offline cache entries"), "EIMS offline cache tests cover integrity failure");
+	assert(eimsSharedModule.includes("EimsOfflinePendingSyncCacheService"), "EIMS shared module exports offline cache service");
 	assert(credentialSecrets.includes("CipherService"), "EIMS credential secrets use platform CipherService");
 	assert(credentialSecrets.includes("delete persistablePayload[field]"), "EIMS credential secrets strip raw values");
 	assert(credentialSecrets.includes("encryptedSecrets"), "EIMS credential secrets persist encrypted payload fields");
