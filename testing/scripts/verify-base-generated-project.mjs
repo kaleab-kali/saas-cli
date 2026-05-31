@@ -424,6 +424,7 @@ function assertOnboardingFirstEntry() {
 
 function assertFrontendImprovementSurface() {
 	const topBar = readProjectFile("apps/web/src/components/layout/TopBar.tsx");
+	const webMain = readProjectFile("apps/web/src/main.tsx");
 	const adminRoute = readProjectFile("apps/web/src/routes/admin.tsx");
 	const commandPalette = readProjectFile("apps/web/src/shared/components/CommandPalette.tsx");
 	const dataTable = readProjectFile("apps/web/src/shared/components/DataTable.tsx");
@@ -441,12 +442,26 @@ function assertFrontendImprovementSurface() {
 	const adminAuditLogs = readProjectFile("apps/web/src/routes/admin/audit-logs/index.tsx");
 	const adminAuditHandler = readProjectFile("apps/api/src/modules/admin/application/queries/list-platform-audit-logs.handler.ts");
 	const adminBilling = readProjectFile("apps/web/src/routes/admin/billing/index.tsx");
+	const adminBillingHooks = readProjectFile("apps/web/src/features/admin/api/admin-billing.hooks.ts");
+	const adminBillingDashboardHooks = readProjectFile("apps/web/src/features/admin/api/admin-billing-dashboard.hooks.ts");
 	const adminBillingDetail = readProjectFile("apps/web/src/routes/admin/billing/$subscriptionId.tsx");
 	const adminBillingDashboard = readProjectFile("apps/web/src/routes/admin/billing/dashboard.tsx");
 	const adminPlanDetail = readProjectFile("apps/web/src/routes/admin/plans/$planId.tsx");
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
+	const frontendConventions = readProjectFile("docs/FRONTEND_CONVENTIONS.md");
 	const opsGuide = readProjectFile("docs/ADMIN_OPERATIONS_GUIDE.md");
 	const e2eSmoke = readProjectFile("apps/e2e/tests/smoke.spec.ts");
+	assert(webMain.includes("shouldRetryQuery"), "QueryClient uses a named retry policy");
+	assert(webMain.includes("error instanceof ApiError"), "QueryClient retry policy inspects API status codes");
+	assert(webMain.includes("[401, 403, 404]"), "QueryClient does not retry auth/not-found responses");
+	assert(webMain.includes("gcTime: 5 * 60_000"), "QueryClient keeps generated app query cache bounded");
+	assert(webMain.includes("throwOnError: false"), "QueryClient keeps query errors render-safe by default");
+	assert(webMain.includes("mutations:") && webMain.includes("retry: false"), "QueryClient disables mutation retries");
+	assert(
+		frontendConventions.includes("Every feature API module exports a named query key factory"),
+		"frontend docs require query key factories",
+	);
+	assert(frontendConventions.includes("401, 403, and 404 responses are not retried"), "frontend docs document retry policy");
 	assert(topBar.includes("<CommandPalette />"), "top bar exposes command palette");
 	assert(topBar.includes("Workspace command center"), "top bar exposes visible command-center shell");
 	assert(commandPalette.includes("WORKSPACE_COMMANDS"), "command palette exposes workspace command registry");
@@ -535,6 +550,22 @@ function assertFrontendImprovementSurface() {
 	assert(adminBilling.includes("Search subscriptions"), "admin billing subscriptions are searchable");
 	assert(adminBilling.includes("enableCsvExport"), "admin billing subscriptions export CSV");
 	assert(adminBilling.includes("savedViewsEntity"), "admin billing subscriptions have saved views");
+	assert(adminBillingHooks.includes("export const adminBillingKeys"), "admin billing hooks export query key factory");
+	assert(adminBillingHooks.includes("subscriptionList:"), "admin billing query keys include subscription list factory");
+	assert(adminBillingHooks.includes("subscriptionDetail:"), "admin billing query keys include subscription detail factory");
+	assert(adminBillingHooks.includes("dunningLog:"), "admin billing query keys include dunning log factory");
+	assert(
+		adminBillingDashboardHooks.includes("export const adminBillingDashboardKeys"),
+		"admin billing dashboard hooks export query key factory",
+	);
+	assert(
+		adminBillingDashboardHooks.includes("pendingVerification:"),
+		"admin billing dashboard query keys include pending verification factory",
+	);
+	assert(
+		adminBillingDashboardHooks.includes("usageHistory:"),
+		"admin billing dashboard query keys include usage history factory",
+	);
 	assert(opsGuide.includes("subscription index uses the shared DataTable"), "admin operations guide documents billing table");
 	assert(adminBillingDetail.includes("<DataTable"), "admin subscription detail uses shared DataTable");
 	assert(adminBillingDetail.includes("Search invoices"), "admin subscription invoices are searchable");

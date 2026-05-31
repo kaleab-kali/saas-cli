@@ -34,23 +34,33 @@ export interface PendingPayment {
 	readonly note: string | null;
 }
 
+export const adminBillingDashboardKeys = {
+	all: ["admin-billing-dashboard"] as const,
+	dashboard: () => [...adminBillingDashboardKeys.all, "summary"] as const,
+	revenueTrend: () => [...adminBillingDashboardKeys.all, "revenue-trend"] as const,
+	pastDue: () => [...adminBillingDashboardKeys.all, "past-due"] as const,
+	pendingVerification: () => [...adminBillingDashboardKeys.all, "pending-verification"] as const,
+	usageHistory: (subscriptionId: string) =>
+		[...adminBillingDashboardKeys.all, "usage-history", subscriptionId] as const,
+};
+
 export const useRevenueTrend = () =>
 	useQuery({
-		queryKey: ["admin-billing-revenue-trend"],
+		queryKey: adminBillingDashboardKeys.revenueTrend(),
 		queryFn: () => api.get<{ data: RevenueTrendPoint[] }>("/admin/billing/dashboard/revenue-trend"),
 		select: (r) => r.data,
 	});
 
 export const usePastDueInvoices = () =>
 	useQuery({
-		queryKey: ["admin-billing-past-due"],
+		queryKey: adminBillingDashboardKeys.pastDue(),
 		queryFn: () => api.get<{ data: PastDueInvoice[] }>("/admin/billing/dashboard/past-due"),
 		select: (r) => r.data,
 	});
 
 export const usePendingVerification = () =>
 	useQuery({
-		queryKey: ["admin-billing-pending-verification"],
+		queryKey: adminBillingDashboardKeys.pendingVerification(),
 		queryFn: () => api.get<{ data: PendingPayment[] }>("/admin/billing/dashboard/pending-verification"),
 		select: (r) => r.data,
 	});
@@ -59,7 +69,7 @@ export const useVerifyPayment = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (paymentId: string) => api.post(`/admin/billing/payments/${paymentId}/verify`, {}),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-billing-pending-verification"] }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: adminBillingDashboardKeys.all }),
 	});
 };
 
@@ -74,7 +84,7 @@ export interface UsageHistorySnapshot {
 
 export const useUsageHistory = (subscriptionId: string) =>
 	useQuery({
-		queryKey: ["admin-billing-usage-history", subscriptionId],
+		queryKey: adminBillingDashboardKeys.usageHistory(subscriptionId),
 		queryFn: () =>
 			api.get<{ data: UsageHistorySnapshot[] }>(`/admin/billing/subscriptions/${subscriptionId}/usage-history`),
 		select: (r) => r.data,
@@ -94,7 +104,7 @@ export interface BillingDashboard {
 
 export const useBillingDashboard = () =>
 	useQuery({
-		queryKey: ["admin-billing-dashboard"],
+		queryKey: adminBillingDashboardKeys.dashboard(),
 		queryFn: () => api.get<{ data: BillingDashboard }>("/admin/billing/dashboard"),
 		select: (r) => r.data,
 	});

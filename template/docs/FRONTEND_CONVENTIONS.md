@@ -21,6 +21,8 @@ Each feature should keep this shape:
 - `types/` - TypeScript type definitions
 
 ## Query Keys
+Every feature API module exports a named query key factory. Do not inline `queryKey: ["feature"]` arrays inside hooks; keep list, detail, and related-resource keys in the factory so mutations can invalidate a stable prefix.
+
 ```typescript
 export const projectKeys = {
   all: ["projects"] as const,
@@ -30,6 +32,13 @@ export const projectKeys = {
   detail: (id: string) => [...projectKeys.details(), id] as const,
 };
 ```
+
+The root QueryClient uses production-safe defaults:
+- queries cache for five minutes and are considered fresh for one minute
+- 401, 403, and 404 responses are not retried
+- other query failures retry at most three times
+- mutation retries are disabled
+- window-focus refetching and thrown query errors are disabled by default
 
 ## Mutations
 ```typescript

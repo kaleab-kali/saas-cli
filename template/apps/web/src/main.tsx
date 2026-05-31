@@ -3,6 +3,7 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { toast } from "sonner";
+import { ApiError } from "#shared/lib/api-client";
 import { reportError, setupGlobalErrorHandlers } from "#shared/lib/error-reporter";
 import { routeTree } from "./routeTree.gen";
 import "./index.css";
@@ -10,6 +11,11 @@ import "#shared/i18n/config";
 
 // Set up global error handlers (window.onerror, unhandledrejection)
 setupGlobalErrorHandlers();
+
+const shouldRetryQuery = (failureCount: number, error: unknown) => {
+	if (error instanceof ApiError && [401, 403, 404].includes(error.status)) return false;
+	return failureCount < 3;
+};
 
 const queryClient = new QueryClient({
 	queryCache: new QueryCache({
@@ -43,9 +49,14 @@ const queryClient = new QueryClient({
 	}),
 	defaultOptions: {
 		queries: {
-			staleTime: 1000 * 60 * 5,
-			retry: 1,
+			staleTime: 60_000,
+			gcTime: 5 * 60_000,
+			retry: shouldRetryQuery,
 			refetchOnWindowFocus: false,
+			throwOnError: false,
+		},
+		mutations: {
+			retry: false,
 		},
 	},
 });

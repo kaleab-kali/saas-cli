@@ -63,15 +63,18 @@ export interface AdminSubscriptionDetail extends AdminSubscriptionSummary {
 	} | null;
 }
 
-const k = {
+export const adminBillingKeys = {
 	all: ["admin-billing"] as const,
-	subs: (status?: string) => [...k.all, "subs", status] as const,
-	sub: (id: string) => [...k.all, "sub", id] as const,
+	subscriptions: () => [...adminBillingKeys.all, "subscriptions"] as const,
+	subscriptionList: (status?: string) => [...adminBillingKeys.subscriptions(), { status }] as const,
+	subscriptionDetails: () => [...adminBillingKeys.all, "subscription"] as const,
+	subscriptionDetail: (id: string) => [...adminBillingKeys.subscriptionDetails(), id] as const,
+	dunningLog: (subscriptionId: string) => [...adminBillingKeys.subscriptionDetail(subscriptionId), "dunning"] as const,
 };
 
 export const useAdminSubscriptions = (status?: string) =>
 	useQuery({
-		queryKey: k.subs(status),
+		queryKey: adminBillingKeys.subscriptionList(status),
 		queryFn: () =>
 			api.get<{ data: AdminSubscriptionSummary[] }>("/admin/billing/subscriptions", {
 				params: status ? { status } : undefined,
@@ -81,7 +84,7 @@ export const useAdminSubscriptions = (status?: string) =>
 
 export const useAdminSubscription = (id: string) =>
 	useQuery({
-		queryKey: k.sub(id),
+		queryKey: adminBillingKeys.subscriptionDetail(id),
 		queryFn: () => api.get<{ data: AdminSubscriptionDetail }>(`/admin/billing/subscriptions/${id}`),
 		select: (r) => r.data,
 		enabled: !!id,
@@ -102,7 +105,7 @@ export const useCreateManualInvoice = () => {
 			lineType?: string;
 			dueDate?: string;
 		}) => api.post(`/admin/billing/subscriptions/${subscriptionId}/invoices`, body),
-		onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: k.sub(v.subscriptionId) }),
+		onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: adminBillingKeys.subscriptionDetail(v.subscriptionId) }),
 	});
 };
 
@@ -110,7 +113,7 @@ export const useSendInvoice = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (invoiceId: string) => api.put(`/admin/billing/invoices/${invoiceId}/send`, {}),
-		onSuccess: () => qc.invalidateQueries({ queryKey: k.all }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: adminBillingKeys.all }),
 	});
 };
 
@@ -118,7 +121,7 @@ export const useVoidInvoice = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (invoiceId: string) => api.put(`/admin/billing/invoices/${invoiceId}/void`, {}),
-		onSuccess: () => qc.invalidateQueries({ queryKey: k.all }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: adminBillingKeys.all }),
 	});
 };
 
@@ -139,7 +142,7 @@ export const useRecordManualPayment = () => {
 			receiptNumber?: string;
 			note?: string;
 		}) => api.post(`/admin/billing/invoices/${invoiceId}/payments`, body),
-		onSuccess: () => qc.invalidateQueries({ queryKey: k.all }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: adminBillingKeys.all }),
 	});
 };
 
@@ -148,7 +151,7 @@ export const useExtendSubscription = () => {
 	return useMutation({
 		mutationFn: ({ id, days, reason }: { id: string; days: number; reason?: string }) =>
 			api.post(`/admin/billing/subscriptions/${id}/extend`, { days, reason }),
-		onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: k.sub(v.id) }),
+		onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: adminBillingKeys.subscriptionDetail(v.id) }),
 	});
 };
 
@@ -157,7 +160,7 @@ export const useCreditAccount = () => {
 	return useMutation({
 		mutationFn: ({ id, amountMinor, note }: { id: string; amountMinor: number; note?: string }) =>
 			api.post(`/admin/billing/subscriptions/${id}/credit`, { amountMinor, note }),
-		onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: k.sub(v.id) }),
+		onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: adminBillingKeys.subscriptionDetail(v.id) }),
 	});
 };
 
@@ -166,7 +169,7 @@ export const useChangeSubscriptionPlan = () => {
 	return useMutation({
 		mutationFn: ({ id, planId, note }: { id: string; planId: string; note?: string }) =>
 			api.put(`/admin/billing/subscriptions/${id}/plan`, { planId, note }),
-		onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: k.sub(v.id) }),
+		onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: adminBillingKeys.subscriptionDetail(v.id) }),
 	});
 };
 
@@ -182,7 +185,7 @@ export interface DunningLogEntry {
 
 export const useDunningLog = (subscriptionId: string) =>
 	useQuery({
-		queryKey: [...k.sub(subscriptionId), "dunning"],
+		queryKey: adminBillingKeys.dunningLog(subscriptionId),
 		queryFn: () => api.get<{ data: DunningLogEntry[] }>(`/admin/billing/subscriptions/${subscriptionId}/dunning-log`),
 		select: (r) => r.data,
 		enabled: !!subscriptionId,
@@ -201,7 +204,7 @@ export const useSendDunning = () => {
 			invoiceId?: string;
 		}) => api.post(`/admin/billing/subscriptions/${subscriptionId}/dunning`, { type, invoiceId }),
 		onSuccess: (_d, v) => {
-			qc.invalidateQueries({ queryKey: [...k.sub(v.subscriptionId), "dunning"] });
+			qc.invalidateQueries({ queryKey: adminBillingKeys.dunningLog(v.subscriptionId) });
 		},
 	});
 };
@@ -211,6 +214,6 @@ export const useForceSubscriptionStatus = () => {
 	return useMutation({
 		mutationFn: ({ id, status, reason }: { id: string; status: string; reason?: string }) =>
 			api.put(`/admin/billing/subscriptions/${id}/status`, { status, reason }),
-		onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: k.sub(v.id) }),
+		onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: adminBillingKeys.subscriptionDetail(v.id) }),
 	});
 };
