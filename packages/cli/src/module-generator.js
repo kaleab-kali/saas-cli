@@ -1213,7 +1213,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:api"] ??=
@@ -1276,10 +1276,14 @@ const appendBlockIfMissing = async (file, marker, block) => {
 const patchEimsEnvExamples = async (root) => {
 	const block = `# --- EIMS / Ethiopian e-invoicing (optional starter) ---
 EIMS_ENV=sandbox
+EIMS_SDK_PACKAGE_NAME=@yourcompany/eims-sdk
+EIMS_API_URL=
 EIMS_BASE_URL_SANDBOX=
 EIMS_BASE_URL_PRODUCTION=
 EIMS_BULK_URL_SANDBOX=
 EIMS_BULK_URL_PRODUCTION=
+EIMS_TIMEOUT_MS=30000
+EIMS_MAX_RETRIES=3
 EIMS_SIGNING_PROVIDER=local
 EIMS_CANONICALIZATION_VERSION=phase0-unlocked
 EIMS_MOCK_MODE=true
@@ -1290,10 +1294,14 @@ EIMS_LOOKUP_CACHE_TTL_SECONDS=300
 EIMS_QUEUE_PREFIX=eims`;
 	const productionBlock = `# --- EIMS / Ethiopian e-invoicing (optional starter) ---
 EIMS_ENV=production
+EIMS_SDK_PACKAGE_NAME=@yourcompany/eims-sdk
+EIMS_API_URL=https://eims.example.gov.et
 EIMS_BASE_URL_SANDBOX=
 EIMS_BASE_URL_PRODUCTION=https://eims.example.gov.et
 EIMS_BULK_URL_SANDBOX=
 EIMS_BULK_URL_PRODUCTION=https://eims-bulk.example.gov.et
+EIMS_TIMEOUT_MS=30000
+EIMS_MAX_RETRIES=3
 EIMS_SIGNING_PROVIDER=vault
 EIMS_CANONICALIZATION_VERSION=phase0-unlocked
 EIMS_MOCK_MODE=false
@@ -5662,10 +5670,18 @@ assertIncludes(callbackService, "EIMS_CALLBACK_HMAC_SECRET", "EIMS bulk callback
 assertIncludes(callbackService, "outside the allowed skew", "EIMS bulk callbacks must enforce replay windows");
 
 const sdkExternalClient = read("apps/api/src/modules/eims/shared/client/eims-sdk-external.client.ts");
+const sdkClientProvider = read("apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.ts");
 assertIncludes(
 \tsdkExternalClient,
 \t"EIMS_SDK_CLIENT",
 \t"EIMS production integration must use the EIMS SDK injection token",
+);
+assertIncludes(sdkClientProvider, "EIMS_SDK_PACKAGE_NAME", "EIMS SDK provider must load the configured SDK package");
+assertIncludes(sdkClientProvider, "createEimsSdkClientFromModule", "EIMS SDK provider must validate SDK module shape");
+assertIncludes(
+\tsdkClientProvider,
+\t"registerInvoice-capable",
+\t"EIMS SDK provider must fail closed for incompatible SDK clients",
 );
 assertIncludes(sdkExternalClient, "registerInvoice", "EIMS SDK adapter must submit invoices through the SDK");
 assertIncludes(sdkExternalClient, "registerReceipt", "EIMS SDK adapter must submit receipts through the SDK");

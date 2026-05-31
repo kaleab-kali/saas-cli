@@ -61,7 +61,7 @@ const readJson = (file) => {
 };
 
 const hasScript = (pkg, name) => Boolean(pkg?.scripts?.[name]);
-const placeholderPattern = /change-me|generate_with|strong_password|your-domain|example\./i;
+const placeholderPattern = /change-me|generate_with|strong_password|your-domain|yourcompany|example\./i;
 
 const requireScript = (pkg, name, production) => {
 	if (hasScript(pkg, name)) ok(`script:${name}`);
@@ -147,6 +147,7 @@ const checkEimsProductionEnv = (apiEnv, production) => {
 	if (apiEnv.EIMS_MOCK_MODE === "false") ok("EIMS_MOCK_MODE", "false");
 	else fail("EIMS_MOCK_MODE", "must be false before production go-live");
 
+	requireEnvValue(apiEnv, "EIMS_SDK_PACKAGE_NAME", production, "configure the published EIMS SDK package name before go-live");
 	requireHttpsEnvUrl(apiEnv, "EIMS_BASE_URL_PRODUCTION", production);
 	requireHttpsEnvUrl(apiEnv, "EIMS_BULK_URL_PRODUCTION", production);
 	requireHttpsEnvUrl(apiEnv, "EIMS_CALLBACK_PUBLIC_URL", production);

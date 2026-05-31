@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { EimsBulkCallbackController } from "./callbacks/eims-bulk-callback.controller";
 import { EimsBulkCallbackService } from "./callbacks/eims-bulk-callback.service";
 import { EIMS_EXTERNAL_CLIENT } from "./client/eims-external-client";
+import { EimsSdkClientProvider } from "./client/eims-sdk-client.provider";
 import { EimsSdkExternalClient } from "./client/eims-sdk-external.client";
 import { MockEimsExternalClient } from "./client/mock-eims-external.client";
 import { EimsCredentialPersistenceService } from "./crypto/eims-credential-persistence.service";
@@ -27,6 +28,7 @@ import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.servi
 		EimsPrintProofService,
 		EimsMockService,
 		MockEimsExternalClient,
+		EimsSdkClientProvider,
 		EimsSdkExternalClient,
 		{ provide: EIMS_BACKEND_REPOSITORY, useExisting: EimsMockService },
 		{

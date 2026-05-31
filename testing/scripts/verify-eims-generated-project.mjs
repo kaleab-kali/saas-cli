@@ -66,6 +66,8 @@ const requiredDirs = [
 const requiredFiles = [
 	"apps/api/src/modules/eims/eims.module.ts",
 	"apps/api/src/modules/eims/shared/client/eims-external-client.ts",
+	"apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.ts",
+	"apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts",
 	"apps/api/src/modules/eims/shared/client/eims-sdk-external.client.ts",
 	"apps/api/src/modules/eims/shared/client/eims-sdk-external.client.spec.ts",
 	"apps/api/src/modules/eims/shared/client/mock-eims-external.client.ts",
@@ -269,6 +271,10 @@ function assertGeneratedStructure() {
 		"generated EIMS local test gate includes SDK adapter tests",
 	);
 	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-sdk-client.provider.spec.ts"),
+		"generated EIMS local test gate includes SDK package provider tests",
+	);
+	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-bulk-callback.service.spec.ts"),
 		"generated EIMS local test gate includes bulk callback security tests",
 	);
@@ -317,6 +323,9 @@ function assertGeneratedStructure() {
 	const eimsStarter = scaffoldState.starters?.find((starter) => starter.name === "eims");
 	assert(eimsStarter, "scaffold state records EIMS starter installation");
 	assert(eimsStarter.envVars?.includes("EIMS_ENV"), "scaffold state records EIMS env metadata");
+	assert(eimsStarter.envVars?.includes("EIMS_SDK_PACKAGE_NAME"), "scaffold state records EIMS SDK package env metadata");
+	assert(eimsStarter.envVars?.includes("EIMS_TIMEOUT_MS"), "scaffold state records EIMS SDK timeout env metadata");
+	assert(eimsStarter.envVars?.includes("EIMS_MAX_RETRIES"), "scaffold state records EIMS SDK retry env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_PHASE0_STRICT"), "scaffold state records EIMS strict-mode env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_CALLBACK_HMAC_SECRET"), "scaffold state records EIMS callback HMAC env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_LOOKUP_CACHE_TTL_SECONDS"), "scaffold state records EIMS lookup cache env metadata");
@@ -338,6 +347,12 @@ function assertGeneratedStructure() {
 		"EIMS API mock test script is installed",
 	);
 	assert(productionEnvExample.includes("EIMS_ENV=production"), "EIMS production env example defaults to production");
+	assert(
+		productionEnvExample.includes("EIMS_SDK_PACKAGE_NAME=@yourcompany/eims-sdk"),
+		"EIMS production env example names the SDK package",
+	);
+	assert(productionEnvExample.includes("EIMS_TIMEOUT_MS=30000"), "EIMS production env example configures SDK timeout");
+	assert(productionEnvExample.includes("EIMS_MAX_RETRIES=3"), "EIMS production env example configures SDK retries");
 	assert(productionEnvExample.includes("EIMS_MOCK_MODE=false"), "EIMS production env example disables mock mode");
 	assert(productionEnvExample.includes("EIMS_SIGNING_PROVIDER=vault"), "EIMS production env example uses non-local signing");
 	assert(productionEnvExample.includes("EIMS_PHASE0_STRICT=true"), "EIMS production env example enables Phase 0 strict mode");
@@ -552,6 +567,8 @@ function assertGeneratedStructure() {
 	const queueSpec = readProjectFile("apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts");
 	const submissionService = readProjectFile("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");
 	const externalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-external-client.ts");
+	const sdkClientProvider = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.ts");
+	const sdkClientProviderSpec = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts");
 	const sdkExternalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-external.client.ts");
 	const sdkExternalClientSpec = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-external.client.spec.ts");
 	const eimsSharedModule = readProjectFile("apps/api/src/modules/eims/shared/eims-shared.module.ts");
@@ -597,12 +614,19 @@ function assertGeneratedStructure() {
 	assert(externalClient.includes("counter?: number"), "EIMS external client contract includes reserved counter");
 	assert(externalClient.includes("previousIrn?: string | null"), "EIMS external client contract includes previous IRN");
 	assert(externalClient.includes("EIMS_SDK_CLIENT"), "EIMS external client contract exposes SDK injection token");
+	assert(sdkClientProvider.includes("EIMS_SDK_PACKAGE_NAME"), "EIMS SDK provider reads configured SDK package name");
+	assert(sdkClientProvider.includes("DEFAULT_EIMS_SDK_PACKAGE_NAME"), "EIMS SDK provider defaults to the starter SDK package");
+	assert(sdkClientProvider.includes("createEimsSdkClientFromModule"), "EIMS SDK provider validates loaded SDK module shape");
+	assert(sdkClientProvider.includes("registerInvoice-capable"), "EIMS SDK provider fails closed for incompatible SDK modules");
+	assert(sdkClientProviderSpec.includes("createEimsClient factory"), "EIMS SDK provider tests cover SDK factory wiring");
+	assert(sdkClientProviderSpec.includes("fails closed"), "EIMS SDK provider tests cover incompatible SDK packages");
 	assert(sdkExternalClient.includes("EIMS_SDK_CLIENT"), "EIMS SDK adapter uses SDK injection token");
 	assert(sdkExternalClient.includes("registerInvoice"), "EIMS SDK adapter delegates invoice registration");
 	assert(sdkExternalClient.includes("registerReceipt"), "EIMS SDK adapter delegates receipt registration");
 	assert(sdkExternalClient.includes("ServiceUnavailableException"), "EIMS SDK adapter fails closed without SDK provider");
 	assert(sdkExternalClientSpec.includes("delegates invoice registration"), "EIMS SDK adapter tests cover invoice delegation");
 	assert(sdkExternalClientSpec.includes("fails closed"), "EIMS SDK adapter tests cover missing SDK wiring");
+	assert(eimsSharedModule.includes("EimsSdkClientProvider"), "EIMS shared module registers SDK package provider");
 	assert(eimsSharedModule.includes("EimsSdkExternalClient"), "EIMS shared module provides SDK adapter");
 	assert(eimsSharedModule.includes('process.env.EIMS_MOCK_MODE === "false"'), "EIMS shared module switches to SDK outside mock mode");
 	assert(eimsSharedModule.includes("EimsSubmissionQueueService"), "EIMS shared module exports queue coordinator");
