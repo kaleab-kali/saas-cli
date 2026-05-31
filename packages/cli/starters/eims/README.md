@@ -22,8 +22,8 @@ Production readiness is enforced by `pnpm doctor:production`. For an EIMS instal
 
 Credential save/rotation stays SaaS-side because it owns tenant storage and redaction. Credential testing decrypts stored secret material only in memory, calls the EMIS SDK credential validation method, records the durable result, and returns no raw secrets or ciphertext.
 
-Invoice submission lanes persist `EimsCounterReservation` rows before calling the SDK and hydrate source counters from durable state after restart. Multi-node production still needs BullMQ/Redis workers using the same reservation contract.
+Invoice submission lanes persist `EimsCounterReservation` rows before calling the SDK and hydrate source counters from durable state after restart. Multi-node production still needs BullMQ/Redis submission workers using the same reservation contract.
 
-Installing the starter appends `eims-submission-retry`, `eims-bulk-callback`, and `eims-offline-replay` to `BULLMQ_QUEUES` so the base `/admin/jobs` queue monitor can inspect and retry EIMS worker queues. `pnpm doctor:production` blocks EIMS go-live if those queues are not visible in the generated API environment.
+Installing the starter appends `eims-submission-retry`, `eims-bulk-callback`, and `eims-offline-replay` to `BULLMQ_QUEUES` so the base `/admin/jobs` queue monitor can inspect and retry EIMS worker queues. `EimsOfflineReplayQueueService` can enqueue tenant-scoped offline replay jobs into BullMQ while the worker processes them through the existing SDK replay service. `pnpm doctor:production` blocks EIMS go-live if those queues are not visible in the generated API environment or `EIMS_WORKERS_ENABLED` is not true.
 
 The `pack.json` manifest is the source-of-truth metadata for routes, models, permissions, environment variables, seed data, queues, and cron jobs.

@@ -175,6 +175,9 @@ const checkEimsProductionEnv = (apiEnv, production) => {
 	if (apiEnv.EIMS_PHASE0_STRICT === "true") ok("EIMS_PHASE0_STRICT", "true");
 	else fail("EIMS_PHASE0_STRICT", "must be true before EIMS production launch");
 
+	if (apiEnv.EIMS_WORKERS_ENABLED === "true") ok("EIMS_WORKERS_ENABLED", "true");
+	else fail("EIMS_WORKERS_ENABLED", "must be true so EIMS BullMQ replay workers run in production");
+
 	requireEnvListIncludes(
 		apiEnv,
 		"BULLMQ_QUEUES",

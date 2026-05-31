@@ -164,6 +164,7 @@ test("production doctor blocks unsafe EIMS go-live settings", () => {
 		assert.match(output, /EIMS_CALLBACK_HMAC_SECRET.*callback HMAC secret/);
 		assert.match(output, /EIMS_SIGNING_PROVIDER.*non-local signing provider/);
 		assert.match(output, /EIMS_PHASE0_STRICT.*must be true/);
+		assert.match(output, /EIMS_WORKERS_ENABLED.*BullMQ replay workers/);
 		assert.match(output, /BULLMQ_QUEUES.*include EIMS queues/);
 	} finally {
 		removeDir(targetDir);

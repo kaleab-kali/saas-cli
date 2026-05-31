@@ -13,9 +13,14 @@ boundary for invoice submission ordering:
 - previous-IRN chaining from the last accepted response only
 - retryable/unknown outcomes kept out of the accepted counter chain
 
-Replace the in-process coordinator with BullMQ-backed workers when enabling
-multi-node production deployment; keep the same payload metadata contract and
-Prisma reservation audit trail.
+Replace the in-process submission coordinator with BullMQ-backed workers when
+enabling multi-node production deployment; keep the same payload metadata
+contract and Prisma reservation audit trail.
+
+`EimsOfflineReplayQueueService` provides the durable offline replay worker path.
+It enqueues tenant-scoped replay jobs into `eims-offline-replay`; the worker calls
+the existing SDK-bound replay service and never talks to the authority directly.
+Set `EIMS_WORKERS_ENABLED=true` with `REDIS_URL` in production.
 
 Generated EIMS installs append `eims-submission-retry`, `eims-bulk-callback`,
 and `eims-offline-replay` to `BULLMQ_QUEUES` so platform operators can inspect

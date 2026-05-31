@@ -11,6 +11,7 @@ import type { EimsOfflinePendingInvoiceInput } from "../offline/eims-offline-pen
 import { EimsOfflinePendingSyncPersistenceService } from "../offline/eims-offline-pending-sync-persistence.service";
 import { EimsOfflineReplayService } from "../offline/eims-offline-replay.service";
 import { type EimsPrintProofInput, EimsPrintProofService } from "../printing/eims-print-proof.service";
+import { EimsOfflineReplayQueueService } from "../queues/eims-offline-replay-queue.service";
 
 interface AuthedRequest {
 	organizationId: string;
@@ -27,6 +28,7 @@ export class EimsSupportingResourcesController {
 		private readonly bulkReceiptStore: EimsBulkCallbackPersistenceService,
 		private readonly offlinePending: EimsOfflinePendingSyncPersistenceService,
 		private readonly offlineReplay: EimsOfflineReplayService,
+		private readonly offlineReplayQueue: EimsOfflineReplayQueueService,
 		private readonly printProof: EimsPrintProofService,
 	) {}
 
@@ -142,6 +144,12 @@ export class EimsSupportingResourcesController {
 	replayOfflinePending(@Req() req: AuthedRequest, @Body() body: { offlineId?: string; limit?: number }) {
 		if (body.offlineId) return this.offlineReplay.replayOne(req.organizationId, body.offlineId);
 		return this.offlineReplay.replayPending(req.organizationId, body.limit);
+	}
+
+	@Post("offline-pending/replay-job")
+	@RequirePermissions("eims-submission:retry")
+	queueOfflinePendingReplay(@Req() req: AuthedRequest, @Body() body: { offlineId?: string; limit?: number }) {
+		return this.offlineReplayQueue.enqueueReplay(req.organizationId, body);
 	}
 
 	@Get("cancellations")

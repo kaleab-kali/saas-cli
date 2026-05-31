@@ -18,6 +18,7 @@ import { EimsOfflinePendingSyncPersistenceService } from "./offline/eims-offline
 import { EimsOfflineReplayService } from "./offline/eims-offline-replay.service";
 import { EimsSupportingResourcesController } from "./presentation/eims-supporting-resources.controller";
 import { EimsPrintProofService } from "./printing/eims-print-proof.service";
+import { EimsOfflineReplayQueueService } from "./queues/eims-offline-replay-queue.service";
 import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.service";
 import { EimsSubmissionQueuePersistenceService } from "./queues/eims-submission-queue-persistence.service";
 
@@ -35,6 +36,7 @@ import { EimsSubmissionQueuePersistenceService } from "./queues/eims-submission-
 		EimsOfflinePendingSyncCacheService,
 		EimsOfflinePendingSyncPersistenceService,
 		EimsOfflineReplayService,
+		EimsOfflineReplayQueueService,
 		EimsPrintProofService,
 		EimsMockService,
 		MockEimsExternalClient,
@@ -60,6 +62,7 @@ import { EimsSubmissionQueuePersistenceService } from "./queues/eims-submission-
 		EimsOfflinePendingSyncCacheService,
 		EimsOfflinePendingSyncPersistenceService,
 		EimsOfflineReplayService,
+		EimsOfflineReplayQueueService,
 		EimsPrintProofService,
 		EimsMockService,
 		EimsSdkExternalClient,

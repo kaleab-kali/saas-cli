@@ -92,6 +92,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts",
+	"apps/api/src/modules/eims/shared/queues/eims-offline-replay-queue.service.ts",
+	"apps/api/src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts",
@@ -323,6 +325,10 @@ function assertGeneratedStructure() {
 		"generated EIMS local test gate includes queue coordinator tests",
 	);
 	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-offline-replay-queue.service.spec.ts"),
+		"generated EIMS local test gate includes offline replay queue tests",
+	);
+	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-submission-queue-persistence.service.spec.ts"),
 		"generated EIMS local test gate includes queue persistence tests",
 	);
@@ -365,6 +371,11 @@ function assertGeneratedStructure() {
 	assert(eimsStarter.envVars?.includes("EIMS_PHASE0_STRICT"), "scaffold state records EIMS strict-mode env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_CALLBACK_HMAC_SECRET"), "scaffold state records EIMS callback HMAC env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_LOOKUP_CACHE_TTL_SECONDS"), "scaffold state records EIMS lookup cache env metadata");
+	assert(eimsStarter.envVars?.includes("EIMS_WORKERS_ENABLED"), "scaffold state records EIMS worker env metadata");
+	assert(
+		eimsStarter.envVars?.includes("EIMS_OFFLINE_REPLAY_ATTEMPTS"),
+		"scaffold state records EIMS offline replay attempt metadata",
+	);
 	assert(eimsStarter.routes?.includes("/eims/setup"), "scaffold state records EIMS route metadata");
 	assert(eimsStarter.models?.includes("EimsCredential"), "scaffold state records EIMS model metadata");
 	assert(eimsStarter.permissions?.includes("eims-submission:*"), "scaffold state records EIMS permission metadata");
@@ -394,6 +405,11 @@ function assertGeneratedStructure() {
 	assert(productionEnvExample.includes("EIMS_SIGNING_PROVIDER=vault"), "EIMS production env example uses non-local signing");
 	assert(productionEnvExample.includes("EIMS_PHASE0_STRICT=true"), "EIMS production env example enables Phase 0 strict mode");
 	assert(productionEnvExample.includes("EIMS_CALLBACK_HMAC_SECRET="), "EIMS production env example documents callback HMAC secret");
+	assert(productionEnvExample.includes("EIMS_WORKERS_ENABLED=true"), "EIMS production env example enables workers");
+	assert(
+		productionEnvExample.includes("EIMS_OFFLINE_REPLAY_ATTEMPTS=5"),
+		"EIMS production env example configures offline replay attempts",
+	);
 	for (const envText of [rootEnvExample, productionEnvExample, apiEnvExample, apiEnv]) {
 		assert(envText.includes("eims-submission-retry"), "EIMS install registers submission retry queue in BullMQ env");
 		assert(envText.includes("eims-bulk-callback"), "EIMS install registers bulk callback queue in BullMQ env");
@@ -643,6 +659,12 @@ function assertGeneratedStructure() {
 	const queuePersistenceSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts",
 	);
+	const offlineReplayQueue = readProjectFile(
+		"apps/api/src/modules/eims/shared/queues/eims-offline-replay-queue.service.ts",
+	);
+	const offlineReplayQueueSpec = readProjectFile(
+		"apps/api/src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts",
+	);
 	const submissionService = readProjectFile("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");
 	const externalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-external-client.ts");
 	const sdkClientProvider = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.ts");
@@ -720,6 +742,20 @@ function assertGeneratedStructure() {
 		queuePersistenceSpec.includes("stores a durable reservation before SDK dispatch"),
 		"EIMS queue persistence tests cover durable reservation writes",
 	);
+	assert(offlineReplayQueue.includes("Worker"), "EIMS offline replay queue registers a BullMQ worker");
+	assert(offlineReplayQueue.includes("EIMS_WORKERS_ENABLED"), "EIMS offline replay queue is explicitly enabled by env");
+	assert(
+		offlineReplayQueue.includes("processReplayJob") && offlineReplayQueue.includes("replayOne"),
+		"EIMS offline replay queue processes jobs through the SDK-bound replay service",
+	);
+	assert(
+		offlineReplayQueueSpec.includes("deterministic job ids"),
+		"EIMS offline replay queue tests cover tenant-scoped job ids",
+	);
+	assert(
+		offlineReplayQueueSpec.includes("existing SDK-bound replay service"),
+		"EIMS offline replay queue tests cover worker delegation",
+	);
 	assert(
 		submissionService.includes("EimsSubmissionQueueService"),
 		"EIMS submission service uses queue/counter coordinator",
@@ -758,6 +794,7 @@ assert(sdkExternalClient.includes("validateCredential"), "EIMS SDK adapter deleg
 	assert(eimsSharedModule.includes("EimsSdkExternalClient"), "EIMS shared module provides SDK adapter");
 	assert(eimsSharedModule.includes('process.env.EIMS_MOCK_MODE === "false"'), "EIMS shared module switches to SDK outside mock mode");
 	assert(eimsSharedModule.includes("EimsSubmissionQueueService"), "EIMS shared module exports queue coordinator");
+	assert(eimsSharedModule.includes("EimsOfflineReplayQueueService"), "EIMS shared module exports offline replay queue");
 	assert(lookupService.includes("createHash"), "EIMS lookup service generates deterministic ETags");
 	assert(lookupService.includes("EIMS_LOOKUP_CACHE_TTL_SECONDS"), "EIMS lookup service honors lookup cache TTL env");
 	assert(lookupService.includes("cacheControl"), "EIMS lookup service returns cache-control metadata");
@@ -857,6 +894,11 @@ assert(sdkExternalClient.includes("validateCredential"), "EIMS SDK adapter deleg
 		supportingResourcesController.includes('"offline-pending/replay"') &&
 			supportingResourcesController.includes("replayPending"),
 		"EIMS API exposes SDK-bound offline replay endpoint",
+	);
+	assert(
+		supportingResourcesController.includes('"offline-pending/replay-job"') &&
+			supportingResourcesController.includes("offlineReplayQueue.enqueueReplay"),
+		"EIMS API exposes BullMQ offline replay enqueue endpoint",
 	);
 	assert(
 		supportingResourcesController.includes('"bulk/callback-receipts"') &&
