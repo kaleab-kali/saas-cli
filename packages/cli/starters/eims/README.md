@@ -22,6 +22,8 @@ Production readiness is enforced by `pnpm doctor:production`. For an EIMS instal
 
 Credential save/rotation stays SaaS-side because it owns tenant storage and redaction. Credential testing decrypts stored secret material only in memory, calls the EMIS SDK credential validation method, records the durable result, and returns no raw secrets or ciphertext.
 
+Receipt submission is SDK-bound. The SaaS layer validates the receipt number and linked invoice IRN before dispatch, then calls `registerReceipt` through `EIMS_EXTERNAL_CLIENT`.
+
 Invoice submission lanes persist `EimsCounterReservation` rows before calling the SDK and hydrate source counters from durable state after restart. `EimsSubmissionSourceLockService` adds a Redis source lock around reservation plus SDK dispatch so multi-node API or worker processes do not reserve the same source concurrently. Bulk submission uses `submitBulk` or one of the accepted SDK aliases (`submitBulkInvoices`, `registerBulkInvoices`, `submitBulkDocuments`) and seeds a durable pending conversation row. Bulk reconciliation refresh uses the same adapter boundary through `pollBulkStatus` or one of the accepted SDK aliases (`pollBulkConversation`, `getBulkStatus`, `getBulkConversationStatus`) and stores the polled result in durable callback receipt rows.
 
 Cancellation submission is also SDK-bound. The SaaS layer validates tenant input such as reason-code remarks, then calls `cancelInvoice` or one of the accepted SDK aliases (`cancelDocument`, `cancelTaxInvoice`, `submitCancellation`).

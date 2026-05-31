@@ -1213,7 +1213,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/bulk/eims-bulk-submission.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-scheduler.service.spec.ts src/modules/eims/shared/cancellations/eims-cancellation.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.spec.ts src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/bulk/eims-bulk-submission.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-scheduler.service.spec.ts src/modules/eims/shared/cancellations/eims-cancellation.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.spec.ts src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/receipts/application/eims-receipts.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:sdk-contract"] ??=
@@ -5934,6 +5934,7 @@ const callbackScheduler = read(
 const bulkReconciliationQueue = read(
 \t"apps/api/src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.ts",
 );
+const receiptService = read("apps/api/src/modules/eims/receipts/application/eims-receipts.service.ts");
 const cancellationService = read("apps/api/src/modules/eims/shared/cancellations/eims-cancellation.service.ts");
 assertIncludes(callbackPersistence, "PrismaService", "EIMS bulk callback receipts must use durable Prisma persistence");
 assertIncludes(
@@ -5992,6 +5993,13 @@ assertIncludes(
 \tbulkReconciliationQueue,
 \t"pollConversation",
 \t"EIMS bulk reconciliation queue must process jobs through SDK-bound polling",
+);
+assertIncludes(receiptService, "EIMS_EXTERNAL_CLIENT", "EIMS receipt submission must use the SDK adapter boundary");
+assertIncludes(receiptService, "registerReceipt", "EIMS receipt submission must call SDK receipt capability");
+assertIncludes(
+\treceiptService,
+\t"Receipt invoiceIrn is required before SDK dispatch",
+\t"EIMS receipt submission must validate linked invoice IRNs before SDK dispatch",
 );
 assertIncludes(cancellationService, "EIMS_EXTERNAL_CLIENT", "EIMS cancellation must use the SDK adapter boundary");
 assertIncludes(cancellationService, "cancelInvoice", "EIMS cancellation must call SDK cancellation capability");
@@ -6210,6 +6218,10 @@ and run \`pnpm test:eims:sdk-contract\`. This imports the SDK package, builds th
 same options used by the Nest provider, and verifies the package exposes the
 \`registerInvoice\`, \`registerReceipt\`, \`verifyIrn\`, bulk submission, bulk-status polling, invoice cancellation, and credential validation
 methods consumed by the SaaS adapter before sandbox credentials are exercised.
+
+Receipt submission is SaaS-validated for receipt number and linked invoice IRN,
+then sent through the SDK \`registerReceipt\` capability. The generated app does
+not embed authority receipt protocol details.
 
 Invoice submission lanes persist counter reservations before SDK dispatch and
 hydrate source counter state from durable rows after restart. Multi-node

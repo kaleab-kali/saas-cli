@@ -116,6 +116,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts",
 	"apps/api/src/modules/eims/setup/presentation/eims-setup.controller.ts",
 	"apps/api/src/modules/eims/submission/presentation/eims-submission.controller.ts",
+	"apps/api/src/modules/eims/receipts/application/eims-receipts.service.ts",
+	"apps/api/src/modules/eims/receipts/application/eims-receipts.service.spec.ts",
 	"apps/api/src/modules/eims/receipts/presentation/eims-receipts.controller.ts",
 	"apps/api/src/modules/eims/compliance/presentation/eims-compliance.controller.ts",
 	"apps/api/src/modules/eims/admin/presentation/eims-admin.controller.ts",
@@ -363,6 +365,10 @@ function assertGeneratedStructure() {
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-offline-replay-queue.service.spec.ts"),
 		"generated EIMS local test gate includes offline replay queue tests",
+	);
+	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-receipts.service.spec.ts"),
+		"generated EIMS local test gate includes SDK-bound receipt tests",
 	);
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-bulk-reconciliation-queue.service.spec.ts"),
@@ -635,6 +641,10 @@ function assertGeneratedStructure() {
 		"EIMS security smoke enforces bulk submission SDK boundary",
 	);
 	assert(
+		eimsSecuritySmoke.includes("EIMS receipt submission must use the SDK adapter boundary"),
+		"EIMS security smoke enforces receipt submission SDK boundary",
+	);
+	assert(
 		eimsSecuritySmoke.includes("EIMS cancellation must use the SDK adapter boundary"),
 		"EIMS security smoke enforces cancellation SDK boundary",
 	);
@@ -829,6 +839,8 @@ function assertGeneratedStructure() {
 		"apps/api/src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.spec.ts",
 	);
 	const submissionService = readProjectFile("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");
+	const receiptService = readProjectFile("apps/api/src/modules/eims/receipts/application/eims-receipts.service.ts");
+	const receiptServiceSpec = readProjectFile("apps/api/src/modules/eims/receipts/application/eims-receipts.service.spec.ts");
 	const externalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-external-client.ts");
 	const sdkClientProvider = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.ts");
 	const sdkClientProviderSpec = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts");
@@ -974,6 +986,20 @@ function assertGeneratedStructure() {
 	assert(
 		submissionService.includes("EimsSubmissionQueueService"),
 		"EIMS submission service uses queue/counter coordinator",
+	);
+	assert(receiptService.includes("EIMS_EXTERNAL_CLIENT"), "EIMS receipt service uses SDK client boundary");
+	assert(receiptService.includes("registerReceipt"), "EIMS receipt service delegates to SDK");
+	assert(
+		receiptService.includes("Receipt invoiceIrn is required before SDK dispatch"),
+		"EIMS receipt service validates linked invoice IRN before SDK dispatch",
+	);
+	assert(
+		receiptServiceSpec.includes("through the EIMS external client boundary"),
+		"EIMS receipt tests cover SDK-bound receipt submission",
+	);
+	assert(
+		receiptServiceSpec.includes("linked invoice IRN"),
+		"EIMS receipt tests cover pre-SDK linked-invoice validation",
 	);
 	assert(externalClient.includes("counter?: number"), "EIMS external client contract includes reserved counter");
 	assert(externalClient.includes("previousIrn?: string | null"), "EIMS external client contract includes previous IRN");
