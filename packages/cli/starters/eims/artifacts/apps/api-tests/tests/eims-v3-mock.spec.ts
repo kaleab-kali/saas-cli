@@ -82,7 +82,7 @@ test.describe("EIMS V3 backend mock API contract", () => {
 			]),
 		);
 		expect(body.data.readiness.steps.map((step: { label: string }) => step.label)).not.toContain(
-			"Sandbox invoice test",
+			"Controlled invoice test",
 		);
 		expect(body.data.alerts[0].message).toContain("MoR-approved system number");
 	});
@@ -556,7 +556,7 @@ test.describe("EIMS V3 backend mock API contract", () => {
 
 		const compliance = await (await request.get("/api/v1/admin/eims/compliance")).json();
 		expect(compliance.data.ready).toEqual(expect.arrayContaining(["V3 architecture plan"]));
-		expect(compliance.data.missing).toEqual(expect.arrayContaining(["Phase 0 Layer B sandbox report"]));
+		expect(compliance.data.missing).toEqual(expect.arrayContaining(["Controlled authority test evidence report"]));
 
 		const action = await request.post("/api/v1/admin/eims/actions/run", {
 			data: { action: "platform.health-check", targetId: "platform" },

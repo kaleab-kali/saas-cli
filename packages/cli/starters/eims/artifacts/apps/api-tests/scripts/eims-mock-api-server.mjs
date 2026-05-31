@@ -1173,7 +1173,7 @@ async function handleAdminEimsRoutes(req, res, path) {
 		return sendJson(res, 201, {
 			data: {
 				organizationId: "platform",
-				executionMode: "mock_until_sandbox",
+				executionMode: "mock_until_authority_test",
 				total: results.length,
 				passed: results.filter((result) => result.passed).length,
 				failed: results.filter((result) => !result.passed).length,
@@ -1300,7 +1300,7 @@ function acceptanceRun(caseId) {
 	return {
 		...testCase,
 		organizationId: "org_mock",
-		executionMode: "mock_until_sandbox",
+		executionMode: "mock_until_authority_test",
 		passed: assertions.every((assertion) => assertion.passed),
 		runId: `org_mock-${caseId}-mock-20260526`,
 		request: fixture.request,
@@ -1321,8 +1321,8 @@ function acceptanceRun(caseId) {
 			complianceArtifacts: [`request-payload-${caseId}.json`, `response-${caseId}.json`, `audit-event-${caseId}.json`],
 		},
 		notes: [
-			"Mock until INSA sandbox credentials arrive",
-			"Replay same case ID against real sandbox in Phase 0 Layer B",
+			"Mock until authority test credentials arrive",
+			"Replay the same case ID against the authority test environment and attach official IRN/RRN/QR evidence",
 		],
 	};
 }
@@ -1671,7 +1671,7 @@ function adminCompliance() {
 	return {
 		data: {
 			readiness: 68,
-			missing: ["Phase 0 Layer B sandbox report", "Bank guarantee scanned copy", "Data residency legal opinion"],
+			missing: ["Controlled authority test evidence report", "Bank guarantee scanned copy", "Data residency legal opinion"],
 			ready: [
 				"V3 architecture plan",
 				"Layer A local test assets",

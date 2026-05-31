@@ -66,6 +66,8 @@ Document:
 - Object storage configuration.
 - Queue worker startup.
 
+The default VPS deploy runner keeps timestamped releases under `/var/www/{{projectSlug}}/releases` and points `/var/www/{{projectSlug}}/current` at the active release. If a deploy health check fails, it automatically restores the previous `current` symlink and reloads PM2. Keep at least five release directories so manual rollback remains available during incidents.
+
 ## Key Loss
 
 If `MASTER_KEY` is lost, encrypted fields cannot be recovered. Keep production secrets in a password manager or managed secrets store with access audit logs.

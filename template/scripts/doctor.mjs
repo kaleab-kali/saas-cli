@@ -110,10 +110,12 @@ const main = async () => {
 
 	for (const script of [
 		"lint:ci",
+		"deploy",
 		"build:api",
 		"build:web",
 		"db:backup",
 		"db:restore",
+		"db:migrate:deploy",
 		"test:ci",
 		"test:smoke",
 		"test:security",
@@ -129,6 +131,7 @@ const main = async () => {
 		["apps/api/stryker.conf.mjs", "mutation testing config"],
 		["scripts/backup-postgres.mjs", "Postgres backup script"],
 		["scripts/restore-postgres.mjs", "Postgres restore script"],
+		["scripts/deploy.mjs", "VPS deploy script"],
 		[".gitleaks.toml", "gitleaks config"],
 		["docs/SECURITY.md", "security guide"],
 		["docs/PRE_LAUNCH_CHECKLIST.md", "pre-launch checklist"],

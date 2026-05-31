@@ -13,6 +13,7 @@ Use this checklist before moving a generated SaaS into production.
 - `pnpm test:security:tooling` passes.
 - `pnpm test:load:k6:mock` passes.
 - `pnpm doctor:production` has no failures.
+- `pnpm deploy staging --dry-run` prints the expected release, backup, migration, PM2 reload, and health-check commands.
 
 ## Environment
 
@@ -39,6 +40,8 @@ Use this checklist before moving a generated SaaS into production.
 - Queue workers are running.
 - Failed job retry process is documented.
 - Admin credentials are stored in a password manager.
+- The VPS has `shared/apps/api/.env` and `shared/apps/web/.env` outside the release directories.
+- Rollback has been rehearsed by repointing the `current` symlink to the previous release.
 
 ## Security
 

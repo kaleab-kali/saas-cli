@@ -26,6 +26,7 @@
 		"test:e2e": "jest --config ./test/jest-e2e.json",
 		"db:generate": "prisma generate && node ../../scripts/trim-generated-prisma.mjs",
 		"db:migrate": "prisma migrate dev",
+		"db:migrate:deploy": "prisma migrate deploy",
 		"db:push": "prisma db push",
 		"db:studio": "prisma studio",
 		"db:seed": "tsx prisma/seed.ts && tsx prisma/seed-plans.ts && tsx prisma/seed-platform-settings.ts && tsx prisma/seed-system-templates.ts && tsx prisma/seed-onboarding-templates.ts && tsx prisma/seed-sample-subscription.ts"

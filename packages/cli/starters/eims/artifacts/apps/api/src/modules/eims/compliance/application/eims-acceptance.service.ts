@@ -31,7 +31,7 @@ type AcceptanceEvidence = {
 
 export type EimsAcceptanceRunResult = EimsAcceptanceCaseDefinition & {
 	organizationId: string;
-	executionMode: "mock_until_sandbox";
+	executionMode: "mock_until_authority_test";
 	passed: boolean;
 	runId: string;
 	request: unknown;
@@ -77,7 +77,7 @@ export class EimsAcceptanceService {
 		return {
 			data: {
 				organizationId,
-				executionMode: "mock_until_sandbox" as const,
+				executionMode: "mock_until_authority_test" as const,
 				total: results.length,
 				passed: results.filter((result) => result.passed).length,
 				failed: results.filter((result) => !result.passed).length,
@@ -100,7 +100,7 @@ export class EimsAcceptanceService {
 		return {
 			...definition,
 			organizationId,
-			executionMode: "mock_until_sandbox",
+			executionMode: "mock_until_authority_test",
 			passed: assertions.every((assertion) => assertion.passed),
 			runId: `${organizationId}-${definition.caseId}-mock-20260526`,
 			request: fixture.request,
@@ -108,8 +108,8 @@ export class EimsAcceptanceService {
 			assertions,
 			evidence: buildEvidence(definition, fixture),
 			notes: [
-				"This run uses deterministic backend mock responses until INSA/MoR sandbox credentials are issued.",
-				"Layer B must replay the same case IDs against the real sandbox and attach official IRN/RRN/QR evidence.",
+				"This run uses deterministic backend mock responses until INSA/MoR authority test credentials are issued.",
+				"The same case IDs must be replayed against the authority test environment with official IRN/RRN/QR evidence attached.",
 			],
 		};
 	}

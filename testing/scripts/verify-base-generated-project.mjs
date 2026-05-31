@@ -72,8 +72,11 @@ const mustExist = [
 	"apps/web/src/types/hugeicons-core-free-icons.d.ts",
 	"apps/e2e/tests/smoke.spec.ts",
 	"apps/security/scripts/source-security-check.mjs",
+	".env.deploy.example",
 	"scripts/backup-postgres.mjs",
+	"scripts/deploy.mjs",
 	"scripts/restore-postgres.mjs",
+	"docs/DEPLOYMENT.md",
 ];
 
 const textFilesWithoutEims = [
@@ -148,6 +151,10 @@ function assertDeployGateBuilds() {
 	const performanceMockK6 = readProjectFile("apps/performance/scripts/mock-k6.mjs");
 	const strykerConfig = readProjectFile("apps/api/stryker.conf.mjs");
 	const moduleMutationRunner = readProjectFile("apps/api/scripts/run-module-mutation.mjs");
+	const deployRunner = readProjectFile("scripts/deploy.mjs");
+	const doctor = readProjectFile("scripts/doctor.mjs");
+	const deploymentGuide = readProjectFile("docs/DEPLOYMENT.md");
+	const deployEnvExample = readProjectFile(".env.deploy.example");
 	const testingGuide = readProjectFile("docs/TESTING_GUIDE.md");
 	const deployCheck = packageJson.scripts?.["deploy:check"] ?? "";
 	const testCi = packageJson.scripts?.["test:ci"] ?? "";
@@ -163,6 +170,27 @@ function assertDeployGateBuilds() {
 	assert(deployCheck.includes("pnpm typecheck"), "deploy gate includes typecheck without duplicate Prisma generation");
 	assert(!deployCheck.includes("lint:ci"), "deploy gate avoids nested lint:ci duplicate Prisma generation");
 	assert(!deployCheck.includes("test:ci &&"), "deploy gate does not bypass browser smoke via narrow CI gate");
+	assert(packageJson.scripts?.deploy === "node scripts/deploy.mjs", "base package exposes guarded deploy command");
+	assert(packageJson.scripts?.["db:migrate:deploy"] === "pnpm --filter api db:migrate:deploy", "base package exposes production migration command");
+	assert(apiPackageJson.scripts?.["db:migrate:deploy"] === "prisma migrate deploy", "API workspace exposes Prisma deploy migration command");
+	assert(deployRunner.includes("DEPLOY_HOST"), "deploy runner requires a remote host");
+	assert(deployRunner.includes("--confirm-production"), "deploy runner requires explicit production confirmation");
+	assert(deployRunner.includes("--dry-run"), "deploy runner supports dry-run deployment planning");
+	assert(deployRunner.includes(".env.deploy.${environment}"), "deploy runner reads environment-specific deploy config");
+	assert(deployRunner.includes("rsync"), "deploy runner copies releases with rsync");
+	assert(deployRunner.includes("pnpm db:backup"), "deploy runner takes a remote pre-migration backup");
+	assert(deployRunner.includes("prisma migrate deploy"), "deploy runner applies production-safe migrations");
+	assert(deployRunner.includes("pm2 reload"), "deploy runner reloads PM2");
+	assert(deployRunner.includes("Health check failed; rolling back."), "deploy runner rolls back on health-check failure");
+	assert(deployRunner.includes("DEPLOY_KEEP_RELEASES"), "deploy runner prunes old releases");
+	assert(doctor.includes('"deploy"'), "production doctor requires deploy script");
+	assert(doctor.includes('"db:migrate:deploy"'), "production doctor requires deploy migration script");
+	assert(doctor.includes("VPS deploy script"), "production doctor verifies the deploy runner exists");
+	assert(deploymentGuide.includes("pnpm deploy production --confirm-production"), "deployment guide documents production deploy command");
+	assert(deploymentGuide.includes("current -> releases/<release-id>"), "deployment guide documents release symlink layout");
+	assert(deploymentGuide.includes("shared/apps/api/.env"), "deployment guide documents shared runtime env files");
+	assert(deployEnvExample.includes("DEPLOY_HOST="), "deploy env example includes remote host");
+	assert(deployEnvExample.includes("DEPLOY_PM2_APP="), "deploy env example includes PM2 app name");
 	assert(testCi.includes("test:api:http:mock"), "CI test gate includes mock HTTP API tests");
 	assert(testCi.includes("test:api:bruno:mock"), "CI test gate includes mock Bruno API tests");
 	assert(apiTestsPackageJson.scripts?.["test:http"] === "node scripts/run-http.mjs", "HTTP API command uses runner");

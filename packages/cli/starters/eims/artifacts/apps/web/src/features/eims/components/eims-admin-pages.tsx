@@ -135,7 +135,7 @@ const adminLaunchLanes = [
 		status: "Watch",
 	},
 	{
-		title: "Sandbox proof lane",
+		title: "Controlled invoice proof lane",
 		detail: "Every tenant must produce a test IRN and QR evidence before the live invoice switch is opened.",
 		status: "Gate",
 	},
@@ -155,7 +155,7 @@ const authorityDeskLanes = [
 		next: "Send follow-up package and keep request evidence attached to the tenant task",
 	},
 	{
-		title: "Sandbox proof desk",
+		title: "Controlled test invoice desk",
 		sla: "Same day after certificate",
 		signal: "Credentials and certificate exist but test invoice has not returned IRN",
 		next: "Run the controlled invoice, record QR evidence, and classify failures before retry",
@@ -180,7 +180,7 @@ function AdminConciergeQueuePanel({ stats }: { readonly stats: readonly (readonl
 					<h2 className="mt-1 text-xl font-semibold tracking-normal">Tenant onboarding command queue</h2>
 					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
 						Cross-tenant view for the 15-step EIMS restaurant launch workflow: staff intake, MoR approval, INSA
-						certificate, sandbox proof, and first production invoice.
+						certificate, controlled invoice proof, and first production invoice.
 					</p>
 				</div>
 				<div className="grid grid-cols-2 gap-2">
@@ -223,7 +223,7 @@ function AdminAuthorityDeskPanel({ stats }: { readonly stats: readonly (readonly
 					<p className="text-sm font-semibold">MoR/INSA authority desk</p>
 					<h2 className="mt-1 text-xl font-semibold tracking-normal">Cross-tenant launch blockers</h2>
 					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-						Operations view for authority waits, certificate handoffs, sandbox proof, and the live invoice switch.
+						Operations view for authority waits, certificate handoffs, controlled invoice proof, and the live invoice switch.
 					</p>
 				</div>
 				<div className="grid grid-cols-3 gap-2">
@@ -464,7 +464,7 @@ export function AdminEimsOverviewPage() {
 			</div>
 			<AdminActionPanel
 				title="Platform Controls"
-				description="Operational actions that super admins need before sandbox access: pause queues, run health checks, and generate evidence."
+				description="Operational actions that super admins need before authority testing access: pause queues, run health checks, and generate evidence."
 				actions={[
 					{ label: "Run EIMS health check", action: "platform.health-check" },
 					{ label: "Pause all unknown queues", action: "platform.pause-unknown", variant: "outline" },
@@ -644,7 +644,7 @@ export function AdminEimsResourcesPage() {
 						headers={["Control", "Status", "Detail"]}
 						rows={[
 							["Vault", data.data.vault.status, data.data.vault.provider],
-							["MoR sandbox", data.data.mor.sandbox, "sandbox"],
+							["MoR test environment", data.data.mor.sandbox, "authority test"],
 							["MoR production", data.data.mor.production, "production"],
 						]}
 					/>

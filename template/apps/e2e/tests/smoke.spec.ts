@@ -219,6 +219,7 @@ async function installAuthenticatedMocks(page: Page) {
 async function installAdminMocks(page: Page) {
 	const onboardingListRequests: string[] = [];
 
+	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this e2e mock dispatches many independent admin API fixtures.
 	await page.route("**/api/v1/**", async (route: Route) => {
 		const url = route.request().url();
 		if (url.includes("/admin/auth/me")) {

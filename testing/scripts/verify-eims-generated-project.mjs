@@ -392,6 +392,9 @@ function assertGeneratedStructure() {
 	assert(adminPages.includes("MoR/INSA queue"), "admin EIMS UI separates MoR and INSA launch queues");
 	assert(adminPages.includes("MoR/INSA authority desk"), "admin EIMS UI exposes authority blocker operations");
 	assert(adminPages.includes("Cross-tenant launch blockers"), "admin EIMS UI highlights cross-tenant blockers");
+	assert(adminPages.includes("Controlled invoice proof lane"), "admin EIMS UI names the controlled invoice proof lane");
+	assert(adminPages.includes("MoR test environment"), "admin EIMS UI labels MoR test connectivity without sandbox jargon");
+	assert(!adminPages.includes("sandbox proof"), "admin EIMS UI avoids old sandbox proof wording");
 	assert(adminPages.includes("SharedDataTable"), "admin EIMS pages use the shared DataTable surface");
 	assert(!adminPages.includes("@/components/ui/table"), "admin EIMS pages do not use raw table primitives");
 	const permissions = readProjectFile("apps/api/src/modules/auth/permissions.ts");

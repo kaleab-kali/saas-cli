@@ -729,7 +729,7 @@ test.describe("super-admin EIMS operations owns provider compliance and BSP evid
 			await expectRowContains(page, queue.name, [queue.depth, queue.status]);
 		}
 		await expectRowContains(page, "Vault", [resources.data.vault.status, resources.data.vault.provider]);
-		await expectRowContains(page, "MoR sandbox", [resources.data.mor.sandbox, "sandbox"]);
+		await expectRowContains(page, "MoR test environment", [resources.data.mor.sandbox, "authority test"]);
 
 		const compliance = await gotoAndWait<ApiEnvelope<AdminCompliance>>(
 			page,

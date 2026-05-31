@@ -1,4 +1,4 @@
 # EIMS Canonicalization
 
-JSON canonicalization implementation lives here after Phase 0 locks the exact
-format accepted by MoR sandbox.
+JSON canonicalization implementation lives here after the authority test run
+locks the exact format accepted by MoR.

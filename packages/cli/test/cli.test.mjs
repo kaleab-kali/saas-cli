@@ -24,6 +24,10 @@ const runCli = (args, options = {}) =>
 
 const outputOf = (result) => `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
 
+const removeDir = (dir) => {
+	rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+};
+
 const readEnv = (filePath) => {
 	const out = {};
 	for (const line of readFileSync(filePath, "utf8").split(/\r?\n/)) {
@@ -85,7 +89,7 @@ test("doctor command runs in advisory mode", () => {
 
 test("doctor checks installed starter env vars from pack metadata", () => {
 	const targetDir = path.join(tmpRoot, `doctor-eims-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
-	rmSync(targetDir, { recursive: true, force: true });
+	removeDir(targetDir);
 
 	try {
 		mkdirSync(path.join(targetDir, "apps/api"), { recursive: true });
@@ -112,13 +116,13 @@ test("doctor checks installed starter env vars from pack metadata", () => {
 		assert.match(output, /starter:eims env/);
 		assert.match(output, /EIMS_BASE_URL_SANDBOX/);
 	} finally {
-		rmSync(targetDir, { recursive: true, force: true });
+		removeDir(targetDir);
 	}
 });
 
 test("unknown starter fails before creating the target project", () => {
 	const targetDir = path.join(tmpRoot, `unknown-starter-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
-	rmSync(targetDir, { recursive: true, force: true });
+	removeDir(targetDir);
 
 	try {
 		const result = runCli([targetDir, "--yes", "--starter", "missing-pack"], { timeout: 120_000 });
@@ -126,13 +130,13 @@ test("unknown starter fails before creating the target project", () => {
 		assert.match(outputOf(result), /Unknown starter pack 'missing-pack'/);
 		assert.ok(!existsSync(targetDir), "target project should not be created when starter validation fails");
 	} finally {
-		rmSync(targetDir, { recursive: true, force: true });
+		removeDir(targetDir);
 	}
 });
 
 test("scaffolds a base project through the bin entrypoint", () => {
 	const targetDir = path.join(tmpRoot, `base-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
-	rmSync(targetDir, { recursive: true, force: true });
+	removeDir(targetDir);
 
 	try {
 		const result = runCli([targetDir, "--yes"], { timeout: 120_000 });
@@ -149,13 +153,13 @@ test("scaffolds a base project through the bin entrypoint", () => {
 		assert.match(packageJson.scripts["deploy:check"], /build:api/);
 		assert.match(packageJson.scripts["deploy:check"], /build:web/);
 	} finally {
-		rmSync(targetDir, { recursive: true, force: true });
+		removeDir(targetDir);
 	}
 });
 
 test("adds and removes the EIMS starter without leaving generated residue", () => {
 	const targetDir = path.join(tmpRoot, `eims-remove-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
-	rmSync(targetDir, { recursive: true, force: true });
+	removeDir(targetDir);
 
 	try {
 		const scaffoldResult = runCli([targetDir, "--yes"], { timeout: 120_000 });
@@ -200,13 +204,13 @@ test("adds and removes the EIMS starter without leaving generated residue", () =
 			"EIMS scripts should be removed",
 		);
 	} finally {
-		rmSync(targetDir, { recursive: true, force: true });
+		removeDir(targetDir);
 	}
 });
 
 test("refreshes an already-installed EIMS starter UI without reinstalling API modules", () => {
 	const targetDir = path.join(tmpRoot, `eims-refresh-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
-	rmSync(targetDir, { recursive: true, force: true });
+	removeDir(targetDir);
 
 	try {
 		const scaffoldResult = runCli([targetDir, "--yes"], { timeout: 120_000 });
@@ -238,6 +242,6 @@ test("refreshes an already-installed EIMS starter UI without reinstalling API mo
 		assert.match(readFileSync(apiModule, "utf8"), /local API implementation marker/);
 		assert.match(outputOf(refreshResult), /EIMS starter refresh complete/);
 	} finally {
-		rmSync(targetDir, { recursive: true, force: true });
+		removeDir(targetDir);
 	}
 });
