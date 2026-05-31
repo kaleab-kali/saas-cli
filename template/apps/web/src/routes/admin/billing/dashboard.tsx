@@ -1,22 +1,172 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
+	type PastDueInvoice,
+	type PendingPayment,
 	useBillingDashboard,
 	usePastDueInvoices,
 	usePendingVerification,
 	useRevenueTrend,
 	useVerifyPayment,
 } from "#features/admin/api/admin-billing-dashboard.hooks";
+import { DataTable } from "#shared/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+interface PlanRevenueRow {
+	readonly slug: string;
+	readonly count: number;
+	readonly mrrMinor: number;
+}
+
+const dateFormatter = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" });
 const fmt = (n: number) => new Intl.NumberFormat("en-US").format(n);
 const fmtMinor = (amountMinor: number, currency = "USD") =>
 	new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amountMinor / 100);
+
+const planRevenueColumns: ColumnDef<PlanRevenueRow, unknown>[] = [
+	{
+		accessorKey: "slug",
+		header: "Plan",
+		cell: ({ row }) => <span className="font-mono">{row.original.slug}</span>,
+		meta: { filter: { type: "text" } },
+	},
+	{
+		accessorKey: "count",
+		header: "Subs",
+		cell: ({ row }) => row.original.count,
+		meta: { className: "text-right", headerClassName: "text-right" },
+	},
+	{
+		accessorKey: "mrrMinor",
+		header: "MRR",
+		cell: ({ row }) => <span className="font-mono">{fmtMinor(Math.round(row.original.mrrMinor))}</span>,
+		meta: { className: "text-right", headerClassName: "text-right" },
+	},
+];
+
+const pastDueColumns: ColumnDef<PastDueInvoice, unknown>[] = [
+	{
+		accessorKey: "number",
+		header: "Invoice",
+		cell: ({ row }) => <span className="font-medium">{row.original.number}</span>,
+		meta: { filter: { type: "text" } },
+	},
+	{
+		id: "organization",
+		accessorFn: (invoice) => invoice.organizationName ?? invoice.organizationId,
+		header: "Org",
+		cell: ({ row }) => (
+			<div>
+				<div className="text-sm">{row.original.organizationName ?? "-"}</div>
+				<div className="text-[10px] text-muted-foreground font-mono">{row.original.organizationId}</div>
+			</div>
+		),
+		meta: { filter: { type: "text" } },
+	},
+	{
+		accessorKey: "daysPastDue",
+		header: "Days late",
+		cell: ({ row }) => <Badge variant="destructive">{row.original.daysPastDue}d</Badge>,
+		meta: { className: "text-right", headerClassName: "text-right" },
+	},
+	{
+		id: "outstanding",
+		accessorFn: (invoice) => invoice.totalMinor - invoice.amountPaidMinor,
+		header: "Outstanding",
+		cell: ({ row }) => (
+			<span className="font-mono text-destructive">
+				{fmtMinor(Math.round(row.original.totalMinor - row.original.amountPaidMinor), row.original.currency)}
+			</span>
+		),
+		meta: { className: "text-right", headerClassName: "text-right" },
+	},
+	{
+		id: "actions",
+		header: "",
+		enableSorting: false,
+		enableColumnFilter: false,
+		cell: ({ row }) => (
+			<Link
+				to="/admin/billing/$subscriptionId"
+				params={{ subscriptionId: row.original.subscriptionId }}
+				className="text-primary hover:underline text-xs"
+			>
+				Manage
+			</Link>
+		),
+		meta: { className: "text-right", headerClassName: "text-right" },
+	},
+];
+
+function buildPendingPaymentColumns(verify: ReturnType<typeof useVerifyPayment>): ColumnDef<PendingPayment, unknown>[] {
+	return [
+		{
+			accessorKey: "invoiceNumber",
+			header: "Invoice",
+			cell: ({ row }) => <span className="font-medium">{row.original.invoiceNumber ?? "-"}</span>,
+			meta: { filter: { type: "text" } },
+		},
+		{
+			id: "organization",
+			accessorFn: (payment) => payment.organizationName ?? payment.organizationId,
+			header: "Org",
+			cell: ({ row }) => (
+				<div>
+					<div className="text-sm">{row.original.organizationName ?? "-"}</div>
+					<div className="text-[10px] text-muted-foreground font-mono">{row.original.organizationId}</div>
+				</div>
+			),
+			meta: { filter: { type: "text" } },
+		},
+		{
+			accessorKey: "method",
+			header: "Method",
+			cell: ({ row }) => <span className="capitalize">{row.original.method.replace("_", " ")}</span>,
+			meta: { filter: { type: "text" } },
+		},
+		{
+			id: "reference",
+			accessorFn: (payment) => payment.receiptNumber || payment.bankReference || "",
+			header: "Reference",
+			cell: ({ row }) => (
+				<span className="font-mono text-xs">{row.original.receiptNumber || row.original.bankReference || "-"}</span>
+			),
+			meta: { filter: { type: "text" } },
+		},
+		{
+			accessorKey: "amountMinor",
+			header: "Amount",
+			cell: ({ row }) => (
+				<span className="font-mono">{fmtMinor(Math.round(row.original.amountMinor), row.original.currency)}</span>
+			),
+			meta: { className: "text-right", headerClassName: "text-right" },
+		},
+		{
+			accessorKey: "paidAt",
+			header: "Paid on",
+			cell: ({ row }) => (
+				<span className="text-muted-foreground">{dateFormatter.format(new Date(row.original.paidAt))}</span>
+			),
+		},
+		{
+			id: "actions",
+			header: "",
+			enableSorting: false,
+			enableColumnFilter: false,
+			cell: ({ row }) => (
+				<Button size="sm" onClick={() => verify.mutate(row.original.id)} disabled={verify.isPending}>
+					Verify
+				</Button>
+			),
+			meta: { className: "text-right", headerClassName: "text-right" },
+		},
+	];
+}
 
 const RevenueTrendChart = React.memo(
 	() => {
@@ -46,52 +196,20 @@ RevenueTrendChart.displayName = "RevenueTrendChart";
 const PastDueTable = React.memo(
 	() => {
 		const { data = [], isLoading } = usePastDueInvoices();
-		if (isLoading) return <Skeleton className="h-48 w-full" />;
-		if (data.length === 0)
-			return <p className="text-sm text-muted-foreground py-4 text-center">No past-due invoices.</p>;
 		return (
-			<div className="overflow-x-auto">
-				<Table className="w-full text-sm">
-					<TableHeader className="bg-muted/40">
-						<TableRow>
-							<TableHead className="text-left p-2">Invoice</TableHead>
-							<TableHead className="text-left p-2">Org</TableHead>
-							<TableHead className="text-right p-2">Days late</TableHead>
-							<TableHead className="text-right p-2">Outstanding</TableHead>
-							<TableHead className="text-left p-2" />
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{data.map((inv) => {
-							const outstanding = inv.totalMinor - inv.amountPaidMinor;
-							return (
-								<TableRow key={inv.id} className="border-t">
-									<TableCell className="p-2 font-medium">{inv.number}</TableCell>
-									<TableCell className="p-2">
-										<div className="text-sm">{inv.organizationName ?? "—"}</div>
-										<div className="text-[10px] text-muted-foreground font-mono">{inv.organizationId}</div>
-									</TableCell>
-									<TableCell className="p-2 text-right">
-										<Badge variant="destructive">{inv.daysPastDue}d</Badge>
-									</TableCell>
-									<TableCell className="p-2 text-right font-mono text-destructive">
-										{fmtMinor(Math.round(outstanding), inv.currency)}
-									</TableCell>
-									<TableCell className="p-2">
-										<Link
-											to="/admin/billing/$subscriptionId"
-											params={{ subscriptionId: inv.subscriptionId }}
-											className="text-primary hover:underline text-xs"
-										>
-											manage →
-										</Link>
-									</TableCell>
-								</TableRow>
-							);
-						})}
-					</TableBody>
-				</Table>
-			</div>
+			<DataTable
+				columns={pastDueColumns}
+				data={data}
+				isLoading={isLoading}
+				searchPlaceholder="Search past-due invoices..."
+				emptyTitle="No past-due invoices"
+				emptyMessage="No invoices currently need overdue follow-up."
+				enableCsvExport
+				exportFilename="past-due-invoices.csv"
+				savedViewsEntity="admin-billing-past-due"
+				getRowId={(invoice) => invoice.id}
+				pageSize={10}
+			/>
 		);
 	},
 	() => true,
@@ -102,56 +220,54 @@ const PendingVerificationTable = React.memo(
 	() => {
 		const { data = [], isLoading } = usePendingVerification();
 		const verify = useVerifyPayment();
-		if (isLoading) return <Skeleton className="h-48 w-full" />;
-		if (data.length === 0)
-			return <p className="text-sm text-muted-foreground py-4 text-center">No pending verifications.</p>;
+		const columns = React.useMemo(() => buildPendingPaymentColumns(verify), [verify]);
 		return (
-			<div className="overflow-x-auto">
-				<Table className="w-full text-sm">
-					<TableHeader className="bg-muted/40">
-						<TableRow>
-							<TableHead className="text-left p-2">Invoice</TableHead>
-							<TableHead className="text-left p-2">Org</TableHead>
-							<TableHead className="text-left p-2">Method</TableHead>
-							<TableHead className="text-left p-2">Reference</TableHead>
-							<TableHead className="text-right p-2">Amount</TableHead>
-							<TableHead className="text-left p-2">Paid on</TableHead>
-							<TableHead className="text-right p-2" />
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{data.map((p) => (
-							<TableRow key={p.id} className="border-t">
-								<TableCell className="p-2 font-medium">{p.invoiceNumber ?? "—"}</TableCell>
-								<TableCell className="p-2">
-									<div className="text-sm">{p.organizationName ?? "—"}</div>
-									<div className="text-[10px] text-muted-foreground font-mono">{p.organizationId}</div>
-								</TableCell>
-								<TableCell className="p-2 capitalize">{p.method.replace("_", " ")}</TableCell>
-								<TableCell className="p-2 font-mono text-xs">{p.receiptNumber || p.bankReference || "—"}</TableCell>
-								<TableCell className="p-2 text-right font-mono">
-									{fmtMinor(Math.round(p.amountMinor), p.currency)}
-								</TableCell>
-								<TableCell className="p-2">{new Date(p.paidAt).toLocaleDateString()}</TableCell>
-								<TableCell className="p-2 text-right">
-									<Button size="sm" onClick={() => verify.mutate(p.id)} disabled={verify.isPending}>
-										Verify
-									</Button>
-								</TableCell>
-							</TableRow>
-						))}
-					</TableBody>
-				</Table>
-			</div>
+			<DataTable
+				columns={columns}
+				data={data}
+				isLoading={isLoading}
+				searchPlaceholder="Search pending payments..."
+				emptyTitle="No pending verifications"
+				emptyMessage="All manual payments have been verified."
+				enableCsvExport
+				exportFilename="pending-payment-verifications.csv"
+				savedViewsEntity="admin-billing-pending-payments"
+				getRowId={(payment) => payment.id}
+				pageSize={10}
+			/>
 		);
 	},
 	() => true,
 );
 PendingVerificationTable.displayName = "PendingVerificationTable";
 
+function PlanRevenueTable({ rows }: { readonly rows: readonly PlanRevenueRow[] }) {
+	return (
+		<DataTable
+			columns={planRevenueColumns}
+			data={rows}
+			searchPlaceholder="Search plan revenue..."
+			emptyTitle="No plan revenue"
+			emptyMessage="No subscription revenue has been recorded yet."
+			enableCsvExport
+			exportFilename="revenue-by-plan.csv"
+			savedViewsEntity="admin-billing-revenue-by-plan"
+			getRowId={(row) => row.slug}
+			pageSize={10}
+		/>
+	);
+}
+
 const BillingDashboard = React.memo(
 	() => {
 		const { data, isLoading } = useBillingDashboard();
+
+		const planRevenueRows = React.useMemo<PlanRevenueRow[]>(() => {
+			if (!data) return [];
+			return Object.entries(data.byPlan)
+				.map(([slug, stats]) => ({ slug, count: stats.count, mrrMinor: stats.mrrMinor }))
+				.sort((a, b) => b.mrrMinor - a.mrrMinor);
+		}, [data]);
 
 		if (isLoading) return <Skeleton className="h-96 w-full" />;
 		if (!data) return null;
@@ -164,7 +280,7 @@ const BillingDashboard = React.memo(
 						<p className="text-sm text-muted-foreground">Platform-wide revenue and subscription health.</p>
 					</div>
 					<Link to="/admin/billing" className="text-sm text-primary hover:underline">
-						→ View all subscriptions
+						View all subscriptions
 					</Link>
 				</div>
 
@@ -211,7 +327,9 @@ const BillingDashboard = React.memo(
 
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">Revenue trend (12 months)</CardTitle>
+						<CardTitle className="text-base" role="heading" aria-level={2}>
+							Revenue trend (12 months)
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<RevenueTrendChart />
@@ -221,7 +339,9 @@ const BillingDashboard = React.memo(
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<Card>
 						<CardHeader>
-							<CardTitle className="text-base">Subscriptions by status</CardTitle>
+							<CardTitle className="text-base" role="heading" aria-level={2}>
+								Subscriptions by status
+							</CardTitle>
 						</CardHeader>
 						<CardContent>
 							<ul className="space-y-2">
@@ -249,38 +369,21 @@ const BillingDashboard = React.memo(
 
 					<Card>
 						<CardHeader>
-							<CardTitle className="text-base">Revenue by plan</CardTitle>
+							<CardTitle className="text-base" role="heading" aria-level={2}>
+								Revenue by plan
+							</CardTitle>
 						</CardHeader>
 						<CardContent>
-							<Table className="w-full text-sm">
-								<TableHeader>
-									<TableRow className="text-left text-muted-foreground border-b">
-										<TableHead className="pb-2">Plan</TableHead>
-										<TableHead className="pb-2 text-right">Subs</TableHead>
-										<TableHead className="pb-2 text-right">MRR</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{Object.entries(data.byPlan)
-										.sort(([, a], [, b]) => b.mrrMinor - a.mrrMinor)
-										.map(([slug, stats]) => (
-											<TableRow key={slug} className="border-b last:border-0">
-												<TableCell className="py-2 font-mono">{slug}</TableCell>
-												<TableCell className="py-2 text-right">{stats.count}</TableCell>
-												<TableCell className="py-2 text-right font-mono">
-													{fmtMinor(Math.round(stats.mrrMinor))}
-												</TableCell>
-											</TableRow>
-										))}
-								</TableBody>
-							</Table>
+							<PlanRevenueTable rows={planRevenueRows} />
 						</CardContent>
 					</Card>
 				</div>
 
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">Past-due invoices</CardTitle>
+						<CardTitle className="text-base" role="heading" aria-level={2}>
+							Past-due invoices
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<PastDueTable />
@@ -289,7 +392,9 @@ const BillingDashboard = React.memo(
 
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">Manual payments awaiting verification</CardTitle>
+						<CardTitle className="text-base" role="heading" aria-level={2}>
+							Manual payments awaiting verification
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						<PendingVerificationTable />

@@ -43,6 +43,8 @@ The subscription index uses the shared DataTable surface for searchable account 
 
 Plan detail pages use DataTable for feature entitlement review so admins can search feature keys, filter enabled state, export entitlement matrices, and preserve saved views while editing limits.
 
+The billing dashboard uses DataTable for revenue by plan, past-due invoice follow-up, and pending manual payment verification so finance operators can search, export, and save operational review views.
+
 ## Server Management
 Route: `/admin/server`
 

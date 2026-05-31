@@ -340,6 +340,78 @@ async function installAdminMocks(page: Page) {
 			);
 			return;
 		}
+		if (url.includes("/admin/billing/dashboard/revenue-trend")) {
+			await route.fulfill(
+				ok({
+					data: [
+						{ month: "2026-04", revenueMinor: 350000 },
+						{ month: "2026-05", revenueMinor: 450000 },
+					],
+				}),
+			);
+			return;
+		}
+		if (url.includes("/admin/billing/dashboard/past-due")) {
+			await route.fulfill(
+				ok({
+					data: [
+						{
+							id: "invoice_past_due",
+							number: "INV-1001",
+							subscriptionId: "sub_past_due",
+							organizationId: "org_overdue",
+							organizationName: "Overdue Trading",
+							dueDate: now(),
+							totalMinor: 600000,
+							amountPaidMinor: 100000,
+							currency: "ETB",
+							daysPastDue: 12,
+						},
+					],
+				}),
+			);
+			return;
+		}
+		if (url.includes("/admin/billing/dashboard/pending-verification")) {
+			await route.fulfill(
+				ok({
+					data: [
+						{
+							id: "payment_pending",
+							invoiceId: "invoice_pending",
+							invoiceNumber: "INV-1002",
+							organizationId: "org_smoke",
+							organizationName: "Demo Cafe",
+							amountMinor: 450000,
+							currency: "ETB",
+							method: "bank_transfer",
+							receiptNumber: "RCPT-001",
+							bankReference: "BANK-001",
+							paidAt: now(),
+							note: "manual transfer",
+						},
+					],
+				}),
+			);
+			return;
+		}
+		if (url.endsWith("/admin/billing/dashboard")) {
+			await route.fulfill(
+				ok({
+					data: {
+						mrrMinor: 450000,
+						arrMinor: 5400000,
+						outstandingMinor: 500000,
+						paidLast30Minor: 350000,
+						countsByStatus: { active: 1, past_due: 1 },
+						upcomingRenewals30d: 1,
+						byPlan: { pro: { count: 1, mrrMinor: 450000 }, starter: { count: 1, mrrMinor: 0 } },
+						totalSubs: 2,
+					},
+				}),
+			);
+			return;
+		}
 		if (url.includes("/admin/billing/subscriptions")) {
 			await route.fulfill(
 				ok({
@@ -662,6 +734,31 @@ test("admin plan detail smoke renders editable entitlement table", async ({ page
 	await expect(page.getByText("platform.reports")).toBeVisible();
 	await expect(page.getByRole("switch", { name: "Toggle platform.api-keys" })).toBeChecked();
 	await expect(page.getByRole("button", { name: "Save Entitlements" })).toBeVisible();
+
+	assertNoErrors();
+});
+
+test("admin billing dashboard smoke renders operational tables", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAdminMocks(page);
+
+	await page.goto("/admin/billing/dashboard", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Billing Dashboard" })).toBeVisible();
+	await expect(page.getByRole("link", { name: "View all subscriptions" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Revenue by plan" })).toBeVisible();
+	await expect(page.getByRole("textbox", { name: /Search plan revenue/i })).toBeVisible();
+	await expect(page.getByText("pro", { exact: true })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Past-due invoices" })).toBeVisible();
+	await expect(page.getByRole("textbox", { name: /Search past-due invoices/i })).toBeVisible();
+	await expect(page.getByText("INV-1001")).toBeVisible();
+	await expect(page.getByText("Overdue Trading")).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Manual payments awaiting verification" })).toBeVisible();
+	await expect(page.getByRole("textbox", { name: /Search pending payments/i })).toBeVisible();
+	await expect(page.getByText("INV-1002")).toBeVisible();
+	await expect(page.getByRole("button", { name: "Verify" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Export CSV" })).toHaveCount(3);
+	await expect(page.getByRole("button", { name: "Saved views" })).toHaveCount(3);
 
 	assertNoErrors();
 });
