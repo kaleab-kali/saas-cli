@@ -121,6 +121,7 @@ function assertNoEimsScripts() {
 function assertDeployGateBuilds() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
+	const apiE2eSpec = readProjectFile("apps/api/test/app.e2e-spec.ts");
 	const securityPackageJson = JSON.parse(readProjectFile("apps/security/package.json"));
 	const performancePackageJson = JSON.parse(readProjectFile("apps/performance/package.json"));
 	const securityTooling = readProjectFile("apps/security/scripts/tooling-smoke.mjs");
@@ -187,6 +188,9 @@ function assertDeployGateBuilds() {
 	assert(packageJson.scripts?.["test:full"] === "pnpm test:all", "base package exposes full test category alias");
 	assert(apiPackageJson.scripts?.["test:unit"] === "jest --runInBand", "API workspace exposes unit test command");
 	assert(apiPackageJson.scripts?.["test:integration"]?.includes("jest-e2e.json"), "API workspace exposes integration test command");
+	assert(apiE2eSpec.includes("local-api-e2e-harness"), "API e2e has deterministic local fallback harness");
+	assert(!apiE2eSpec.includes("describe.skip"), "API e2e does not silently skip when no base URL is set");
+	assert(!apiE2eSpec.includes("Skipping API e2e"), "API e2e fallback executes instead of logging a skip");
 	assert(apiPackageJson.scripts?.["test:coverage"]?.includes("--coverage"), "API workspace exposes coverage test command");
 	assert(apiPackageJson.jest?.collectCoverageFrom?.includes("!generated/**"), "coverage excludes generated Prisma output");
 	assert(apiPackageJson.jest?.collectCoverageFrom?.includes("!**/*.module.ts"), "coverage excludes Nest module wiring");

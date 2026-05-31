@@ -55,7 +55,7 @@ pnpm deploy:check
 
 `test:unit` is the fast white-box API unit suite and should be the default command while editing backend logic.
 
-`test:integration` runs the API e2e harness, the deterministic mock HTTP API suite, and the OpenAPI smoke contract so integration tooling works before a developer has a database-backed app running.
+`test:integration` runs the API e2e harness, the deterministic mock HTTP API suite, and the OpenAPI smoke contract so integration tooling works before a developer has a database-backed app running. When `API_E2E_BASE_URL` is not set, the API e2e suite starts a deterministic local health server instead of skipping.
 
 `test:smoke` validates the scaffold without requiring Postgres, Redis, k6, nuclei, or a running SaaS server. It includes deterministic source/API security checks that run against the checked-out code, local mock API coverage, and browser smoke coverage for the visible tenant/admin onboarding UI.
 
