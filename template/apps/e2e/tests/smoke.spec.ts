@@ -310,6 +310,36 @@ async function installAdminMocks(page: Page) {
 			await route.fulfill(ok({ data: ["platform.api-keys", "platform.reports"] }));
 			return;
 		}
+		if (/\/admin\/plans\/plan_pro(?:\?|$)/.test(url)) {
+			await route.fulfill(
+				ok({
+					data: {
+						id: "plan_pro",
+						slug: "pro",
+						nameEn: "Pro",
+						nameAm: "Pro",
+						description: "Production plan",
+						priceMonthlyMinor: 450000,
+						priceAnnualMinor: 4500000,
+						currency: "ETB",
+						userCap: 25,
+						supportSlaHours: 24,
+						stripeSupported: false,
+						chapaSupported: true,
+						manualSupported: true,
+						active: true,
+						sortOrder: 10,
+						entitlements: [
+							{ id: "ent_api", featureKey: "platform.api-keys", enabled: true, limit: 25 },
+							{ id: "ent_reports", featureKey: "platform.reports", enabled: false, limit: null },
+						],
+						createdAt: now(),
+						updatedAt: now(),
+					},
+				}),
+			);
+			return;
+		}
 		if (url.includes("/admin/billing/subscriptions")) {
 			await route.fulfill(
 				ok({
@@ -612,6 +642,26 @@ test("admin billing smoke renders searchable subscription table", async ({ page 
 	await expect(page.getByText("Demo Cafe")).toBeVisible();
 	await expect(page.getByText("Overdue Trading")).toBeVisible();
 	await expect(page.getByRole("link", { name: "Manage" }).first()).toBeVisible();
+
+	assertNoErrors();
+});
+
+test("admin plan detail smoke renders editable entitlement table", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAdminMocks(page);
+
+	await page.goto("/admin/plans/plan_pro", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: /Edit Plan: Pro/i })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Feature Entitlements" })).toBeVisible();
+	await expect(page.getByRole("textbox", { name: /Search entitlements/i })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Saved views" })).toBeVisible();
+	await expect(page.getByText("platform.api-keys")).toBeVisible();
+	await expect(page.getByText("platform.reports")).toBeVisible();
+	await expect(page.getByRole("switch", { name: "Toggle platform.api-keys" })).toBeChecked();
+	await expect(page.getByRole("button", { name: "Save Entitlements" })).toBeVisible();
 
 	assertNoErrors();
 });

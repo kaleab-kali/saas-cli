@@ -439,6 +439,7 @@ function assertFrontendImprovementSurface() {
 	const adminAuditLogs = readProjectFile("apps/web/src/routes/admin/audit-logs/index.tsx");
 	const adminAuditHandler = readProjectFile("apps/api/src/modules/admin/application/queries/list-platform-audit-logs.handler.ts");
 	const adminBilling = readProjectFile("apps/web/src/routes/admin/billing/index.tsx");
+	const adminPlanDetail = readProjectFile("apps/web/src/routes/admin/plans/$planId.tsx");
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
 	const opsGuide = readProjectFile("docs/ADMIN_OPERATIONS_GUIDE.md");
 	const e2eSmoke = readProjectFile("apps/e2e/tests/smoke.spec.ts");
@@ -525,6 +526,15 @@ function assertFrontendImprovementSurface() {
 	assert(adminBilling.includes("enableCsvExport"), "admin billing subscriptions export CSV");
 	assert(adminBilling.includes("savedViewsEntity"), "admin billing subscriptions have saved views");
 	assert(opsGuide.includes("subscription index uses the shared DataTable"), "admin operations guide documents billing table");
+	assert(adminPlanDetail.includes("<DataTable"), "admin plan detail entitlements use shared DataTable");
+	assert(adminPlanDetail.includes("Search entitlements"), "admin plan detail entitlements are searchable");
+	assert(adminPlanDetail.includes("enableCsvExport"), "admin plan detail entitlements export CSV");
+	assert(adminPlanDetail.includes("savedViewsEntity"), "admin plan detail entitlements have saved views");
+	assert(adminPlanDetail.includes("<Switch"), "admin plan detail entitlements use switches");
+	assert(
+		opsGuide.includes("Plan detail pages use DataTable for feature entitlement review"),
+		"admin operations guide documents plan entitlement table",
+	);
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
 	assert(e2eSmoke.includes("Operational handoff map"), "E2E smoke covers assisted launch desk");
 	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
@@ -553,6 +563,10 @@ function assertFrontendImprovementSurface() {
 	assert(
 		e2eSmoke.includes("admin billing smoke renders searchable subscription table"),
 		"E2E smoke covers admin billing subscription table",
+	);
+	assert(
+		e2eSmoke.includes("admin plan detail smoke renders editable entitlement table"),
+		"E2E smoke covers admin plan detail entitlement table",
 	);
 }
 

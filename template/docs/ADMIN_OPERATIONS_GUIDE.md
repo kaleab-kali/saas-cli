@@ -41,6 +41,8 @@ Included billing primitives:
 
 The subscription index uses the shared DataTable surface for searchable account review, status filtering, column controls, saved views, and CSV export before staff drill into a subscription.
 
+Plan detail pages use DataTable for feature entitlement review so admins can search feature keys, filter enabled state, export entitlement matrices, and preserve saved views while editing limits.
+
 ## Server Management
 Route: `/admin/server`
 

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -7,12 +8,13 @@ import {
 	useBulkUpsertEntitlements,
 	useUpdatePlan,
 } from "#features/admin/api/admin-plans.hooks";
+import { DataTable } from "#shared/components/DataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
 
 interface EntitlementRow {
 	featureKey: string;
@@ -20,12 +22,68 @@ interface EntitlementRow {
 	limit: number | null;
 }
 
+const EMPTY_FEATURE_KEYS: readonly string[] = [];
+
+function buildEntitlementColumns(
+	t: (key: string, options?: { readonly defaultValue?: string }) => string,
+	updateRow: (key: string, patch: Partial<EntitlementRow>) => void,
+): ColumnDef<EntitlementRow, unknown>[] {
+	return [
+		{
+			accessorKey: "featureKey",
+			header: t("admin.plans.feature", { defaultValue: "Feature Key" }),
+			cell: ({ row }) => <span className="font-mono text-xs">{row.original.featureKey}</span>,
+			meta: { filter: { type: "text" } },
+		},
+		{
+			id: "enabled",
+			accessorFn: (row) => (row.enabled ? "enabled" : "disabled"),
+			header: t("admin.plans.enabled", { defaultValue: "Enabled" }),
+			cell: ({ row }) => (
+				<Switch
+					aria-label={`Toggle ${row.original.featureKey}`}
+					checked={row.original.enabled}
+					onCheckedChange={(checked) => updateRow(row.original.featureKey, { enabled: checked })}
+				/>
+			),
+			meta: {
+				className: "text-center",
+				headerClassName: "text-center",
+				filter: {
+					type: "select",
+					options: [
+						{ value: "enabled", label: "Enabled" },
+						{ value: "disabled", label: "Disabled" },
+					],
+				},
+			},
+		},
+		{
+			accessorKey: "limit",
+			header: t("admin.plans.limit", { defaultValue: "Limit" }),
+			cell: ({ row }) => (
+				<Input
+					type="number"
+					value={row.original.limit ?? ""}
+					onChange={(e) =>
+						updateRow(row.original.featureKey, { limit: e.target.value === "" ? null : Number(e.target.value) })
+					}
+					disabled={!row.original.enabled}
+					placeholder="unlimited"
+					className="ml-auto w-28 text-right font-mono"
+				/>
+			),
+			meta: { className: "text-right", headerClassName: "text-right" },
+		},
+	];
+}
+
 const PlanDetail = React.memo(
 	() => {
 		const { t } = useTranslation();
 		const { planId } = Route.useParams();
 		const { data: plan, isLoading } = useAdminPlan(planId);
-		const { data: featureKeys = [] } = useAdminFeatureKeys();
+		const { data: featureKeys = EMPTY_FEATURE_KEYS } = useAdminFeatureKeys();
 		const updatePlan = useUpdatePlan();
 		const bulkUpsert = useBulkUpsertEntitlements();
 
@@ -77,6 +135,7 @@ const PlanDetail = React.memo(
 				setRows((prev) => prev.map((row) => (row.featureKey === key ? { ...row, ...patch } : row))),
 			[],
 		);
+		const entitlementColumns = React.useMemo(() => buildEntitlementColumns(t, updateRow), [t, updateRow]);
 
 		const handleSavePlan = React.useCallback(async () => {
 			if (!plan) return;
@@ -224,7 +283,7 @@ const PlanDetail = React.memo(
 
 				<Card>
 					<CardHeader className="flex flex-row items-center justify-between space-y-0">
-						<CardTitle className="text-base">
+						<CardTitle className="text-base" role="heading" aria-level={2}>
 							{t("admin.plans.entitlements", { defaultValue: "Feature Entitlements" })}
 						</CardTitle>
 						<Button onClick={handleSaveEntitlements} disabled={bulkUpsert.isPending} size="sm">
@@ -233,47 +292,19 @@ const PlanDetail = React.memo(
 								: t("admin.plans.saveEntitlements", { defaultValue: "Save Entitlements" })}
 						</Button>
 					</CardHeader>
-					<CardContent className="p-0 overflow-x-auto">
-						<Table className="w-full text-sm">
-							<TableHeader className="bg-muted/40">
-								<TableRow>
-									<TableHead className="text-left p-2">
-										{t("admin.plans.feature", { defaultValue: "Feature Key" })}
-									</TableHead>
-									<TableHead className="text-center p-2 w-24">
-										{t("admin.plans.enabled", { defaultValue: "Enabled" })}
-									</TableHead>
-									<TableHead className="text-right p-2 w-32">
-										{t("admin.plans.limit", { defaultValue: "Limit" })}
-									</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{rows.map((row) => (
-									<TableRow key={row.featureKey} className="border-t">
-										<TableCell className="p-2 font-mono text-xs">{row.featureKey}</TableCell>
-										<TableCell className="p-2 text-center">
-											<input
-												type="checkbox"
-												checked={row.enabled}
-												onChange={(e) => updateRow(row.featureKey, { enabled: e.target.checked })}
-											/>
-										</TableCell>
-										<TableCell className="p-2 text-right">
-											<Input
-												type="number"
-												value={row.limit ?? ""}
-												onChange={(e) =>
-													updateRow(row.featureKey, { limit: e.target.value === "" ? null : Number(e.target.value) })
-												}
-												disabled={!row.enabled}
-												className="w-24 text-right font-mono"
-											/>
-										</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
+					<CardContent>
+						<DataTable
+							columns={entitlementColumns}
+							data={rows}
+							searchPlaceholder="Search entitlements..."
+							emptyTitle="No feature entitlements"
+							emptyMessage="Add feature keys before configuring this plan."
+							enableCsvExport
+							exportFilename={`plan-${plan.slug}-entitlements.csv`}
+							savedViewsEntity={`admin-plan-${plan.id}-entitlements`}
+							getRowId={(row) => row.featureKey}
+							pageSize={20}
+						/>
 					</CardContent>
 				</Card>
 			</div>
