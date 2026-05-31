@@ -133,6 +133,7 @@ function assertDeployGateBuilds() {
 	assert(deployCheck.includes("build:api"), "deploy gate includes API production build");
 	assert(deployCheck.includes("build:web"), "deploy gate includes web production build");
 	assert(deployCheck.includes("test:smoke"), "deploy gate runs broad smoke suite");
+	assert(deployCheck.includes("test:security:tooling:strict"), "deploy gate fails when required security scanners are missing");
 	assert(deployCheck.includes("pnpm lint"), "deploy gate includes lint without duplicate Prisma generation");
 	assert(deployCheck.includes("pnpm typecheck"), "deploy gate includes typecheck without duplicate Prisma generation");
 	assert(!deployCheck.includes("lint:ci"), "deploy gate avoids nested lint:ci duplicate Prisma generation");
@@ -145,7 +146,16 @@ function assertDeployGateBuilds() {
 	assert(testSmoke.includes("test:security:source"), "smoke test gate includes deterministic source security checks");
 	assert(testSmoke.includes("test:security:tooling"), "smoke test gate includes security tooling visibility");
 	assert(securityPackageJson.scripts?.["test:tooling"] === "node scripts/tooling-smoke.mjs", "security workspace exposes tooling smoke command");
+	assert(
+		securityPackageJson.scripts?.["test:tooling:strict"] === "node scripts/tooling-smoke.mjs --strict",
+		"security workspace exposes strict tooling smoke command",
+	);
+	assert(
+		packageJson.scripts?.["test:security:tooling:strict"] === "pnpm --filter security test:tooling:strict",
+		"base package exposes strict security tooling command",
+	);
 	assert(securityTooling.includes("missingTools"), "security tooling smoke tracks missing scanner tools");
+	assert(securityTooling.includes('process.argv.includes("--strict")'), "security tooling smoke supports strict CLI mode");
 	assert(securityTooling.includes("SECURITY_STRICT_TOOLS"), "security tooling smoke supports strict production mode");
 	assert(securityTooling.includes("process.exit(1)"), "security tooling smoke fails when strict tools are missing");
 	assert(packageJson.scripts?.["test:unit"] === "pnpm test:api", "base package exposes fast unit test category");
@@ -212,6 +222,11 @@ function assertCiWorkflows() {
 	assert(codeQuality.includes("production-gate:"), "code quality workflow includes production gate job");
 	assert(codeQuality.includes("pnpm deploy:check"), "code quality workflow runs deploy readiness gate");
 	assert(codeQuality.includes("playwright install --with-deps chromium"), "production gate installs browser dependency");
+	assert(codeQuality.includes("actions/setup-go@v5"), "production gate installs Go for security scanners");
+	assert(codeQuality.includes("python -m pipx install semgrep"), "production gate installs Semgrep scanner");
+	assert(codeQuality.includes("github.com/gitleaks/gitleaks"), "production gate installs gitleaks scanner");
+	assert(codeQuality.includes("github.com/google/osv-scanner"), "production gate installs osv-scanner");
+	assert(codeQuality.includes("github.com/projectdiscovery/nuclei"), "production gate installs nuclei scanner");
 	assert(codeQuality.includes("openssl rand -hex 32"), "production gate generates throwaway CI secrets");
 	assert(!/BETTER_AUTH_SECRET:\s*[a-f0-9]{64}/i.test(codeQuality), "production gate has no hardcoded auth secret");
 	assert(!/MASTER_KEY:\s*[a-f0-9]{64}/i.test(codeQuality), "production gate has no hardcoded master key");
