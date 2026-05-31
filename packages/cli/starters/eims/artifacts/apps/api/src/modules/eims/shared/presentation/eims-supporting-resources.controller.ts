@@ -8,6 +8,7 @@ import { EimsCredentialSecretService } from "../crypto/eims-credential-secret.se
 import { EIMS_BACKEND_REPOSITORY, type EimsBackendRepository } from "../mock/eims-backend.repository";
 import type { EimsOfflinePendingInvoiceInput } from "../offline/eims-offline-pending-sync-cache.service";
 import { EimsOfflinePendingSyncPersistenceService } from "../offline/eims-offline-pending-sync-persistence.service";
+import { EimsOfflineReplayService } from "../offline/eims-offline-replay.service";
 import { type EimsPrintProofInput, EimsPrintProofService } from "../printing/eims-print-proof.service";
 
 interface AuthedRequest {
@@ -23,6 +24,7 @@ export class EimsSupportingResourcesController {
 		private readonly credentialSecrets: EimsCredentialSecretService,
 		private readonly bulkReceiptStore: EimsBulkCallbackPersistenceService,
 		private readonly offlinePending: EimsOfflinePendingSyncPersistenceService,
+		private readonly offlineReplay: EimsOfflineReplayService,
 		private readonly printProof: EimsPrintProofService,
 	) {}
 
@@ -131,6 +133,13 @@ export class EimsSupportingResourcesController {
 	@RequirePermissions("eims-submission:retry")
 	markOfflinePendingRetryableFailure(@Req() req: AuthedRequest, @Body() body: { offlineId: string; error: string }) {
 		return this.offlinePending.markRetryableFailure(req.organizationId, body.offlineId, body.error);
+	}
+
+	@Post("offline-pending/replay")
+	@RequirePermissions("eims-submission:retry")
+	replayOfflinePending(@Req() req: AuthedRequest, @Body() body: { offlineId?: string; limit?: number }) {
+		if (body.offlineId) return this.offlineReplay.replayOne(req.organizationId, body.offlineId);
+		return this.offlineReplay.replayPending(req.organizationId, body.limit);
 	}
 
 	@Get("cancellations")

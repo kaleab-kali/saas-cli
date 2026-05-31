@@ -5,6 +5,7 @@ tenant-scoped `eims_offline_pending_sync` table for production use.
 
 Both paths expose only redacted metadata to list views, verify a SHA-256
 integrity hash before sync, and mark tampered records as poisoned before
-dispatch. Production replay workers should claim rows through the durable
-persistence service, submit through the EIMS SDK adapter, then mark rows as
-synced or retryable with the recorded error.
+dispatch. `EimsOfflineReplayService` claims durable rows, submits through the
+`EIMS_EXTERNAL_CLIENT` SDK adapter boundary, then marks rows as synced or
+retryable with the recorded error. Production deployments should schedule that
+service with the queue/worker runtime and retry policy they operate.

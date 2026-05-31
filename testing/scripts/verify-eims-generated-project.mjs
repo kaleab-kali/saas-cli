@@ -86,6 +86,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts",
 	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.ts",
 	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts",
+	"apps/api/src/modules/eims/shared/offline/eims-offline-replay.service.ts",
+	"apps/api/src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts",
@@ -293,6 +295,10 @@ function assertGeneratedStructure() {
 		"generated EIMS local test gate includes durable offline pending-sync tests",
 	);
 	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-offline-replay.service.spec.ts"),
+		"generated EIMS local test gate includes offline replay tests",
+	);
+	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-lookup.service.spec.ts"),
 		"generated EIMS local test gate includes lookup cache tests",
 	);
@@ -438,6 +444,10 @@ function assertGeneratedStructure() {
 	assert(
 		eimsSecuritySmoke.includes("EIMS bulk callback receipts must create durable rows"),
 		"EIMS security smoke enforces durable bulk callback receipt persistence",
+	);
+	assert(
+		eimsSecuritySmoke.includes("EIMS offline replay must dispatch through the SDK adapter boundary"),
+		"EIMS security smoke enforces SDK-bound offline replay",
 	);
 	assert(
 		eimsSecuritySmoke.includes("EIMS acceptance cases must stay admin-only"),
@@ -635,6 +645,8 @@ function assertGeneratedStructure() {
 	const offlinePersistenceSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts",
 	);
+	const offlineReplay = readProjectFile("apps/api/src/modules/eims/shared/offline/eims-offline-replay.service.ts");
+	const offlineReplaySpec = readProjectFile("apps/api/src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts");
 	const printProof = readProjectFile("apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts");
 	const printProofSpec = readProjectFile("apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts");
 	const supportingResourcesController = readProjectFile(
@@ -744,15 +756,34 @@ function assertGeneratedStructure() {
 		offlinePersistenceSpec.includes("records durable sync success"),
 		"EIMS offline pending sync tests cover durable lifecycle updates",
 	);
+	assert(offlineReplay.includes("EIMS_EXTERNAL_CLIENT"), "EIMS offline replay uses external SDK client boundary");
+	assert(offlineReplay.includes("claimForSync"), "EIMS offline replay claims durable pending rows");
+	assert(offlineReplay.includes("registerInvoice"), "EIMS offline replay submits through the SDK adapter boundary");
+	assert(offlineReplay.includes("markSynced"), "EIMS offline replay marks accepted rows synced");
+	assert(offlineReplay.includes("markRetryableFailure"), "EIMS offline replay preserves retryable failures");
+	assert(
+		offlineReplaySpec.includes("through the EIMS external client"),
+		"EIMS offline replay tests cover SDK-bound replay",
+	);
+	assert(
+		offlineReplaySpec.includes("marks thrown SDK errors retryable"),
+		"EIMS offline replay tests cover SDK retryable errors",
+	);
 	assert(eimsSharedModule.includes("EimsOfflinePendingSyncCacheService"), "EIMS shared module exports offline cache service");
 	assert(
 		eimsSharedModule.includes("EimsOfflinePendingSyncPersistenceService"),
 		"EIMS shared module exports durable offline pending-sync service",
 	);
+	assert(eimsSharedModule.includes("EimsOfflineReplayService"), "EIMS shared module exports offline replay service");
 	assert(
 		supportingResourcesController.includes('Controller("eims")') &&
 			supportingResourcesController.includes('"offline-pending"'),
 		"EIMS API exposes durable offline pending-sync endpoints",
+	);
+	assert(
+		supportingResourcesController.includes('"offline-pending/replay"') &&
+			supportingResourcesController.includes("replayPending"),
+		"EIMS API exposes SDK-bound offline replay endpoint",
 	);
 	assert(
 		supportingResourcesController.includes('"bulk/callback-receipts"') &&
