@@ -2,6 +2,7 @@ import { Body, Controller, Get, Inject, Post, Req, UseGuards } from "@nestjs/com
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
+import { EimsCredentialPersistenceService } from "../crypto/eims-credential-persistence.service";
 import { EimsCredentialSecretService } from "../crypto/eims-credential-secret.service";
 import { EIMS_BACKEND_REPOSITORY, type EimsBackendRepository } from "../mock/eims-backend.repository";
 import { type EimsPrintProofInput, EimsPrintProofService } from "../printing/eims-print-proof.service";
@@ -15,6 +16,7 @@ interface AuthedRequest {
 export class EimsSupportingResourcesController {
 	constructor(
 		@Inject(EIMS_BACKEND_REPOSITORY) private readonly repository: EimsBackendRepository,
+		private readonly credentialStore: EimsCredentialPersistenceService,
 		private readonly credentialSecrets: EimsCredentialSecretService,
 		private readonly printProof: EimsPrintProofService,
 	) {}
@@ -22,15 +24,15 @@ export class EimsSupportingResourcesController {
 	@Get("credentials")
 	@RequirePermissions("eims-credential:read")
 	credentials(@Req() req: AuthedRequest) {
-		return this.repository.credentials(req.organizationId);
+		return this.credentialStore.listCredentials(req.organizationId);
 	}
 
 	@Post("credentials")
 	@RequirePermissions("eims-credential:create")
-	saveCredential(@Req() req: AuthedRequest, @Body() body: Record<string, unknown>) {
+	async saveCredential(@Req() req: AuthedRequest, @Body() body: Record<string, unknown>) {
 		const sealed = this.credentialSecrets.sealPayload(body);
 		return this.credentialSecrets.withRedactionMetadata(
-			this.repository.saveCredential(req.organizationId, sealed.persistablePayload),
+			await this.credentialStore.saveCredential(req.organizationId, sealed.persistablePayload),
 			sealed,
 		);
 	}
@@ -38,15 +40,15 @@ export class EimsSupportingResourcesController {
 	@Post("credentials/test")
 	@RequirePermissions("eims-credential:create")
 	testCredential(@Req() req: AuthedRequest, @Body() body: { sourceSystemId?: string }) {
-		return this.repository.testCredential(req.organizationId, body.sourceSystemId);
+		return this.credentialStore.testCredential(req.organizationId, body.sourceSystemId);
 	}
 
 	@Post("credentials/rotate")
 	@RequirePermissions("eims-credential:rotate")
-	rotateCredential(@Req() req: AuthedRequest, @Body() body: Record<string, unknown>) {
+	async rotateCredential(@Req() req: AuthedRequest, @Body() body: Record<string, unknown>) {
 		const rotated = this.credentialSecrets.sealRotationPayload(body);
 		return this.credentialSecrets.withRedactionMetadata(
-			this.repository.saveCredential(req.organizationId, rotated.persistablePayload),
+			await this.credentialStore.saveCredential(req.organizationId, rotated.persistablePayload),
 			rotated,
 		);
 	}

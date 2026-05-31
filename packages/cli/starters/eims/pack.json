@@ -69,7 +69,9 @@
 		"EIMS_LOOKUP_CACHE_TTL_SECONDS",
 		"EIMS_QUEUE_PREFIX"
 	],
-	"addsDependencies": {},
+	"addsDependencies": {
+		"@yourcompany/eims-sdk": "^0.1.0"
+	},
 	"addsDevDependencies": {},
 	"addsSeedData": [
 		"eims-entitlements",

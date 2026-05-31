@@ -66,11 +66,15 @@ const requiredDirs = [
 const requiredFiles = [
 	"apps/api/src/modules/eims/eims.module.ts",
 	"apps/api/src/modules/eims/shared/client/eims-external-client.ts",
+	"apps/api/src/modules/eims/shared/client/eims-sdk-external.client.ts",
+	"apps/api/src/modules/eims/shared/client/eims-sdk-external.client.spec.ts",
 	"apps/api/src/modules/eims/shared/client/mock-eims-external.client.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.controller.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts",
 	"apps/api/src/modules/eims/shared/constants/eims-lookup-values.ts",
+	"apps/api/src/modules/eims/shared/crypto/eims-credential-persistence.service.ts",
+	"apps/api/src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts",
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.ts",
 	"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
 	"apps/api/src/modules/eims/shared/lookups/eims-lookup.service.spec.ts",
@@ -257,6 +261,14 @@ function assertGeneratedStructure() {
 		"generated EIMS local test gate includes credential encryption tests",
 	);
 	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-credential-persistence.service.spec.ts"),
+		"generated EIMS local test gate includes credential persistence tests",
+	);
+	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-sdk-external.client.spec.ts"),
+		"generated EIMS local test gate includes SDK adapter tests",
+	);
+	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-bulk-callback.service.spec.ts"),
 		"generated EIMS local test gate includes bulk callback security tests",
 	);
@@ -314,6 +326,7 @@ function assertGeneratedStructure() {
 	assert(eimsStarter.seedData?.includes("eims-entitlements"), "scaffold state records EIMS seed metadata");
 	assert(eimsStarter.queues?.includes("eims-submission-retry"), "scaffold state records EIMS queue metadata");
 	assert(eimsStarter.crons?.includes("certificate-expiry-daily"), "scaffold state records EIMS cron metadata");
+	assert(eimsStarter.dependencies?.["@yourcompany/eims-sdk"], "scaffold state records EIMS SDK dependency metadata");
 	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
 	assert(
 		apiPackageJson.scripts?.["db:seed"]?.includes("seed-eims-onboarding-template.ts"),
@@ -380,6 +393,14 @@ function assertGeneratedStructure() {
 	assert(
 		eimsSecuritySmoke.includes("EIMS credential rotation must require rotate permission"),
 		"EIMS security smoke enforces credential rotation permission",
+	);
+	assert(
+		eimsSecuritySmoke.includes("EIMS credential persistence must create durable rows"),
+		"EIMS security smoke enforces durable credential persistence",
+	);
+	assert(
+		eimsSecuritySmoke.includes("EIMS SDK adapter must submit invoices through the SDK"),
+		"EIMS security smoke enforces SDK adapter integration boundary",
 	);
 	assert(
 		eimsSecuritySmoke.includes("EIMS bulk reconcile must require retry permission"),
@@ -489,6 +510,12 @@ function assertGeneratedStructure() {
 	for (const modelName of requiredPrismaModels) {
 		assert(prismaSchema.includes(modelName), `Prisma contains ${modelName}`);
 	}
+	assert(prismaSchema.includes("rotationRevision"), "Prisma EimsCredential stores rotation revisions");
+	assert(prismaSchema.includes("rotationEvidenceSha256"), "Prisma EimsCredential stores rotation evidence hashes");
+	assert(
+		prismaSchema.includes("@@unique([organizationId, sourceSystemId, environment])"),
+		"Prisma EimsCredential enforces one credential per source environment",
+	);
 	for (const tableName of [
 		"eims_enterprise",
 		"eims_establishment",
@@ -525,6 +552,8 @@ function assertGeneratedStructure() {
 	const queueSpec = readProjectFile("apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts");
 	const submissionService = readProjectFile("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");
 	const externalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-external-client.ts");
+	const sdkExternalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-external.client.ts");
+	const sdkExternalClientSpec = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-external.client.spec.ts");
 	const eimsSharedModule = readProjectFile("apps/api/src/modules/eims/shared/eims-shared.module.ts");
 	const lookupService = readProjectFile("apps/api/src/modules/eims/shared/lookups/eims-lookup.service.ts");
 	const lookupController = readProjectFile("apps/api/src/modules/eims/shared/lookups/eims-lookup.controller.ts");
@@ -532,6 +561,12 @@ function assertGeneratedStructure() {
 	const bulkCallbackService = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.ts");
 	const bulkCallbackController = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.controller.ts");
 	const bulkCallbackSpec = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts");
+	const credentialPersistence = readProjectFile(
+		"apps/api/src/modules/eims/shared/crypto/eims-credential-persistence.service.ts",
+	);
+	const credentialPersistenceSpec = readProjectFile(
+		"apps/api/src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts",
+	);
 	const credentialSecrets = readProjectFile("apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.ts");
 	const credentialSecretsSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts",
@@ -561,6 +596,15 @@ function assertGeneratedStructure() {
 	);
 	assert(externalClient.includes("counter?: number"), "EIMS external client contract includes reserved counter");
 	assert(externalClient.includes("previousIrn?: string | null"), "EIMS external client contract includes previous IRN");
+	assert(externalClient.includes("EIMS_SDK_CLIENT"), "EIMS external client contract exposes SDK injection token");
+	assert(sdkExternalClient.includes("EIMS_SDK_CLIENT"), "EIMS SDK adapter uses SDK injection token");
+	assert(sdkExternalClient.includes("registerInvoice"), "EIMS SDK adapter delegates invoice registration");
+	assert(sdkExternalClient.includes("registerReceipt"), "EIMS SDK adapter delegates receipt registration");
+	assert(sdkExternalClient.includes("ServiceUnavailableException"), "EIMS SDK adapter fails closed without SDK provider");
+	assert(sdkExternalClientSpec.includes("delegates invoice registration"), "EIMS SDK adapter tests cover invoice delegation");
+	assert(sdkExternalClientSpec.includes("fails closed"), "EIMS SDK adapter tests cover missing SDK wiring");
+	assert(eimsSharedModule.includes("EimsSdkExternalClient"), "EIMS shared module provides SDK adapter");
+	assert(eimsSharedModule.includes('process.env.EIMS_MOCK_MODE === "false"'), "EIMS shared module switches to SDK outside mock mode");
 	assert(eimsSharedModule.includes("EimsSubmissionQueueService"), "EIMS shared module exports queue coordinator");
 	assert(lookupService.includes("createHash"), "EIMS lookup service generates deterministic ETags");
 	assert(lookupService.includes("EIMS_LOOKUP_CACHE_TTL_SECONDS"), "EIMS lookup service honors lookup cache TTL env");
@@ -587,6 +631,19 @@ function assertGeneratedStructure() {
 	assert(offlineCacheSpec.includes("encrypts pending offline payloads"), "EIMS offline cache tests cover encrypted storage");
 	assert(offlineCacheSpec.includes("poisons tampered offline cache entries"), "EIMS offline cache tests cover integrity failure");
 	assert(eimsSharedModule.includes("EimsOfflinePendingSyncCacheService"), "EIMS shared module exports offline cache service");
+	assert(credentialPersistence.includes("PrismaService"), "EIMS credential persistence uses Prisma");
+	assert(credentialPersistence.includes("eimsCredential.create"), "EIMS credential persistence creates durable rows");
+	assert(credentialPersistence.includes("eimsCredential.update"), "EIMS credential persistence updates durable rows");
+	assert(credentialPersistence.includes("Buffer.from(encrypted"), "EIMS credential persistence stores encrypted bytes");
+	assert(credentialPersistence.includes("secretsReturned: false"), "EIMS credential persistence redacts stored secrets");
+	assert(
+		credentialPersistenceSpec.includes("stores encrypted credential columns durably"),
+		"EIMS credential persistence tests cover durable encrypted storage",
+	);
+	assert(
+		credentialPersistenceSpec.includes("records credential test proof"),
+		"EIMS credential persistence tests cover durable test proof",
+	);
 	assert(credentialSecrets.includes("CipherService"), "EIMS credential secrets use platform CipherService");
 	assert(credentialSecrets.includes("delete persistablePayload[field]"), "EIMS credential secrets strip raw values");
 	assert(credentialSecrets.includes("encryptedSecrets"), "EIMS credential secrets persist encrypted payload fields");
@@ -608,6 +665,11 @@ function assertGeneratedStructure() {
 		supportingResourcesController.includes('@RequirePermissions("eims-credential:rotate")'),
 		"EIMS credential rotation endpoint requires rotate permission",
 	);
+	assert(
+		supportingResourcesController.includes("EimsCredentialPersistenceService"),
+		"EIMS credential API uses durable credential persistence",
+	);
+	assert(eimsSharedModule.includes("EimsCredentialPersistenceService"), "EIMS shared module exports credential persistence");
 	assert(eimsSharedModule.includes("EimsCredentialSecretService"), "EIMS shared module exports credential secret service");
 	assert(printProof.includes("PDFDocument"), "EIMS print proof service renders PDF output");
 	assert(printProof.includes("createHash"), "EIMS print proof service fingerprints generated PDFs");

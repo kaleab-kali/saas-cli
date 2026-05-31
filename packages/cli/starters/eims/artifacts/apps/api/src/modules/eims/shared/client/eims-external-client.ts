@@ -1,4 +1,5 @@
 export const EIMS_EXTERNAL_CLIENT = Symbol("EIMS_EXTERNAL_CLIENT");
+export const EIMS_SDK_CLIENT = Symbol("EIMS_SDK_CLIENT");
 
 export interface RegisterInvoiceInput {
 	organizationId: string;
@@ -27,4 +28,10 @@ export interface EimsExternalClient {
 	registerInvoice(input: RegisterInvoiceInput): Promise<EimsExternalResponse>;
 	registerReceipt(input: RegisterReceiptInput): Promise<EimsExternalResponse>;
 	verifyIrn(input: { organizationId: string; irn: string }): Promise<EimsExternalResponse>;
+}
+
+export interface EimsSdkClient {
+	registerInvoice(invoice: unknown, tenantConfig: Record<string, unknown>): Promise<unknown>;
+	registerReceipt?(receipt: unknown, tenantConfig: Record<string, unknown>): Promise<unknown>;
+	verifyIrn?(input: { irn: string; tenantConfig: Record<string, unknown> }): Promise<unknown>;
 }

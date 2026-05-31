@@ -1213,7 +1213,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:api"] ??=
@@ -1437,11 +1437,13 @@ model EimsCredential {
   lastTestedAt               DateTime?
   lastTestStatus             String?
   lastRotatedAt              DateTime?
+  rotationRevision           Int       @default(0)
+  rotationEvidenceSha256     String?
   status                     String    @default("initial_setup")
   createdAt                  DateTime  @default(now())
   updatedAt                  DateTime  @updatedAt
 
-  @@index([organizationId, sourceSystemId, environment])
+  @@unique([organizationId, sourceSystemId, environment])
   @@map("eims_credential")
 }
 
@@ -5624,6 +5626,21 @@ for (const secretField of ["apiKey", "password", "clientSecret", "refreshToken",
 \t}
 }
 
+const credentialPersistence = read("apps/api/src/modules/eims/shared/crypto/eims-credential-persistence.service.ts");
+assertIncludes(credentialPersistence, "PrismaService", "EIMS credentials must persist through Prisma");
+assertIncludes(credentialPersistence, "eimsCredential.create", "EIMS credential persistence must create durable rows");
+assertIncludes(credentialPersistence, "eimsCredential.update", "EIMS credential persistence must update durable rows");
+assertIncludes(
+\tcredentialPersistence,
+\t"Buffer.from(encrypted",
+\t"EIMS credential persistence must store encrypted bytes",
+);
+assertIncludes(
+\tcredentialPersistence,
+\t"secretsReturned: false",
+\t"EIMS credential persistence must redact secret responses",
+);
+
 const apiMockTests = read("apps/api-tests/tests/eims-v3-mock.spec.ts");
 for (const secretField of ["apiKey", "password", "clientSecret", "refreshToken"]) {
 \tassertIncludes(
@@ -5643,6 +5660,20 @@ const callbackService = read("apps/api/src/modules/eims/shared/callbacks/eims-bu
 assertIncludes(callbackService, "timingSafeEqual", "EIMS bulk callbacks must use constant-time signature checks");
 assertIncludes(callbackService, "EIMS_CALLBACK_HMAC_SECRET", "EIMS bulk callbacks must require an HMAC secret");
 assertIncludes(callbackService, "outside the allowed skew", "EIMS bulk callbacks must enforce replay windows");
+
+const sdkExternalClient = read("apps/api/src/modules/eims/shared/client/eims-sdk-external.client.ts");
+assertIncludes(
+\tsdkExternalClient,
+\t"EIMS_SDK_CLIENT",
+\t"EIMS production integration must use the EIMS SDK injection token",
+);
+assertIncludes(sdkExternalClient, "registerInvoice", "EIMS SDK adapter must submit invoices through the SDK");
+assertIncludes(sdkExternalClient, "registerReceipt", "EIMS SDK adapter must submit receipts through the SDK");
+assertIncludes(
+\tsdkExternalClient,
+\t"ServiceUnavailableException",
+\t"EIMS SDK adapter must fail closed when SDK wiring is missing",
+);
 
 const rlsPolicies = read("apps/api/prisma/eims-rls-policies.sql");
 for (const table of [

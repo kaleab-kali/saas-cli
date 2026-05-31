@@ -2,7 +2,9 @@ import { Module } from "@nestjs/common";
 import { EimsBulkCallbackController } from "./callbacks/eims-bulk-callback.controller";
 import { EimsBulkCallbackService } from "./callbacks/eims-bulk-callback.service";
 import { EIMS_EXTERNAL_CLIENT } from "./client/eims-external-client";
+import { EimsSdkExternalClient } from "./client/eims-sdk-external.client";
 import { MockEimsExternalClient } from "./client/mock-eims-external.client";
+import { EimsCredentialPersistenceService } from "./crypto/eims-credential-persistence.service";
 import { EimsCredentialSecretService } from "./crypto/eims-credential-secret.service";
 import { EimsLookupController } from "./lookups/eims-lookup.controller";
 import { EimsLookupService } from "./lookups/eims-lookup.service";
@@ -19,22 +21,31 @@ import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.servi
 		EimsLookupService,
 		EimsBulkCallbackService,
 		EimsSubmissionQueueService,
+		EimsCredentialPersistenceService,
 		EimsCredentialSecretService,
 		EimsOfflinePendingSyncCacheService,
 		EimsPrintProofService,
 		EimsMockService,
 		MockEimsExternalClient,
+		EimsSdkExternalClient,
 		{ provide: EIMS_BACKEND_REPOSITORY, useExisting: EimsMockService },
-		{ provide: EIMS_EXTERNAL_CLIENT, useExisting: MockEimsExternalClient },
+		{
+			provide: EIMS_EXTERNAL_CLIENT,
+			inject: [MockEimsExternalClient, EimsSdkExternalClient],
+			useFactory: (mockClient: MockEimsExternalClient, sdkClient: EimsSdkExternalClient) =>
+				process.env.EIMS_MOCK_MODE === "false" ? sdkClient : mockClient,
+		},
 	],
 	exports: [
 		EimsLookupService,
 		EimsBulkCallbackService,
 		EimsSubmissionQueueService,
+		EimsCredentialPersistenceService,
 		EimsCredentialSecretService,
 		EimsOfflinePendingSyncCacheService,
 		EimsPrintProofService,
 		EimsMockService,
+		EimsSdkExternalClient,
 		EIMS_BACKEND_REPOSITORY,
 		EIMS_EXTERNAL_CLIENT,
 	],

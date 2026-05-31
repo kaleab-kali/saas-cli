@@ -26,11 +26,11 @@ What is done cleanly:
 
 What is not done yet:
 
-- Real MoR/INSA integration.
+- Production EIMS SDK package/client wiring and contract proof.
 - Real Vault Transit signing.
 - Persistent BullMQ workers for multi-node per-source submission queues.
 - Applied production PostgreSQL RLS migrations beyond the generated policy export.
-- Durable encrypted credential persistence beyond the rotation sealing boundary.
+- Real credential validation and rotation through the EIMS SDK.
 - Production printer/device QR scan certification across real hardware.
 - Durable bulk callback storage/polling beyond the signed callback boundary.
 - Durable offline pending-sync storage beyond the encrypted cache boundary.
@@ -45,13 +45,14 @@ What is not done yet:
 | Lookup/code registry | Seeded with ETag/cache metadata | Unit/API tests | Document, transaction, source, cancellation, tax, payment, unit, nature, and region values verified. The Nest lookup service emits deterministic ETags, cache-control metadata, and conditional 304 support; live authority refresh is still pending. |
 | Source approval guard | Partially implemented | Unit/API tests | Guard and mock approval states exist. Full MoR portal workflow is not production-built. |
 | Counter and PreviousIrn chain | Source-scoped coordinator implemented, persistence pending | Unit/API tests | Starter now serializes submissions per source, reserves counters, attaches `previousIrn`, and keeps retryable/unknown outcomes out of the accepted chain. Multi-node BullMQ workers and DB-backed reconciliation are still not complete. |
-| Credentials lifecycle | Encryption and rotation boundary implemented, durable storage pending | Unit/API/UI tests | Credential POST and rotate payloads are sealed with `CipherService`, raw secret fields are stripped before repository save, rotation attempts require new secret material, and responses expose only redaction/evidence metadata. Real DB persistence remains pending. |
+| EIMS SDK boundary | Adapter boundary implemented, external SDK wiring pending | Unit/scaffold/security tests | `EIMS_EXTERNAL_CLIENT` switches from the mock client to `EimsSdkExternalClient` when `EIMS_MOCK_MODE=false`; the adapter delegates invoice/receipt/verification calls through the injected `EIMS_SDK_CLIENT` and fails closed if the SDK provider is missing. Contract proof against the real SDK package remains pending. |
+| Credentials lifecycle | Encryption, rotation boundary, and durable Prisma persistence implemented | Unit/API/UI tests | Credential POST and rotate payloads are sealed with `CipherService`, raw secret fields are stripped, encrypted secret material is persisted in `EimsCredential` byte columns, rotation evidence/revisions are stored, test proof updates the durable row, and responses expose only redaction/evidence metadata. Real credential validation through the EIMS SDK remains pending. |
 | Certificates/CSR | Mock API only | API/UI tests | Certificate metadata and expiry state are exposed. Real Vault/INSA certificate flow is not complete. |
 | 2FA enforcement | Planned/partially existing platform auth | Not EIMS-specific | EIMS-specific permission enforcement and bootstrap test coverage still need implementation. |
 | Buyer/government directory | Mock API + data model | API/UI tests | Buyer and government buyer data verified. CRUD/import is not complete. |
 | Print layouts | PDF proof service implemented, hardware scan certification pending | Unit/API/UI tests | Compact/A4 metadata and official-QR rule verified. Starter now renders PDF proof buffers, fingerprints them, and rejects official QR proof unless the invoice is accepted and the signed QR matches the IRN. Real printer/device QR scan certification is not complete. |
 | Receipts/withholding | Mock API | API/UI/Bruno mock | Sales and withholding states verified. Real EIMS receipt submission is not complete. |
-| Cancellation | Mock API | API/UI tests | Reason code 4/remark and limit state verified. Real MoR cancellation rules still require sandbox. |
+| Cancellation | Mock API | API/UI tests | Reason code 4/remark and limit state verified. Real cancellation validation still requires SDK-backed sandbox proof. |
 | Bulk | Signed callback boundary implemented, durable polling pending | Unit/API/UI tests | Callback HMAC verification, timestamp replay window, known conversation validation, idempotency, and count reconciliation are covered. Durable storage and authority polling are still pending. |
 | Offline pending-sync | Encrypted cache boundary implemented, durable storage pending | Unit/API/UI tests | Pending state has no IRN/ackDate. Offline payloads are encrypted with `CipherService`, integrity-hashed, redacted from list responses, and poisoned on tamper before sync. Durable DB/queue storage is still pending. |
 | Buyer notifications | Mock API | API/UI tests | SMS/email providers and retry state verified. Real provider integration is not complete. |
@@ -59,7 +60,7 @@ What is not done yet:
 | Audit hash chain | SQL trigger export implemented, migration application pending | Scaffold/security verifier | Generated `apps/api/prisma/eims-audit-hash-chain.sql` creates the pgcrypto-backed insert hash trigger and update/delete blockers for `eims_audit_event`. Running this against production PostgreSQL remains a deployment step. |
 | Admin operations | Mock API/UI | API/UI tests | Tenants, failures, certificates, resources, compliance routes verified. |
 | Phase 0 Layer A | Implemented | `phase0:eims:local` | Local signing/canonicalization smoke passes. |
-| Phase 0 Layer B | Blocked | Not testable | Requires INSA/MoR sandbox credentials and issued certificate. |
+| Phase 0 Layer B | Blocked | Not testable | Requires the production EIMS SDK client plus issued sandbox credentials/certificate. |
 
 ## Commands Run
 
@@ -96,4 +97,4 @@ The implementation should not be described as production-complete EIMS. It is a
 clean V3 scaffold foundation with detailed mock API/UI verification. Production
 completion still requires the V3 phases for Vault, applying RLS/audit SQL in production, persistent BullMQ/DB
 durable callback polling, durable offline cache storage, real printer/device QR certification,
-real MoR APIs, and sandbox proof.
+the production EIMS SDK client/contract proof, and sandbox proof.
