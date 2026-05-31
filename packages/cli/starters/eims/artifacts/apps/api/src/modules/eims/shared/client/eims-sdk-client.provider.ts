@@ -26,6 +26,8 @@ type SdkPackageShape = {
 	default?: SdkFactory | SdkConstructor | EimsSdkClient | SdkPackageShape;
 };
 
+const REQUIRED_EIMS_SDK_CAPABILITIES = ["registerInvoice", "registerReceipt", "verifyIrn"] as const;
+
 const configString = (config: ConfigReader, key: string, fallback = "") => {
 	const value = config.get<string | undefined>(key);
 	return typeof value === "string" && value.trim() ? value.trim() : fallback;
@@ -64,8 +66,13 @@ export const buildEimsSdkOptions = (config: ConfigReader): EimsSdkClientOptions 
 	};
 };
 
-const isEimsSdkClient = (value: unknown): value is EimsSdkClient =>
-	Boolean(value && typeof value === "object" && typeof (value as EimsSdkClient).registerInvoice === "function");
+export const missingEimsSdkCapabilities = (value: unknown) => {
+	if (!value || typeof value !== "object") return [...REQUIRED_EIMS_SDK_CAPABILITIES];
+	const candidate = value as Record<string, unknown>;
+	return REQUIRED_EIMS_SDK_CAPABILITIES.filter((capability) => typeof candidate[capability] !== "function");
+};
+
+const isEimsSdkClient = (value: unknown): value is EimsSdkClient => missingEimsSdkCapabilities(value).length === 0;
 
 const asSdkPackageShape = (value: unknown): SdkPackageShape | undefined =>
 	value && typeof value === "object" ? (value as SdkPackageShape) : undefined;
@@ -116,7 +123,9 @@ export const createEimsSdkClientFromModule = async (
 		if (isEimsSdkClient(candidate)) return candidate;
 	}
 
-	throw new ServiceUnavailableException("EIMS SDK package does not expose a registerInvoice-capable client");
+	throw new ServiceUnavailableException(
+		"EIMS SDK package does not expose a registerInvoice/registerReceipt/verifyIrn-capable client",
+	);
 };
 
 export const EimsSdkClientProvider: Provider = {

@@ -709,19 +709,25 @@ function assertGeneratedStructure() {
 	assert(sdkClientProvider.includes("EIMS_SDK_PACKAGE_NAME"), "EIMS SDK provider reads configured SDK package name");
 	assert(sdkClientProvider.includes("DEFAULT_EIMS_SDK_PACKAGE_NAME"), "EIMS SDK provider defaults to the starter SDK package");
 	assert(sdkClientProvider.includes("createEimsSdkClientFromModule"), "EIMS SDK provider validates loaded SDK module shape");
-	assert(sdkClientProvider.includes("registerInvoice-capable"), "EIMS SDK provider fails closed for incompatible SDK modules");
+	assert(
+		sdkClientProvider.includes("registerInvoice/registerReceipt/verifyIrn-capable"),
+		"EIMS SDK provider fails closed for incompatible SDK modules",
+	);
 	assert(sdkClientProviderSpec.includes("createEimsClient factory"), "EIMS SDK provider tests cover SDK factory wiring");
 	assert(sdkClientProviderSpec.includes("fails closed"), "EIMS SDK provider tests cover incompatible SDK packages");
 	assert(sdkContractScript.includes("EIMS_SDK_PACKAGE_NAME"), "EIMS SDK contract script reads configured package name");
 	assert(sdkContractScript.includes("createEimsSdkClientFromModule"), "EIMS SDK contract script uses provider shape validation");
 	assert(sdkContractScript.includes("registerInvoice"), "EIMS SDK contract script verifies invoice capability");
+	assert(sdkContractScript.includes("registerReceipt"), "EIMS SDK contract script verifies receipt capability");
+	assert(sdkContractScript.includes("verifyIrn"), "EIMS SDK contract script verifies IRN lookup capability");
 	assert(
 		sdkContractScript.includes("placeholderPattern"),
 		"EIMS SDK contract script rejects placeholder package names",
 	);
-	assert(sdkExternalClient.includes("EIMS_SDK_CLIENT"), "EIMS SDK adapter uses SDK injection token");
-	assert(sdkExternalClient.includes("registerInvoice"), "EIMS SDK adapter delegates invoice registration");
-	assert(sdkExternalClient.includes("registerReceipt"), "EIMS SDK adapter delegates receipt registration");
+assert(sdkExternalClient.includes("EIMS_SDK_CLIENT"), "EIMS SDK adapter uses SDK injection token");
+assert(sdkExternalClient.includes("registerInvoice"), "EIMS SDK adapter delegates invoice registration");
+assert(sdkExternalClient.includes("registerReceipt"), "EIMS SDK adapter delegates receipt registration");
+assert(sdkExternalClient.includes("verifyIrn"), "EIMS SDK adapter delegates IRN verification");
 	assert(sdkExternalClient.includes("ServiceUnavailableException"), "EIMS SDK adapter fails closed without SDK provider");
 	assert(sdkExternalClientSpec.includes("delegates invoice registration"), "EIMS SDK adapter tests cover invoice delegation");
 	assert(sdkExternalClientSpec.includes("fails closed"), "EIMS SDK adapter tests cover missing SDK wiring");

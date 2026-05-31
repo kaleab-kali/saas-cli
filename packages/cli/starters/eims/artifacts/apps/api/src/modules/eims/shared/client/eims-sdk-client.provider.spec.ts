@@ -42,7 +42,7 @@ describe("EIMS SDK client provider helpers", () => {
 	});
 
 	it("creates the SDK client from a createEimsClient factory", async () => {
-		const sdkClient = { registerInvoice: jest.fn() };
+		const sdkClient = { registerInvoice: jest.fn(), registerReceipt: jest.fn(), verifyIrn: jest.fn() };
 		const createEimsClient = jest.fn().mockResolvedValue(sdkClient);
 
 		const resolved = await createEimsSdkClientFromModule(
@@ -62,6 +62,8 @@ describe("EIMS SDK client provider helpers", () => {
 	it("creates the SDK client from an exported EimsClient constructor", async () => {
 		class EimsClient {
 			registerInvoice = jest.fn();
+			registerReceipt = jest.fn();
+			verifyIrn = jest.fn();
 		}
 
 		const resolved = await createEimsSdkClientFromModule(
@@ -76,5 +78,14 @@ describe("EIMS SDK client provider helpers", () => {
 		await expect(
 			createEimsSdkClientFromModule({ createClient: jest.fn().mockResolvedValue({}) }, buildEimsSdkOptions(config({}))),
 		).rejects.toBeInstanceOf(ServiceUnavailableException);
+	});
+
+	it("fails closed when the SDK is missing methods used by the SaaS adapter", async () => {
+		await expect(
+			createEimsSdkClientFromModule(
+				{ createClient: jest.fn().mockResolvedValue({ registerInvoice: jest.fn() }) },
+				buildEimsSdkOptions(config({})),
+			),
+		).rejects.toThrow("registerInvoice/registerReceipt/verifyIrn-capable");
 	});
 });

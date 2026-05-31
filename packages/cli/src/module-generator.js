@@ -5345,7 +5345,12 @@ const main = async () => {
 \t\tregisterReceipt: typeof client.registerReceipt === "function",
 \t\tverifyIrn: typeof client.verifyIrn === "function",
 \t};
-\tif (!capabilities.registerInvoice) throw new Error("SDK client does not expose registerInvoice");
+\tconst missingCapabilities = Object.entries(capabilities)
+\t\t.filter(([, available]) => !available)
+\t\t.map(([capability]) => capability);
+\tif (missingCapabilities.length > 0) {
+\t\tthrow new Error(\`SDK client is missing required capabilities: \${missingCapabilities.join(", ")}\`);
+\t}
 
 \tconsole.log(
 \t\tJSON.stringify(
@@ -5922,11 +5927,12 @@ assertIncludes(sdkClientProvider, "EIMS_SDK_PACKAGE_NAME", "EIMS SDK provider mu
 assertIncludes(sdkClientProvider, "createEimsSdkClientFromModule", "EIMS SDK provider must validate SDK module shape");
 assertIncludes(
 \tsdkClientProvider,
-\t"registerInvoice-capable",
+\t"registerInvoice/registerReceipt/verifyIrn-capable",
 \t"EIMS SDK provider must fail closed for incompatible SDK clients",
 );
 assertIncludes(sdkExternalClient, "registerInvoice", "EIMS SDK adapter must submit invoices through the SDK");
 assertIncludes(sdkExternalClient, "registerReceipt", "EIMS SDK adapter must submit receipts through the SDK");
+assertIncludes(sdkExternalClient, "verifyIrn", "EIMS SDK adapter must verify IRNs through the SDK");
 assertIncludes(
 \tsdkExternalClient,
 \t"ServiceUnavailableException",
@@ -6008,8 +6014,9 @@ Layer B runs against INSA/MoR sandbox after credentials and certificates are ava
 
 After publishing or linking the real SDK package, set \`EIMS_SDK_PACKAGE_NAME\`
 and run \`pnpm test:eims:sdk-contract\`. This imports the SDK package, builds the
-same options used by the Nest provider, and verifies the package exposes a
-\`registerInvoice\`-capable client before sandbox credentials are exercised.
+same options used by the Nest provider, and verifies the package exposes the
+\`registerInvoice\`, \`registerReceipt\`, and \`verifyIrn\` methods consumed by
+the SaaS adapter before sandbox credentials are exercised.
 
 Invoice submission lanes persist counter reservations before SDK dispatch and
 hydrate source counter state from durable rows after restart. Multi-node
