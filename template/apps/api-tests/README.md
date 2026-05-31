@@ -15,7 +15,7 @@ pnpm --filter api-tests test:contract
 ```
 
 Set `API_BASE_URL` or `BRUNO_BASE_URL` to test a running API.
-When no API URL is set, `test:bruno` starts the local deterministic mock API and runs the collection against it instead of skipping.
+When no API URL is set, `test:http` and `test:bruno` start the local deterministic mock API instead of skipping.
 
 ```bash
 API_BASE_URL=http://127.0.0.1:3000 pnpm --filter api-tests test:http
@@ -36,6 +36,7 @@ pnpm --filter api-tests test:http
 Toolchain validation commands start a tiny local mock API:
 
 ```bash
+pnpm --filter api-tests test:http
 pnpm --filter api-tests test:http:mock
 pnpm --filter api-tests test:bruno
 pnpm --filter api-tests test:bruno:mock

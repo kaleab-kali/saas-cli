@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"test": "pnpm test:http && pnpm test:bruno && pnpm test:contract",
-		"test:http": "playwright test -c playwright.config.ts",
+		"test:http": "node scripts/run-http.mjs",
 		"test:http:mock": "node scripts/with-mock-api.mjs http",
 		"test:bruno": "node scripts/run-bruno.mjs",
 		"test:bruno:mock": "node scripts/with-mock-api.mjs bruno",

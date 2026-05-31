@@ -95,10 +95,11 @@ Generated modules and starter-pack modules include a starter handler spec under 
 Black-box API tests live in `apps/api-tests`.
 
 ```bash
+pnpm test:api:http
 API_BASE_URL=http://127.0.0.1:3000 pnpm test:api:http
 ```
 
-The mock command validates the Playwright API test toolchain:
+When `API_BASE_URL` is unset, `pnpm test:api:http` starts the deterministic local mock API and runs the HTTP suite against it instead of skipping. The explicit mock command validates the same Playwright API test toolchain:
 
 ```bash
 pnpm test:api:http:mock

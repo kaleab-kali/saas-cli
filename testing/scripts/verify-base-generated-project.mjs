@@ -51,6 +51,7 @@ const mustExist = [
 	"apps/api/src/shared/rate-limit/tenant-throttler.guard.ts",
 	"apps/api/src/shared/rate-limit/tenant-throttler.guard.spec.ts",
 	"apps/api-tests/scripts/with-mock-api.mjs",
+	"apps/api-tests/scripts/run-http.mjs",
 	"apps/api-tests/tests/tenant-isolation.spec.ts",
 	"apps/web/src/features/onboarding/components/onboarding-pages.tsx",
 	"apps/web/src/routes/_authenticated/onboarding/index.tsx",
@@ -123,6 +124,7 @@ function assertDeployGateBuilds() {
 	const apiPackageJson = JSON.parse(readProjectFile("apps/api/package.json"));
 	const apiTestsPackageJson = JSON.parse(readProjectFile("apps/api-tests/package.json"));
 	const apiE2eSpec = readProjectFile("apps/api/test/app.e2e-spec.ts");
+	const apiHttpRunner = readProjectFile("apps/api-tests/scripts/run-http.mjs");
 	const brunoRunner = readProjectFile("apps/api-tests/scripts/run-bruno.mjs");
 	const securityPackageJson = JSON.parse(readProjectFile("apps/security/package.json"));
 	const performancePackageJson = JSON.parse(readProjectFile("apps/performance/package.json"));
@@ -147,6 +149,9 @@ function assertDeployGateBuilds() {
 	assert(!deployCheck.includes("test:ci &&"), "deploy gate does not bypass browser smoke via narrow CI gate");
 	assert(testCi.includes("test:api:http:mock"), "CI test gate includes mock HTTP API tests");
 	assert(testCi.includes("test:api:bruno:mock"), "CI test gate includes mock Bruno API tests");
+	assert(apiTestsPackageJson.scripts?.["test:http"] === "node scripts/run-http.mjs", "HTTP API command uses runner");
+	assert(apiHttpRunner.includes("local deterministic mock API"), "HTTP API command has deterministic mock fallback");
+	assert(apiHttpRunner.includes("scripts/with-mock-api.mjs"), "HTTP API command runs the mock API fallback");
 	assert(apiTestsPackageJson.scripts?.["test:bruno"] === "node scripts/run-bruno.mjs", "Bruno API command uses runner");
 	assert(brunoRunner.includes("local deterministic mock API"), "Bruno API command has deterministic mock fallback");
 	assert(brunoRunner.includes("scripts/with-mock-api.mjs"), "Bruno API command runs the mock API fallback");
