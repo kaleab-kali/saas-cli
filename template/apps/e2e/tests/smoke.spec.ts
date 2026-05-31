@@ -417,6 +417,26 @@ test("admin feature flags smoke renders rollout table", async ({ page }) => {
 	assertNoErrors();
 });
 
+test("admin users smoke renders searchable user table", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAdminMocks(page);
+
+	await page.goto("/admin/users?search=staff&limit=50&sort=createdAt%3Adesc", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "All Users" })).toBeVisible();
+	const search = page.getByRole("textbox", { name: /Search users/i });
+	await expect(search).toHaveValue("staff");
+	await expect(page.getByRole("button", { name: "Columns" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Export CSV" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Saved views" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Save view" })).toBeVisible();
+	await expect(page.getByText("staff@example.test")).toBeVisible();
+	await expect(page.getByText("Verified", { exact: true })).toBeVisible();
+	await expect(page.getByRole("button", { name: /Impersonate/i })).toBeVisible();
+
+	assertNoErrors();
+});
+
 test("admin audit logs smoke renders filterable evidence table", async ({ page }) => {
 	const assertNoErrors = await expectNoConsoleErrors(page);
 	await installAdminMocks(page);

@@ -81,6 +81,11 @@ Route: `/admin/audit-logs`
 
 Platform audit logs use the shared DataTable surface with URL-backed search, column filters, saved views, current-page CSV export, and an all-results CSV export for compliance reviews.
 
+## Platform User Management
+Route: `/admin/users`
+
+The user directory uses the shared DataTable surface with URL-backed search, verified-email filtering, saved views, CSV export, impersonation, and forced password-reset actions.
+
 ## File Storage
 Route: `/files`
 

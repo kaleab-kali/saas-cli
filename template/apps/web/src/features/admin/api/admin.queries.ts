@@ -41,7 +41,9 @@ export const useAdminOrgDetail = (orgId: string) =>
 		enabled: !!orgId,
 	});
 
-export const useAdminUserList = (params: { page?: number; limit?: number; search?: string } = {}) =>
+export const useAdminUserList = (
+	params: { page?: number; limit?: number; search?: string; sort?: string; verified?: string } = {},
+) =>
 	useQuery({
 		queryKey: adminKeys.userList(params),
 		queryFn: () => api.get<PaginatedResponse<PlatformUser>>("/admin/users", { params }),

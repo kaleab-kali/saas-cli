@@ -27,8 +27,14 @@ export class AdminUsersController {
 
 	@Get()
 	@ApiOperation({ summary: "List all platform users with org memberships" })
-	async list(@Query("page") page?: number, @Query("limit") limit?: number, @Query("search") search?: string) {
-		return this.listUsers.execute({ page, limit, search });
+	async list(
+		@Query("page") page?: number,
+		@Query("limit") limit?: number,
+		@Query("search") search?: string,
+		@Query("sort") sort?: string,
+		@Query("verified") verified?: string,
+	) {
+		return this.listUsers.execute({ page, limit, search, sort, verified });
 	}
 
 	@Get(":id/impersonate")

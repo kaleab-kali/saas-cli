@@ -427,6 +427,8 @@ function assertFrontendImprovementSurface() {
 	const dataTable = readProjectFile("apps/web/src/shared/components/DataTable.tsx");
 	const onboarding = readProjectFile("apps/web/src/features/onboarding/components/onboarding-pages.tsx");
 	const featureFlags = readProjectFile("apps/web/src/routes/admin/feature-flags/index.tsx");
+	const adminUsers = readProjectFile("apps/web/src/routes/admin/users/index.tsx");
+	const adminUsersHandler = readProjectFile("apps/api/src/modules/admin/application/queries/list-users.handler.ts");
 	const adminAuditLogs = readProjectFile("apps/web/src/routes/admin/audit-logs/index.tsx");
 	const adminAuditHandler = readProjectFile("apps/api/src/modules/admin/application/queries/list-platform-audit-logs.handler.ts");
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
@@ -482,6 +484,14 @@ function assertFrontendImprovementSurface() {
 	assert(adminAuditHandler.includes("auditLogSort(params.sort)"), "admin audit logs apply server-side sorting");
 	assert(adminAuditHandler.includes('mode: "insensitive"'), "admin audit logs apply case-insensitive filters");
 	assert(opsGuide.includes("Audit Evidence"), "admin operations guide documents audit evidence table");
+	assert(adminUsers.includes("<DataTable"), "admin users use shared DataTable");
+	assert(adminUsers.includes("useDataTableState"), "admin users sync table controls to URL");
+	assert(adminUsers.includes("savedViewsEntity"), "admin users enable saved views");
+	assert(adminUsers.includes("enableCsvExport"), "admin users enable CSV export");
+	assert(adminUsers.includes("UserActions"), "admin users keep impersonation and reset actions");
+	assert(adminUsersHandler.includes("userSort(params.sort)"), "admin users apply server-side sorting");
+	assert(adminUsersHandler.includes("parseBooleanFilter(params.verified)"), "admin users apply verified-email filtering");
+	assert(opsGuide.includes("Platform User Management"), "admin operations guide documents platform user table");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
 	assert(e2eSmoke.includes("Operational handoff map"), "E2E smoke covers assisted launch desk");
 	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
@@ -498,6 +508,7 @@ function assertFrontendImprovementSurface() {
 	assert(e2eSmoke.includes("admin feature flags smoke renders rollout table"), "E2E smoke covers admin feature flag table");
 	assert(e2eSmoke.includes("Toggle platform.api-keys globally"), "E2E smoke covers feature flag switch controls");
 	assert(e2eSmoke.includes("admin audit logs smoke renders filterable evidence table"), "E2E smoke covers admin audit log table");
+	assert(e2eSmoke.includes("admin users smoke renders searchable user table"), "E2E smoke covers admin users table");
 }
 
 function assertOnboardingServerTableQuery() {
