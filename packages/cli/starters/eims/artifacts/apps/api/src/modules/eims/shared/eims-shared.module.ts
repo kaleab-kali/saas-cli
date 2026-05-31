@@ -12,6 +12,7 @@ import { EimsLookupService } from "./lookups/eims-lookup.service";
 import { EIMS_BACKEND_REPOSITORY } from "./mock/eims-backend.repository";
 import { EimsMockService } from "./mock/eims-mock.service";
 import { EimsOfflinePendingSyncCacheService } from "./offline/eims-offline-pending-sync-cache.service";
+import { EimsOfflinePendingSyncPersistenceService } from "./offline/eims-offline-pending-sync-persistence.service";
 import { EimsSupportingResourcesController } from "./presentation/eims-supporting-resources.controller";
 import { EimsPrintProofService } from "./printing/eims-print-proof.service";
 import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.service";
@@ -25,6 +26,7 @@ import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.servi
 		EimsCredentialPersistenceService,
 		EimsCredentialSecretService,
 		EimsOfflinePendingSyncCacheService,
+		EimsOfflinePendingSyncPersistenceService,
 		EimsPrintProofService,
 		EimsMockService,
 		MockEimsExternalClient,
@@ -45,6 +47,7 @@ import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.servi
 		EimsCredentialPersistenceService,
 		EimsCredentialSecretService,
 		EimsOfflinePendingSyncCacheService,
+		EimsOfflinePendingSyncPersistenceService,
 		EimsPrintProofService,
 		EimsMockService,
 		EimsSdkExternalClient,

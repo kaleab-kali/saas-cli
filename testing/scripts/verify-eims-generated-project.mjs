@@ -82,6 +82,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/lookups/eims-lookup.service.spec.ts",
 	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.ts",
 	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts",
+	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.ts",
+	"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts",
 	"apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts",
@@ -127,6 +129,7 @@ const requiredPrismaModels = [
 	"model TaxInvoice",
 	"model TaxInvoiceLine",
 	"model EimsSubmission",
+	"model EimsOfflinePendingSync",
 	"model EimsReceipt",
 	"model EimsCancellation",
 	"model EimsAuditEvent",
@@ -281,6 +284,10 @@ function assertGeneratedStructure() {
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-offline-pending-sync-cache.service.spec.ts"),
 		"generated EIMS local test gate includes offline cache tests",
+	);
+	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-offline-pending-sync-persistence.service.spec.ts"),
+		"generated EIMS local test gate includes durable offline pending-sync tests",
 	);
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-lookup.service.spec.ts"),
@@ -531,6 +538,12 @@ function assertGeneratedStructure() {
 		prismaSchema.includes("@@unique([organizationId, sourceSystemId, environment])"),
 		"Prisma EimsCredential enforces one credential per source environment",
 	);
+	assert(prismaSchema.includes("encryptedPayload Bytes"), "Prisma EimsOfflinePendingSync stores encrypted payload bytes");
+	assert(prismaSchema.includes("@@unique([organizationId, offlineId])"), "Prisma EimsOfflinePendingSync deduplicates offline IDs");
+	assert(
+		prismaSchema.includes("@@index([organizationId, syncStatus, capturedAt])"),
+		"Prisma EimsOfflinePendingSync indexes pending replay order",
+	);
 	for (const tableName of [
 		"eims_enterprise",
 		"eims_establishment",
@@ -545,6 +558,7 @@ function assertGeneratedStructure() {
 		"tax_invoice",
 		"tax_invoice_line",
 		"eims_submission",
+		"eims_offline_pending_sync",
 		"eims_receipt",
 		"eims_cancellation",
 		"eims_audit_event",
@@ -591,6 +605,12 @@ function assertGeneratedStructure() {
 	const offlineCache = readProjectFile("apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.ts");
 	const offlineCacheSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts",
+	);
+	const offlinePersistence = readProjectFile(
+		"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.ts",
+	);
+	const offlinePersistenceSpec = readProjectFile(
+		"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts",
 	);
 	const printProof = readProjectFile("apps/api/src/modules/eims/shared/printing/eims-print-proof.service.ts");
 	const printProofSpec = readProjectFile("apps/api/src/modules/eims/shared/printing/eims-print-proof.service.spec.ts");
@@ -654,7 +674,34 @@ function assertGeneratedStructure() {
 	assert(offlineCache.includes("syncStatus = \"poisoned\""), "EIMS offline cache poisons tampered payloads");
 	assert(offlineCacheSpec.includes("encrypts pending offline payloads"), "EIMS offline cache tests cover encrypted storage");
 	assert(offlineCacheSpec.includes("poisons tampered offline cache entries"), "EIMS offline cache tests cover integrity failure");
+	assert(offlinePersistence.includes("PrismaService"), "EIMS offline pending sync persistence uses Prisma");
+	assert(offlinePersistence.includes("eimsOfflinePendingSync.upsert"), "EIMS offline pending sync persistence upserts rows");
+	assert(
+		offlinePersistence.includes("Buffer.from(this.cipher.encrypt"),
+		"EIMS offline pending sync persistence stores encrypted bytes",
+	);
+	assert(
+		offlinePersistence.includes("syncStatus: \"poisoned\""),
+		"EIMS offline pending sync persistence poisons tampered payloads",
+	);
+	assert(
+		offlinePersistenceSpec.includes("stores encrypted pending payloads durably"),
+		"EIMS offline pending sync tests cover durable encrypted storage",
+	);
+	assert(
+		offlinePersistenceSpec.includes("records durable sync success"),
+		"EIMS offline pending sync tests cover durable lifecycle updates",
+	);
 	assert(eimsSharedModule.includes("EimsOfflinePendingSyncCacheService"), "EIMS shared module exports offline cache service");
+	assert(
+		eimsSharedModule.includes("EimsOfflinePendingSyncPersistenceService"),
+		"EIMS shared module exports durable offline pending-sync service",
+	);
+	assert(
+		supportingResourcesController.includes('Controller("eims")') &&
+			supportingResourcesController.includes('"offline-pending"'),
+		"EIMS API exposes durable offline pending-sync endpoints",
+	);
 	assert(credentialPersistence.includes("PrismaService"), "EIMS credential persistence uses Prisma");
 	assert(credentialPersistence.includes("eimsCredential.create"), "EIMS credential persistence creates durable rows");
 	assert(credentialPersistence.includes("eimsCredential.update"), "EIMS credential persistence updates durable rows");

@@ -1213,7 +1213,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:api"] ??=
@@ -1659,6 +1659,35 @@ model EimsSubmission {
   @@index([organizationId, sourceSystemId, status])
   @@index([organizationId, irn])
   @@map("eims_submission")
+}
+
+model EimsOfflinePendingSync {
+  id               String    @id @default(cuid())
+  offlineId        String
+  organizationId   String
+  sourceSystemId   String
+  documentNumber   String
+  counter          BigInt?
+  previousIrn      String?
+  capturedAt       DateTime  @default(now())
+  reason           String    @default("network_unavailable")
+  encryptedPayload Bytes
+  payloadKeyVersion String   @default("cipher:v1")
+  payloadSha256    String
+  payloadBytes     Int
+  syncStatus       String    @default("pending_offline")
+  attempts         Int       @default(0)
+  acceptedIrn      String?
+  lastError        String?
+  claimedAt        DateTime?
+  syncedAt         DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([organizationId, offlineId])
+  @@index([organizationId, sourceSystemId, syncStatus])
+  @@index([organizationId, syncStatus, capturedAt])
+  @@map("eims_offline_pending_sync")
 }
 
 model EimsReceipt {
@@ -5096,6 +5125,13 @@ CREATE POLICY eims_submission_tenant_isolation ON eims_submission
 	USING (app_private.eims_tenant_visible("organizationId"))
 	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
 
+ALTER TABLE eims_offline_pending_sync ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eims_offline_pending_sync FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS eims_offline_pending_sync_tenant_isolation ON eims_offline_pending_sync;
+CREATE POLICY eims_offline_pending_sync_tenant_isolation ON eims_offline_pending_sync
+	USING (app_private.eims_tenant_visible("organizationId"))
+	WITH CHECK (app_private.eims_tenant_visible("organizationId"));
+
 ALTER TABLE eims_receipt ENABLE ROW LEVEL SECURITY;
 ALTER TABLE eims_receipt FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS eims_receipt_tenant_isolation ON eims_receipt;
@@ -5669,6 +5705,26 @@ assertIncludes(callbackService, "timingSafeEqual", "EIMS bulk callbacks must use
 assertIncludes(callbackService, "EIMS_CALLBACK_HMAC_SECRET", "EIMS bulk callbacks must require an HMAC secret");
 assertIncludes(callbackService, "outside the allowed skew", "EIMS bulk callbacks must enforce replay windows");
 
+const offlinePersistence = read(
+\t"apps/api/src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.ts",
+);
+assertIncludes(offlinePersistence, "PrismaService", "EIMS offline pending sync must use durable Prisma persistence");
+assertIncludes(
+\tofflinePersistence,
+\t"eimsOfflinePendingSync.upsert",
+\t"EIMS offline pending sync must upsert durable encrypted rows",
+);
+assertIncludes(
+\tofflinePersistence,
+\t"Buffer.from(this.cipher.encrypt",
+\t"EIMS offline pending sync must store encrypted payload bytes",
+);
+assertIncludes(
+\tofflinePersistence,
+\t'syncStatus: "poisoned"',
+\t"EIMS offline pending sync must poison durable tampered payloads",
+);
+
 const sdkExternalClient = read("apps/api/src/modules/eims/shared/client/eims-sdk-external.client.ts");
 const sdkClientProvider = read("apps/api/src/modules/eims/shared/client/eims-sdk-client.provider.ts");
 assertIncludes(
@@ -5706,6 +5762,7 @@ for (const table of [
 \t"tax_invoice",
 \t"tax_invoice_line",
 \t"eims_submission",
+\t"eims_offline_pending_sync",
 \t"eims_receipt",
 \t"eims_cancellation",
 \t"eims_audit_event",

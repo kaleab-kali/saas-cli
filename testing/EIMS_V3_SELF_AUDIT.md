@@ -33,7 +33,6 @@ What is not done yet:
 - Real credential validation and rotation through the EIMS SDK.
 - Production printer/device QR scan certification across real hardware.
 - Durable bulk callback storage/polling beyond the signed callback boundary.
-- Durable offline pending-sync storage beyond the encrypted cache boundary.
 
 ## V3 Coverage Matrix
 
@@ -54,7 +53,7 @@ What is not done yet:
 | Receipts/withholding | Mock API | API/UI/Bruno mock | Sales and withholding states verified. Real EIMS receipt submission is not complete. |
 | Cancellation | Mock API | API/UI tests | Reason code 4/remark and limit state verified. Real cancellation validation still requires SDK-backed sandbox proof. |
 | Bulk | Signed callback boundary implemented, durable polling pending | Unit/API/UI tests | Callback HMAC verification, timestamp replay window, known conversation validation, idempotency, and count reconciliation are covered. Durable storage and authority polling are still pending. |
-| Offline pending-sync | Encrypted cache boundary implemented, durable storage pending | Unit/API/UI tests | Pending state has no IRN/ackDate. Offline payloads are encrypted with `CipherService`, integrity-hashed, redacted from list responses, and poisoned on tamper before sync. Durable DB/queue storage is still pending. |
+| Offline pending-sync | Encrypted cache and durable Prisma persistence implemented, replay worker pending | Unit/API/UI tests | Pending state has no IRN/ackDate. Offline payloads are encrypted with `CipherService`, integrity-hashed, redacted from list responses, persisted in tenant-scoped `EimsOfflinePendingSync` rows, claimed only after hash verification, and poisoned on tamper before sync. Production replay workers still need to submit through the real SDK and reconcile retry policy. |
 | Buyer notifications | Mock API | API/UI tests | SMS/email providers and retry state verified. Real provider integration is not complete. |
 | Targeted RLS | SQL policy export implemented, migration application pending | Scaffold/security verifier | Generated `apps/api/prisma/eims-rls-policies.sql` enables and forces RLS for every EIMS tenant table using `app.current_organization_id` and write-side `WITH CHECK` policies. Running this against production PostgreSQL remains a deployment step. |
 | Audit hash chain | SQL trigger export implemented, migration application pending | Scaffold/security verifier | Generated `apps/api/prisma/eims-audit-hash-chain.sql` creates the pgcrypto-backed insert hash trigger and update/delete blockers for `eims_audit_event`. Running this against production PostgreSQL remains a deployment step. |
@@ -96,5 +95,5 @@ real Playwright route walkthroughs and include a headed CLI path.
 The implementation should not be described as production-complete EIMS. It is a
 clean V3 scaffold foundation with detailed mock API/UI verification. Production
 completion still requires the V3 phases for Vault, applying RLS/audit SQL in production, persistent BullMQ/DB
-durable callback polling, durable offline cache storage, real printer/device QR certification,
+durable callback polling, offline replay workers, real printer/device QR certification,
 the production EIMS SDK package install/contract proof, and sandbox proof.

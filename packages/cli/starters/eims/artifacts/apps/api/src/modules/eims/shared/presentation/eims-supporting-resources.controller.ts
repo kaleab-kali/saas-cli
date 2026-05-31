@@ -5,6 +5,8 @@ import { RequirePermissions } from "#shared/decorators/permissions.decorator";
 import { EimsCredentialPersistenceService } from "../crypto/eims-credential-persistence.service";
 import { EimsCredentialSecretService } from "../crypto/eims-credential-secret.service";
 import { EIMS_BACKEND_REPOSITORY, type EimsBackendRepository } from "../mock/eims-backend.repository";
+import type { EimsOfflinePendingInvoiceInput } from "../offline/eims-offline-pending-sync-cache.service";
+import { EimsOfflinePendingSyncPersistenceService } from "../offline/eims-offline-pending-sync-persistence.service";
 import { type EimsPrintProofInput, EimsPrintProofService } from "../printing/eims-print-proof.service";
 
 interface AuthedRequest {
@@ -18,6 +20,7 @@ export class EimsSupportingResourcesController {
 		@Inject(EIMS_BACKEND_REPOSITORY) private readonly repository: EimsBackendRepository,
 		private readonly credentialStore: EimsCredentialPersistenceService,
 		private readonly credentialSecrets: EimsCredentialSecretService,
+		private readonly offlinePending: EimsOfflinePendingSyncPersistenceService,
 		private readonly printProof: EimsPrintProofService,
 	) {}
 
@@ -87,6 +90,39 @@ export class EimsSupportingResourcesController {
 	@RequirePermissions("eims-bulk:retry")
 	reconcileBulk(@Req() req: AuthedRequest, @Body() body: { conversationId?: string }) {
 		return this.repository.reconcileBulk(req.organizationId, body.conversationId);
+	}
+
+	@Get("offline-pending")
+	@RequirePermissions("eims-submission:read")
+	offlinePendingRecords(@Req() req: AuthedRequest) {
+		return this.offlinePending.listPending(req.organizationId);
+	}
+
+	@Post("offline-pending")
+	@RequirePermissions("eims-submission:create")
+	captureOfflinePending(
+		@Req() req: AuthedRequest,
+		@Body() body: Omit<EimsOfflinePendingInvoiceInput, "organizationId">,
+	) {
+		return this.offlinePending.storePending({ ...body, organizationId: req.organizationId });
+	}
+
+	@Post("offline-pending/claim")
+	@RequirePermissions("eims-submission:retry")
+	claimOfflinePending(@Req() req: AuthedRequest, @Body() body: { offlineId: string }) {
+		return this.offlinePending.claimForSync(req.organizationId, body.offlineId);
+	}
+
+	@Post("offline-pending/synced")
+	@RequirePermissions("eims-submission:retry")
+	markOfflinePendingSynced(@Req() req: AuthedRequest, @Body() body: { offlineId: string; acceptedIrn: string }) {
+		return this.offlinePending.markSynced(req.organizationId, body.offlineId, body.acceptedIrn);
+	}
+
+	@Post("offline-pending/retryable-failure")
+	@RequirePermissions("eims-submission:retry")
+	markOfflinePendingRetryableFailure(@Req() req: AuthedRequest, @Body() body: { offlineId: string; error: string }) {
+		return this.offlinePending.markRetryableFailure(req.organizationId, body.offlineId, body.error);
 	}
 
 	@Get("cancellations")

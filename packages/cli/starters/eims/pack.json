@@ -39,6 +39,7 @@
 		"TaxInvoice",
 		"TaxInvoiceLine",
 		"EimsSubmission",
+		"EimsOfflinePendingSync",
 		"EimsReceipt",
 		"EimsCancellation",
 		"EimsAuditEvent",
