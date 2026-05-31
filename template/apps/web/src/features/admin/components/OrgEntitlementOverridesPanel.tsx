@@ -1,17 +1,21 @@
+import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
 import {
+	type EntitlementOverride,
 	useDeleteOverride,
 	useOrgEntitlementOverrides,
 	useUpsertOverride,
 } from "#features/admin/api/admin-entitlement-overrides.hooks";
 import { useAdminFeatureKeys } from "#features/admin/api/admin-plans.hooks";
+import { DataTable } from "#shared/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+const overrideDateFormatter = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" });
 
 export const OrgEntitlementOverridesPanel = React.memo(
 	({ organizationId }: { readonly organizationId: string }) => {
@@ -42,10 +46,76 @@ export const OrgEntitlementOverridesPanel = React.memo(
 			setReason("");
 		}, [organizationId, featureKey, enabled, limit, expiresAt, reason, upsert]);
 
+		const columns = React.useMemo<ColumnDef<EntitlementOverride, unknown>[]>(
+			() => [
+				{
+					accessorKey: "featureKey",
+					header: "Feature",
+					cell: ({ row }) => <span className="font-mono text-xs">{row.original.featureKey}</span>,
+					meta: { filter: { type: "text" } },
+				},
+				{
+					id: "mode",
+					accessorFn: (row) => (row.enabled ? "Grant" : "Block"),
+					header: "Mode",
+					cell: ({ row }) => (
+						<Badge variant={row.original.enabled ? "default" : "destructive"}>
+							{row.original.enabled ? "Grant" : "Block"}
+						</Badge>
+					),
+					meta: {
+						filter: {
+							type: "select",
+							options: [
+								{ value: "Grant", label: "Grant" },
+								{ value: "Block", label: "Block" },
+							],
+						},
+					},
+				},
+				{
+					accessorKey: "limit",
+					header: "Limit",
+					cell: ({ row }) => <span className="font-mono">{row.original.limit ?? "unlimited"}</span>,
+					meta: { className: "text-right", headerClassName: "text-right" },
+				},
+				{
+					accessorKey: "expiresAt",
+					header: "Expires",
+					cell: ({ row }) => (
+						<span className="text-muted-foreground">
+							{row.original.expiresAt ? overrideDateFormatter.format(new Date(row.original.expiresAt)) : "-"}
+						</span>
+					),
+				},
+				{
+					accessorKey: "reason",
+					header: "Reason",
+					cell: ({ row }) => <span className="text-muted-foreground">{row.original.reason || "-"}</span>,
+					meta: { filter: { type: "text" } },
+				},
+				{
+					id: "actions",
+					header: "",
+					enableSorting: false,
+					enableColumnFilter: false,
+					cell: ({ row }) => (
+						<Button variant="ghost" size="sm" onClick={() => del.mutate(row.original.id)} disabled={del.isPending}>
+							Remove
+						</Button>
+					),
+					meta: { className: "text-right", headerClassName: "text-right" },
+				},
+			],
+			[del],
+		);
+
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-base">Feature entitlement overrides</CardTitle>
+					<CardTitle className="text-base" role="heading" aria-level={2}>
+						Feature entitlement overrides
+					</CardTitle>
 					<p className="text-xs text-muted-foreground">
 						Grant or block individual features for this organization independent of plan. Overrides take priority over
 						plan defaults.
@@ -86,7 +156,7 @@ export const OrgEntitlementOverridesPanel = React.memo(
 								type="number"
 								value={limit}
 								onChange={(e) => setLimit(e.target.value)}
-								placeholder="∞"
+								placeholder="unlimited"
 								className="w-24"
 							/>
 						</div>
@@ -103,42 +173,18 @@ export const OrgEntitlementOverridesPanel = React.memo(
 						</Button>
 					</div>
 
-					{data.length === 0 ? (
-						<p className="text-sm text-muted-foreground py-4 text-center">No overrides active.</p>
-					) : (
-						<Table className="w-full text-sm">
-							<TableHeader className="bg-muted/40">
-								<TableRow>
-									<TableHead className="text-left p-2">Feature</TableHead>
-									<TableHead className="text-left p-2">Mode</TableHead>
-									<TableHead className="text-right p-2">Limit</TableHead>
-									<TableHead className="text-left p-2">Expires</TableHead>
-									<TableHead className="text-left p-2">Reason</TableHead>
-									<TableHead className="text-right p-2" />
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{data.map((o) => (
-									<TableRow key={o.id} className="border-t">
-										<TableCell className="p-2 font-mono text-xs">{o.featureKey}</TableCell>
-										<TableCell className="p-2">
-											<Badge variant={o.enabled ? "default" : "destructive"}>{o.enabled ? "Grant" : "Block"}</Badge>
-										</TableCell>
-										<TableCell className="p-2 text-right font-mono">{o.limit ?? "∞"}</TableCell>
-										<TableCell className="p-2">
-											{o.expiresAt ? new Date(o.expiresAt).toLocaleDateString() : "—"}
-										</TableCell>
-										<TableCell className="p-2 text-muted-foreground">{o.reason || "—"}</TableCell>
-										<TableCell className="p-2 text-right">
-											<Button variant="ghost" size="sm" onClick={() => del.mutate(o.id)} disabled={del.isPending}>
-												Remove
-											</Button>
-										</TableCell>
-									</TableRow>
-								))}
-							</TableBody>
-						</Table>
-					)}
+					<DataTable
+						columns={columns}
+						data={data}
+						searchPlaceholder="Search overrides..."
+						emptyTitle="No overrides active"
+						emptyMessage="This organization is currently using its plan defaults."
+						enableCsvExport
+						exportFilename={`organization-${organizationId}-feature-overrides.csv`}
+						savedViewsEntity={`admin-organization-${organizationId}-feature-overrides`}
+						getRowId={(override) => override.id}
+						pageSize={10}
+					/>
 				</CardContent>
 			</Card>
 		);

@@ -216,6 +216,56 @@ async function installAdminMocks(page: Page) {
 			);
 			return;
 		}
+		if (/\/admin\/organizations\/org_smoke(?:\?|$)/.test(url)) {
+			await route.fulfill(
+				ok({
+					data: {
+						id: "org_smoke",
+						name: "Demo Cafe",
+						slug: "demo-cafe",
+						logo: null,
+						metadata: null,
+						createdAt: now(),
+						suspendedAt: null,
+						suspendReason: null,
+						members: [
+							{
+								id: "member_owner",
+								userId: "user_owner",
+								role: "owner",
+								createdAt: now(),
+								user: { id: "user_owner", name: "Demo Owner", email: "owner@example.test" },
+							},
+							{
+								id: "member_staff",
+								userId: "staff_smoke",
+								role: "admin",
+								createdAt: now(),
+								user: { id: "staff_smoke", name: "Yordanos", email: "staff@example.test" },
+							},
+						],
+						subscription: {
+							id: "sub_smoke",
+							status: "active",
+							billingInterval: "monthly",
+							currency: "ETB",
+							currentPeriodEnd: now(),
+							plan: { slug: "pro", nameEn: "Pro" },
+						},
+						usage: { userCount: 2, apiCallCount: 128, emailCount: 6, metricsJson: {} },
+						stats: {
+							memberCount: 2,
+							invitationCount: 1,
+							apiKeyCount: 2,
+							savedReportCount: 3,
+							notificationCount: 6,
+							auditLogCount: 9,
+						},
+					},
+				}),
+			);
+			return;
+		}
 		if (url.includes("/admin/organizations")) {
 			await route.fulfill(
 				ok({
@@ -233,6 +283,31 @@ async function installAdminMocks(page: Page) {
 					meta: { page: 1, limit: 100, total: 1, totalPages: 1 },
 				}),
 			);
+			return;
+		}
+		if (url.includes("/admin/entitlement-overrides")) {
+			await route.fulfill(
+				ok({
+					data: [
+						{
+							id: "override_demo",
+							organizationId: "org_smoke",
+							featureKey: "platform.api-keys",
+							enabled: true,
+							limit: 25,
+							expiresAt: null,
+							reason: "beta access",
+							grantedByUserId: "admin_smoke",
+							createdAt: now(),
+							updatedAt: now(),
+						},
+					],
+				}),
+			);
+			return;
+		}
+		if (url.includes("/admin/plans/feature-keys")) {
+			await route.fulfill(ok({ data: ["platform.api-keys", "platform.reports"] }));
 			return;
 		}
 		if (url.includes("/admin/users")) {
@@ -453,6 +528,28 @@ test("admin organizations smoke renders tenant directory table", async ({ page }
 	await expect(page.getByText("Demo Cafe", { exact: true })).toBeVisible();
 	await expect(page.getByText("owner@example.test")).toBeVisible();
 	await expect(page.getByRole("link", { name: "View", exact: true })).toBeVisible();
+
+	assertNoErrors();
+});
+
+test("admin organization detail smoke renders member and entitlement tables", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAdminMocks(page);
+
+	await page.goto("/admin/organizations/org_smoke", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Demo Cafe" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Members" })).toBeVisible();
+	await expect(page.getByRole("textbox", { name: /Search members/i })).toBeVisible();
+	await expect(page.getByText("owner@example.test")).toBeVisible();
+	await expect(page.getByText("staff@example.test")).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Feature entitlement overrides" })).toBeVisible();
+	await expect(page.getByRole("textbox", { name: /Search overrides/i })).toBeVisible();
+	await expect(page.getByText("platform.api-keys")).toBeVisible();
+	await expect(page.getByText("beta access")).toBeVisible();
+	await expect(page.getByRole("button", { name: "Remove" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Export CSV" })).toHaveCount(2);
+	await expect(page.getByRole("button", { name: "Saved views" })).toHaveCount(2);
 
 	assertNoErrors();
 });

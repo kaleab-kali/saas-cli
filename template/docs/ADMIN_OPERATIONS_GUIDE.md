@@ -18,6 +18,8 @@ Tenant detail pages include:
 
 The organization directory uses the shared DataTable surface with URL-backed search, server-side sorting, saved views, CSV export, and direct links into tenant detail pages.
 
+Tenant detail pages use the same DataTable surface for member rosters and entitlement overrides, giving support staff searchable rows, column controls, saved views, and CSV export during account reviews.
+
 ## Plan And Subscription Management
 Routes:
 - `/admin/plans`

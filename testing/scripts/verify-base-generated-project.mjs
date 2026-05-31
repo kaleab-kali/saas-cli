@@ -428,6 +428,10 @@ function assertFrontendImprovementSurface() {
 	const onboarding = readProjectFile("apps/web/src/features/onboarding/components/onboarding-pages.tsx");
 	const adminOrganizations = readProjectFile("apps/web/src/features/admin/components/OrgTable.tsx");
 	const adminOrganizationsRoute = readProjectFile("apps/web/src/routes/admin/organizations/index.tsx");
+	const adminOrganizationDetail = readProjectFile("apps/web/src/routes/admin/organizations/$orgId.tsx");
+	const adminOrgEntitlementOverrides = readProjectFile(
+		"apps/web/src/features/admin/components/OrgEntitlementOverridesPanel.tsx",
+	);
 	const adminOrganizationsHandler = readProjectFile("apps/api/src/modules/admin/application/queries/list-organizations.handler.ts");
 	const featureFlags = readProjectFile("apps/web/src/routes/admin/feature-flags/index.tsx");
 	const adminUsers = readProjectFile("apps/web/src/routes/admin/users/index.tsx");
@@ -478,6 +482,18 @@ function assertFrontendImprovementSurface() {
 	assert(adminOrganizationsHandler.includes("organizationSort(params.sort)"), "admin organizations apply server-side sorting");
 	assert(adminOrganizationsHandler.includes("members: { some:"), "admin organizations search owner member emails");
 	assert(opsGuide.includes("organization directory uses the shared DataTable"), "admin operations guide documents organization table");
+	assert(adminOrganizationDetail.includes("<DataTable"), "admin organization detail uses shared DataTable");
+	assert(adminOrganizationDetail.includes("Search members"), "admin organization detail member roster is searchable");
+	assert(adminOrganizationDetail.includes("enableCsvExport"), "admin organization detail member roster exports CSV");
+	assert(adminOrganizationDetail.includes("savedViewsEntity"), "admin organization detail member roster has saved views");
+	assert(adminOrgEntitlementOverrides.includes("<DataTable"), "admin organization overrides use shared DataTable");
+	assert(adminOrgEntitlementOverrides.includes("Search overrides"), "admin organization overrides are searchable");
+	assert(adminOrgEntitlementOverrides.includes("enableCsvExport"), "admin organization overrides export CSV");
+	assert(adminOrgEntitlementOverrides.includes("savedViewsEntity"), "admin organization overrides have saved views");
+	assert(
+		opsGuide.includes("Tenant detail pages use the same DataTable surface"),
+		"admin operations guide documents organization detail tables",
+	);
 	assert(featureFlags.includes("<DataTable"), "admin feature flags use shared DataTable");
 	assert(featureFlags.includes("useDataTableState"), "admin feature flags sync table controls to URL");
 	assert(featureFlags.includes("savedViewsEntity"), "admin feature flags enable saved views");
@@ -523,6 +539,10 @@ function assertFrontendImprovementSurface() {
 	assert(
 		e2eSmoke.includes("admin organizations smoke renders tenant directory table"),
 		"E2E smoke covers admin organizations table",
+	);
+	assert(
+		e2eSmoke.includes("admin organization detail smoke renders member and entitlement tables"),
+		"E2E smoke covers admin organization detail tables",
 	);
 }
 

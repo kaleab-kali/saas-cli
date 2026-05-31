@@ -1,18 +1,86 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useSuspendOrg, useUnsuspendOrg } from "#features/admin/api/admin.mutations";
 import { useAdminOrgDetail } from "#features/admin/api/admin.queries";
 import { OrgEntitlementOverridesPanel } from "#features/admin/components/OrgEntitlementOverridesPanel";
+import type { OrgMember } from "#features/admin/types/admin.types";
+import { DataTable } from "#shared/components/DataTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/admin/organizations/$orgId")({
 	component: OrgDetailPage,
 });
+
+const memberDateFormatter = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" });
+
+const memberColumns: ColumnDef<OrgMember, unknown>[] = [
+	{
+		id: "name",
+		accessorFn: (member) => member.user.name,
+		header: "Name",
+		cell: ({ row }) => <span className="font-medium">{row.original.user.name}</span>,
+		meta: { filter: { type: "text" } },
+	},
+	{
+		id: "email",
+		accessorFn: (member) => member.user.email,
+		header: "Email",
+		cell: ({ row }) => <span className="text-muted-foreground">{row.original.user.email}</span>,
+		meta: { filter: { type: "text" } },
+	},
+	{
+		accessorKey: "role",
+		header: "Role",
+		cell: ({ row }) => <Badge variant="secondary">{row.original.role}</Badge>,
+		meta: { filter: { type: "text" } },
+	},
+	{
+		accessorKey: "createdAt",
+		header: "Joined",
+		cell: ({ row }) => (
+			<span className="text-muted-foreground">{memberDateFormatter.format(new Date(row.original.createdAt))}</span>
+		),
+	},
+];
+
+function OrgMembersTable({
+	members,
+	organizationId,
+}: {
+	readonly members: readonly OrgMember[];
+	readonly organizationId: string;
+}) {
+	const { t } = useTranslation();
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle className="text-base" role="heading" aria-level={2}>
+					{t("admin.membersHeading")}
+				</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<DataTable
+					columns={memberColumns}
+					data={members}
+					searchPlaceholder="Search members..."
+					emptyTitle="No members"
+					emptyMessage="This organization does not have any members yet."
+					enableCsvExport
+					exportFilename={`organization-${organizationId}-members.csv`}
+					savedViewsEntity={`admin-organization-${organizationId}-members`}
+					getRowId={(member) => member.id}
+					pageSize={10}
+				/>
+			</CardContent>
+		</Card>
+	);
+}
 
 function OrgDetailPage() {
 	const { t } = useTranslation();
@@ -200,33 +268,7 @@ function OrgDetailPage() {
 				</Card>
 			</div>
 
-			<div>
-				<h2 className="text-lg font-medium mb-3">{t("admin.membersHeading")}</h2>
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>{t("admin.nameCol")}</TableHead>
-							<TableHead>{t("admin.emailCol")}</TableHead>
-							<TableHead>{t("admin.roleCol")}</TableHead>
-							<TableHead>{t("admin.joinedCol")}</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{org.members.map((member) => (
-							<TableRow key={member.id}>
-								<TableCell className="font-medium">{member.user.name}</TableCell>
-								<TableCell>{member.user.email}</TableCell>
-								<TableCell>
-									<Badge variant="secondary">{member.role}</Badge>
-								</TableCell>
-								<TableCell className="text-muted-foreground">
-									{new Date(member.createdAt).toLocaleDateString()}
-								</TableCell>
-							</TableRow>
-						))}
-					</TableBody>
-				</Table>
-			</div>
+			<OrgMembersTable members={org.members} organizationId={orgId} />
 
 			<OrgEntitlementOverridesPanel organizationId={orgId} />
 		</div>
