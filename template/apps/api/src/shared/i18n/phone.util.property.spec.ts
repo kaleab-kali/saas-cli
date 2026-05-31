@@ -17,6 +17,6 @@ describe("phone utilities", () => {
 	});
 
 	it("masks normalized phone numbers without exposing the middle digits", () => {
-		expect(maskPhoneNumber("+251911000000")).toBe("+251••••000");
+		expect(maskPhoneNumber("+251911000000")).toBe("+251****000");
 	});
 });

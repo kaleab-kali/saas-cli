@@ -17,5 +17,5 @@ export function normalizePhoneNumber(input: string, defaultCountryCallingCode = 
 
 export function maskPhoneNumber(input: string) {
 	const normalized = normalizePhoneNumber(input);
-	return `${normalized.slice(0, 4)}••••${normalized.slice(-3)}`;
+	return `${normalized.slice(0, 4)}****${normalized.slice(-3)}`;
 }
