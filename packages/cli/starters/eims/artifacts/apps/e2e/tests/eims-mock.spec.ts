@@ -290,7 +290,7 @@ test.describe("tenant EIMS workflow is business-facing and backend-driven", () =
 	test("authenticated landing page opens the EIMS tax workspace", async ({ page }) => {
 		await page.goto("/", { waitUntil: "domcontentloaded" });
 		await expect(page).toHaveURL(/\/eims\/?$/);
-		await expect(page.getByRole("heading", { name: "Tax invoicing status" })).toBeVisible();
+		await expect(page.getByRole("heading", { name: "EIMS compliance dashboard" })).toBeVisible();
 		await expect(page.getByText("Ethiopia tax workspace", { exact: false })).toBeVisible();
 	});
 
@@ -315,7 +315,7 @@ test.describe("tenant EIMS workflow is business-facing and backend-driven", () =
 		}
 
 		await clickNavLink(page, "Status");
-		await expect(page.getByRole("heading", { name: "Tax invoicing status" })).toBeVisible();
+		await expect(page.getByRole("heading", { name: "EIMS compliance dashboard" })).toBeVisible();
 		await assertNoTenantInternalLanguage(page);
 	});
 
@@ -326,7 +326,14 @@ test.describe("tenant EIMS workflow is business-facing and backend-driven", () =
 		const overview = (await overviewPromise).data;
 		const workspace = (await workspacePromise).data;
 
-		await expect(page.getByRole("heading", { name: "Tax invoicing status" })).toBeVisible();
+		await expect(page.getByRole("heading", { name: "EIMS compliance dashboard" })).toBeVisible();
+		await expect(page.getByText("Compliance command center")).toBeVisible();
+		await expect(page.getByText("Submissions this month")).toBeVisible();
+		await expect(page.getByText("Failed submissions")).toBeVisible();
+		await expect(page.getByText("Certificate expiry")).toBeVisible();
+		await expect(page.getByText("Active source status")).toBeVisible();
+		await expect(page.getByText("Cancellation rate")).toBeVisible();
+		await expect(page.getByText("Buyer registry coverage")).toBeVisible();
 		await expect(page.getByText("Operational launch board")).toBeVisible();
 		await expectVisibleTexts(page, [workspace.operationModeLabel, workspace.plainLanguageSummary]);
 		for (const requiredInput of workspace.requiredInputs) await expectVisibleTexts(page, [requiredInput]);

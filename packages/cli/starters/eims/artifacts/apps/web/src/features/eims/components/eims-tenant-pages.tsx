@@ -2,6 +2,8 @@ import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import React from "react";
 import {
+	type EimsBuyer,
+	type EimsCancellation,
 	type EimsOverview,
 	type EimsSetupState,
 	type EimsTenantWorkspace,
@@ -224,7 +226,8 @@ const eimsLaunchWizardSteps = [
 		title: "Welcome and MoR registration",
 		lane: "Tenant with staff",
 		proof: "MoR portal account confirmed",
-		detail: "Confirm TIN, owner phone, OTP contact, payment proof, and portal signup readiness before credentials work.",
+		detail:
+			"Confirm TIN, owner phone, OTP contact, payment proof, and portal signup readiness before credentials work.",
 	},
 	{
 		title: "Authority credentials",
@@ -253,7 +256,7 @@ const eimsLaunchWizardSteps = [
 	{
 		title: "Verify and go live",
 		lane: "Staff then tenant",
-		proof: "Sandbox IRN and first live invoice",
+		proof: "Test invoice IRN and first live invoice",
 		detail: "Run a controlled test invoice, capture QR evidence, train the cashier, then unlock live daily invoices.",
 	},
 ] as const;
@@ -280,7 +283,7 @@ const conciergeStages = [
 		items: ["CSR package", "Request email", "Signed certificate upload"],
 	},
 	{
-		title: "Sandbox proof",
+		title: "Controlled test invoice",
 		owner: "Staff",
 		window: "Day 8",
 		items: ["Test invoice", "IRN returned", "QR evidence captured"],
@@ -429,8 +432,8 @@ function EimsLaunchWizardPanel({ workspace }: { readonly workspace: EimsTenantWo
 					<p className="text-sm font-semibold">EIMS six-step launch wizard</p>
 					<h2 className="mt-1 text-xl font-semibold tracking-normal">MoR/INSA setup path</h2>
 					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-						A dedicated launch screen for tax registration, source approval, certificate issuance, sandbox proof,
-						and the first production invoice.
+						A dedicated launch screen for tax registration, source approval, certificate issuance, controlled test
+						proof, and the first production invoice.
 					</p>
 				</div>
 				<div className="rounded-md border bg-background p-3">
@@ -498,7 +501,7 @@ function AuthorityHandoffPacketPanel({
 			"CSR, issued PEM, expiry, and key-match evidence",
 		],
 		[
-			"Sandbox evidence",
+			"Controlled test evidence",
 			workspace.readiness.readyForLive ? "accepted" : "required",
 			"Test invoice IRN, signed QR, and response payload",
 		],
@@ -563,8 +566,8 @@ function ConciergeOnboardingCockpit({
 					<p className="text-sm font-semibold">Concierge onboarding cockpit</p>
 					<h2 className="mt-1 text-xl font-semibold tracking-normal">MoR and INSA launch control</h2>
 					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-						Staff-assisted launch flow for tenant intake, MoR source approval, INSA certificate handling, sandbox proof,
-						and first production invoice.
+						Staff-assisted launch flow for tenant intake, MoR source approval, INSA certificate handling, controlled
+						test proof, and first production invoice.
 					</p>
 				</div>
 				<div className="grid grid-cols-2 gap-2">
@@ -602,8 +605,8 @@ function ConciergeOnboardingCockpit({
 				})}
 			</div>
 			<div className="border-t px-4 py-3 text-sm text-muted-foreground">
-				Launch gate timeline: tenant data before MoR, MoR approval before credentials, certificate before sandbox,
-				sandbox before live invoices.
+				Launch gate timeline: tenant data before MoR, MoR approval before credentials, certificate before controlled
+				test invoice, test invoice before live invoices.
 			</div>
 		</section>
 	);
@@ -635,6 +638,138 @@ function TenantLaunchPanel({ workspace }: { readonly workspace: EimsTenantWorksp
 			<div className="rounded-md border bg-muted/25 p-4">
 				<p className="text-sm font-semibold">Support note</p>
 				<p className="mt-2 text-sm leading-6 text-muted-foreground">{workspace.supportNote}</p>
+			</div>
+		</section>
+	);
+}
+
+function formatDateTime(value: string | null) {
+	if (!value) return "No accepted invoice yet";
+	return new Intl.DateTimeFormat(undefined, {
+		day: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+		month: "short",
+	}).format(new Date(value));
+}
+
+function EimsComplianceDashboardPanel({
+	overview,
+	workspace,
+	cancellations,
+	buyers,
+}: {
+	readonly overview: EimsOverview;
+	readonly workspace: EimsTenantWorkspace;
+	readonly cancellations?: readonly EimsCancellation[];
+	readonly buyers?: readonly EimsBuyer[];
+}) {
+	const completedSteps = workspace.readiness.steps.filter((step) => doneStatuses.has(step.status.toLowerCase())).length;
+	const totalSteps = Math.max(workspace.readiness.steps.length, 1);
+	const complianceScore = Math.round((completedSteps / totalSteps) * 100);
+	const failedSubmissions =
+		overview.stats.unknownSubmissions +
+		overview.recentSubmissions.filter((submission) => submission.status.toLowerCase().includes("failed")).length;
+	const approvedSources = overview.sourceSystems.filter((source) => source.approvalStatus === "approved").length;
+	const lastSuccessfulSubmission =
+		overview.recentSubmissions.find((submission) => submission.status === "accepted" && submission.ackDate)?.ackDate ??
+		null;
+	const cancellationRate =
+		cancellations && overview.recentSubmissions.length > 0
+			? `${Math.round((cancellations.length / overview.recentSubmissions.length) * 100)}%`
+			: "Measuring";
+	const buyerCoverage =
+		buyers && buyers.length > 0
+			? `${Math.round((buyers.filter((buyer) => buyer.buyerTin).length / buyers.length) * 100)}%`
+			: "Measuring";
+	const scoreSweep = Math.max(0, Math.min(100, complianceScore)) * 3.6;
+	const metrics = [
+		{
+			label: "Submissions this month",
+			value: String(overview.recentSubmissions.length),
+			detail: `${overview.stats.acceptedToday} accepted today`,
+			tone: "border-l-emerald-500",
+		},
+		{
+			label: "Failed submissions",
+			value: String(failedSubmissions),
+			detail: failedSubmissions > 0 ? "Action required before live launch" : "No current failures",
+			tone: "border-l-rose-500",
+		},
+		{
+			label: "Certificate expiry",
+			value: overview.stats.certificatesExpiring > 0 ? `${overview.stats.certificatesExpiring} alert` : "Clear",
+			detail: "INSA renewal countdown",
+			tone: "border-l-amber-500",
+		},
+		{
+			label: "Active source status",
+			value: `${approvedSources}/${overview.sourceSystems.length}`,
+			detail: "MoR-approved registers/POS",
+			tone: "border-l-sky-500",
+		},
+		{
+			label: "Last successful submission",
+			value: formatDateTime(lastSuccessfulSubmission),
+			detail: "Most recent accepted IRN",
+			tone: "border-l-violet-500",
+		},
+		{
+			label: "Cancellation rate",
+			value: cancellationRate,
+			detail: "Cancellations against visible invoices",
+			tone: "border-l-orange-500",
+		},
+		{
+			label: "Buyer registry coverage",
+			value: buyerCoverage,
+			detail: "Saved buyers with valid TINs",
+			tone: "border-l-teal-500",
+		},
+		{
+			label: "Open launch blockers",
+			value: String(workspace.readiness.blockers.length),
+			detail: workspace.readiness.readyForLive ? "Ready for production" : "Resolve before go-live",
+			tone: "border-l-slate-500",
+		},
+	] as const;
+
+	return (
+		<section className="grid overflow-hidden rounded-md border bg-background lg:grid-cols-[320px_1fr]">
+			<div className="border-b bg-[#101826] p-5 text-white lg:border-r lg:border-b-0">
+				<p className="text-sm font-semibold">Compliance command center</p>
+				<div
+					className="mt-5 flex size-36 items-center justify-center rounded-full"
+					style={{
+						background: `conic-gradient(#22c55e ${scoreSweep}deg, rgba(255,255,255,0.14) 0deg)`,
+					}}
+				>
+					<div className="flex size-28 flex-col items-center justify-center rounded-full bg-[#101826]">
+						<span className="text-3xl font-semibold">{complianceScore}%</span>
+						<span className="text-xs text-white/60">overall score</span>
+					</div>
+				</div>
+				<p className="mt-4 text-sm leading-6 text-white/70">
+					Review readiness before issuing live tax invoices. Resolve authority approval, certificate, invoice,
+					cancellation, and buyer registry gaps before production launch.
+				</p>
+				<div className="mt-4 flex flex-wrap gap-2">
+					<Button asChild className="bg-[#22c55e] text-[#07130c] hover:bg-[#4ade80]">
+						<Link to="/eims/setup">Continue setup</Link>
+					</Button>
+					<Button asChild variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10">
+						<Link to="/eims/compliance">Export evidence</Link>
+					</Button>
+				</div>
+			</div>
+			<div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
+				{metrics.map((metric) => (
+					<div key={metric.label} className={`rounded-md border border-border bg-muted/20 p-3 ${metric.tone}`}>
+						<p className="text-xs font-medium uppercase text-muted-foreground">{metric.label}</p>
+						<p className="mt-2 text-xl font-semibold tracking-normal">{metric.value}</p>
+						<p className="mt-1 text-xs leading-5 text-muted-foreground">{metric.detail}</p>
+					</div>
+				))}
 			</div>
 		</section>
 	);
@@ -1264,6 +1399,8 @@ function ExportAction() {
 export function EimsOverviewPage() {
 	const overviewQuery = useEimsOverview();
 	const workspaceQuery = useEimsTenantWorkspace();
+	const cancellationsQuery = useEimsCancellations();
+	const buyersQuery = useEimsBuyers();
 	if (overviewQuery.isLoading || workspaceQuery.isLoading || !overviewQuery.data || !workspaceQuery.data)
 		return <LoadingPanel />;
 	const overview = overviewQuery.data.data;
@@ -1272,10 +1409,16 @@ export function EimsOverviewPage() {
 	return (
 		<div className="space-y-5">
 			<EimsWorkspaceHeader
-				title="Tax invoicing status"
+				title="EIMS compliance dashboard"
 				description={workspace.plainLanguageSummary}
 				mode={workspace.operationModeLabel}
 				overview={overview}
+			/>
+			<EimsComplianceDashboardPanel
+				overview={overview}
+				workspace={workspace}
+				cancellations={cancellationsQuery.data?.data}
+				buyers={buyersQuery.data?.data}
 			/>
 			{workspace.alerts.map((alert) => (
 				<div key={alert.message} className="rounded-md border border-border bg-muted/30 p-3 text-sm">
@@ -1335,7 +1478,7 @@ export function EimsSetupPage() {
 		<div className="space-y-5">
 			<EimsWorkspaceHeader
 				title="MoR/INSA launch wizard"
-				description="Move a tenant from taxpayer profile to source approval, encrypted credentials, issued certificate, sandbox IRN, and first live invoice."
+				description="Move a tenant from taxpayer profile to source approval, encrypted credentials, issued certificate, test invoice IRN, and first live invoice."
 				mode={workspace.operationModeLabel}
 				overview={overview}
 			/>

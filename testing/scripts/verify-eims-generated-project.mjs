@@ -363,11 +363,21 @@ function assertGeneratedStructure() {
 	assert(englishLocale.includes('eimsOperations: "EIMS operations"'), "admin EIMS nav labels are installed");
 	const tenantPages = readProjectFile("apps/web/src/features/eims/components/eims-tenant-pages.tsx");
 	assert(tenantPages.includes("Ethiopia tax workspace"), "tenant EIMS UI has a domain-specific workspace header");
+	assert(tenantPages.includes("EIMS compliance dashboard"), "tenant EIMS status page is the compliance dashboard");
+	assert(tenantPages.includes("Compliance command center"), "tenant EIMS dashboard has the compliance command center");
+	assert(tenantPages.includes("Submissions this month"), "tenant EIMS dashboard tracks monthly submission volume");
+	assert(tenantPages.includes("Failed submissions"), "tenant EIMS dashboard surfaces failed submissions");
+	assert(tenantPages.includes("Certificate expiry"), "tenant EIMS dashboard surfaces certificate expiry risk");
+	assert(tenantPages.includes("Cancellation rate"), "tenant EIMS dashboard tracks cancellation rate");
+	assert(tenantPages.includes("Buyer registry coverage"), "tenant EIMS dashboard tracks buyer registry coverage");
 	assert(tenantPages.includes("EIMS setup path"), "tenant EIMS UI has the guided six-step setup path");
 	assert(tenantPages.includes("EIMS six-step launch wizard"), "tenant EIMS setup page has explicit launch wizard UI");
 	assert(tenantPages.includes("MoR/INSA launch wizard"), "tenant EIMS setup page is visibly authority-specific");
 	assert(tenantPages.includes("Authority handoff packet"), "tenant EIMS setup page tracks authority handoff artifacts");
-	assert(tenantPages.includes("Sandbox IRN and first live invoice"), "tenant EIMS setup page gates go-live on sandbox proof");
+	assert(
+		tenantPages.includes("Test invoice IRN and first live invoice"),
+		"tenant EIMS setup page gates go-live on controlled test proof",
+	);
 	assert(tenantPages.includes("Concierge onboarding cockpit"), "tenant EIMS UI exposes concierge onboarding cockpit");
 	assert(tenantPages.includes("MoR and INSA launch control"), "tenant EIMS UI names the MoR/INSA launch flow");
 	assert(tenantPages.includes("Launch gate timeline"), "tenant EIMS UI shows launch gates from intake to live invoices");

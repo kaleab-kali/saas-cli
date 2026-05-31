@@ -487,8 +487,10 @@ const patchEimsTenantSidebar = async (root) => {
 		.replace("Launch status", "Tax launch status")
 		.replace("Concierge setup ready", "EIMS setup active")
 		.replace(
-			"Use onboarding first, then attach vertical packs.",
-			"MoR approval, certificates, source setup, and compliance evidence are available.",
+			`<div className="mt-1 text-sidebar-foreground/62">Use onboarding first, then attach vertical packs.</div>`,
+			`<div className="mt-1 text-sidebar-foreground/62">
+								MoR approval, certificates, source setup, and compliance evidence are available.
+							</div>`,
 		);
 
 	await fs.writeFile(file, text, "utf8");
