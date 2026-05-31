@@ -96,6 +96,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts",
+	"apps/api/src/modules/eims/shared/queues/eims-submission-source-lock.service.ts",
+	"apps/api/src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts",
 	"apps/api/src/modules/eims/setup/presentation/eims-setup.controller.ts",
@@ -333,6 +335,10 @@ function assertGeneratedStructure() {
 		"generated EIMS local test gate includes queue persistence tests",
 	);
 	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-submission-source-lock.service.spec.ts"),
+		"generated EIMS local test gate includes distributed source lock tests",
+	);
+	assert(
 		packageJson.scripts["test:eims:sdk-contract"]?.includes("scripts/eims-sdk-contract.ts"),
 		"generated package has EIMS SDK contract command",
 	);
@@ -371,6 +377,15 @@ function assertGeneratedStructure() {
 	assert(eimsStarter.envVars?.includes("EIMS_PHASE0_STRICT"), "scaffold state records EIMS strict-mode env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_CALLBACK_HMAC_SECRET"), "scaffold state records EIMS callback HMAC env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_LOOKUP_CACHE_TTL_SECONDS"), "scaffold state records EIMS lookup cache env metadata");
+	assert(
+		eimsStarter.envVars?.includes("EIMS_SUBMISSION_DISTRIBUTED_LOCKS"),
+		"scaffold state records EIMS distributed lock env metadata",
+	);
+	assert(eimsStarter.envVars?.includes("EIMS_SUBMISSION_LOCK_TTL_MS"), "scaffold state records EIMS lock ttl env metadata");
+	assert(
+		eimsStarter.envVars?.includes("EIMS_SUBMISSION_LOCK_WAIT_MS"),
+		"scaffold state records EIMS lock wait env metadata",
+	);
 	assert(eimsStarter.envVars?.includes("EIMS_WORKERS_ENABLED"), "scaffold state records EIMS worker env metadata");
 	assert(
 		eimsStarter.envVars?.includes("EIMS_OFFLINE_REPLAY_ATTEMPTS"),
@@ -405,6 +420,18 @@ function assertGeneratedStructure() {
 	assert(productionEnvExample.includes("EIMS_SIGNING_PROVIDER=vault"), "EIMS production env example uses non-local signing");
 	assert(productionEnvExample.includes("EIMS_PHASE0_STRICT=true"), "EIMS production env example enables Phase 0 strict mode");
 	assert(productionEnvExample.includes("EIMS_CALLBACK_HMAC_SECRET="), "EIMS production env example documents callback HMAC secret");
+	assert(
+		productionEnvExample.includes("EIMS_SUBMISSION_DISTRIBUTED_LOCKS=true"),
+		"EIMS production env example enables distributed submission locks",
+	);
+	assert(
+		productionEnvExample.includes("EIMS_SUBMISSION_LOCK_TTL_MS=30000"),
+		"EIMS production env example configures submission lock ttl",
+	);
+	assert(
+		productionEnvExample.includes("EIMS_SUBMISSION_LOCK_WAIT_MS=10000"),
+		"EIMS production env example configures submission lock wait",
+	);
 	assert(productionEnvExample.includes("EIMS_WORKERS_ENABLED=true"), "EIMS production env example enables workers");
 	assert(
 		productionEnvExample.includes("EIMS_OFFLINE_REPLAY_ATTEMPTS=5"),
@@ -659,6 +686,8 @@ function assertGeneratedStructure() {
 	const queuePersistenceSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts",
 	);
+	const sourceLock = readProjectFile("apps/api/src/modules/eims/shared/queues/eims-submission-source-lock.service.ts");
+	const sourceLockSpec = readProjectFile("apps/api/src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts");
 	const offlineReplayQueue = readProjectFile(
 		"apps/api/src/modules/eims/shared/queues/eims-offline-replay-queue.service.ts",
 	);
@@ -723,12 +752,17 @@ function assertGeneratedStructure() {
 	assert(queueService.includes("lastAcceptedCounter"), "EIMS queue service tracks accepted counter state");
 	assert(queueService.includes("reservationStatus"), "EIMS queue service records counter reservation status");
 	assert(queueService.includes("failed_retryable"), "EIMS queue service classifies retryable failures");
+	assert(queueService.includes("withSourceLock"), "EIMS queue service locks reservation and SDK dispatch per source");
 	assert(queueService.includes("recordReservation"), "EIMS queue service persists reservations before SDK dispatch");
 	assert(queueService.includes("persistenceStatus"), "EIMS queue metadata reports durable reservation status");
 	assert(queuePersistence.includes("PrismaService"), "EIMS queue persistence uses Prisma");
 	assert(queuePersistence.includes("eimsSourceSystemCounter.upsert"), "EIMS queue persistence upserts source counters");
 	assert(queuePersistence.includes("eimsCounterReservation.upsert"), "EIMS queue persistence upserts reservations");
 	assert(queuePersistence.includes("loadSourceState"), "EIMS queue persistence hydrates source counters after restart");
+	assert(sourceLock.includes("IORedis"), "EIMS source lock uses Redis for multi-node safety");
+	assert(sourceLock.includes("EIMS_SUBMISSION_DISTRIBUTED_LOCKS"), "EIMS source lock is explicitly enabled by env");
+	assert(sourceLock.includes('"PX"') && sourceLock.includes('"NX"'), "EIMS source lock uses bounded exclusive Redis locks");
+	assert(sourceLock.includes("pexpire"), "EIMS source lock renews long SDK dispatches");
 	assert(queueSpec.includes("serializes submissions per source"), "EIMS queue tests cover per-source serialization");
 	assert(
 		queueSpec.includes("keeps retryable and unknown outcomes out of the accepted counter chain"),
@@ -742,6 +776,11 @@ function assertGeneratedStructure() {
 		queuePersistenceSpec.includes("stores a durable reservation before SDK dispatch"),
 		"EIMS queue persistence tests cover durable reservation writes",
 	);
+	assert(
+		queueSpec.includes("distributed source lock"),
+		"EIMS queue tests cover distributed source lock integration",
+	);
+	assert(sourceLockSpec.includes("source-scoped Redis lock"), "EIMS source lock tests cover Redis lock lifecycle");
 	assert(offlineReplayQueue.includes("Worker"), "EIMS offline replay queue registers a BullMQ worker");
 	assert(offlineReplayQueue.includes("EIMS_WORKERS_ENABLED"), "EIMS offline replay queue is explicitly enabled by env");
 	assert(
@@ -794,6 +833,7 @@ assert(sdkExternalClient.includes("validateCredential"), "EIMS SDK adapter deleg
 	assert(eimsSharedModule.includes("EimsSdkExternalClient"), "EIMS shared module provides SDK adapter");
 	assert(eimsSharedModule.includes('process.env.EIMS_MOCK_MODE === "false"'), "EIMS shared module switches to SDK outside mock mode");
 	assert(eimsSharedModule.includes("EimsSubmissionQueueService"), "EIMS shared module exports queue coordinator");
+	assert(eimsSharedModule.includes("EimsSubmissionSourceLockService"), "EIMS shared module exports source lock service");
 	assert(eimsSharedModule.includes("EimsOfflineReplayQueueService"), "EIMS shared module exports offline replay queue");
 	assert(lookupService.includes("createHash"), "EIMS lookup service generates deterministic ETags");
 	assert(lookupService.includes("EIMS_LOOKUP_CACHE_TTL_SECONDS"), "EIMS lookup service honors lookup cache TTL env");

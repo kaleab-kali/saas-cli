@@ -3,6 +3,7 @@ import {
 	type EimsQueueReservationOutcome,
 	EimsSubmissionQueuePersistenceService,
 } from "./eims-submission-queue-persistence.service";
+import { EimsSubmissionSourceLockService } from "./eims-submission-source-lock.service";
 
 export interface EimsSubmissionQueueInput {
 	organizationId: string;
@@ -59,6 +60,8 @@ export class EimsSubmissionQueueService {
 	constructor(
 		@Optional()
 		private readonly persistence?: EimsSubmissionQueuePersistenceService,
+		@Optional()
+		private readonly sourceLock?: EimsSubmissionSourceLockService,
 	) {}
 
 	seedSourceState(organizationId: string, sourceSystemId: string, seed: EimsSourceQueueSeed) {
@@ -100,7 +103,7 @@ export class EimsSubmissionQueueService {
 		const previousTail = this.tails.get(key) ?? Promise.resolve();
 		const run = previousTail
 			.catch(() => undefined)
-			.then(() => this.processInvoice(input, sourceSystemId, state, dispatch));
+			.then(() => this.processInvoiceWithLock(input, sourceSystemId, state, dispatch));
 		this.tails.set(
 			key,
 			run.then(
@@ -109,6 +112,30 @@ export class EimsSubmissionQueueService {
 			),
 		);
 		return run;
+	}
+
+	private async processInvoiceWithLock<T extends DispatchResult>(
+		input: EimsSubmissionQueueInput,
+		sourceSystemId: string,
+		state: SourceQueueState,
+		dispatch: (queued: EimsQueuedSubmissionInput) => Promise<T>,
+	): Promise<EimsQueuedResponse<T>> {
+		let started = false;
+		const process = () => {
+			started = true;
+			return this.processInvoice(input, sourceSystemId, state, dispatch);
+		};
+		try {
+			return this.sourceLock
+				? await this.sourceLock.withSourceLock(input.organizationId, sourceSystemId, process)
+				: await process();
+		} catch (error) {
+			if (!started) {
+				state.pendingDepth = Math.max(0, state.pendingDepth - 1);
+				state.lastReservationStatus = "lock_unavailable";
+			}
+			throw error;
+		}
 	}
 
 	private async processInvoice<T extends DispatchResult>(

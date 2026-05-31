@@ -28,7 +28,7 @@ What is not done yet:
 
 - Production EIMS SDK package install and running contract proof against the real package.
 - Real Vault Transit signing.
-- BullMQ/Redis worker consumers for multi-node per-source submission queue locking.
+- Dedicated async submission worker process wiring if production submits should return queued acknowledgements.
 - Applied production PostgreSQL RLS migrations beyond the generated policy export.
 - Running SDK-bound credential validation against the published SDK package and real sandbox credentials.
 - Production printer/device QR scan certification across real hardware.
@@ -43,7 +43,7 @@ What is not done yet:
 | Enterprise -> Establishment -> SourceSystem | Scaffolded | API + scaffold verifier | Data model and mock overview expose hierarchy, TIN, sub-TIN, approval state, counter. |
 | Lookup/code registry | Seeded with ETag/cache metadata | Unit/API tests | Document, transaction, source, cancellation, tax, payment, unit, nature, and region values verified. The Nest lookup service emits deterministic ETags, cache-control metadata, and conditional 304 support; live authority refresh is still pending. |
 | Source approval guard | Partially implemented | Unit/API tests | Guard and mock approval states exist. Full MoR portal workflow is not production-built. |
-| Counter and PreviousIrn chain | Source-scoped coordinator plus durable reservations implemented; multi-node submission workers pending | Unit/API/security tests | Starter now serializes submissions per source, hydrates counter state from durable rows after restart, persists `EimsCounterReservation` before SDK dispatch, records accepted/rejected/unknown outcomes, attaches `previousIrn`, keeps retryable/unknown outcomes out of the accepted chain, and registers EIMS BullMQ queue names for `/admin/jobs` monitoring. Multi-node BullMQ/Redis submission locking workers are still deployment work. |
+| Counter and PreviousIrn chain | Source-scoped coordinator, durable reservations, and Redis source locking implemented | Unit/API/security tests | Starter now serializes submissions per source, hydrates counter state from durable rows after restart, persists `EimsCounterReservation` before SDK dispatch, records accepted/rejected/unknown outcomes, attaches `previousIrn`, keeps retryable/unknown outcomes out of the accepted chain, wraps reservation plus SDK dispatch in `EimsSubmissionSourceLockService` when `EIMS_SUBMISSION_DISTRIBUTED_LOCKS=true`, and registers EIMS BullMQ queue names for `/admin/jobs` monitoring. Dedicated async submission worker process wiring remains optional deployment work. |
 | EIMS SDK boundary | Adapter/provider boundary and explicit contract command implemented, real package proof pending | Unit/scaffold/security tests | `EIMS_EXTERNAL_CLIENT` switches from the mock client to `EimsSdkExternalClient` when `EIMS_MOCK_MODE=false`; the generated provider dynamically loads `EIMS_SDK_PACKAGE_NAME`, validates that the SDK exposes `registerInvoice`, `registerReceipt`, `verifyIrn`, and credential validation, and fails closed if the package is missing or incompatible. Generated projects now include `pnpm test:eims:sdk-contract`; running it against the published SDK package remains pending. |
 | Credentials lifecycle | Encryption, rotation boundary, durable Prisma persistence, and SDK-bound validation implemented | Unit/API/UI tests | Credential POST and rotate payloads are sealed with `CipherService`, raw secret fields are stripped, encrypted secret material is persisted in `EimsCredential` byte columns, rotation evidence/revisions are stored, credential test decrypts secrets only in memory, calls `EIMS_EXTERNAL_CLIENT.validateCredential`, records the durable result, and responses expose only redaction/evidence metadata. Real proof still requires the published SDK package and sandbox credentials. |
 | Certificates/CSR | Mock API only | API/UI tests | Certificate metadata and expiry state are exposed. Real Vault/INSA certificate flow is not complete. |
@@ -94,6 +94,6 @@ real Playwright route walkthroughs and include a headed CLI path.
 
 The implementation should not be described as production-complete EIMS. It is a
 clean V3 scaffold foundation with detailed mock API/UI verification. Production
-completion still requires the V3 phases for Vault, applying RLS/audit SQL in production, BullMQ/Redis
-submission worker consumers, durable callback polling, scheduled offline replay tuning, real printer/device QR certification,
+completion still requires the V3 phases for Vault, applying RLS/audit SQL in production, optional async
+submission worker process wiring, durable callback polling, scheduled offline replay tuning, real printer/device QR certification,
 the production EIMS SDK package install/contract proof, and sandbox proof.

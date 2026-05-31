@@ -21,6 +21,7 @@ import { EimsPrintProofService } from "./printing/eims-print-proof.service";
 import { EimsOfflineReplayQueueService } from "./queues/eims-offline-replay-queue.service";
 import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.service";
 import { EimsSubmissionQueuePersistenceService } from "./queues/eims-submission-queue-persistence.service";
+import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source-lock.service";
 
 @Module({
 	controllers: [EimsLookupController, EimsSupportingResourcesController, EimsBulkCallbackController],
@@ -38,6 +39,7 @@ import { EimsSubmissionQueuePersistenceService } from "./queues/eims-submission-
 		EimsOfflineReplayService,
 		EimsOfflineReplayQueueService,
 		EimsPrintProofService,
+		EimsSubmissionSourceLockService,
 		EimsMockService,
 		MockEimsExternalClient,
 		EimsSdkClientProvider,
@@ -64,6 +66,7 @@ import { EimsSubmissionQueuePersistenceService } from "./queues/eims-submission-
 		EimsOfflineReplayService,
 		EimsOfflineReplayQueueService,
 		EimsPrintProofService,
+		EimsSubmissionSourceLockService,
 		EimsMockService,
 		EimsSdkExternalClient,
 		EIMS_BACKEND_REPOSITORY,

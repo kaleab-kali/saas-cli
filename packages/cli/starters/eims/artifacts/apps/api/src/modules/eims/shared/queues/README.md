@@ -12,10 +12,11 @@ boundary for invoice submission ordering:
 - restart hydration from `EimsSourceSystemCounter` and latest reservation rows
 - previous-IRN chaining from the last accepted response only
 - retryable/unknown outcomes kept out of the accepted counter chain
+- optional Redis source locks around reservation plus SDK dispatch
 
-Replace the in-process submission coordinator with BullMQ-backed workers when
-enabling multi-node production deployment; keep the same payload metadata
-contract and Prisma reservation audit trail.
+`EimsSubmissionSourceLockService` is the multi-node guard. Set
+`EIMS_SUBMISSION_DISTRIBUTED_LOCKS=true` with `REDIS_URL` in production so only
+one API or worker process can reserve and submit for the same source at a time.
 
 `EimsOfflineReplayQueueService` provides the durable offline replay worker path.
 It enqueues tenant-scoped replay jobs into `eims-offline-replay`; the worker calls

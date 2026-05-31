@@ -181,4 +181,31 @@ describe("EimsSubmissionQueueService", () => {
 			persistenceStatus: "outcome_recorded",
 		});
 	});
+
+	it("wraps reservation and SDK dispatch in the distributed source lock when configured", async () => {
+		const sourceLock = {
+			withSourceLock: jest.fn(async (_organizationId: string, _sourceSystemId: string, run: () => Promise<unknown>) =>
+				run(),
+			),
+		};
+		const queue = new EimsSubmissionQueueService(undefined, sourceLock as never);
+		const dispatch = jest.fn(async () => ({ data: { status: "accepted", irn: "IRN-LOCKED" } }));
+
+		await queue.enqueueInvoice(
+			{
+				organizationId: "org_test",
+				sourceSystemId: "src_front",
+				documentNumber: "INV-LOCKED",
+			},
+			dispatch,
+		);
+
+		expect(sourceLock.withSourceLock).toHaveBeenCalledWith("org_test", "src_front", expect.any(Function));
+		expect(dispatch).toHaveBeenCalledWith(
+			expect.objectContaining({
+				counter: 1,
+				reservationId: "org_test:src_front:1",
+			}),
+		);
+	});
 });
