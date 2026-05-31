@@ -52,6 +52,9 @@ const tenantThrottler = read("apps/api/src/shared/rate-limit/tenant-throttler.gu
 const rateLimitConfig = read("apps/api/src/shared/rate-limit/rate-limit.config.ts");
 const loggerConstants = read("apps/api/src/shared/logger/logger.constants.ts");
 const auditInterceptor = read("apps/api/src/shared/interceptors/audit.interceptor.ts");
+const auditDecorators = read("apps/api/src/shared/decorators/audit.decorator.ts");
+const domainError = read("apps/api/src/shared/errors/domain-error.ts");
+const globalExceptionFilter = read("apps/api/src/shared/filters/global-exception.filter.ts");
 assertIncludes(appModule, "TenantThrottlerGuard", "global throttling must use tenant-aware tracker guard");
 assertIncludes(tenantThrottler, "tenant:", "rate limiting must isolate tenant request buckets");
 assertIncludes(tenantThrottler, "admin:", "rate limiting must isolate admin request buckets");
@@ -65,6 +68,10 @@ assertIncludes(
 	"redactSensitiveFields(body)",
 	"audit logging must redact request bodies before persistence",
 );
+assertIncludes(auditDecorators, "AuditResource", "audit metadata decorators must be available for mutations");
+assertIncludes(auditInterceptor, "AUDIT_ACTION_KEY", "audit logging must honor audit metadata decorators");
+assertIncludes(domainError, "class DomainError", "typed domain errors must be available to modules");
+assertIncludes(globalExceptionFilter, "isDomainError", "global exception filter must map typed domain errors safely");
 
 const allSource = walkFiles(repoRoot, (file) => sourceExt.test(file));
 const unsafePrismaRaw = "$query" + "RawUnsafe";

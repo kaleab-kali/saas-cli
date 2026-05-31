@@ -1,8 +1,10 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { Request } from "express";
 import { PinoLogger } from "nestjs-pino";
 import { Observable, tap } from "rxjs";
 import { AuditPersistenceService } from "#modules/audit-log/application/services/audit-persistence.service";
+import { AUDIT_ACTION_KEY, AUDIT_RESOURCE_KEY } from "#shared/decorators/audit.decorator";
 import { CORRELATION_ID_HEADER } from "#shared/logger/logger.constants";
 import { redactSensitiveFields } from "#shared/logger/redact.util";
 
@@ -33,6 +35,7 @@ export class AuditInterceptor implements NestInterceptor {
 	constructor(
 		private readonly logger: PinoLogger,
 		private readonly persistence: AuditPersistenceService,
+		private readonly reflector: Reflector,
 	) {
 		this.logger.setContext(AuditInterceptor.name);
 	}
@@ -46,8 +49,13 @@ export class AuditInterceptor implements NestInterceptor {
 			return next.handle();
 		}
 
-		const action = METHOD_ACTION_MAP[method] || method;
-		const resource = extractResource(url);
+		const action =
+			this.reflector.getAllAndOverride<string>(AUDIT_ACTION_KEY, [context.getHandler(), context.getClass()]) ??
+			METHOD_ACTION_MAP[method] ??
+			method;
+		const resource =
+			this.reflector.getAllAndOverride<string>(AUDIT_RESOURCE_KEY, [context.getHandler(), context.getClass()]) ??
+			extractResource(url);
 		const resourceId = extractResourceId(url);
 		const correlationId = request.headers[CORRELATION_ID_HEADER] as string;
 		const req = request as unknown as Record<string, unknown>;

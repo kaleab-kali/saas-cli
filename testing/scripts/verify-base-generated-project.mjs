@@ -45,6 +45,8 @@ const mustExist = [
 	"apps/api/src/modules/auth/guards/permissions.guard.spec.ts",
 	"apps/api/src/modules/health/detailed-health.controller.ts",
 	"apps/api/src/modules/health/health-diagnostics.service.ts",
+	"apps/api/src/shared/decorators/audit.decorator.ts",
+	"apps/api/src/shared/errors/domain-error.ts",
 	"apps/api/src/shared/filters/global-exception.filter.spec.ts",
 	"apps/api/src/shared/interceptors/audit.interceptor.spec.ts",
 	"apps/api/src/shared/i18n/money.util.ts",
@@ -400,19 +402,39 @@ function assertTenantAwareRateLimitSurface() {
 
 function assertAuditAndErrorSecuritySurface() {
 	const permissionsSpec = readProjectFile("apps/api/src/modules/auth/guards/permissions.guard.spec.ts");
+	const auditDecorator = readProjectFile("apps/api/src/shared/decorators/audit.decorator.ts");
 	const auditSpec = readProjectFile("apps/api/src/shared/interceptors/audit.interceptor.spec.ts");
+	const auditInterceptor = readProjectFile("apps/api/src/shared/interceptors/audit.interceptor.ts");
+	const domainError = readProjectFile("apps/api/src/shared/errors/domain-error.ts");
+	const exceptionFilter = readProjectFile("apps/api/src/shared/filters/global-exception.filter.ts");
 	const exceptionSpec = readProjectFile("apps/api/src/shared/filters/global-exception.filter.spec.ts");
 	const loggerConstants = readProjectFile("apps/api/src/shared/logger/logger.constants.ts");
 	const sourceSecurity = readProjectFile("apps/security/scripts/source-security-check.mjs");
+	const apiConventions = readProjectFile("docs/API_CONVENTIONS.md");
 	assert(permissionsSpec.includes("rejects as soon as one required permission is missing"), "permission guard tests denial path");
+	assert(auditDecorator.includes("AuditResource"), "audit decorators expose explicit resource metadata");
+	assert(auditDecorator.includes("AuditAction"), "audit decorators expose explicit action metadata");
+	assert(auditInterceptor.includes("AUDIT_ACTION_KEY"), "audit interceptor reads explicit audit action metadata");
+	assert(auditInterceptor.includes("AUDIT_RESOURCE_KEY"), "audit interceptor reads explicit audit resource metadata");
 	assert(auditSpec.includes("persists a redacted success audit record"), "audit interceptor tests redacted success records");
 	assert(auditSpec.includes("persists failure audit records"), "audit interceptor tests failure records");
+	assert(auditSpec.includes("uses explicit audit metadata"), "audit interceptor tests explicit audit metadata");
+	assert(domainError.includes("class DomainError"), "API shared layer exposes typed domain errors");
+	assert(exceptionFilter.includes("isDomainError"), "exception filter handles typed domain errors");
 	assert(exceptionSpec.includes("sanitizes Nest 404 route messages"), "exception filter tests route sanitization");
 	assert(exceptionSpec.includes("returns a generic 500 response"), "exception filter tests generic server errors");
+	assert(exceptionSpec.includes("maps typed domain errors"), "exception filter tests typed domain errors");
 	assert(loggerConstants.includes('"apiKey"'), "sensitive-field list redacts API keys");
 	assert(loggerConstants.includes('"privateKey"'), "sensitive-field list redacts private keys");
 	assert(sourceSecurity.includes("log redaction must cover API key fields"), "source security gate enforces API key redaction");
 	assert(sourceSecurity.includes("audit logging must redact request bodies"), "source security gate enforces audit body redaction");
+	assert(
+		sourceSecurity.includes("audit metadata decorators must be available for mutations"),
+		"source security gate enforces audit decorators",
+	);
+	assert(sourceSecurity.includes("typed domain errors must be available"), "source security gate enforces domain errors");
+	assert(apiConventions.includes("@AuditResource"), "API conventions document audit metadata decorators");
+	assert(apiConventions.includes("DomainError"), "API conventions document typed domain errors");
 }
 
 function assertOnboardingFirstEntry() {

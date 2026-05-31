@@ -1,4 +1,5 @@
 import { BadRequestException, HttpException, HttpStatus, NotFoundException } from "@nestjs/common";
+import { DomainError } from "#shared/errors/domain-error";
 import { CORRELATION_ID_HEADER } from "#shared/logger/logger.constants";
 import { GlobalExceptionFilter } from "./global-exception.filter";
 
@@ -102,5 +103,32 @@ describe("GlobalExceptionFilter", () => {
 		expect(response.json).toHaveBeenCalledWith({
 			error: { code: "CONFLICT", message: "Internal server error" },
 		});
+	});
+
+	it("maps typed domain errors to safe client responses", () => {
+		const { filter, logger } = makeFilter();
+		const { host, response } = makeHost();
+
+		filter.catch(
+			new DomainError({
+				code: "ONBOARDING_STEP_BLOCKED",
+				message: "This onboarding step is blocked",
+				status: HttpStatus.CONFLICT,
+				details: { internalWorkflowState: "secret" },
+			}),
+			host as never,
+		);
+
+		expect(response.status).toHaveBeenCalledWith(HttpStatus.CONFLICT);
+		expect(response.json).toHaveBeenCalledWith({
+			error: { code: "ONBOARDING_STEP_BLOCKED", message: "This onboarding step is blocked" },
+		});
+		expect(logger.warn).toHaveBeenCalledWith(
+			expect.objectContaining({
+				correlationId: "corr_1",
+				statusCode: HttpStatus.CONFLICT,
+			}),
+			"ONBOARDING_STEP_BLOCKED: This onboarding step is blocked",
+		);
 	});
 });

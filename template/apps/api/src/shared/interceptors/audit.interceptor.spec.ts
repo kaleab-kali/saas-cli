@@ -1,9 +1,17 @@
 import type { ExecutionContext } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { of, throwError } from "rxjs";
+import { AuditAction, AuditResource } from "#shared/decorators/audit.decorator";
 import { AuditInterceptor } from "./audit.interceptor";
 
-const makeContext = (request: Record<string, unknown>): ExecutionContext =>
+const makeContext = (
+	request: Record<string, unknown>,
+	handler: () => void = function handler() {},
+	controller: new () => unknown = class Controller {},
+): ExecutionContext =>
 	({
+		getClass: () => controller,
+		getHandler: () => handler,
 		switchToHttp: () => ({
 			getRequest: () => request,
 		}),
@@ -19,11 +27,21 @@ const makeInterceptor = () => {
 		record: jest.fn(),
 	};
 	return {
-		interceptor: new AuditInterceptor(logger as never, persistence as never),
+		interceptor: new AuditInterceptor(logger as never, persistence as never, new Reflector()),
 		logger,
 		persistence,
 	};
 };
+
+class DecoratedController {
+	completeStep() {}
+}
+
+const completeStepDescriptor = Object.getOwnPropertyDescriptor(DecoratedController.prototype, "completeStep");
+if (!completeStepDescriptor) throw new Error("completeStep descriptor missing");
+
+AuditResource("onboarding:task")(DecoratedController);
+AuditAction("complete_step")(DecoratedController.prototype, "completeStep", completeStepDescriptor);
 
 describe("AuditInterceptor", () => {
 	it("skips read-only requests", (done) => {
@@ -124,6 +142,39 @@ describe("AuditInterceptor", () => {
 							resource: "reports",
 							resourceId: null,
 							status: "failure",
+						}),
+					);
+					done();
+				},
+			});
+	});
+
+	it("uses explicit audit metadata when decorators are present", (done) => {
+		const { interceptor, logger, persistence } = makeInterceptor();
+		const request = {
+			body: {},
+			headers: { "x-correlation-id": "corr_2" },
+			method: "POST",
+			organizationId: "org_1",
+			params: { id: "task_1", stepKey: "tenant-info-collected" },
+			url: "/api/v1/admin/onboarding/task_1/steps/tenant-info-collected/complete",
+		};
+		const next = { handle: jest.fn(() => of({ ok: true })) };
+
+		interceptor
+			.intercept(makeContext(request, DecoratedController.prototype.completeStep, DecoratedController), next)
+			.subscribe({
+				complete: () => {
+					expect(logger.info).toHaveBeenCalledWith(
+						expect.objectContaining({ action: "complete_step", resource: "onboarding:task" }),
+						"complete_step onboarding:task completed",
+					);
+					expect(persistence.record).toHaveBeenCalledWith(
+						expect.objectContaining({
+							action: "complete_step",
+							correlationId: "corr_2",
+							resource: "onboarding:task",
+							status: "success",
 						}),
 					);
 					done();

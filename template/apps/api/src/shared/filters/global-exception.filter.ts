@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from "@nestjs/common";
 import { Request, Response } from "express";
 import { PinoLogger } from "nestjs-pino";
+import { isDomainError } from "#shared/errors/domain-error";
 import { CORRELATION_ID_HEADER } from "#shared/logger/logger.constants";
 
 @Catch()
@@ -14,9 +15,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 		const response = ctx.getResponse<Response>();
 		const request = ctx.getRequest<Request>();
 
-		const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+		const status = isDomainError(exception)
+			? exception.statusCode
+			: exception instanceof HttpException
+				? exception.getStatus()
+				: HttpStatus.INTERNAL_SERVER_ERROR;
 
 		const getMessage = (): string => {
+			if (isDomainError(exception)) return exception.message;
 			if (!(exception instanceof HttpException)) return "Internal server error";
 			const res = exception.getResponse();
 			if (typeof res === "string") return res;
@@ -38,7 +44,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 		};
 		const message = sanitize(getMessage());
 
-		const code = HttpStatus[status] || "INTERNAL_ERROR";
+		const code = isDomainError(exception) ? exception.code : HttpStatus[status] || "INTERNAL_ERROR";
 
 		const logPayload = {
 			statusCode: status,

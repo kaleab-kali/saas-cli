@@ -38,6 +38,18 @@ Query params should stay explicit and typed, for example `?status=active&ownerId
 { "error": { "code": "NOT_FOUND", "message": "Resource not found" } }
 ```
 
+Use `DomainError` for expected business failures so modules return stable, safe error codes without leaking internals:
+
+```ts
+throw new DomainError({
+  code: "ONBOARDING_STEP_BLOCKED",
+  message: "This onboarding step is blocked",
+  status: HttpStatus.CONFLICT,
+});
+```
+
+The global exception filter maps `DomainError` instances directly to `{ error: { code, message } }`. Unexpected `Error` instances are logged and returned as a generic `INTERNAL_SERVER_ERROR`.
+
 ## Status Codes
 - `200` - success
 - `201` - created
@@ -65,6 +77,23 @@ Query params should stay explicit and typed, for example `?status=active&ownerId
 - Every request gets an `x-correlation-id` response header
 - The same ID appears in logs for request tracing
 - Frontend callers should pass an existing ID when retrying or chaining calls
+
+## Audit Metadata
+Every mutating controller action should either follow the standard REST resource/action inference or provide explicit audit metadata:
+
+```ts
+@Controller("admin/onboarding")
+@AuditResource("onboarding:task")
+export class AdminOnboardingController {
+  @Post(":id/steps/:stepKey/complete")
+  @AuditAction("complete_step")
+  async completeStep() {
+    // ...
+  }
+}
+```
+
+The global audit interceptor persists success and failure records, redacts request bodies, and uses `@AuditResource` / `@AuditAction` metadata when present.
 
 ## Validation
 - Use `class-validator` decorators on DTOs
