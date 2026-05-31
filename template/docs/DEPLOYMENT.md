@@ -9,6 +9,8 @@ pnpm deploy production --confirm-production
 
 The runner is intentionally conservative. It refuses production deploys without explicit confirmation, runs `pnpm deploy:check` before release, copies the current working tree to a timestamped remote release directory, links shared environment files, installs dependencies, builds, backs up the database, runs `prisma migrate deploy`, reloads PM2, performs a health check, and rolls back the `current` symlink if the health check fails.
 
+`pnpm readiness:smoke` runs a deterministic local dry-run of the deploy, backup, and restore scripts. It is included in `pnpm deploy:check` so release tooling breaks before a real VPS or database is involved.
+
 ## Configure The Deploy Host
 
 Create an environment file on the machine that runs deploys:

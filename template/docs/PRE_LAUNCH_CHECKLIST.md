@@ -13,6 +13,7 @@ Use this checklist before moving a generated SaaS into production.
 - `pnpm test:security:tooling` passes.
 - `pnpm test:load:k6:mock` passes.
 - `pnpm doctor:production` has no failures.
+- `pnpm readiness:smoke` proves deploy, backup, and restore dry-run paths.
 - `pnpm deploy staging --dry-run` prints the expected release, backup, migration, PM2 reload, and health-check commands.
 
 ## Environment

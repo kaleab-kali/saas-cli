@@ -23,6 +23,7 @@ Local backup command:
 
 ```bash
 pnpm db:backup
+pnpm readiness:smoke
 ```
 
 By default this reads `DATABASE_URL` from `apps/api/.env` and writes a compressed custom-format dump to `backups/postgres`. For production, run it from cron with `DATABASE_URL` supplied by your secret manager and copy the resulting `.dump` file to encrypted off-server storage.

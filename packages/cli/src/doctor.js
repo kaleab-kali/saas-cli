@@ -250,6 +250,7 @@ export const runDoctor = async (cwd, options = {}) => {
 		requireScript(rootPkg, "lint:ci", production);
 		requireScript(rootPkg, "deploy:check", production);
 		requireScript(rootPkg, "deploy", production);
+		requireScript(rootPkg, "readiness:smoke", production);
 		requireScript(rootPkg, "build:api", production);
 		requireScript(rootPkg, "build:web", production);
 		requireScript(rootPkg, "db:backup", production);
@@ -271,6 +272,7 @@ export const runDoctor = async (cwd, options = {}) => {
 	requirePath(path.join(cwd, "scripts/backup-postgres.mjs"), "Postgres backup script", production);
 	requirePath(path.join(cwd, "scripts/restore-postgres.mjs"), "Postgres restore script", production);
 	requirePath(path.join(cwd, "scripts/deploy.mjs"), "VPS deploy script", production);
+	requirePath(path.join(cwd, "scripts/readiness-smoke.mjs"), "production readiness smoke script", production);
 	requirePath(path.join(cwd, ".env.deploy.example"), "deploy env example", production);
 	requirePath(path.join(cwd, ".gitleaks.toml"), "gitleaks config", production);
 	requirePath(path.join(cwd, "ecosystem.config.cjs"), "PM2 ecosystem config", production);

@@ -9,6 +9,7 @@ const skipChecks = args.includes("--skip-checks");
 const skipBackup = args.includes("--skip-backup");
 const skipMigrate = args.includes("--skip-migrate");
 const skipHealth = args.includes("--skip-health-check");
+const skipGitChecks = args.includes("--skip-git-checks") || process.env.DEPLOY_SKIP_GIT_CHECKS === "1";
 const confirmedProduction = args.includes("--confirm-production") || process.env.DEPLOY_CONFIRM_PRODUCTION === "1";
 
 const help = () => {
@@ -38,6 +39,7 @@ Options:
   --skip-backup               Skip remote pre-migration backup
   --skip-migrate              Skip prisma migrate deploy
   --skip-health-check         Skip post-reload health check
+  --skip-git-checks           Skip local clean-worktree and branch checks for dry-run smoke tests
   --confirm-production        Required for production deploys
   --help                      Show this help
 `);
@@ -259,8 +261,10 @@ ls -dt ${shellQuote(`${deployPath}/releases`)}/* | tail -n +$(( ${keepReleases} 
 
 try {
 	console.log(`Deploying {{projectName}} to ${environment} (${remote}:${deployPath})`);
-	assertCleanGit();
-	assertBranch();
+	if (!skipGitChecks) {
+		assertCleanGit();
+		assertBranch();
+	}
 	if (!skipChecks) runLocal("local deploy gate", "pnpm deploy:check");
 	runRemote("prepare remote release directories", prepareRemote);
 	run("rsync release", "rsync", rsyncArgs);

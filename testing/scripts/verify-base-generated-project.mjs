@@ -79,6 +79,7 @@ const mustExist = [
 	".env.deploy.example",
 	"scripts/backup-postgres.mjs",
 	"scripts/deploy.mjs",
+	"scripts/readiness-smoke.mjs",
 	"scripts/restore-postgres.mjs",
 	"docs/DEPLOYMENT.md",
 	"docs/observability/grafana-dashboard.json",
@@ -157,6 +158,7 @@ function assertDeployGateBuilds() {
 	const strykerConfig = readProjectFile("apps/api/stryker.conf.mjs");
 	const moduleMutationRunner = readProjectFile("apps/api/scripts/run-module-mutation.mjs");
 	const deployRunner = readProjectFile("scripts/deploy.mjs");
+	const readinessSmoke = readProjectFile("scripts/readiness-smoke.mjs");
 	const doctor = readProjectFile("scripts/doctor.mjs");
 	const deploymentGuide = readProjectFile("docs/DEPLOYMENT.md");
 	const preLaunchChecklist = readProjectFile("docs/PRE_LAUNCH_CHECKLIST.md");
@@ -173,6 +175,7 @@ function assertDeployGateBuilds() {
 	assert(deployCheck.includes("build:api"), "deploy gate includes API production build");
 	assert(deployCheck.includes("build:web"), "deploy gate includes web production build");
 	assert(deployCheck.includes("test:smoke"), "deploy gate runs broad smoke suite");
+	assert(deployCheck.includes("readiness:smoke"), "deploy gate includes deterministic readiness smoke");
 	assert(deployCheck.includes("test:security:tooling:strict"), "deploy gate fails when required security scanners are missing");
 	assert(deployCheck.includes("test:performance:tooling:strict"), "deploy gate fails when k6 is missing");
 	assert(deployCheck.includes("pnpm lint"), "deploy gate includes lint without duplicate Prisma generation");
@@ -180,11 +183,13 @@ function assertDeployGateBuilds() {
 	assert(!deployCheck.includes("lint:ci"), "deploy gate avoids nested lint:ci duplicate Prisma generation");
 	assert(!deployCheck.includes("test:ci &&"), "deploy gate does not bypass browser smoke via narrow CI gate");
 	assert(packageJson.scripts?.deploy === "node scripts/deploy.mjs", "base package exposes guarded deploy command");
+	assert(packageJson.scripts?.["readiness:smoke"] === "node scripts/readiness-smoke.mjs", "base package exposes readiness smoke command");
 	assert(packageJson.scripts?.["db:migrate:deploy"] === "pnpm --filter api db:migrate:deploy", "base package exposes production migration command");
 	assert(apiPackageJson.scripts?.["db:migrate:deploy"] === "prisma migrate deploy", "API workspace exposes Prisma deploy migration command");
 	assert(deployRunner.includes("DEPLOY_HOST"), "deploy runner requires a remote host");
 	assert(deployRunner.includes("--confirm-production"), "deploy runner requires explicit production confirmation");
 	assert(deployRunner.includes("--dry-run"), "deploy runner supports dry-run deployment planning");
+	assert(deployRunner.includes("--skip-git-checks"), "deploy runner supports deterministic dry-run smoke without clean git");
 	assert(deployRunner.includes(".env.deploy.${environment}"), "deploy runner reads environment-specific deploy config");
 	assert(deployRunner.includes("rsync"), "deploy runner copies releases with rsync");
 	assert(deployRunner.includes("pnpm db:backup"), "deploy runner takes a remote pre-migration backup");
@@ -194,8 +199,10 @@ function assertDeployGateBuilds() {
 	assert(deployRunner.includes("DEPLOY_KEEP_RELEASES"), "deploy runner prunes old releases");
 	assert(doctor.includes('"deploy"'), "production doctor requires deploy script");
 	assert(doctor.includes('"deploy:check"'), "production doctor requires deploy gate script");
+	assert(doctor.includes('"readiness:smoke"'), "production doctor requires readiness smoke script");
 	assert(doctor.includes('"db:migrate:deploy"'), "production doctor requires deploy migration script");
 	assert(doctor.includes("VPS deploy script"), "production doctor verifies the deploy runner exists");
+	assert(doctor.includes("production readiness smoke script"), "production doctor verifies the readiness smoke script exists");
 	assert(doctor.includes("METRICS_TOKEN"), "production doctor requires metrics endpoint protection");
 	assert(doctor.includes("SMTP_HOST"), "production doctor requires email relay readiness");
 	assert(doctor.includes("requireHttpsEnvUrl"), "production doctor rejects non-HTTPS public URLs");
@@ -214,6 +221,10 @@ function assertDeployGateBuilds() {
 	assert(apiEnvExample.includes("SMTP_HOST="), "API env example includes SMTP host");
 	assert(deployEnvExample.includes("DEPLOY_HOST="), "deploy env example includes remote host");
 	assert(deployEnvExample.includes("DEPLOY_PM2_APP="), "deploy env example includes PM2 app name");
+	assert(readinessSmoke.includes("scripts/deploy.mjs"), "readiness smoke exercises deploy dry-run");
+	assert(readinessSmoke.includes("scripts/backup-postgres.mjs"), "readiness smoke exercises backup dry-run");
+	assert(readinessSmoke.includes("scripts/restore-postgres.mjs"), "readiness smoke exercises restore dry-run");
+	assert(readinessSmoke.includes("Production readiness smoke passed"), "readiness smoke reports success");
 	assert(testCi.includes("test:api:http:mock"), "CI test gate includes mock HTTP API tests");
 	assert(testCi.includes("test:api:bruno:mock"), "CI test gate includes mock Bruno API tests");
 	assert(apiTestsPackageJson.scripts?.["test:http"] === "node scripts/run-http.mjs", "HTTP API command uses runner");
