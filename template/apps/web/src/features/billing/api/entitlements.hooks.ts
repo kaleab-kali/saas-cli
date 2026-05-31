@@ -26,11 +26,14 @@ export interface TenantBillingSnapshot {
 	readonly entitlements: Record<string, { enabled: boolean; limit: number | null }>;
 }
 
-const key = ["billing", "tenant-snapshot"] as const;
+export const tenantBillingSnapshotKeys = {
+	all: ["billing", "tenant-snapshot"] as const,
+	current: () => [...tenantBillingSnapshotKeys.all, "current"] as const,
+};
 
 export const useTenantBillingSnapshot = () =>
 	useQuery({
-		queryKey: key,
+		queryKey: tenantBillingSnapshotKeys.current(),
 		queryFn: () => api.get<{ data: TenantBillingSnapshot }>("/billing/me"),
 		select: (r) => r.data,
 		staleTime: 60_000,

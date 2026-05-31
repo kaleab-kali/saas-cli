@@ -77,38 +77,39 @@ export interface UsageCurrent {
 	metrics: Record<string, number>;
 }
 
-const K = {
-	plans: ["billing", "plans"] as const,
-	subscription: ["billing", "subscription"] as const,
-	usage: ["billing", "usage"] as const,
-	entitlements: ["billing", "entitlements"] as const,
-	invoices: (status?: string) => ["billing", "invoices", { status }] as const,
+export const billingKeys = {
+	all: ["billing"] as const,
+	plans: () => [...billingKeys.all, "plans"] as const,
+	subscription: () => [...billingKeys.all, "subscription"] as const,
+	usage: () => [...billingKeys.all, "usage"] as const,
+	entitlements: () => [...billingKeys.all, "entitlements"] as const,
+	invoices: (status?: string) => [...billingKeys.all, "invoices", { status }] as const,
 };
 
 export const usePlans = () =>
 	useQuery({
-		queryKey: K.plans,
+		queryKey: billingKeys.plans(),
 		queryFn: () => api.get<{ data: Plan[] }>("/billing/plans"),
 		select: (r) => r.data,
 	});
 
 export const useSubscription = () =>
 	useQuery({
-		queryKey: K.subscription,
+		queryKey: billingKeys.subscription(),
 		queryFn: () => api.get<{ data: { subscription: Subscription | null; plan: Plan | null } }>("/billing/subscription"),
 		select: (r) => r.data,
 	});
 
 export const useUsage = () =>
 	useQuery({
-		queryKey: K.usage,
+		queryKey: billingKeys.usage(),
 		queryFn: () => api.get<{ data: UsageCurrent }>("/billing/usage"),
 		select: (r) => r.data,
 	});
 
 export const useEntitlements = () =>
 	useQuery({
-		queryKey: K.entitlements,
+		queryKey: billingKeys.entitlements(),
 		queryFn: () =>
 			api.get<{ data: Record<string, { enabled: boolean; limit: number | null }> }>("/billing/entitlements"),
 		select: (r) => r.data,
@@ -116,7 +117,7 @@ export const useEntitlements = () =>
 
 export const useSubscriptionInvoices = (status?: string) =>
 	useQuery({
-		queryKey: K.invoices(status),
+		queryKey: billingKeys.invoices(status),
 		queryFn: () =>
 			api.get<{ data: SubscriptionInvoice[]; meta: { total: number } }>("/billing/invoices", {
 				params: status ? { status } : {},
@@ -128,7 +129,7 @@ export const useStartSubscription = () => {
 	return useMutation({
 		mutationFn: (dto: { planSlug: string; billingInterval: "monthly" | "annual" }) =>
 			api.post("/billing/subscription", dto),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["billing"] }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: billingKeys.all }),
 		meta: { successMessage: "Subscription started" },
 	});
 };
@@ -138,7 +139,7 @@ export const useChangePlan = () => {
 	return useMutation({
 		mutationFn: (dto: { planSlug: string; billingInterval?: string }) =>
 			api.post("/billing/subscription/change-plan", dto),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["billing"] }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: billingKeys.all }),
 		meta: { successMessage: "Plan changed" },
 	});
 };
@@ -147,7 +148,7 @@ export const useCancelSubscription = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (immediate: boolean) => api.post("/billing/subscription/cancel", { immediate }),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["billing"] }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: billingKeys.all }),
 		meta: { successMessage: "Subscription canceled" },
 	});
 };
@@ -156,7 +157,7 @@ export const useResumeSubscription = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: () => api.post("/billing/subscription/resume", {}),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["billing"] }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: billingKeys.all }),
 		meta: { successMessage: "Subscription resumed" },
 	});
 };
@@ -173,7 +174,7 @@ export const useRecordManualPayment = () => {
 			note?: string;
 			paidAt?: string;
 		}) => api.post("/billing/payments/manual", dto),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["billing"] }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: billingKeys.all }),
 		meta: { successMessage: "Payment recorded (pending verification)" },
 	});
 };
@@ -182,7 +183,7 @@ export const useVerifyPayment = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (id: string) => api.post(`/billing/payments/${id}/verify`, {}),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["billing"] }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: billingKeys.all }),
 		meta: { successMessage: "Payment verified" },
 	});
 };

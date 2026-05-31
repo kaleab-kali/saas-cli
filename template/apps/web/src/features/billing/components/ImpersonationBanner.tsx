@@ -7,6 +7,11 @@ interface SessionShape {
 	user: { email: string; name: string } | null;
 }
 
+export const impersonationSessionKeys = {
+	all: ["tenant-session"] as const,
+	current: () => [...impersonationSessionKeys.all, "current"] as const,
+};
+
 /**
  * Red persistent banner shown only when session.impersonatedBy is set (Better Auth admin plugin).
  * Exit impersonation calls /api/auth/admin/stop-impersonating which restores the admin's original session.
@@ -14,7 +19,7 @@ interface SessionShape {
 export const ImpersonationBanner = React.memo(
 	() => {
 		const { data } = useQuery({
-			queryKey: ["tenant-session"],
+			queryKey: impersonationSessionKeys.current(),
 			queryFn: async () => {
 				const r = await fetch("/api/auth/get-session", { credentials: "include" });
 				if (!r.ok) return null;
@@ -42,7 +47,7 @@ export const ImpersonationBanner = React.memo(
 		return (
 			<div className="sticky top-0 z-[90] w-full bg-red-600 text-white px-4 py-2 text-sm flex items-center justify-between gap-3 shadow-md">
 				<div className="flex items-center gap-3 flex-wrap">
-					<span className="font-semibold">🔴 IMPERSONATING</span>
+					<span className="font-semibold">IMPERSONATING</span>
 					<span>
 						You're signed in as <strong>{data?.user?.email}</strong>. All actions audited.
 					</span>

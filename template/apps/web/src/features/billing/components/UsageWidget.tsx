@@ -1,26 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { api } from "#shared/lib/api-client";
+import { useUsage } from "#features/billing/api/billing.hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-interface UsageCurrent {
-	userCount: number;
-	apiCallCount: number;
-	emailCount: number;
-	caps: { users: number | null };
-	usagePct: { users: number };
-	metrics: Record<string, number>;
-}
-
-const useUsage = () =>
-	useQuery({
-		queryKey: ["billing", "usage"],
-		queryFn: () => api.get<{ data: UsageCurrent }>("/billing/usage"),
-		select: (r) => r.data,
-		staleTime: 60_000,
-		retry: false,
-	});
 
 const Bar = React.memo(
 	({
@@ -42,7 +23,7 @@ const Bar = React.memo(
 				<div className="flex items-center justify-between text-sm">
 					<span className="text-muted-foreground">{label}</span>
 					<span className={`font-mono ${isAtLimit ? "text-destructive font-semibold" : ""}`}>
-						{used} / {cap ?? "∞"}
+						{used} / {cap ?? "unlimited"}
 					</span>
 				</div>
 				<div className="h-2 rounded-full bg-muted overflow-hidden">

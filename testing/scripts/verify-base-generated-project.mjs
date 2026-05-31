@@ -429,6 +429,13 @@ function assertFrontendImprovementSurface() {
 	const commandPalette = readProjectFile("apps/web/src/shared/components/CommandPalette.tsx");
 	const dataTable = readProjectFile("apps/web/src/shared/components/DataTable.tsx");
 	const onboarding = readProjectFile("apps/web/src/features/onboarding/components/onboarding-pages.tsx");
+	const tenantBillingHooks = readProjectFile("apps/web/src/features/billing/api/billing.hooks.ts");
+	const tenantBillingSnapshotHooks = readProjectFile("apps/web/src/features/billing/api/entitlements.hooks.ts");
+	const tenantUsageWidget = readProjectFile("apps/web/src/features/billing/components/UsageWidget.tsx");
+	const impersonationBanner = readProjectFile("apps/web/src/features/billing/components/ImpersonationBanner.tsx");
+	const capabilityHooks = readProjectFile("apps/web/src/features/capabilities/api/capabilities.hooks.ts");
+	const teamHooks = readProjectFile("apps/web/src/features/team/api/team.hooks.ts");
+	const roleHooks = readProjectFile("apps/web/src/features/roles/api/roles.hooks.ts");
 	const adminOrganizations = readProjectFile("apps/web/src/features/admin/components/OrgTable.tsx");
 	const adminOrganizationsRoute = readProjectFile("apps/web/src/routes/admin/organizations/index.tsx");
 	const adminOrganizationDetail = readProjectFile("apps/web/src/routes/admin/organizations/$orgId.tsx");
@@ -462,6 +469,20 @@ function assertFrontendImprovementSurface() {
 		"frontend docs require query key factories",
 	);
 	assert(frontendConventions.includes("401, 403, and 404 responses are not retried"), "frontend docs document retry policy");
+	assert(tenantBillingHooks.includes("export const billingKeys"), "tenant billing hooks export query key factory");
+	assert(tenantBillingHooks.includes("billingKeys.all"), "tenant billing mutations invalidate the billing key prefix");
+	assert(
+		tenantBillingSnapshotHooks.includes("export const tenantBillingSnapshotKeys"),
+		"tenant billing snapshot hook exports query key factory",
+	);
+	assert(tenantUsageWidget.includes("useUsage"), "tenant usage widget reuses billing query hook");
+	assert(tenantUsageWidget.includes("unlimited"), "tenant usage widget renders an ASCII unlimited label");
+	assert(impersonationBanner.includes("impersonationSessionKeys"), "impersonation banner uses query key factory");
+	assert(capabilityHooks.includes("export const capabilityKeys"), "capability hooks export query key factory");
+	assert(teamHooks.includes("export const teamKeys"), "team hooks export query key factory");
+	assert(teamHooks.includes("teamKeys.all"), "team mutations invalidate the team key prefix");
+	assert(roleHooks.includes("export const roleKeys"), "role hooks export query key factory");
+	assert(roleHooks.includes("roleKeys.all"), "role mutations invalidate the role key prefix");
 	assert(topBar.includes("<CommandPalette />"), "top bar exposes command palette");
 	assert(topBar.includes("Workspace command center"), "top bar exposes visible command-center shell");
 	assert(commandPalette.includes("WORKSPACE_COMMANDS"), "command palette exposes workspace command registry");

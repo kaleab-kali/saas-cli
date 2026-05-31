@@ -39,9 +39,14 @@ export interface Capability {
 
 export type CapabilityMap = Partial<Record<FeatureKey, Capability>>;
 
+export const capabilityKeys = {
+	all: ["billing", "capabilities"] as const,
+	current: () => [...capabilityKeys.all, "current"] as const,
+};
+
 export const useCapabilities = () =>
 	useQuery({
-		queryKey: ["billing", "capabilities"],
+		queryKey: capabilityKeys.current(),
 		queryFn: () => api.get<{ data: CapabilityMap }>("/billing/capabilities"),
 		select: (r) => r.data,
 		staleTime: 60_000,

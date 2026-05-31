@@ -24,16 +24,17 @@ export interface SystemRoleInfo {
 	statements: Record<string, readonly string[]>;
 }
 
-const K = {
-	list: ["roles"] as const,
-	one: (id: string) => ["roles", id] as const,
-	matrix: ["roles", "matrix"] as const,
-	system: ["roles", "system"] as const,
+export const roleKeys = {
+	all: ["roles"] as const,
+	list: () => [...roleKeys.all, "list"] as const,
+	detail: (id: string) => [...roleKeys.all, "detail", id] as const,
+	matrix: () => [...roleKeys.all, "matrix"] as const,
+	system: () => [...roleKeys.all, "system"] as const,
 };
 
 export const useRoleMatrix = () =>
 	useQuery({
-		queryKey: K.matrix,
+		queryKey: roleKeys.matrix(),
 		queryFn: () => api.get<{ data: Record<string, string[]> }>("/roles/matrix"),
 		select: (r) => r.data,
 		staleTime: Number.POSITIVE_INFINITY,
@@ -41,7 +42,7 @@ export const useRoleMatrix = () =>
 
 export const useSystemRoles = () =>
 	useQuery({
-		queryKey: K.system,
+		queryKey: roleKeys.system(),
 		queryFn: () => api.get<{ data: SystemRoleInfo[] }>("/roles/system"),
 		select: (r) => r.data,
 		staleTime: Number.POSITIVE_INFINITY,
@@ -49,14 +50,14 @@ export const useSystemRoles = () =>
 
 export const useCustomRoles = () =>
 	useQuery({
-		queryKey: K.list,
+		queryKey: roleKeys.list(),
 		queryFn: () => api.get<{ data: CustomRole[] }>("/roles"),
 		select: (r) => r.data,
 	});
 
 export const useCustomRole = (id: string | null) =>
 	useQuery({
-		queryKey: K.one(id ?? ""),
+		queryKey: roleKeys.detail(id ?? ""),
 		queryFn: () => api.get<{ data: CustomRole }>(`/roles/${id}`),
 		select: (r) => r.data,
 		enabled: !!id,
@@ -74,7 +75,7 @@ export const useCreateRole = () => {
 			permissionsJson: Record<string, string[]>;
 			scopeJson?: Record<string, unknown>;
 		}) => api.post<{ data: CustomRole }>("/roles", dto),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["roles"] }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: roleKeys.all }),
 		meta: { successMessage: "Role created" },
 	});
 };
@@ -83,7 +84,7 @@ export const useUpdateRole = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: ({ id, ...dto }: { id: string } & Partial<CustomRole>) => api.patch(`/roles/${id}`, dto),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["roles"] }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: roleKeys.all }),
 		meta: { successMessage: "Role updated" },
 	});
 };
@@ -92,7 +93,7 @@ export const useDeleteRole = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (id: string) => api.delete(`/roles/${id}`),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["roles"] }),
+		onSuccess: () => qc.invalidateQueries({ queryKey: roleKeys.all }),
 		meta: { successMessage: "Role deleted" },
 	});
 };
