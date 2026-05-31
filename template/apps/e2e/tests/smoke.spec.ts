@@ -599,6 +599,7 @@ test("admin onboarding smoke renders filterable operations table", async ({ page
 	await expect(page.getByRole("button", { name: "Save view" })).toBeVisible();
 	await expect(page.getByRole("columnheader", { name: /Current step/i })).toBeVisible();
 	await expect(page.getByRole("cell", { name: /Demo Cafe/i })).toBeVisible();
+	await expect(page.getByRole("button", { name: /Admin command/i })).toBeVisible();
 	await page.getByRole("checkbox", { name: "Select row task_smoke" }).check();
 	await expect(page.getByText("1 selected")).toBeVisible();
 	await expect(page.getByRole("button", { name: "Bulk actions" })).toBeVisible();
@@ -610,6 +611,11 @@ test("admin onboarding smoke renders filterable operations table", async ({ page
 	await expect.poll(() => new URL(page.url()).searchParams.get("search")).toBe("Demo Cafe");
 	await expect(page.getByRole("cell", { name: /Demo Cafe/i })).toBeVisible();
 	await expect(page.getByText("1/4 steps")).toBeVisible();
+
+	await page.keyboard.press(process.platform === "darwin" ? "Meta+K" : "Control+K");
+	await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
+	await expect(page.getByRole("button", { name: /Billing dashboard/i })).toBeVisible();
+	await expect(page.getByRole("button", { name: /New tenant onboarding/i })).toBeVisible();
 
 	assertNoErrors();
 });

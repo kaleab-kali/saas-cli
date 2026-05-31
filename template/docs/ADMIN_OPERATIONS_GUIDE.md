@@ -2,6 +2,11 @@
 
 The super-admin app manages tenants, plans, billing state, server health, and operational resources from one place.
 
+## Command Palette
+Route coverage: tenant shell and `/admin`
+
+Use `Ctrl+K` or `Cmd+K` to open the command palette. The tenant shell uses workspace commands for onboarding, files, reports, notifications, and settings. The admin shell uses a separate admin command registry for concierge onboarding, new tenant intake, organizations, billing dashboard, jobs, audit logs, and feature flags.
+
 ## Tenant Management
 Route: `/admin/organizations`
 

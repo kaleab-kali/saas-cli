@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-interface CommandItem {
+export interface CommandItem {
 	readonly id: string;
 	readonly label: string;
 	readonly description: string;
@@ -21,7 +21,7 @@ interface CommandItem {
 	readonly keywords: readonly string[];
 }
 
-const COMMANDS: readonly CommandItem[] = [
+export const WORKSPACE_COMMANDS: readonly CommandItem[] = [
 	{
 		id: "tenant-onboarding",
 		label: "Tenant onboarding",
@@ -59,6 +59,65 @@ const COMMANDS: readonly CommandItem[] = [
 	},
 ] as const;
 
+export const ADMIN_COMMANDS: readonly CommandItem[] = [
+	{
+		id: "admin-overview",
+		label: "Admin overview",
+		description: "Open platform health, growth, and operations metrics",
+		path: "/admin",
+		keywords: ["platform", "dashboard", "overview", "metrics"],
+	},
+	{
+		id: "admin-onboarding",
+		label: "Concierge onboarding",
+		description: "Review tenant launch queues and stuck setup work",
+		path: "/admin/onboarding",
+		keywords: ["tenant", "launch", "setup", "concierge", "queue"],
+	},
+	{
+		id: "admin-onboarding-new",
+		label: "New tenant onboarding",
+		description: "Create a staff-owned onboarding workflow",
+		path: "/admin/onboarding/new",
+		keywords: ["tenant", "intake", "workflow", "create"],
+	},
+	{
+		id: "admin-organizations",
+		label: "Organizations",
+		description: "Search tenants, owners, and organization state",
+		path: "/admin/organizations",
+		keywords: ["tenant", "customer", "owner", "directory"],
+	},
+	{
+		id: "admin-billing-dashboard",
+		label: "Billing dashboard",
+		description: "Inspect revenue, past-due invoices, and manual payment review",
+		path: "/admin/billing/dashboard",
+		keywords: ["billing", "revenue", "past due", "payments"],
+	},
+	{
+		id: "admin-jobs",
+		label: "Jobs",
+		description: "Monitor queues, failed jobs, and retry operations",
+		path: "/admin/jobs",
+		keywords: ["queue", "background", "retry", "cron"],
+	},
+	{
+		id: "admin-audit-logs",
+		label: "Audit logs",
+		description: "Review platform evidence and export audit records",
+		path: "/admin/audit-logs",
+		keywords: ["audit", "evidence", "security", "compliance"],
+	},
+	{
+		id: "admin-feature-flags",
+		label: "Feature flags",
+		description: "Manage global rollout and tenant-specific overrides",
+		path: "/admin/feature-flags",
+		keywords: ["rollout", "entitlements", "features", "overrides"],
+	},
+] as const;
+
 const matchesCommand = (command: CommandItem, query: string) => {
 	const q = query.trim().toLowerCase();
 	if (!q) return true;
@@ -66,11 +125,22 @@ const matchesCommand = (command: CommandItem, query: string) => {
 	return haystack.includes(q);
 };
 
-export function CommandPalette() {
+export function CommandPalette({
+	commands = WORKSPACE_COMMANDS,
+	buttonLabel = "Command",
+	description = "Search routes, settings, and workspace actions.",
+}: {
+	readonly commands?: readonly CommandItem[];
+	readonly buttonLabel?: string;
+	readonly description?: string;
+}) {
 	const navigate = useNavigate();
 	const [open, setOpen] = React.useState(false);
 	const [query, setQuery] = React.useState("");
-	const commands = React.useMemo(() => COMMANDS.filter((command) => matchesCommand(command, query)), [query]);
+	const filteredCommands = React.useMemo(
+		() => commands.filter((command) => matchesCommand(command, query)),
+		[commands, query],
+	);
 
 	React.useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
@@ -95,22 +165,29 @@ export function CommandPalette() {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button variant="outline" size="sm" className="hidden min-w-48 justify-between gap-3 md:inline-flex">
+				<Button
+					variant="outline"
+					size="sm"
+					className="inline-flex size-9 justify-center gap-0 md:size-auto md:min-w-48 md:justify-between md:gap-3"
+				>
 					<span className="flex items-center gap-2 text-muted-foreground">
 						<HugeiconsIcon icon={Search01Icon} size={16} />
-						Command
+						<span className="hidden md:inline">{buttonLabel}</span>
+						<span className="sr-only md:hidden">{buttonLabel}</span>
 					</span>
-					<kbd className="rounded border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">Ctrl K</kbd>
+					<kbd className="hidden rounded border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground md:inline">
+						Ctrl K
+					</kbd>
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="gap-4 sm:max-w-xl">
 				<DialogHeader>
 					<DialogTitle>Command palette</DialogTitle>
-					<DialogDescription>Search routes, settings, and workspace actions.</DialogDescription>
+					<DialogDescription>{description}</DialogDescription>
 				</DialogHeader>
 				<Input autoFocus placeholder="Search..." value={query} onChange={(event) => setQuery(event.target.value)} />
 				<div className="max-h-80 overflow-y-auto rounded-md border">
-					{commands.map((command) => (
+					{filteredCommands.map((command) => (
 						<button
 							key={command.id}
 							type="button"
@@ -121,7 +198,7 @@ export function CommandPalette() {
 							<span className="block text-xs text-muted-foreground">{command.description}</span>
 						</button>
 					))}
-					{commands.length === 0 && (
+					{filteredCommands.length === 0 && (
 						<p className="px-4 py-8 text-center text-sm text-muted-foreground">No commands found.</p>
 					)}
 				</div>

@@ -424,6 +424,8 @@ function assertOnboardingFirstEntry() {
 
 function assertFrontendImprovementSurface() {
 	const topBar = readProjectFile("apps/web/src/components/layout/TopBar.tsx");
+	const adminRoute = readProjectFile("apps/web/src/routes/admin.tsx");
+	const commandPalette = readProjectFile("apps/web/src/shared/components/CommandPalette.tsx");
 	const dataTable = readProjectFile("apps/web/src/shared/components/DataTable.tsx");
 	const onboarding = readProjectFile("apps/web/src/features/onboarding/components/onboarding-pages.tsx");
 	const adminOrganizations = readProjectFile("apps/web/src/features/admin/components/OrgTable.tsx");
@@ -446,6 +448,12 @@ function assertFrontendImprovementSurface() {
 	const e2eSmoke = readProjectFile("apps/e2e/tests/smoke.spec.ts");
 	assert(topBar.includes("<CommandPalette />"), "top bar exposes command palette");
 	assert(topBar.includes("Workspace command center"), "top bar exposes visible command-center shell");
+	assert(commandPalette.includes("WORKSPACE_COMMANDS"), "command palette exposes workspace command registry");
+	assert(commandPalette.includes("ADMIN_COMMANDS"), "command palette exposes admin command registry");
+	assert(commandPalette.includes("buttonLabel"), "command palette can be reused across shells");
+	assert(adminRoute.includes("ADMIN_COMMANDS"), "admin shell uses admin command palette registry");
+	assert(adminRoute.includes('buttonLabel="Admin command"'), "admin top banner exposes visible admin command palette");
+	assert(opsGuide.includes("separate admin command registry"), "admin operations guide documents admin command palette");
 	assert(authShell.includes("SaaS launch console"), "auth screens use visible product console shell");
 	assert(dataTable.includes("useDebouncedValue"), "DataTable has debounced global search");
 	assert(dataTable.includes("useDataTableState"), "DataTable exposes URL-synced state hook");
@@ -547,6 +555,8 @@ function assertFrontendImprovementSurface() {
 		"admin operations guide documents billing dashboard tables",
 	);
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
+	assert(e2eSmoke.includes("Admin command"), "E2E smoke covers admin command palette trigger");
+	assert(e2eSmoke.includes("Billing dashboard"), "E2E smoke covers admin command palette routes");
 	assert(e2eSmoke.includes("Operational handoff map"), "E2E smoke covers assisted launch desk");
 	assert(e2eSmoke.includes("admin onboarding smoke renders filterable operations table"), "E2E smoke covers admin onboarding table");
 	assert(e2eSmoke.includes("Export CSV"), "E2E smoke covers admin onboarding CSV export control");

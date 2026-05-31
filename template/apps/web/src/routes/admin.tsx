@@ -3,6 +3,7 @@ import React from "react";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import { useAdminSession } from "#features/admin/api/admin-auth";
 import { AdminLanguageSwitcher } from "#shared/components/AdminLanguageSwitcher";
+import { ADMIN_COMMANDS, CommandPalette } from "#shared/components/CommandPalette";
 import { i18nAdmin } from "#shared/i18n/config-admin";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -54,7 +55,14 @@ const AdminTopBanner = React.memo(
 						})}
 					</p>
 				</div>
-				<AdminLanguageSwitcher />
+				<div className="flex shrink-0 items-center gap-2">
+					<CommandPalette
+						commands={ADMIN_COMMANDS}
+						buttonLabel="Admin command"
+						description="Search platform routes, operations queues, and admin actions."
+					/>
+					<AdminLanguageSwitcher />
+				</div>
 			</div>
 		);
 	},
