@@ -6,6 +6,7 @@ import type {
 	PollBulkStatusInput,
 	RegisterInvoiceInput,
 	RegisterReceiptInput,
+	SubmitBulkInput,
 	ValidateCredentialInput,
 } from "./eims-external-client";
 
@@ -33,6 +34,10 @@ export class MockEimsExternalClient implements EimsExternalClient {
 				verifiedAt: new Date().toISOString(),
 			},
 		};
+	}
+
+	async submitBulk(input: SubmitBulkInput) {
+		return this.repository.submitBulk(input.organizationId);
 	}
 
 	async pollBulkStatus(input: PollBulkStatusInput) {

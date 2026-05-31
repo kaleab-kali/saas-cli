@@ -116,6 +116,55 @@ describe("EimsSdkExternalClient", () => {
 		expect(response.data).toMatchObject({ conversationId: "BATCH-1" });
 	});
 
+	it("delegates bulk submission to the configured EIMS SDK client", async () => {
+		const sdk = {
+			registerInvoice: jest.fn(),
+			submitBulk: jest.fn().mockResolvedValue({ data: { conversationId: "BATCH-SDK-1", status: "processing" } }),
+		};
+		const client = new EimsSdkExternalClient(sdk);
+
+		const response = await client.submitBulk({
+			organizationId: "org_1",
+			sourceSystemId: "src_front",
+			invoices: [{ DocumentNumber: "INV-1" }],
+			payload: { invoices: [{ DocumentNumber: "INV-1" }] },
+		});
+
+		expect(sdk.submitBulk).toHaveBeenCalledWith({
+			invoices: [{ DocumentNumber: "INV-1" }],
+			payload: { invoices: [{ DocumentNumber: "INV-1" }] },
+			tenantConfig: {
+				organizationId: "org_1",
+				sourceSystemId: "src_front",
+				counter: undefined,
+				previousIrn: null,
+			},
+		});
+		expect(response.data).toMatchObject({ conversationId: "BATCH-SDK-1", status: "processing" });
+	});
+
+	it("accepts SDK bulk submission aliases while keeping the SaaS adapter stable", async () => {
+		const sdk = {
+			registerInvoice: jest.fn(),
+			submitBulkDocuments: jest.fn().mockResolvedValue({ data: { status: "processing" } }),
+		};
+		const client = new EimsSdkExternalClient(sdk);
+
+		await expect(client.submitBulk({ organizationId: "org_1" })).resolves.toEqual({
+			data: { status: "processing" },
+		});
+		expect(sdk.submitBulkDocuments).toHaveBeenCalledWith({
+			invoices: [],
+			payload: { invoices: [] },
+			tenantConfig: {
+				organizationId: "org_1",
+				sourceSystemId: undefined,
+				counter: undefined,
+				previousIrn: null,
+			},
+		});
+	});
+
 	it("accepts SDK bulk polling aliases while keeping the SaaS adapter stable", async () => {
 		const sdk = {
 			registerInvoice: jest.fn(),

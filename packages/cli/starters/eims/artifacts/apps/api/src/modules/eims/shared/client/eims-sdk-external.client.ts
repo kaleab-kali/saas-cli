@@ -7,6 +7,7 @@ import {
 	type PollBulkStatusInput,
 	type RegisterInvoiceInput,
 	type RegisterReceiptInput,
+	type SubmitBulkInput,
 	type ValidateCredentialInput,
 } from "./eims-external-client";
 
@@ -32,6 +33,19 @@ export class EimsSdkExternalClient {
 		if (!sdk.verifyIrn) throw new ServiceUnavailableException("EIMS SDK verifyIrn is not configured");
 		const response = await sdk.verifyIrn({
 			irn: input.irn,
+			tenantConfig: this.tenantConfig(input),
+		});
+		return this.envelope(response);
+	}
+
+	async submitBulk(input: SubmitBulkInput): Promise<EimsExternalResponse> {
+		const sdk = this.requireSdk();
+		const submitBulk = sdk.submitBulk ?? sdk.submitBulkInvoices ?? sdk.registerBulkInvoices ?? sdk.submitBulkDocuments;
+		if (!submitBulk) throw new ServiceUnavailableException("EIMS SDK bulk submission is not configured");
+		const invoices = Array.isArray(input.invoices) ? input.invoices : [];
+		const response = await submitBulk.call(sdk, {
+			invoices,
+			payload: input.payload ?? { invoices },
 			tenantConfig: this.tenantConfig(input),
 		});
 		return this.envelope(response);

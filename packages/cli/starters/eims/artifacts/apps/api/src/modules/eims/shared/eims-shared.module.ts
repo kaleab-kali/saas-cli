@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { EimsBulkSubmissionService } from "./bulk/eims-bulk-submission.service";
 import { EimsBulkCallbackController } from "./callbacks/eims-bulk-callback.controller";
 import { EimsBulkCallbackService } from "./callbacks/eims-bulk-callback.service";
 import { EimsBulkCallbackPersistenceService } from "./callbacks/eims-bulk-callback-persistence.service";
@@ -33,6 +34,7 @@ import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source
 		EimsBulkCallbackService,
 		EimsBulkCallbackPersistenceService,
 		EimsBulkReconciliationPollingService,
+		EimsBulkSubmissionService,
 		EimsCancellationService,
 		EimsSubmissionQueueService,
 		EimsSubmissionQueuePersistenceService,
@@ -63,6 +65,7 @@ import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source
 		EimsBulkCallbackService,
 		EimsBulkCallbackPersistenceService,
 		EimsBulkReconciliationPollingService,
+		EimsBulkSubmissionService,
 		EimsCancellationService,
 		EimsSubmissionQueueService,
 		EimsSubmissionQueuePersistenceService,

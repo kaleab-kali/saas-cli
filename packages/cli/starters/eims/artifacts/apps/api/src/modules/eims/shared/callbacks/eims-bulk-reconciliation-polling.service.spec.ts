@@ -11,6 +11,7 @@ describe("EimsBulkReconciliationPollingService", () => {
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
+			submitBulk: jest.fn(),
 			pollBulkStatus: jest.fn().mockResolvedValue({ data, meta: { sdkRequestId: "sdk-req-1" } }),
 			cancelInvoice: jest.fn(),
 		}) as EimsExternalClient;

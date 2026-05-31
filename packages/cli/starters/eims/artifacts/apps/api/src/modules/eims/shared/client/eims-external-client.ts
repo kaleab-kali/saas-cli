@@ -34,6 +34,13 @@ export interface PollBulkStatusInput {
 	sourceSystemId?: string;
 }
 
+export interface SubmitBulkInput {
+	organizationId: string;
+	sourceSystemId?: string;
+	invoices?: unknown[];
+	payload?: unknown;
+}
+
 export interface CancelInvoiceInput {
 	organizationId: string;
 	sourceSystemId?: string;
@@ -53,6 +60,7 @@ export interface EimsExternalClient {
 	registerReceipt(input: RegisterReceiptInput): Promise<EimsExternalResponse>;
 	verifyIrn(input: { organizationId: string; irn: string }): Promise<EimsExternalResponse>;
 	validateCredential(input: ValidateCredentialInput): Promise<EimsExternalResponse>;
+	submitBulk(input: SubmitBulkInput): Promise<EimsExternalResponse>;
 	pollBulkStatus(input: PollBulkStatusInput): Promise<EimsExternalResponse>;
 	cancelInvoice(input: CancelInvoiceInput): Promise<EimsExternalResponse>;
 }
@@ -61,6 +69,26 @@ export interface EimsSdkClient {
 	registerInvoice(invoice: unknown, tenantConfig: Record<string, unknown>): Promise<unknown>;
 	registerReceipt?(receipt: unknown, tenantConfig: Record<string, unknown>): Promise<unknown>;
 	verifyIrn?(input: { irn: string; tenantConfig: Record<string, unknown> }): Promise<unknown>;
+	submitBulk?(input: {
+		invoices: unknown[];
+		payload: unknown;
+		tenantConfig: Record<string, unknown>;
+	}): Promise<unknown>;
+	submitBulkInvoices?(input: {
+		invoices: unknown[];
+		payload: unknown;
+		tenantConfig: Record<string, unknown>;
+	}): Promise<unknown>;
+	registerBulkInvoices?(input: {
+		invoices: unknown[];
+		payload: unknown;
+		tenantConfig: Record<string, unknown>;
+	}): Promise<unknown>;
+	submitBulkDocuments?(input: {
+		invoices: unknown[];
+		payload: unknown;
+		tenantConfig: Record<string, unknown>;
+	}): Promise<unknown>;
 	pollBulkStatus?(input: { conversationId: string; tenantConfig: Record<string, unknown> }): Promise<unknown>;
 	pollBulkConversation?(input: { conversationId: string; tenantConfig: Record<string, unknown> }): Promise<unknown>;
 	getBulkStatus?(input: { conversationId: string; tenantConfig: Record<string, unknown> }): Promise<unknown>;

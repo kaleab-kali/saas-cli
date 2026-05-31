@@ -28,6 +28,12 @@ type SdkPackageShape = {
 
 const REQUIRED_EIMS_SDK_CAPABILITIES = ["registerInvoice", "registerReceipt", "verifyIrn"] as const;
 const EIMS_SDK_CREDENTIAL_VALIDATORS = ["validateCredential", "validateCredentials"] as const;
+const EIMS_SDK_BULK_SUBMITTERS = [
+	"submitBulk",
+	"submitBulkInvoices",
+	"registerBulkInvoices",
+	"submitBulkDocuments",
+] as const;
 const EIMS_SDK_BULK_STATUS_POLLERS = [
 	"pollBulkStatus",
 	"pollBulkConversation",
@@ -87,6 +93,9 @@ export const missingEimsSdkCapabilities = (value: unknown) => {
 	);
 	if (!EIMS_SDK_CREDENTIAL_VALIDATORS.some((capability) => typeof candidate[capability] === "function")) {
 		missing.push("validateCredential");
+	}
+	if (!EIMS_SDK_BULK_SUBMITTERS.some((capability) => typeof candidate[capability] === "function")) {
+		missing.push("submitBulk");
 	}
 	if (!EIMS_SDK_BULK_STATUS_POLLERS.some((capability) => typeof candidate[capability] === "function")) {
 		missing.push("pollBulkStatus");
@@ -149,7 +158,7 @@ export const createEimsSdkClientFromModule = async (
 	}
 
 	throw new ServiceUnavailableException(
-		"EIMS SDK package does not expose a registerInvoice/registerReceipt/verifyIrn/validateCredential/pollBulkStatus/cancelInvoice-capable client",
+		"EIMS SDK package does not expose a registerInvoice/registerReceipt/verifyIrn/validateCredential/submitBulk/pollBulkStatus/cancelInvoice-capable client",
 	);
 };
 

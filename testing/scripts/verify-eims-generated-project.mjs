@@ -36,6 +36,7 @@ const requiredDirs = [
 	"apps/api/src/modules/eims/setup/presentation",
 	"apps/api/src/modules/eims/shared/client",
 	"apps/api/src/modules/eims/shared/callbacks",
+	"apps/api/src/modules/eims/shared/bulk",
 	"apps/api/src/modules/eims/shared/cancellations",
 	"apps/api/src/modules/eims/shared/canonicalization",
 	"apps/api/src/modules/eims/shared/constants",
@@ -72,6 +73,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/client/eims-sdk-external.client.ts",
 	"apps/api/src/modules/eims/shared/client/eims-sdk-external.client.spec.ts",
 	"apps/api/src/modules/eims/shared/client/mock-eims-external.client.ts",
+	"apps/api/src/modules/eims/shared/bulk/eims-bulk-submission.service.ts",
+	"apps/api/src/modules/eims/shared/bulk/eims-bulk-submission.service.spec.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.controller.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.ts",
 	"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts",
@@ -308,6 +311,10 @@ function assertGeneratedStructure() {
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-bulk-callback.service.spec.ts"),
 		"generated EIMS local test gate includes bulk callback security tests",
+	);
+	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-bulk-submission.service.spec.ts"),
+		"generated EIMS local test gate includes SDK-bound bulk submission tests",
 	);
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-bulk-reconciliation-polling.service.spec.ts"),
@@ -547,6 +554,10 @@ function assertGeneratedStructure() {
 		"EIMS security smoke enforces SDK adapter integration boundary",
 	);
 	assert(
+		eimsSecuritySmoke.includes("EIMS SDK adapter must submit bulk invoices through the SDK"),
+		"EIMS security smoke enforces SDK-bound bulk submission",
+	);
+	assert(
 		eimsSecuritySmoke.includes("EIMS SDK adapter must poll bulk status through the SDK"),
 		"EIMS security smoke enforces SDK-bound bulk polling",
 	);
@@ -569,6 +580,10 @@ function assertGeneratedStructure() {
 	assert(
 		eimsSecuritySmoke.includes("EIMS bulk polling must persist durable reconciliation receipts"),
 		"EIMS security smoke enforces durable bulk polling receipts",
+	);
+	assert(
+		eimsSecuritySmoke.includes("EIMS bulk submission must use the SDK adapter boundary"),
+		"EIMS security smoke enforces bulk submission SDK boundary",
 	);
 	assert(
 		eimsSecuritySmoke.includes("EIMS cancellation must use the SDK adapter boundary"),
@@ -772,6 +787,8 @@ function assertGeneratedStructure() {
 	const bulkCallbackService = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.ts");
 	const bulkCallbackController = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.controller.ts");
 	const bulkCallbackSpec = readProjectFile("apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts");
+	const bulkSubmission = readProjectFile("apps/api/src/modules/eims/shared/bulk/eims-bulk-submission.service.ts");
+	const bulkSubmissionSpec = readProjectFile("apps/api/src/modules/eims/shared/bulk/eims-bulk-submission.service.spec.ts");
 	const bulkCallbackPersistence = readProjectFile(
 		"apps/api/src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.ts",
 	);
@@ -882,13 +899,16 @@ function assertGeneratedStructure() {
 	assert(externalClient.includes("counter?: number"), "EIMS external client contract includes reserved counter");
 	assert(externalClient.includes("previousIrn?: string | null"), "EIMS external client contract includes previous IRN");
 	assert(externalClient.includes("EIMS_SDK_CLIENT"), "EIMS external client contract exposes SDK injection token");
+	assert(externalClient.includes("submitBulk"), "EIMS external client contract includes SDK-bound bulk submission");
 	assert(externalClient.includes("pollBulkStatus"), "EIMS external client contract includes SDK-bound bulk polling");
 	assert(externalClient.includes("cancelInvoice"), "EIMS external client contract includes SDK-bound cancellation");
 	assert(sdkClientProvider.includes("EIMS_SDK_PACKAGE_NAME"), "EIMS SDK provider reads configured SDK package name");
 	assert(sdkClientProvider.includes("DEFAULT_EIMS_SDK_PACKAGE_NAME"), "EIMS SDK provider defaults to the starter SDK package");
 	assert(sdkClientProvider.includes("createEimsSdkClientFromModule"), "EIMS SDK provider validates loaded SDK module shape");
 	assert(
-		sdkClientProvider.includes("registerInvoice/registerReceipt/verifyIrn/validateCredential/pollBulkStatus/cancelInvoice-capable"),
+		sdkClientProvider.includes(
+			"registerInvoice/registerReceipt/verifyIrn/validateCredential/submitBulk/pollBulkStatus/cancelInvoice-capable",
+		),
 		"EIMS SDK provider fails closed for incompatible SDK modules",
 	);
 	assert(sdkClientProviderSpec.includes("createEimsClient factory"), "EIMS SDK provider tests cover SDK factory wiring");
@@ -899,6 +919,7 @@ function assertGeneratedStructure() {
 	assert(sdkContractScript.includes("registerReceipt"), "EIMS SDK contract script verifies receipt capability");
 	assert(sdkContractScript.includes("verifyIrn"), "EIMS SDK contract script verifies IRN lookup capability");
 	assert(sdkContractScript.includes("validateCredential"), "EIMS SDK contract script verifies credential validation");
+	assert(sdkContractScript.includes("submitBulk"), "EIMS SDK contract script verifies bulk submission capability");
 	assert(sdkContractScript.includes("pollBulkStatus"), "EIMS SDK contract script verifies bulk polling capability");
 	assert(sdkContractScript.includes("cancelInvoice"), "EIMS SDK contract script verifies cancellation capability");
 	assert(
@@ -910,10 +931,12 @@ assert(sdkExternalClient.includes("registerInvoice"), "EIMS SDK adapter delegate
 assert(sdkExternalClient.includes("registerReceipt"), "EIMS SDK adapter delegates receipt registration");
 assert(sdkExternalClient.includes("verifyIrn"), "EIMS SDK adapter delegates IRN verification");
 assert(sdkExternalClient.includes("validateCredential"), "EIMS SDK adapter delegates credential validation");
+assert(sdkExternalClient.includes("submitBulk"), "EIMS SDK adapter delegates bulk submission");
 assert(sdkExternalClient.includes("pollBulkStatus"), "EIMS SDK adapter delegates bulk status polling");
 assert(sdkExternalClient.includes("cancelInvoice"), "EIMS SDK adapter delegates cancellation");
 	assert(sdkExternalClient.includes("ServiceUnavailableException"), "EIMS SDK adapter fails closed without SDK provider");
 	assert(sdkExternalClientSpec.includes("delegates invoice registration"), "EIMS SDK adapter tests cover invoice delegation");
+	assert(sdkExternalClientSpec.includes("bulk submission"), "EIMS SDK adapter tests cover bulk submission delegation");
 	assert(sdkExternalClientSpec.includes("bulk status polling"), "EIMS SDK adapter tests cover bulk polling delegation");
 	assert(sdkExternalClientSpec.includes("invoice cancellation"), "EIMS SDK adapter tests cover cancellation delegation");
 	assert(sdkExternalClientSpec.includes("fails closed"), "EIMS SDK adapter tests cover missing SDK wiring");
@@ -923,6 +946,7 @@ assert(sdkExternalClient.includes("cancelInvoice"), "EIMS SDK adapter delegates 
 	assert(eimsSharedModule.includes("EimsSubmissionQueueService"), "EIMS shared module exports queue coordinator");
 	assert(eimsSharedModule.includes("EimsSubmissionSourceLockService"), "EIMS shared module exports source lock service");
 	assert(eimsSharedModule.includes("EimsOfflineReplayQueueService"), "EIMS shared module exports offline replay queue");
+	assert(eimsSharedModule.includes("EimsBulkSubmissionService"), "EIMS shared module exports bulk submission service");
 	assert(eimsSharedModule.includes("EimsBulkReconciliationPollingService"), "EIMS shared module exports bulk polling service");
 	assert(eimsSharedModule.includes("EimsCancellationService"), "EIMS shared module exports cancellation service");
 	assert(lookupService.includes("createHash"), "EIMS lookup service generates deterministic ETags");
@@ -979,6 +1003,12 @@ assert(sdkExternalClient.includes("cancelInvoice"), "EIMS SDK adapter delegates 
 	assert(
 		eimsSharedModule.includes("EimsBulkCallbackPersistenceService"),
 		"EIMS shared module exports durable bulk callback persistence",
+	);
+	assert(bulkSubmission.includes("EIMS_EXTERNAL_CLIENT"), "EIMS bulk submission service uses SDK client boundary");
+	assert(bulkSubmission.includes("submitBulk"), "EIMS bulk submission service delegates to SDK");
+	assert(
+		bulkSubmissionSpec.includes("through the EIMS external client boundary"),
+		"EIMS bulk submission tests cover SDK-bound batch submission",
 	);
 	assert(
 		bulkReconciliationPolling.includes("EIMS_EXTERNAL_CLIENT") &&
@@ -1083,6 +1113,11 @@ assert(sdkExternalClient.includes("cancelInvoice"), "EIMS SDK adapter delegates 
 		supportingResourcesController.includes('"bulk/callback-receipts"') &&
 			supportingResourcesController.includes("listReceipts"),
 		"EIMS API exposes durable bulk callback receipt endpoints",
+	);
+	assert(
+		supportingResourcesController.includes('"bulk"') &&
+			supportingResourcesController.includes("bulkSubmission.submitBatch"),
+		"EIMS API exposes SDK-bound bulk submission endpoint",
 	);
 	assert(
 		supportingResourcesController.includes('"bulk/reconcile"') &&

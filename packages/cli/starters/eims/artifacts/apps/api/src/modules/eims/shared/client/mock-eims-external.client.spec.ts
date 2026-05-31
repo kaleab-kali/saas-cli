@@ -94,6 +94,18 @@ describe("MockEimsExternalClient", () => {
 		});
 	});
 
+	it("submits mock bulk batches through the same external client boundary", async () => {
+		const client = new MockEimsExternalClient(new EimsMockService());
+
+		await expect(client.submitBulk({ organizationId, sourceSystemId: "src_mock_1" })).resolves.toEqual({
+			data: expect.objectContaining({
+				message: "Batch sync started and batch ID stored",
+				status: "processing",
+				reference: expect.stringMatching(/^BATCH-/),
+			}),
+		});
+	});
+
 	it("cancels invoices through the same external client boundary", async () => {
 		const client = new MockEimsExternalClient(new EimsMockService());
 

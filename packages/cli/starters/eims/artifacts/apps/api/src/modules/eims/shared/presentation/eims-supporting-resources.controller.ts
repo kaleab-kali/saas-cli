@@ -2,6 +2,7 @@ import { Body, Controller, Get, Inject, Post, Query, Req, UseGuards } from "@nes
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
+import { EimsBulkSubmissionService } from "../bulk/eims-bulk-submission.service";
 import { EimsBulkCallbackPersistenceService } from "../callbacks/eims-bulk-callback-persistence.service";
 import { EimsBulkReconciliationPollingService } from "../callbacks/eims-bulk-reconciliation-polling.service";
 import { EimsCancellationService } from "../cancellations/eims-cancellation.service";
@@ -29,6 +30,7 @@ export class EimsSupportingResourcesController {
 		private readonly credentialValidation: EimsCredentialValidationService,
 		private readonly bulkReceiptStore: EimsBulkCallbackPersistenceService,
 		private readonly bulkPolling: EimsBulkReconciliationPollingService,
+		private readonly bulkSubmission: EimsBulkSubmissionService,
 		private readonly cancellationsService: EimsCancellationService,
 		private readonly offlinePending: EimsOfflinePendingSyncPersistenceService,
 		private readonly offlineReplay: EimsOfflineReplayService,
@@ -94,8 +96,13 @@ export class EimsSupportingResourcesController {
 
 	@Post("bulk")
 	@RequirePermissions("eims-bulk:create")
-	submitBulk(@Req() req: AuthedRequest) {
-		return this.repository.submitBulk(req.organizationId);
+	submitBulk(@Req() req: AuthedRequest, @Body() body: { sourceSystemId?: string; invoices?: unknown[] } = {}) {
+		return this.bulkSubmission.submitBatch({
+			organizationId: req.organizationId,
+			sourceSystemId: body.sourceSystemId,
+			invoices: body.invoices,
+			payload: body,
+		});
 	}
 
 	@Post("bulk/reconcile")

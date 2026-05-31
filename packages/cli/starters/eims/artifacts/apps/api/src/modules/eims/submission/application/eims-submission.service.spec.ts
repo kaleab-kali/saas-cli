@@ -19,6 +19,7 @@ describe("EimsSubmissionService", () => {
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
+			submitBulk: jest.fn(),
 			pollBulkStatus: jest.fn(),
 			cancelInvoice: jest.fn(),
 		};
@@ -65,6 +66,7 @@ describe("EimsSubmissionService", () => {
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
+			submitBulk: jest.fn(),
 			pollBulkStatus: jest.fn(),
 			cancelInvoice: jest.fn(),
 		};
@@ -88,6 +90,7 @@ describe("EimsSubmissionService", () => {
 				data: { ...input, status: "active", verifiedAt: "2026-05-26T10:30:00.000Z" },
 			})),
 			validateCredential: jest.fn(),
+			submitBulk: jest.fn(),
 			pollBulkStatus: jest.fn(),
 			cancelInvoice: jest.fn(),
 		};

@@ -38,6 +38,7 @@ describe("EimsOfflineReplayService", () => {
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
+			submitBulk: jest.fn(),
 			pollBulkStatus: jest.fn(),
 			cancelInvoice: jest.fn(),
 		};
@@ -76,6 +77,7 @@ describe("EimsOfflineReplayService", () => {
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
+			submitBulk: jest.fn(),
 			pollBulkStatus: jest.fn(),
 			cancelInvoice: jest.fn(),
 		};
@@ -109,6 +111,7 @@ describe("EimsOfflineReplayService", () => {
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
+			submitBulk: jest.fn(),
 			pollBulkStatus: jest.fn(),
 			cancelInvoice: jest.fn(),
 		};
@@ -137,6 +140,7 @@ describe("EimsOfflineReplayService", () => {
 			registerReceipt: jest.fn(),
 			verifyIrn: jest.fn(),
 			validateCredential: jest.fn(),
+			submitBulk: jest.fn(),
 			pollBulkStatus: jest.fn(),
 			cancelInvoice: jest.fn(),
 		};
