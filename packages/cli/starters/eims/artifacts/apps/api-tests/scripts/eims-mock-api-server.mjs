@@ -57,7 +57,7 @@ let securitySettings = {
 	passwordMaxAgeDays: 90,
 	sessionTimeoutMinutes: 60,
 	force2fa: false,
-	ipAllowlist: "",
+	ipAllowlist: [],
 	createdAt: fixedNow,
 	updatedAt: fixedNow,
 };

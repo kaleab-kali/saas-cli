@@ -754,7 +754,13 @@ function assertGeneratedStructure() {
 		eimsBrowserSpec.includes("authenticated landing page opens the concierge onboarding console"),
 		"EIMS browser smoke verifies the authenticated landing page opens onboarding",
 	);
+	assert(
+		eimsBrowserSpec.includes("security settings enable the tenant 2FA policy required for EIMS production access"),
+		"EIMS browser smoke verifies the production 2FA UI flow",
+	);
+	assert(eimsBrowserSpec.includes("force2fa: true"), "EIMS browser smoke verifies the 2FA backend payload");
 	const eimsMockServer = readProjectFile("apps/api-tests/scripts/eims-mock-api-server.mjs");
+	assert(eimsMockServer.includes("ipAllowlist: []"), "EIMS mock server matches security settings IP allowlist shape");
 	assert(eimsMockServer.includes("/api/v1/onboarding"), "EIMS mock server supports onboarding landing data");
 	assert(eimsMockServer.includes("/api/v1/notifications/stream"), "EIMS mock server supports notification SSE stream");
 	const englishLocale = readProjectFile("apps/web/src/shared/i18n/locales/en.ts");
@@ -764,6 +770,7 @@ function assertGeneratedStructure() {
 	const tenantPages = readProjectFile("apps/web/src/features/eims/components/eims-tenant-pages.tsx");
 	assert(tenantPages.includes("Ethiopia tax workspace"), "tenant EIMS UI has a domain-specific workspace header");
 	assert(tenantPages.includes("EIMS compliance dashboard"), "tenant EIMS status page is the compliance dashboard");
+	assert(tenantPages.includes("overview.setupProgress"), "tenant EIMS dashboard renders backend setup progress gates");
 	assert(tenantPages.includes("Compliance command center"), "tenant EIMS dashboard has the compliance command center");
 	assert(tenantPages.includes("Submissions this month"), "tenant EIMS dashboard tracks monthly submission volume");
 	assert(tenantPages.includes("Failed submissions"), "tenant EIMS dashboard surfaces failed submissions");

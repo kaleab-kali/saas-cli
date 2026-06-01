@@ -612,6 +612,7 @@ function assertFrontendImprovementSurface() {
 		"apps/api/src/modules/notification/application/queries/list-email-deliveries.handler.ts",
 	);
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
+	const securitySettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/security.tsx");
 	const frontendConventions = readProjectFile("docs/FRONTEND_CONVENTIONS.md");
 	const opsGuide = readProjectFile("docs/ADMIN_OPERATIONS_GUIDE.md");
 	const e2eSmoke = readProjectFile("apps/e2e/tests/smoke.spec.ts");
@@ -621,6 +622,8 @@ function assertFrontendImprovementSurface() {
 	assert(webMain.includes("gcTime: 5 * 60_000"), "QueryClient keeps generated app query cache bounded");
 	assert(webMain.includes("throwOnError: false"), "QueryClient keeps query errors render-safe by default");
 	assert(webMain.includes("mutations:") && webMain.includes("retry: false"), "QueryClient disables mutation retries");
+	assert(securitySettingsPage.includes('htmlFor="security-force2fa"'), "security 2FA switch has an accessible label");
+	assert(securitySettingsPage.includes('id="security-force2fa"'), "security 2FA switch exposes a stable UI target");
 	assert(
 		frontendConventions.includes("Every feature API module exports a named query key factory"),
 		"frontend docs require query key factories",

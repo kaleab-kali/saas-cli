@@ -144,8 +144,12 @@ function Page() {
 						/>
 					</div>
 					<div className="flex items-center justify-between p-2 border rounded">
-						<Label>{t("settings.security.force2fa")}</Label>
-						<Switch checked={(form.force2fa as boolean) ?? false} onCheckedChange={(v) => setField("force2fa", v)} />
+						<Label htmlFor="security-force2fa">{t("settings.security.force2fa")}</Label>
+						<Switch
+							id="security-force2fa"
+							checked={(form.force2fa as boolean) ?? false}
+							onCheckedChange={(v) => setField("force2fa", v)}
+						/>
 					</div>
 				</CardContent>
 			</Card>

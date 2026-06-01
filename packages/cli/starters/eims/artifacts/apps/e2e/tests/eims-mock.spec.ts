@@ -119,6 +119,11 @@ type Evidence = {
 	items: Array<{ label: string; status: string }>;
 };
 
+type SecuritySettings = {
+	force2fa: boolean;
+	sessionTimeoutMinutes: number;
+};
+
 type AcceptanceRunAll = {
 	total: number;
 	passed: number;
@@ -182,6 +187,15 @@ function waitForRequestJson<T>(page: Page, urlFragment: string): Promise<T> {
 	return page
 		.waitForRequest((request) => request.url().includes(urlFragment) && request.method() !== "GET")
 		.then((request) => JSON.parse(request.postData() ?? "{}") as T);
+}
+
+function waitForMethodJson<T>(page: Page, urlFragment: string, method: string, status = 200): Promise<T> {
+	return page
+		.waitForResponse(
+			(response) =>
+				response.url().includes(urlFragment) && response.request().method() === method && response.status() === status,
+		)
+		.then((response: Response) => response.json() as Promise<T>);
 }
 
 async function gotoAndWait<T>(page: Page, path: string, urlFragment: string, heading: string): Promise<T> {
@@ -319,6 +333,47 @@ test.describe("tenant EIMS workflow is business-facing and backend-driven", () =
 		await clickNavLink(page, "Status");
 		await expect(page.getByRole("heading", { name: "EIMS compliance dashboard" })).toBeVisible();
 		await assertNoTenantInternalLanguage(page);
+	});
+
+	test("security settings enable the tenant 2FA policy required for EIMS production access", async ({ page }) => {
+		const initialSettingsPromise = waitForJson<ApiEnvelope<SecuritySettings>>(page, "/api/v1/security-settings");
+		await page.goto("/settings/security", { waitUntil: "domcontentloaded" });
+		await expect(page.getByRole("heading", { name: "Security settings" })).toBeVisible();
+		await initialSettingsPromise;
+
+		const force2faSwitch = page.getByRole("switch", { name: "Require 2FA for all members" });
+		const saveButton = page.getByRole("button", { name: "Save" });
+		await expect(force2faSwitch).toBeVisible();
+
+		if (await force2faSwitch.isChecked()) {
+			const disableRequest = waitForRequestJson<Record<string, unknown>>(page, "/api/v1/security-settings");
+			const disableResponse = waitForMethodJson<ApiEnvelope<SecuritySettings>>(
+				page,
+				"/api/v1/security-settings",
+				"PATCH",
+			);
+			await force2faSwitch.click();
+			await saveButton.click();
+			expect(await disableRequest).toMatchObject({ force2fa: false });
+			expect((await disableResponse).data.force2fa).toBe(false);
+			await expect(force2faSwitch).not.toBeChecked();
+		}
+
+		const enableRequest = waitForRequestJson<Record<string, unknown>>(page, "/api/v1/security-settings");
+		const enableResponse = waitForMethodJson<ApiEnvelope<SecuritySettings>>(page, "/api/v1/security-settings", "PATCH");
+		await force2faSwitch.click();
+		await saveButton.click();
+		expect(await enableRequest).toMatchObject({ force2fa: true });
+		expect((await enableResponse).data.force2fa).toBe(true);
+		await expect(force2faSwitch).toBeChecked();
+
+		const overviewPromise = waitForJson<ApiEnvelope<Overview>>(page, "/api/v1/eims/overview");
+		await page.goto("/eims", { waitUntil: "domcontentloaded" });
+		const overview = (await overviewPromise).data;
+		const twoFactorStep = overview.setupProgress.find((step) => step.key === "twoFactor");
+		expect(twoFactorStep).toMatchObject({ status: "complete" });
+		await expect(page.getByRole("heading", { name: "EIMS compliance dashboard" })).toBeVisible();
+		await expectVisibleTexts(page, [twoFactorStep?.label, businessStatusLabel(twoFactorStep?.status ?? "")]);
 	});
 
 	test("status page renders required tenant inputs, setup state, and invoice data", async ({ page }) => {

@@ -136,6 +136,14 @@ function EimsWorkspaceHeader({
 		["Continue EIMS setup", "/eims/setup"],
 		["Submit invoice", "/eims/submissions"],
 	] as const;
+	const setupGates =
+		overview.setupProgress.length > 0
+			? overview.setupProgress
+			: [
+					{ key: "source", label: "MoR source approval", status: "pending" },
+					{ key: "certificate", label: "INSA certificate", status: "pending" },
+					{ key: "irn", label: "Official IRN and QR", status: "pending" },
+				];
 
 	return (
 		<section className="overflow-hidden rounded-md border border-[#20351f] bg-[#101712] text-white">
@@ -173,10 +181,13 @@ function EimsWorkspaceHeader({
 					))}
 				</div>
 			</div>
-			<div className="grid border-t border-white/10 bg-white/[0.03] text-sm md:grid-cols-3">
-				{["MoR source approval", "INSA certificate", "Official IRN and QR"].map((label) => (
-					<div key={label} className="border-white/10 px-5 py-3 text-white/70 md:border-r last:md:border-r-0">
-						{label}
+			<div className="grid border-t border-white/10 bg-white/[0.03] text-sm md:grid-cols-2 xl:grid-cols-5">
+				{setupGates.map((gate) => (
+					<div key={gate.key} className="border-white/10 px-5 py-3 text-white/70 md:border-r last:md:border-r-0">
+						<p>{gate.label}</p>
+						<div className="mt-2">
+							<StatusBadge status={gate.status} />
+						</div>
 					</div>
 				))}
 			</div>
