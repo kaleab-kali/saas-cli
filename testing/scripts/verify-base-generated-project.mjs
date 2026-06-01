@@ -614,6 +614,9 @@ function assertFrontendImprovementSurface() {
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
 	const securitySettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/security.tsx");
 	const membersSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/members.tsx");
+	const apiKeysSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/api-keys.tsx");
+	const apiKeyCreateDialog = readProjectFile("apps/web/src/features/platform/components/ApiKeyCreateDialog.tsx");
+	const apiKeyPlainKeyDialog = readProjectFile("apps/web/src/features/platform/components/ApiKeyPlainKeyDialog.tsx");
 	const frontendConventions = readProjectFile("docs/FRONTEND_CONVENTIONS.md");
 	const opsGuide = readProjectFile("docs/ADMIN_OPERATIONS_GUIDE.md");
 	const e2eConfig = readProjectFile("apps/e2e/playwright.config.ts");
@@ -638,6 +641,14 @@ function assertFrontendImprovementSurface() {
 		membersSettingsPage.includes('aria-label={`${t("common.role")} for ${member.user.email}`}'),
 		"member role controls are accessible per user",
 	);
+	assert(apiKeysSettingsPage.includes("ApiKeyCreateDialog"), "API keys route uses the feature create dialog");
+	assert(apiKeyCreateDialog.includes('id="api-key-name"'), "API key name input exposes a stable UI target");
+	assert(apiKeyCreateDialog.includes('id="api-key-expires-at"'), "API key expiry input exposes a stable UI target");
+	assert(
+		apiKeysSettingsPage.includes('aria-label={`${t("settings.apiKeysExt.revokeBtn")} ${k.name}`}'),
+		"API key revoke controls are accessible per key",
+	);
+	assert(apiKeyPlainKeyDialog.includes("copyFailed"), "API key copy dialog handles clipboard failures");
 	assert(
 		frontendConventions.includes("Every feature API module exports a named query key factory"),
 		"frontend docs require query key factories",
@@ -843,6 +854,8 @@ function assertFrontendImprovementSurface() {
 	);
 	assert(e2eSmoke.includes("tenant members smoke accepts invitation links"), "E2E smoke covers invitation acceptance");
 	assert(e2eSmoke.includes("/api/v1/team/invitations"), "E2E smoke mocks team invitation API contracts");
+	assert(e2eSmoke.includes("tenant API keys smoke creates and revokes scoped keys"), "E2E smoke covers API key management");
+	assert(e2eSmoke.includes("/api/v1/api-keys/key_active"), "E2E smoke mocks API key revoke contracts");
 	assert(e2eSmoke.includes("Admin command"), "E2E smoke covers admin command palette trigger");
 	assert(e2eSmoke.includes("Billing dashboard"), "E2E smoke covers admin command palette routes");
 	assert(e2eSmoke.includes("Operational handoff map"), "E2E smoke covers assisted launch desk");

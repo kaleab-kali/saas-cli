@@ -203,6 +203,7 @@ export const en = {
 			activeStatus: "Active",
 			cancel: "Cancel",
 			copied: "API key copied",
+			copyFailed: "Could not copy API key",
 			copyBtn: "Copy",
 			create: "Create",
 			createTitle: "Create API key",

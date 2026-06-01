@@ -189,16 +189,64 @@ async function installAuthenticatedMocks(page: Page) {
 			acceptUrl: "http://localhost:5173/settings/members?invitationId=inv_existing",
 		},
 	];
+	let apiKeys = [
+		{
+			id: "key_active",
+			organizationId: "org_smoke",
+			name: "Automation token",
+			keyPrefix: "vsk_live",
+			scopes: ["read:organization"],
+			createdByUserId: "user_smoke",
+			expiresAt: null,
+			revokedAt: null,
+			lastUsedAt: null,
+			usageCount: 3,
+			rateLimit: 60,
+			createdAt: now(),
+			updatedAt: now(),
+		},
+		{
+			id: "key_revoked",
+			organizationId: "org_smoke",
+			name: "Old webhook",
+			keyPrefix: "vsk_old",
+			scopes: ["read:notification"],
+			createdByUserId: "user_smoke",
+			expiresAt: null,
+			revokedAt: now(),
+			lastUsedAt: null,
+			usageCount: 1,
+			rateLimit: null,
+			createdAt: now(),
+			updatedAt: now(),
+		},
+	];
 
 	await page.route("**/api/v1/**", async (route: Route) => {
 		const url = route.request().url();
-		const pathname = new URL(url).pathname;
+		const requestUrl = new URL(url);
+		const pathname = requestUrl.pathname;
 		if (url.includes("/billing/me")) {
 			await route.fulfill(ok({ data: { subscription: null, lifecycle: null, entitlements: {} } }));
 			return;
 		}
 		if (url.includes("/billing/capabilities")) {
-			await route.fulfill(ok({ data: {} }));
+			await route.fulfill(
+				ok({
+					data: {
+						"platform.api-keys": {
+							key: "platform.api-keys",
+							label: "API keys",
+							category: "platform",
+							enabled: true,
+							limit: 10,
+							used: 1,
+							remaining: 9,
+							reason: "included",
+						},
+					},
+				}),
+			);
 			return;
 		}
 		if (url.includes("/notifications/stream")) {
@@ -312,6 +360,40 @@ async function installAuthenticatedMocks(page: Page) {
 			const invitationId = pathname.split("/").at(-1);
 			teamInvitations = teamInvitations.filter((invitation) => invitation.id !== invitationId);
 			await route.fulfill(ok({ data: { id: invitationId } }));
+			return;
+		}
+		if (pathname === "/api/v1/api-keys") {
+			if (route.request().method() === "POST") {
+				const body = JSON.parse(route.request().postData() ?? "{}");
+				const apiKey = {
+					id: "key_created",
+					organizationId: "org_smoke",
+					name: body.name,
+					keyPrefix: "vsk_new",
+					scopes: body.scopes ?? [],
+					createdByUserId: "user_smoke",
+					expiresAt: body.expiresAt ?? null,
+					revokedAt: null,
+					lastUsedAt: null,
+					usageCount: 0,
+					rateLimit: body.rateLimit ?? null,
+					createdAt: now(),
+					updatedAt: now(),
+				};
+				apiKeys = [apiKey, ...apiKeys];
+				await route.fulfill(ok({ data: { apiKey, plainKey: "vsk_live_new_secret" } }));
+				return;
+			}
+			const includeRevoked = requestUrl.searchParams.get("includeRevoked") === "true";
+			await route.fulfill(ok({ data: includeRevoked ? apiKeys : apiKeys.filter((apiKey) => !apiKey.revokedAt) }));
+			return;
+		}
+		if (pathname.startsWith("/api/v1/api-keys/") && route.request().method() === "DELETE") {
+			const keyId = pathname.split("/").at(-1);
+			apiKeys = apiKeys.map((apiKey) =>
+				apiKey.id === keyId ? { ...apiKey, revokedAt: new Date(Date.now() + 1000).toISOString() } : apiKey,
+			);
+			await route.fulfill(ok({ data: { id: keyId } }));
 			return;
 		}
 		if (url.includes("/security-settings")) {
@@ -973,6 +1055,58 @@ test("tenant members smoke accepts invitation links", async ({ page }) => {
 
 	await expect(page.getByRole("heading", { name: "Members" })).toBeVisible();
 	await expect(page.getByRole("row", { name: /pending@example\.test/ })).toContainText("accepted");
+
+	assertNoErrors();
+});
+
+test("tenant API keys smoke creates and revokes scoped keys", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAuthenticatedMocks(page);
+
+	await page.goto("/settings/api-keys", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "API keys" })).toBeVisible();
+	await expect(page.getByRole("cell", { name: "Automation token", exact: true })).toBeVisible();
+	await expect(page.getByRole("button", { name: "New key" })).toBeEnabled();
+
+	const includeRevokedRequest = page.waitForRequest(
+		(request) =>
+			request.url().includes("/api/v1/api-keys") &&
+			new URL(request.url()).searchParams.get("includeRevoked") === "true",
+	);
+	await page.getByRole("checkbox", { name: "Show revoked" }).check();
+	await includeRevokedRequest;
+	await expect(page.getByRole("cell", { name: "Old webhook", exact: true })).toBeVisible();
+
+	await page.getByRole("button", { name: "New key" }).click();
+	await page.getByRole("textbox", { name: "Name" }).fill("Deploy hook");
+	await page.getByRole("checkbox", { name: "read:organization" }).check();
+	await page.getByLabel("Expires").fill("2026-12-31");
+	await page.getByRole("spinbutton", { name: "Requests per minute" }).fill("120");
+
+	const createRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/api-keys") && request.method() === "POST",
+	);
+	await page.getByRole("button", { name: "Create" }).click();
+	const createPayload = JSON.parse((await createRequest).postData() ?? "{}");
+
+	expect(createPayload).toMatchObject({
+		name: "Deploy hook",
+		scopes: ["read:organization"],
+		rateLimit: 120,
+	});
+	expect(createPayload.expiresAt).toBe("2026-12-31T00:00:00.000Z");
+	await expect(page.getByRole("dialog", { name: "Copy this key now" })).toBeVisible();
+	await expect(page.getByText("vsk_live_new_secret")).toBeVisible();
+	await page.getByRole("button", { name: "Done" }).click();
+	await expect(page.getByRole("cell", { name: "Deploy hook", exact: true })).toBeVisible();
+
+	const revokeRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/api-keys/key_active") && request.method() === "DELETE",
+	);
+	await page.getByRole("button", { name: "Revoke Automation token" }).click();
+	await revokeRequest;
+	await expect(page.getByRole("row", { name: /Automation token/ })).toContainText("Revoked");
 
 	assertNoErrors();
 });
