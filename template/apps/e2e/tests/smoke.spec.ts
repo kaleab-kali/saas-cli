@@ -281,7 +281,24 @@ async function installAuthenticatedMocks(page: Page) {
 			memberCount: 0,
 		},
 	];
+	let lookupItems = [
+		{
+			id: "lookup_existing",
+			organizationId: "org_smoke",
+			kind: "project_status",
+			value: "active",
+			label: "Active",
+			description: "Work is currently active",
+			color: "#22c55e",
+			sortOrder: 10,
+			isBuiltIn: false,
+			archived: false,
+			createdAt: now(),
+			updatedAt: now(),
+		},
+	];
 
+	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this e2e mock dispatches many independent tenant API fixtures.
 	await page.route("**/api/v1/**", async (route: Route) => {
 		const url = route.request().url();
 		const requestUrl = new URL(url);
@@ -414,6 +431,55 @@ async function installAuthenticatedMocks(page: Page) {
 			const roleId = pathname.split("/").at(-1);
 			customRoles = customRoles.filter((role) => role.id !== roleId);
 			await route.fulfill(ok({ data: { id: roleId } }));
+			return;
+		}
+		if (pathname.startsWith("/api/v1/lookups/items/")) {
+			const lookupId = pathname.split("/").at(-1);
+			if (route.request().method() === "PATCH") {
+				const body = JSON.parse(route.request().postData() ?? "{}");
+				lookupItems = lookupItems.map((item) => (item.id === lookupId ? { ...item, ...body, updatedAt: now() } : item));
+				await route.fulfill(ok({ data: lookupItems.find((item) => item.id === lookupId) ?? null }));
+				return;
+			}
+			if (route.request().method() === "DELETE") {
+				lookupItems = lookupItems.filter((item) => item.id !== lookupId);
+				await route.fulfill(ok({ data: { deleted: true } }));
+				return;
+			}
+		}
+		const lookupKindMatch = pathname.match(/^\/api\/v1\/lookups\/([^/]+)$/);
+		if (lookupKindMatch) {
+			const lookupKind = lookupKindMatch[1];
+			if (route.request().method() === "POST") {
+				const body = JSON.parse(route.request().postData() ?? "{}");
+				const label = String(body.label ?? "").trim();
+				const value =
+					body.value ??
+					label
+						.toLowerCase()
+						.replace(/[^a-z0-9]+/g, "_")
+						.replace(/^_+|_+$/g, "");
+				const item = {
+					id: "lookup_created",
+					organizationId: "org_smoke",
+					kind: lookupKind,
+					value,
+					label,
+					description: body.description ?? null,
+					color: body.color ?? null,
+					sortOrder: body.sortOrder ?? 100,
+					isBuiltIn: false,
+					archived: false,
+					createdAt: now(),
+					updatedAt: now(),
+				};
+				lookupItems = [item, ...lookupItems];
+				await route.fulfill(ok({ data: item }));
+				return;
+			}
+			const includeArchived = requestUrl.searchParams.get("includeArchived") === "true";
+			const data = lookupItems.filter((item) => item.kind === lookupKind && (includeArchived || !item.archived));
+			await route.fulfill(ok({ data }));
 			return;
 		}
 		if (pathname === "/api/v1/team/members") {
@@ -1218,6 +1284,74 @@ test("tenant custom roles smoke creates and deletes delegated permissions", asyn
 	assertNoErrors();
 });
 
+test("tenant lookup catalogs smoke creates archives and deletes values", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAuthenticatedMocks(page);
+
+	await page.goto("/settings/lookups", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Lookup Catalogs" })).toBeVisible();
+	await expect(page.getByText("No catalogs yet. Add one below.")).toBeVisible();
+
+	const listRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/lookups/project_status") && request.method() === "GET",
+	);
+	await page.locator("#lookup-kind-input").fill("Project Status");
+	await page.getByRole("button", { name: "Add", exact: true }).click();
+	await listRequest;
+	await expect(page.getByRole("button", { name: "Select catalog project_status" })).toBeVisible();
+	await expect(page.getByRole("row", { name: /Active/ })).toContainText("active");
+
+	await page.getByRole("textbox", { name: /Label/ }).fill("Waiting on customer");
+	await page.getByRole("textbox", { name: /Value/ }).fill("waiting_customer");
+	await page.getByRole("spinbutton", { name: "Sort order" }).fill("30");
+	await page.locator("#lk-color").fill("#f97316");
+	await page.getByRole("textbox", { name: /Description/ }).fill("Paused until the customer responds");
+
+	const createRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/lookups/project_status") && request.method() === "POST",
+	);
+	await page.getByRole("button", { name: "Add value" }).click();
+	const createPayload = JSON.parse((await createRequest).postData() ?? "{}");
+
+	expect(createPayload).toEqual({
+		label: "Waiting on customer",
+		value: "waiting_customer",
+		description: "Paused until the customer responds",
+		color: "#f97316",
+		sortOrder: 30,
+	});
+	await expect(page.getByRole("row", { name: /Waiting on customer/ })).toContainText("waiting_customer");
+
+	const archiveRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/lookups/items/lookup_created") && request.method() === "PATCH",
+	);
+	await page.getByRole("button", { name: "Archive Waiting on customer" }).click();
+	const archivePayload = JSON.parse((await archiveRequest).postData() ?? "{}");
+
+	expect(archivePayload).toEqual({ archived: true });
+	await expect(page.getByRole("row", { name: /Waiting on customer/ })).toBeHidden();
+
+	const includeArchivedRequest = page.waitForRequest(
+		(request) =>
+			request.url().includes("/api/v1/lookups/project_status") &&
+			new URL(request.url()).searchParams.get("includeArchived") === "true",
+	);
+	await page.getByRole("checkbox", { name: "Show archived" }).check();
+	await includeArchivedRequest;
+	await expect(page.getByRole("row", { name: /Waiting on customer/ })).toContainText("archived");
+
+	page.once("dialog", (dialog) => dialog.accept());
+	const deleteRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/lookups/items/lookup_created") && request.method() === "DELETE",
+	);
+	await page.getByRole("button", { name: "Delete Waiting on customer" }).click();
+	await deleteRequest;
+	await expect(page.getByRole("row", { name: /Waiting on customer/ })).toBeHidden();
+
+	assertNoErrors();
+});
+
 test("tenant members smoke invites, updates roles, and cancels invitations", async ({ page }) => {
 	const assertNoErrors = await expectNoConsoleErrors(page);
 	await installAuthenticatedMocks(page);
@@ -1261,7 +1395,10 @@ test("tenant members smoke invites, updates roles, and cancels invitations", asy
 	const cancelRequest = page.waitForRequest(
 		(request) => request.url().includes("/api/v1/team/invitations/inv_existing") && request.method() === "DELETE",
 	);
-	await page.getByRole("row", { name: /pending@example\.test/ }).getByRole("button", { name: /Cancel/ }).click();
+	await page
+		.getByRole("row", { name: /pending@example\.test/ })
+		.getByRole("button", { name: /Cancel/ })
+		.click();
 	await cancelRequest;
 	await expect(page.getByText("pending@example.test")).toBeHidden();
 

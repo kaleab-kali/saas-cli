@@ -13,7 +13,7 @@ import {
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
-import { KNOWN_LOOKUP_KINDS, type LookupKind, LookupService } from "./lookup.service";
+import { type LookupKind, LookupService } from "./lookup.service";
 
 interface CreateLookupBody {
 	value?: string;
@@ -72,12 +72,9 @@ export class LookupController {
 	}
 
 	private assertKind(kind: string): void {
-		// Allow any non-empty kind. If your app needs a closed set, populate
-		// `LOOKUP_DEFAULTS` in lookup-defaults.ts and add a check here.
-		if (!kind || typeof kind !== "string" || kind.length > 64) {
+		// Allow tenant-defined catalogs while keeping route params predictable.
+		if (!/^[a-z0-9_]{1,64}$/.test(kind)) {
 			throw new BadRequestException(`Invalid lookup kind: ${kind}`);
 		}
-		// Built-in kinds reference (currently empty in skeleton):
-		void KNOWN_LOOKUP_KINDS;
 	}
 }

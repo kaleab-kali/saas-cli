@@ -52,6 +52,7 @@ const mustExist = [
 	"apps/api/src/modules/webhook/application/webhook.service.spec.ts",
 	"apps/api/src/modules/webhook/presentation/webhook.controller.ts",
 	"apps/api/src/modules/webhook/webhook.module.ts",
+	"apps/api/src/shared/lookups/lookup.service.spec.ts",
 	"apps/api/scripts/run-module-mutation.mjs",
 	"apps/api/src/shared/decorators/audit.decorator.ts",
 	"apps/api/src/shared/errors/domain-error.ts",
@@ -71,6 +72,7 @@ const mustExist = [
 	"apps/api-tests/scripts/run-http.mjs",
 	"apps/api-tests/tests/tenant-isolation.spec.ts",
 	"apps/web/src/features/onboarding/components/onboarding-pages.tsx",
+	"apps/web/src/features/platform/components/SecuritySettingsPage.tsx",
 	"apps/web/src/routes/_authenticated/onboarding/index.tsx",
 	"apps/web/src/routes/admin/onboarding/index.tsx",
 	"apps/web/src/routes/admin/onboarding/new.tsx",
@@ -297,6 +299,11 @@ function assertDeployGateBuilds() {
 	assert(packageJson.scripts?.["test:full"] === "pnpm test:all", "base package exposes full test category alias");
 	assert(apiPackageJson.scripts?.["test:unit"] === "jest --runInBand", "API workspace exposes unit test command");
 	assert(apiPackageJson.scripts?.["test:integration"]?.includes("jest-e2e.json"), "API workspace exposes integration test command");
+	assert(
+		apiPackageJson.dependencies?.["@paralleldrive/cuid2"] === "2.3.1",
+		"API uses CommonJS-compatible cuid2",
+		"Nest API builds commonjs, so ESM-only cuid2 releases break Jest and runtime require()",
+	);
 	assert(
 		apiPackageJson.scripts?.["test:mutation:module"] === "node scripts/run-module-mutation.mjs",
 		"API workspace exposes module-scoped mutation command",
@@ -607,14 +614,20 @@ function assertFrontendImprovementSurface() {
 		"apps/api/src/modules/notification/application/services/notification-stream.service.spec.ts",
 	);
 	const realtimeHook = readProjectFile("apps/web/src/shared/hooks/use-realtime.ts");
+	const lookupService = readProjectFile("apps/api/src/shared/lookups/lookup.service.ts");
+	const lookupController = readProjectFile("apps/api/src/shared/lookups/lookup.controller.ts");
+	const lookupServiceSpec = readProjectFile("apps/api/src/shared/lookups/lookup.service.spec.ts");
 	const notificationDeliveries = readProjectFile("apps/web/src/routes/_authenticated/notifications/deliveries.tsx");
 	const emailDeliveryHandler = readProjectFile(
 		"apps/api/src/modules/notification/application/queries/list-email-deliveries.handler.ts",
 	);
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
 	const organizationSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/organization.tsx");
-	const securitySettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/security.tsx");
+	const securitySettingsPage =
+		readProjectFile("apps/web/src/routes/_authenticated/settings/security.tsx") +
+		readProjectFile("apps/web/src/features/platform/components/SecuritySettingsPage.tsx");
 	const rolesSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/roles.tsx");
+	const lookupsSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/lookups.tsx");
 	const membersSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/members.tsx");
 	const apiKeysSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/api-keys.tsx");
 	const apiKeyCreateDialog = readProjectFile("apps/web/src/features/platform/components/ApiKeyCreateDialog.tsx");
@@ -660,6 +673,15 @@ function assertFrontendImprovementSurface() {
 		rolesSettingsPage.includes('aria-label={`${t("common.delete")} ${role.nameEn}`}'),
 		"custom role delete controls are accessible per role",
 	);
+	assert(lookupsSettingsPage.includes('id="lookup-kind-input"'), "lookup catalog kind input exposes a stable UI target");
+	assert(
+		lookupsSettingsPage.includes("aria-label={`Select catalog ${k}`}"),
+		"lookup catalog selector controls are accessible per kind",
+	);
+	assert(
+		lookupsSettingsPage.includes('aria-label={`${row.original.archived ? "Unarchive" : "Archive"} ${row.original.label}`}'),
+		"lookup archive controls are accessible per value",
+	);
 	assert(membersSettingsPage.includes('id="member-invite-email"'), "members invite email exposes a stable UI target");
 	assert(membersSettingsPage.includes('id="member-invite-role"'), "members invite role exposes a stable UI target");
 	assert(
@@ -693,6 +715,16 @@ function assertFrontendImprovementSurface() {
 	assert(teamHooks.includes("teamKeys.all"), "team mutations invalidate the team key prefix");
 	assert(roleHooks.includes("export const roleKeys"), "role hooks export query key factory");
 	assert(roleHooks.includes("roleKeys.all"), "role mutations invalidate the role key prefix");
+	assert(lookupService.includes("KIND_REGEX"), "lookup service validates tenant-defined catalog kind slugs");
+	assert(
+		lookupService.includes("rows.length === 0 && isKnownKind(kind)"),
+		"lookup service seeds defaults only for built-in catalogs",
+	);
+	assert(
+		lookupController.includes("Allow tenant-defined catalogs"),
+		"lookup controller documents tenant-defined catalog support",
+	);
+	assert(lookupServiceSpec.includes("tenant-defined lookup kinds"), "lookup service tests tenant-defined catalogs");
 	assert(topBar.includes("<CommandPalette />"), "top bar exposes command palette");
 	assert(topBar.includes("Workspace command center"), "top bar exposes visible command-center shell");
 	assert(commandPalette.includes("WORKSPACE_COMMANDS"), "command palette exposes workspace command registry");
@@ -883,6 +915,12 @@ function assertFrontendImprovementSurface() {
 		"E2E smoke covers custom role lifecycle",
 	);
 	assert(e2eSmoke.includes("/api/v1/roles/matrix"), "E2E smoke mocks role matrix API contracts");
+	assert(
+		e2eSmoke.includes("tenant lookup catalogs smoke creates archives and deletes values"),
+		"E2E smoke covers lookup catalog lifecycle",
+	);
+	assert(e2eSmoke.includes("/api/v1/lookups/project_status"), "E2E smoke mocks lookup catalog value APIs");
+	assert(e2eSmoke.includes("/api/v1/lookups/items/lookup_created"), "E2E smoke mocks lookup item mutation APIs");
 	assert(
 		e2eSmoke.includes("tenant members smoke invites, updates roles, and cancels invitations"),
 		"E2E smoke covers tenant member management",

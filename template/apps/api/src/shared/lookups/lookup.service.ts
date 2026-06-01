@@ -19,9 +19,13 @@ export interface LookupItem {
 }
 
 const VALUE_REGEX = /^[a-z0-9_]{1,50}$/;
+const KIND_REGEX = /^[a-z0-9_]{1,64}$/;
 const MAX_LABEL_LENGTH = 80;
 
 const isKnownKind = (kind: string): kind is LookupKind => (KNOWN_LOOKUP_KINDS as string[]).includes(kind);
+const assertKind = (kind: string): void => {
+	if (!KIND_REGEX.test(kind)) throw new BadRequestException(`Invalid lookup kind: ${kind}`);
+};
 
 @Injectable()
 export class LookupService {
@@ -49,7 +53,7 @@ export class LookupService {
 	}
 
 	async list(organizationId: string, kind: LookupKind, includeArchived = false): Promise<LookupItem[]> {
-		if (!isKnownKind(kind)) throw new BadRequestException(`Unknown lookup kind: ${kind}`);
+		assertKind(kind);
 
 		let rows = await this.prisma.lookup.findMany({
 			where: { organizationId, kind },
@@ -57,7 +61,7 @@ export class LookupService {
 		});
 
 		// Self-heal for orgs created before lookup system existed
-		if (rows.length === 0) {
+		if (rows.length === 0 && isKnownKind(kind)) {
 			await this.seedKind(organizationId, kind);
 			rows = await this.prisma.lookup.findMany({
 				where: { organizationId, kind },
@@ -73,7 +77,7 @@ export class LookupService {
 		kind: LookupKind,
 		input: { value?: string; label: string; description?: string; color?: string; sortOrder?: number },
 	): Promise<LookupItem> {
-		if (!isKnownKind(kind)) throw new BadRequestException(`Unknown lookup kind: ${kind}`);
+		assertKind(kind);
 		const label = input.label?.trim();
 		if (!label) throw new BadRequestException("Label required");
 		if (label.length > MAX_LABEL_LENGTH) throw new BadRequestException("Label too long");
