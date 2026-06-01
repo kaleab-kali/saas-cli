@@ -1,4 +1,5 @@
 import net from "node:net";
+import path from "node:path";
 import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
@@ -78,6 +79,8 @@ const requireScript = (pkg, name) => {
 };
 
 const placeholderPattern = /change-me|generate_with|strong_password|your-domain|example\./i;
+const runtimeDependencyFields = ["dependencies", "optionalDependencies"];
+const nonRuntimeDependencyFields = ["devDependencies", "peerDependencies"];
 
 const envValue = (values, key) => String(values[key] ?? "").trim();
 
@@ -105,6 +108,42 @@ const requireHttpsEnvUrl = (values, key) => {
 	const detail = "must be a real HTTPS URL before production deploy";
 	production ? status.fail(key, detail) : status.warn(key, detail);
 	return false;
+};
+
+const requireEnvListIncludes = (values, key, requiredValues, detail) => {
+	const configured = envValue(values, key)
+		.split(",")
+		.map((value) => value.trim())
+		.filter(Boolean);
+	const missing = requiredValues.filter((value) => !configured.includes(value));
+	if (missing.length === 0) {
+		status.ok(`${key} includes required values`, requiredValues.join(", "));
+		return true;
+	}
+	const message = detail ?? `missing ${missing.join(", ")}`;
+	production ? status.fail(key, message) : status.warn(key, message);
+	return false;
+};
+
+const requirePackageDependency = (cwd, packageName) => {
+	const apiPkg = json(path.join(cwd, "apps/api/package.json"));
+	if (!apiPkg) {
+		production
+			? status.fail("EIMS SDK package dependency", "apps/api/package.json is required")
+			: status.warn("EIMS SDK package dependency", "apps/api/package.json not found");
+		return;
+	}
+	if (runtimeDependencyFields.some((field) => Object.prototype.hasOwnProperty.call(apiPkg[field] ?? {}, packageName))) {
+		status.ok("EIMS SDK package dependency", packageName);
+		return;
+	}
+	if (nonRuntimeDependencyFields.some((field) => Object.prototype.hasOwnProperty.call(apiPkg[field] ?? {}, packageName))) {
+		const message = `move ${packageName} to apps/api dependencies before production`;
+		production ? status.fail("EIMS SDK package dependency", message) : status.warn("EIMS SDK package dependency", message);
+		return;
+	}
+	const message = `install ${packageName} in apps/api before go-live`;
+	production ? status.fail("EIMS SDK package dependency", message) : status.warn("EIMS SDK package dependency", message);
 };
 
 const requireDeployEnv = () => {
@@ -161,6 +200,9 @@ const checkEimsProductionEnv = (apiEnv, eimsInstalled) => {
 	requireHttpsEnvUrl(apiEnv, "EIMS_BASE_URL_PRODUCTION");
 	requireHttpsEnvUrl(apiEnv, "EIMS_BULK_URL_PRODUCTION");
 	requireHttpsEnvUrl(apiEnv, "EIMS_CALLBACK_PUBLIC_URL");
+	if (requireEnvValue(apiEnv, "EIMS_SDK_PACKAGE_NAME", "configure the published EIMS SDK package name before go-live")) {
+		requirePackageDependency(root, envValue(apiEnv, "EIMS_SDK_PACKAGE_NAME"));
+	}
 	requireEnvValue(apiEnv, "EIMS_CALLBACK_HMAC_SECRET", "configure a non-placeholder callback HMAC secret before production");
 
 	const signingProvider = envValue(apiEnv, "EIMS_SIGNING_PROVIDER");
@@ -170,6 +212,54 @@ const checkEimsProductionEnv = (apiEnv, eimsInstalled) => {
 	apiEnv.EIMS_PHASE0_STRICT === "true"
 		? status.ok("EIMS_PHASE0_STRICT", "true")
 		: status.fail("EIMS_PHASE0_STRICT", "must be true before EIMS production launch");
+
+	apiEnv.EIMS_REQUIRE_2FA === "true"
+		? status.ok("EIMS_REQUIRE_2FA", "true")
+		: status.fail("EIMS_REQUIRE_2FA", "must be true so EIMS tenant routes require the organization 2FA policy");
+
+	apiEnv.EIMS_WORKERS_ENABLED === "true"
+		? status.ok("EIMS_WORKERS_ENABLED", "true")
+		: status.fail("EIMS_WORKERS_ENABLED", "must be true so EIMS BullMQ replay workers run in production");
+
+	apiEnv.EIMS_SUBMISSION_DISTRIBUTED_LOCKS === "true"
+		? status.ok("EIMS_SUBMISSION_DISTRIBUTED_LOCKS", "true")
+		: status.fail("EIMS_SUBMISSION_DISTRIBUTED_LOCKS", "must be true so per-source counters are locked across nodes");
+
+	apiEnv.EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED === "true"
+		? status.ok("EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED", "true")
+		: status.fail("EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED", "must be true so durable offline invoices are replayed automatically");
+
+	apiEnv.EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED === "true"
+		? status.ok("EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED", "true")
+		: status.fail(
+				"EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED",
+				"must be true so submitted bulk conversations are reconciled automatically",
+			);
+
+	requireEnvListIncludes(
+		apiEnv,
+		"BULLMQ_QUEUES",
+		["eims-submission-retry", "eims-bulk-callback", "eims-offline-replay"],
+		"include EIMS queues so /admin/jobs can monitor and retry EIMS workers",
+	);
+};
+
+const checkStarterEnvVars = (starters, apiEnv) => {
+	for (const starter of starters) {
+		const name = starter?.name ?? "unknown";
+		const envVars = Array.isArray(starter?.envVars) ? starter.envVars : [];
+		if (!envVars.length) {
+			status.ok(`starter:${name} env`, "no starter-specific env vars declared");
+			continue;
+		}
+		const missing = envVars.filter((key) => !hasEnvKey(apiEnv, key));
+		if (missing.length === 0) {
+			status.ok(`starter:${name} env`, `${envVars.length} declared env var(s) present`);
+		} else {
+			const message = `missing ${missing.join(", ")}`;
+			production ? status.fail(`starter:${name} env`, message) : status.warn(`starter:${name} env`, message);
+		}
+	}
 };
 
 const main = async () => {
@@ -192,7 +282,8 @@ const main = async () => {
 
 	const apiEnv = { ...env("apps/api/.env"), ...process.env };
 	const scaffoldState = json(".scaffold-state.json");
-	const eimsInstalled = Boolean(scaffoldState?.starters?.some((starter) => starter?.name === "eims"));
+	const starters = Array.isArray(scaffoldState?.starters) ? scaffoldState.starters : [];
+	const eimsInstalled = starters.some((starter) => starter?.name === "eims");
 	apiEnv.DATABASE_URL ? status.ok("DATABASE_URL") : status.warn("DATABASE_URL", "missing");
 	/^[a-f0-9]{64}$/i.test(apiEnv.MASTER_KEY ?? "")
 		? status.ok("MASTER_KEY", "32-byte hex")
@@ -205,6 +296,12 @@ const main = async () => {
 			? status.fail("BETTER_AUTH_SECRET", "set a 32-byte hex secret with openssl rand -hex 32")
 			: status.warn("BETTER_AUTH_SECRET", "missing or weak");
 	checkProductionCoreEnv(apiEnv);
+	if (starters.length) {
+		status.ok("starter state", starters.map((starter) => starter.name).filter(Boolean).join(", "));
+		checkStarterEnvVars(starters, apiEnv);
+	} else {
+		status.ok("starter state", "base scaffold has no optional starter packs installed");
+	}
 	checkEimsProductionEnv(apiEnv, eimsInstalled);
 
 	for (const script of [
@@ -224,6 +321,10 @@ const main = async () => {
 		"test:mutation",
 	]) {
 		requireScript(pkg, script);
+	}
+	if (eimsInstalled) {
+		requireScript(pkg, "test:eims:sdk-contract");
+		requireScript(pkg, "test:eims:production-readiness");
 	}
 	for (const [path, label] of [
 		["apps/security/package.json", "security workspace"],
@@ -247,6 +348,16 @@ const main = async () => {
 		["docs/observability/grafana-dashboard.json", "Grafana dashboard"],
 	]) {
 		requirePath(path, label);
+	}
+	if (eimsInstalled) {
+		for (const [path, label] of [
+			["apps/security/scripts/eims-production-readiness.mjs", "EIMS production readiness preflight"],
+			["apps/api/scripts/eims-sdk-contract.ts", "EIMS SDK contract gate"],
+			["apps/api/prisma/eims-rls-policies.sql", "EIMS RLS policy export"],
+			["apps/api/prisma/eims-audit-hash-chain.sql", "EIMS audit hash-chain SQL"],
+		]) {
+			requirePath(path, label);
+		}
 	}
 
 	(await connect(5432)) ? status.ok("Postgres reachable") : status.warn("Postgres", "port 5432 unreachable");

@@ -295,6 +295,7 @@ function assertGeneratedStructure() {
 	const packageJson = JSON.parse(readProjectFile("package.json"));
 	const rootEnvExample = readProjectFile(".env.example");
 	const productionEnvExample = readProjectFile(".env.production.example");
+	const doctor = readProjectFile("scripts/doctor.mjs");
 	const apiEnv = readProjectFile("apps/api/.env");
 	const apiEnvExample = readProjectFile("apps/api/.env.example");
 	assert(packageJson.scripts["test:eims:mock"]?.includes("test:eims:ui"), "generated package has full EIMS mock gate");
@@ -428,6 +429,24 @@ function assertGeneratedStructure() {
 		packageJson.scripts["test:eims:mock"]?.includes("test:eims:production-readiness"),
 		"generated EIMS mock gate includes production readiness preflight",
 	);
+	assert(doctor.includes("EIMS SDK package dependency"), "production doctor verifies EIMS SDK runtime dependency");
+	assert(doctor.includes("test:eims:sdk-contract"), "production doctor requires EIMS SDK contract script");
+	assert(
+		doctor.includes("EIMS production readiness preflight"),
+		"production doctor verifies EIMS readiness preflight artifact",
+	);
+	assert(doctor.includes("EIMS_REQUIRE_2FA"), "production doctor requires EIMS tenant 2FA policy");
+	assert(doctor.includes("EIMS_WORKERS_ENABLED"), "production doctor requires EIMS workers");
+	assert(doctor.includes("EIMS_SUBMISSION_DISTRIBUTED_LOCKS"), "production doctor requires EIMS distributed locks");
+	assert(
+		doctor.includes("EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED"),
+		"production doctor requires EIMS offline replay scheduler",
+	);
+	assert(
+		doctor.includes("EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED"),
+		"production doctor requires EIMS bulk reconciliation scheduler",
+	);
+	assert(doctor.includes("BULLMQ_QUEUES"), "production doctor requires EIMS queue registration");
 	const scaffoldState = JSON.parse(readProjectFile(".scaffold-state.json"));
 	const eimsStarter = scaffoldState.starters?.find((starter) => starter.name === "eims");
 	assert(eimsStarter, "scaffold state records EIMS starter installation");

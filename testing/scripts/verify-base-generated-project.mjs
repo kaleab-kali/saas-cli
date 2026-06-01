@@ -215,6 +215,7 @@ function assertDeployGateBuilds() {
 	assert(doctor.includes("requireHttpsEnvUrl"), "production doctor rejects non-HTTPS public URLs");
 	assert(doctor.includes("process.env.DEPLOY_HOST"), "production doctor accepts CI-provided deploy host");
 	assert(doctor.includes(".env.deploy.production"), "production doctor requires environment-specific deploy config");
+	assert(doctor.includes("checkStarterEnvVars"), "production doctor validates starter env metadata");
 	assert(doctor.includes("Grafana dashboard"), "production doctor verifies observability dashboard docs");
 	assert(deploymentGuide.includes("pnpm deploy production --confirm-production"), "deployment guide documents production deploy command");
 	assert(deploymentGuide.includes("current -> releases/<release-id>"), "deployment guide documents release symlink layout");
