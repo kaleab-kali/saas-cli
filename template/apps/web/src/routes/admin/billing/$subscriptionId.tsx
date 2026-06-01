@@ -42,12 +42,25 @@ const FORCE_STATUSES = [
 	"canceled",
 ] as const;
 
-const formatMinor = (amountMinor: number, currency: string) =>
-	new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amountMinor / 100);
+const etbFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "ETB" });
+const usdFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const currencyFormatters = new Map<string, Intl.NumberFormat>([
+	["ETB", etbFormatter],
+	["USD", usdFormatter],
+]);
+
+const formatMinor = (amountMinor: number, currency: string) => {
+	const cached = currencyFormatters.get(currency);
+	if (cached) return cached.format(amountMinor / 100);
+	return `${currency} ${(amountMinor / 100).toLocaleString("en-US", {
+		maximumFractionDigits: 2,
+		minimumFractionDigits: 2,
+	})}`;
+};
 
 type SubscriptionInvoice = AdminSubscriptionDetail["invoices"][number];
 
-const SubscriptionDetail = React.memo(
+export const SubscriptionDetail = React.memo(
 	() => {
 		const { t } = useTranslation();
 		const { subscriptionId } = Route.useParams();
@@ -226,12 +239,17 @@ const SubscriptionDetail = React.memo(
 														/>
 													</div>
 													<div className="space-y-1">
-														<Label>{t("admin.billing.method", { defaultValue: "Method" })}</Label>
+														<Label htmlFor={`payment-method-${inv.id}`}>
+															{t("admin.billing.method", { defaultValue: "Method" })}
+														</Label>
 														<Select
 															value={paymentForm.method}
 															onValueChange={(v) => setPaymentForm((f) => ({ ...f, method: v }))}
 														>
-															<SelectTrigger>
+															<SelectTrigger
+																id={`payment-method-${inv.id}`}
+																aria-label={t("admin.billing.method", { defaultValue: "Method" })}
+															>
 																<SelectValue />
 															</SelectTrigger>
 															<SelectContent>
@@ -254,23 +272,32 @@ const SubscriptionDetail = React.memo(
 														/>
 													</div>
 													<div className="space-y-1">
-														<Label>{t("admin.billing.bankRef", { defaultValue: "Bank Ref" })}</Label>
+														<Label htmlFor={`payment-bank-ref-${inv.id}`}>
+															{t("admin.billing.bankRef", { defaultValue: "Bank Ref" })}
+														</Label>
 														<Input
+															id={`payment-bank-ref-${inv.id}`}
 															value={paymentForm.bankReference}
 															onChange={(e) => setPaymentForm((f) => ({ ...f, bankReference: e.target.value }))}
 														/>
 													</div>
 													<div className="space-y-1">
-														<Label>{t("admin.billing.paidAt", { defaultValue: "Paid On" })}</Label>
+														<Label htmlFor={`payment-paid-at-${inv.id}`}>
+															{t("admin.billing.paidAt", { defaultValue: "Paid On" })}
+														</Label>
 														<Input
+															id={`payment-paid-at-${inv.id}`}
 															type="date"
 															value={paymentForm.paidAt}
 															onChange={(e) => setPaymentForm((f) => ({ ...f, paidAt: e.target.value }))}
 														/>
 													</div>
 													<div className="space-y-1">
-														<Label>{t("admin.billing.note", { defaultValue: "Note" })}</Label>
+														<Label htmlFor={`payment-note-${inv.id}`}>
+															{t("admin.billing.note", { defaultValue: "Note" })}
+														</Label>
 														<Input
+															id={`payment-note-${inv.id}`}
 															value={paymentForm.note}
 															onChange={(e) => setPaymentForm((f) => ({ ...f, note: e.target.value }))}
 														/>
@@ -771,7 +798,7 @@ const SubscriptionDetail = React.memo(
 );
 SubscriptionDetail.displayName = "AdminSubscriptionDetail";
 
-const UsageHistoryPanel = React.memo(
+export const UsageHistoryPanel = React.memo(
 	({ subscriptionId }: { readonly subscriptionId: string }) => {
 		const { data = [], isLoading } = useUsageHistory(subscriptionId);
 		const usageColumns = React.useMemo<ColumnDef<UsageHistorySnapshot>[]>(

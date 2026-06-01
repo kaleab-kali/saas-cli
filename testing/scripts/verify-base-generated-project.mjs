@@ -841,6 +841,10 @@ function assertFrontendImprovementSurface() {
 	assert(adminBillingDetail.includes("Search usage snapshots"), "admin subscription usage history is searchable");
 	assert(adminBillingDetail.includes("enableCsvExport"), "admin subscription detail tables export CSV");
 	assert(adminBillingDetail.includes("savedViewsEntity"), "admin subscription detail tables have saved views");
+	assert(adminBillingDetail.includes("payment-method-"), "admin subscription payment method control is labeled");
+	assert(adminBillingDetail.includes("payment-bank-ref-"), "admin subscription payment bank reference is labeled");
+	assert(adminBillingDetail.includes("payment-paid-at-"), "admin subscription payment date control is labeled");
+	assert(adminBillingDetail.includes("payment-note-"), "admin subscription payment note control is labeled");
 	assert(
 		opsGuide.includes("Subscription detail pages use DataTable for invoice lifecycle review"),
 		"admin operations guide documents subscription detail tables",
@@ -975,13 +979,26 @@ function assertFrontendImprovementSurface() {
 		e2eSmoke.includes("admin subscription detail smoke renders lifecycle DataTables"),
 		"E2E smoke covers admin subscription detail tables",
 	);
+	assert(e2eSmoke.includes("/api/v1/admin/billing/invoices/invoice_smoke/send"), "E2E smoke covers invoice send action");
+	assert(
+		e2eSmoke.includes("/api/v1/admin/billing/invoices/invoice_smoke/payments"),
+		"E2E smoke covers manual payment action",
+	);
 	assert(
 		e2eSmoke.includes("admin plan detail smoke renders editable entitlement table"),
 		"E2E smoke covers admin plan detail entitlement table",
 	);
 	assert(
+		e2eSmoke.includes("/api/v1/admin/plans/plan_pro/entitlements/bulk"),
+		"E2E smoke covers plan entitlement save action",
+	);
+	assert(
 		e2eSmoke.includes("admin billing dashboard smoke renders operational tables"),
 		"E2E smoke covers admin billing dashboard tables",
+	);
+	assert(
+		e2eSmoke.includes("/api/v1/admin/billing/payments/payment_pending/verify"),
+		"E2E smoke covers manual payment verification action",
 	);
 	assert(
 		e2eSmoke.includes("notification deliveries smoke renders searchable delivery table"),

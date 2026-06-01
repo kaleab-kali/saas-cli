@@ -653,6 +653,43 @@ async function installAdminMocks(page: Page) {
 			updatedAt: now(),
 		},
 	];
+	let planEntitlements = [
+		{ id: "ent_api", featureKey: "platform.api-keys", enabled: true, limit: 25 },
+		{ id: "ent_reports", featureKey: "platform.reports", enabled: false, limit: null },
+	];
+	let subscriptionInvoice = {
+		id: "invoice_smoke",
+		number: "INV-DETAIL-001",
+		status: "draft",
+		issueDate: now(),
+		dueDate: now(),
+		periodStart: now(),
+		periodEnd: now(),
+		currency: "ETB",
+		subtotalMinor: 450000,
+		taxMinor: 0,
+		totalMinor: 450000,
+		amountPaidMinor: 0,
+		lineType: "subscription",
+		description: "Pro monthly subscription",
+		payments: [],
+	};
+	let pendingPayments = [
+		{
+			id: "payment_pending",
+			invoiceId: "invoice_pending",
+			invoiceNumber: "INV-1002",
+			organizationId: "org_smoke",
+			organizationName: "Demo Cafe",
+			amountMinor: 450000,
+			currency: "ETB",
+			method: "bank_transfer",
+			receiptNumber: "RCPT-001",
+			bankReference: "BANK-001",
+			paidAt: now(),
+			note: "manual transfer",
+		},
+	];
 
 	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this e2e mock dispatches many independent admin API fixtures.
 	await page.route("**/api/v1/**", async (route: Route) => {
@@ -799,6 +836,17 @@ async function installAdminMocks(page: Page) {
 			await route.fulfill(ok({ data: ["platform.api-keys", "platform.reports"] }));
 			return;
 		}
+		if (pathname === "/api/v1/admin/plans/plan_pro/entitlements/bulk" && request.method() === "POST") {
+			const body = JSON.parse(request.postData() ?? "{}");
+			planEntitlements = (body.entitlements ?? []).map(
+				(entitlement: { featureKey: string; enabled: boolean; limit: number | null }) => ({
+					id: `ent_${entitlement.featureKey.replace(/\W+/g, "_")}`,
+					...entitlement,
+				}),
+			);
+			await route.fulfill(ok({ data: planEntitlements }));
+			return;
+		}
 		if (/\/admin\/plans(?:\?|$)/.test(url)) {
 			await route.fulfill(
 				ok({
@@ -847,10 +895,7 @@ async function installAdminMocks(page: Page) {
 						manualSupported: true,
 						active: true,
 						sortOrder: 10,
-						entitlements: [
-							{ id: "ent_api", featureKey: "platform.api-keys", enabled: true, limit: 25 },
-							{ id: "ent_reports", featureKey: "platform.reports", enabled: false, limit: null },
-						],
+						entitlements: planEntitlements,
 						createdAt: now(),
 						updatedAt: now(),
 					},
@@ -890,27 +935,13 @@ async function installAdminMocks(page: Page) {
 			);
 			return;
 		}
+		if (pathname === "/api/v1/admin/billing/payments/payment_pending/verify" && request.method() === "POST") {
+			pendingPayments = pendingPayments.filter((payment) => payment.id !== "payment_pending");
+			await route.fulfill(ok({ data: { id: "payment_pending", verified: true } }));
+			return;
+		}
 		if (url.includes("/admin/billing/dashboard/pending-verification")) {
-			await route.fulfill(
-				ok({
-					data: [
-						{
-							id: "payment_pending",
-							invoiceId: "invoice_pending",
-							invoiceNumber: "INV-1002",
-							organizationId: "org_smoke",
-							organizationName: "Demo Cafe",
-							amountMinor: 450000,
-							currency: "ETB",
-							method: "bank_transfer",
-							receiptNumber: "RCPT-001",
-							bankReference: "BANK-001",
-							paidAt: now(),
-							note: "manual transfer",
-						},
-					],
-				}),
-			);
+			await route.fulfill(ok({ data: pendingPayments }));
 			return;
 		}
 		if (url.endsWith("/admin/billing/dashboard")) {
@@ -965,6 +996,34 @@ async function installAdminMocks(page: Page) {
 			);
 			return;
 		}
+		if (pathname === "/api/v1/admin/billing/invoices/invoice_smoke/send" && request.method() === "PUT") {
+			subscriptionInvoice = { ...subscriptionInvoice, status: "sent" };
+			await route.fulfill(ok({ data: subscriptionInvoice }));
+			return;
+		}
+		if (pathname === "/api/v1/admin/billing/invoices/invoice_smoke/payments" && request.method() === "POST") {
+			const body = JSON.parse(request.postData() ?? "{}");
+			const payment = {
+				id: "payment_recorded",
+				amountMinor: body.amountMinor,
+				method: body.method,
+				paidAt: body.paidAt,
+				receiptNumber: body.receiptNumber ?? null,
+				bankReference: body.bankReference ?? null,
+				chapaTxRef: null,
+				chapaRefId: null,
+				verified: true,
+				note: body.note ?? null,
+			};
+			subscriptionInvoice = {
+				...subscriptionInvoice,
+				status: body.amountMinor >= subscriptionInvoice.totalMinor ? "paid" : subscriptionInvoice.status,
+				amountPaidMinor: body.amountMinor,
+				payments: [payment],
+			};
+			await route.fulfill(ok({ data: payment }));
+			return;
+		}
 		if (/\/admin\/billing\/subscriptions\/sub_smoke(?:\?|$)/.test(url)) {
 			await route.fulfill(
 				ok({
@@ -997,25 +1056,7 @@ async function installAdminMocks(page: Page) {
 							isWriteBlocked: false,
 							isFullyLocked: false,
 						},
-						invoices: [
-							{
-								id: "invoice_smoke",
-								number: "INV-DETAIL-001",
-								status: "draft",
-								issueDate: now(),
-								dueDate: now(),
-								periodStart: now(),
-								periodEnd: now(),
-								currency: "ETB",
-								subtotalMinor: 450000,
-								taxMinor: 0,
-								totalMinor: 450000,
-								amountPaidMinor: 0,
-								lineType: "subscription",
-								description: "Pro monthly subscription",
-								payments: [],
-							},
-						],
+						invoices: [subscriptionInvoice],
 					},
 				}),
 			);
@@ -2041,6 +2082,39 @@ test("admin subscription detail smoke renders lifecycle DataTables", async ({ pa
 	await expect(page.getByText("INV-DETAIL-001")).toBeVisible();
 	await expect(page.getByRole("button", { name: "Send" })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Pay" })).toBeVisible();
+	const invoiceRow = page.getByRole("row", { name: /INV-DETAIL-001/ });
+
+	const sendInvoiceRequest = page.waitForRequest(
+		(request) =>
+			request.url().includes("/api/v1/admin/billing/invoices/invoice_smoke/send") && request.method() === "PUT",
+	);
+	await page.getByRole("button", { name: "Send" }).click();
+	expect(JSON.parse((await sendInvoiceRequest).postData() ?? "{}")).toEqual({});
+	await expect(invoiceRow).toContainText("sent");
+
+	await invoiceRow.getByRole("button", { name: "Pay" }).click();
+	const paymentDialog = page.getByRole("dialog", { name: /Record payment - INV-DETAIL-001/ });
+	await expect(paymentDialog).toBeVisible();
+	await paymentDialog.locator("#payment-amount-invoice_smoke").fill("450000");
+	await paymentDialog.locator("#payment-receipt-invoice_smoke").fill("RCPT-002");
+	await paymentDialog.locator("#payment-bank-ref-invoice_smoke").fill("BANK-002");
+	await paymentDialog.locator("#payment-paid-at-invoice_smoke").fill("2026-06-01");
+	await paymentDialog.locator("#payment-note-invoice_smoke").fill("Confirmed bank transfer");
+	const recordPaymentRequest = page.waitForRequest(
+		(request) =>
+			request.url().includes("/api/v1/admin/billing/invoices/invoice_smoke/payments") && request.method() === "POST",
+	);
+	await paymentDialog.getByRole("button", { name: "Confirm Payment" }).click();
+	expect(JSON.parse((await recordPaymentRequest).postData() ?? "{}")).toEqual({
+		amountMinor: 450000,
+		method: "manual_bank",
+		paidAt: "2026-06-01",
+		receiptNumber: "RCPT-002",
+		bankReference: "BANK-002",
+		note: "Confirmed bank transfer",
+	});
+	await expect(invoiceRow).toContainText("paid");
+	await expect(invoiceRow).toContainText("4,500.00");
 
 	await page.getByRole("tab", { name: /Dunning/i }).click();
 	await expect(page.getByRole("heading", { name: "Dunning history" })).toBeVisible();
@@ -2072,6 +2146,21 @@ test("admin plan detail smoke renders editable entitlement table", async ({ page
 	await expect(page.getByText("platform.reports")).toBeVisible();
 	await expect(page.getByRole("switch", { name: "Toggle platform.api-keys" })).toBeChecked();
 	await expect(page.getByRole("button", { name: "Save Entitlements" })).toBeVisible();
+	const reportsEntitlementRow = page.getByRole("row", { name: /platform\.reports/ });
+	await reportsEntitlementRow.getByRole("switch", { name: "Toggle platform.reports" }).click();
+	await reportsEntitlementRow.getByRole("spinbutton").fill("15");
+	const saveEntitlementsRequest = page.waitForRequest(
+		(request) =>
+			request.url().includes("/api/v1/admin/plans/plan_pro/entitlements/bulk") && request.method() === "POST",
+	);
+	await page.getByRole("button", { name: "Save Entitlements" }).click();
+	expect(JSON.parse((await saveEntitlementsRequest).postData() ?? "{}")).toEqual({
+		entitlements: [
+			{ featureKey: "platform.api-keys", enabled: true, limit: 25 },
+			{ featureKey: "platform.reports", enabled: true, limit: 15 },
+		],
+	});
+	await expect(reportsEntitlementRow.getByRole("spinbutton")).toHaveValue("15");
 
 	assertNoErrors();
 });
@@ -2095,6 +2184,14 @@ test("admin billing dashboard smoke renders operational tables", async ({ page }
 	await expect(page.getByRole("textbox", { name: /Search pending payments/i })).toBeVisible();
 	await expect(page.getByText("INV-1002")).toBeVisible();
 	await expect(page.getByRole("button", { name: "Verify" })).toBeVisible();
+	const pendingPaymentRow = page.getByRole("row", { name: /INV-1002/ });
+	const verifyPaymentRequest = page.waitForRequest(
+		(request) =>
+			request.url().includes("/api/v1/admin/billing/payments/payment_pending/verify") && request.method() === "POST",
+	);
+	await pendingPaymentRow.getByRole("button", { name: "Verify" }).click();
+	expect(JSON.parse((await verifyPaymentRequest).postData() ?? "{}")).toEqual({});
+	await expect(pendingPaymentRow).toBeHidden();
 	await expect(page.getByRole("button", { name: "Export CSV" })).toHaveCount(3);
 	await expect(page.getByRole("button", { name: "Saved views" })).toHaveCount(3);
 
