@@ -1,6 +1,6 @@
 # EIMS V3 Self-Audit
 
-Date: 2026-05-27
+Date: 2026-06-01
 
 Scope:
 
@@ -26,6 +26,9 @@ What is done cleanly:
 - Generated EIMS projects include `pnpm test:eims:production-readiness`, which
   checks SDK-bound contract wiring, production env examples, RLS SQL, audit
   hash-chain SQL, and runbook artifacts before the security/performance smokes.
+- Production EIMS tenant routes now include an EIMS-specific 2FA policy guard.
+  This is SaaS-side access policy only; authority protocol behavior stays
+  behind the EIMS SDK boundary.
 
 What is not done yet:
 
@@ -49,7 +52,7 @@ What is not done yet:
 | EIMS SDK boundary | Adapter/provider boundary and explicit contract command implemented, real package proof pending | Unit/scaffold/security tests | `EIMS_EXTERNAL_CLIENT` switches from the mock client to `EimsSdkExternalClient` when `EIMS_MOCK_MODE=false`; the generated provider dynamically loads `EIMS_SDK_PACKAGE_NAME`, validates that the SDK exposes `registerInvoice`, `registerReceipt`, `verifyIrn`, bulk submission, bulk-status polling, invoice cancellation, and credential validation, and fails closed if the package is missing or incompatible. Generated projects now include `pnpm test:eims:sdk-contract`; running it against the published SDK package remains pending. |
 | Credentials lifecycle | Encryption, rotation boundary, durable Prisma persistence, and SDK-bound validation implemented | Unit/API/UI tests | Credential POST and rotate payloads are sealed with `CipherService`, raw secret fields are stripped, encrypted secret material is persisted in `EimsCredential` byte columns, rotation evidence/revisions are stored, credential test decrypts secrets only in memory, calls `EIMS_EXTERNAL_CLIENT.validateCredential`, records the durable result, and responses expose only redaction/evidence metadata. Real proof still requires the published SDK package and sandbox credentials. |
 | Certificates/CSR | Mock API only | API/UI tests | Certificate metadata and expiry state are exposed. Real Vault/INSA certificate flow is not complete. |
-| 2FA enforcement | Planned/partially existing platform auth | Not EIMS-specific | EIMS-specific permission enforcement and bootstrap test coverage still need implementation. |
+| 2FA enforcement | EIMS-specific route guard implemented | Unit/scaffold/security/preflight tests | Production EIMS tenant routes now bind `AuthGuard`, `EimsTwoFactorPolicyGuard`, and `PermissionsGuard`. The guard is enabled by `EIMS_ENV=production` or `EIMS_REQUIRE_2FA=true`, fails closed without an active organization, and requires the tenant `SecuritySettings.force2fa` policy. Local mock/sandbox flows remain usable unless explicitly forced. |
 | Buyer/government directory | Mock API + data model | API/UI tests | Buyer and government buyer data verified. CRUD/import is not complete. |
 | Print layouts | PDF proof service implemented, hardware scan certification pending | Unit/API/UI tests | Compact/A4 metadata and official-QR rule verified. Starter now renders PDF proof buffers, fingerprints them, and rejects official QR proof unless the invoice is accepted and the signed QR matches the IRN. Real printer/device QR scan certification is not complete. |
 | Receipts/withholding | SDK-bound submission boundary implemented, real sandbox proof pending | Unit/API/UI/Bruno mock | Sales and withholding states verified. Receipt POST validates the linked invoice IRN and calls `EIMS_EXTERNAL_CLIENT.registerReceipt`, which delegates to the configured SDK in production and the mock connector locally. Real receipt acceptance still requires the published SDK package and sandbox proof. |

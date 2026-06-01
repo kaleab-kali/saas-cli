@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Query, Req, UseGuards } from "@nestjs/comm
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
+import { EimsTwoFactorPolicyGuard } from "../../shared/security/eims-two-factor-policy.guard";
 import { CreateEimsEnterpriseHandler } from "../application/commands/create-enterprise.handler";
 import { CreateEimsEstablishmentHandler } from "../application/commands/create-establishment.handler";
 import { CreateEimsSourceSystemHandler } from "../application/commands/create-source-system.handler";
@@ -18,7 +19,7 @@ interface AuthedRequest {
 }
 
 @Controller("eims/setup")
-@UseGuards(AuthGuard, PermissionsGuard)
+@UseGuards(AuthGuard, EimsTwoFactorPolicyGuard, PermissionsGuard)
 export class EimsSetupController {
 	constructor(
 		private readonly listSetup: ListEimsSetupHandler,

@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { PrismaModule } from "#shared/database/prisma.module";
+import { EimsSharedModule } from "../shared/eims-shared.module";
 import { CreateEimsEnterpriseHandler } from "./application/commands/create-enterprise.handler";
 import { CreateEimsEstablishmentHandler } from "./application/commands/create-establishment.handler";
 import { CreateEimsSourceSystemHandler } from "./application/commands/create-source-system.handler";
@@ -9,7 +10,7 @@ import { PrismaEimsSetupRepository } from "./infrastructure/repositories/prisma-
 import { EimsSetupController } from "./presentation/eims-setup.controller";
 
 @Module({
-	imports: [PrismaModule],
+	imports: [PrismaModule, EimsSharedModule],
 	controllers: [EimsSetupController],
 	providers: [
 		{ provide: EimsSetupRepository, useClass: PrismaEimsSetupRepository },

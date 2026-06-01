@@ -118,6 +118,7 @@ const EIMS_DIRECTORY_SKELETON = [
 	"apps/api/src/modules/eims/shared/printing",
 	"apps/api/src/modules/eims/shared/queues",
 	"apps/api/src/modules/eims/shared/schemas",
+	"apps/api/src/modules/eims/shared/security",
 	"apps/api/src/modules/eims/shared/signing",
 	"apps/api/src/modules/eims/submission/application",
 	"apps/api/src/modules/eims/submission/domain",
@@ -1213,7 +1214,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/bulk/eims-bulk-submission.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-scheduler.service.spec.ts src/modules/eims/shared/cancellations/eims-cancellation.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.spec.ts src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/receipts/application/eims-receipts.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/bulk/eims-bulk-submission.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-scheduler.service.spec.ts src/modules/eims/shared/cancellations/eims-cancellation.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.spec.ts src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/shared/security/eims-two-factor-policy.guard.spec.ts src/modules/eims/receipts/application/eims-receipts.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:sdk-contract"] ??=
@@ -1324,6 +1325,7 @@ EIMS_SIGNING_PROVIDER=local
 EIMS_CANONICALIZATION_VERSION=phase0-unlocked
 EIMS_MOCK_MODE=true
 EIMS_PHASE0_STRICT=false
+EIMS_REQUIRE_2FA=false
 EIMS_CALLBACK_PUBLIC_URL=
 EIMS_CALLBACK_HMAC_SECRET=
 EIMS_LOOKUP_CACHE_TTL_SECONDS=300
@@ -1353,6 +1355,7 @@ EIMS_SIGNING_PROVIDER=vault
 EIMS_CANONICALIZATION_VERSION=phase0-unlocked
 EIMS_MOCK_MODE=false
 EIMS_PHASE0_STRICT=true
+EIMS_REQUIRE_2FA=true
 EIMS_CALLBACK_PUBLIC_URL=https://your-domain.com/api/v1/eims/callbacks
 EIMS_CALLBACK_HMAC_SECRET=replace-with-32-byte-random-callback-secret
 EIMS_LOOKUP_CACHE_TTL_SECONDS=300
@@ -5827,8 +5830,13 @@ for (const file of controllerFiles) {
 \t\tassertIncludes(text, "@UseGuards(SuperAdminGuard)", \`\${relative} must bind the platform super-admin guard\`);
 \t} else {
 \t\tassertIncludes(text, "AuthGuard", \`\${relative} must require tenant authentication\`);
+\t\tassertIncludes(text, "EimsTwoFactorPolicyGuard", \`\${relative} must require the EIMS 2FA policy guard\`);
 \t\tassertIncludes(text, "PermissionsGuard", \`\${relative} must require tenant permission checks\`);
-\t\tassertIncludes(text, "@UseGuards(AuthGuard, PermissionsGuard)", \`\${relative} must bind auth and permission guards\`);
+\t\tassertIncludes(
+\t\t\ttext,
+\t\t\t"@UseGuards(AuthGuard, EimsTwoFactorPolicyGuard, PermissionsGuard)",
+\t\t\t\`\${relative} must bind auth, EIMS 2FA policy, and permission guards\`,
+\t\t);
 \t\tconst endpoints = text.match(/@(Get|Post|Put|Patch|Delete)\\(/g) ?? [];
 \t\tconst permissions = text.match(/@RequirePermissions\\(/g) ?? [];
 \t\tif (permissions.length < endpoints.length) {
@@ -5917,6 +5925,13 @@ assertIncludes(
 \t"credentialValidation.testCredential",
 \t"EIMS credential test endpoint must use SDK-bound credential validation",
 );
+
+const twoFactorGuard = read("apps/api/src/modules/eims/shared/security/eims-two-factor-policy.guard.ts");
+assertIncludes(twoFactorGuard, "EIMS_REQUIRE_2FA", "EIMS 2FA guard must support explicit production enforcement");
+assertIncludes(twoFactorGuard, 'EIMS_ENV === "production"', "EIMS 2FA guard must enforce production mode");
+assertIncludes(twoFactorGuard, "securitySettings.findUnique", "EIMS 2FA guard must read tenant security policy");
+assertIncludes(twoFactorGuard, "force2fa", "EIMS 2FA guard must require the tenant force2fa setting");
+assertIncludes(twoFactorGuard, "ForbiddenException", "EIMS 2FA guard must fail closed when policy is missing");
 
 const apiMockTests = read("apps/api-tests/tests/eims-v3-mock.spec.ts");
 for (const secretField of ["apiKey", "password", "clientSecret", "refreshToken"]) {
@@ -6295,6 +6310,7 @@ for (const [needle, message] of [
 \t["EIMS_SIGNING_PROVIDER=vault", "production env example must avoid local signing"],
 \t["EIMS_MOCK_MODE=false", "production env example must disable mock mode"],
 \t["EIMS_PHASE0_STRICT=true", "production env example must enable strict phase 0 checks"],
+\t["EIMS_REQUIRE_2FA=true", "production env example must require tenant 2FA policy"],
 \t["EIMS_WORKERS_ENABLED=true", "production env example must enable EIMS workers"],
 \t["EIMS_SUBMISSION_DISTRIBUTED_LOCKS=true", "production env example must enable distributed source locks"],
 \t[
@@ -6349,6 +6365,17 @@ for (const methodName of [
 }
 assertIncludes(sdkAdapter, "this.requireSdk()", "SaaS adapter must fail closed when SDK wiring is missing");
 
+const twoFactorGuard = readRequired("apps/api/src/modules/eims/shared/security/eims-two-factor-policy.guard.ts");
+assertIncludes(twoFactorGuard, "EIMS_REQUIRE_2FA", "EIMS 2FA policy guard must support explicit enforcement");
+assertIncludes(twoFactorGuard, 'EIMS_ENV === "production"', "EIMS 2FA policy guard must enforce production mode");
+assertIncludes(
+	twoFactorGuard,
+	"securitySettings.findUnique",
+	"EIMS 2FA policy guard must read tenant security settings",
+);
+assertIncludes(twoFactorGuard, "force2fa", "EIMS 2FA policy guard must require the tenant force2fa policy");
+assertIncludes(twoFactorGuard, "ForbiddenException", "EIMS 2FA policy guard must fail closed");
+
 const rlsPolicies = readRequired("apps/api/prisma/eims-rls-policies.sql");
 for (const table of [
 \t"eims_enterprise",
@@ -6390,6 +6417,7 @@ for (const [needle, message] of [
 
 const phase0Runbook = readRequired("docs/EIMS_PHASE0_RUNBOOK.md");
 assertIncludes(phase0Runbook, "pnpm test:eims:sdk-contract", "runbook must document SDK contract proof");
+assertIncludes(phase0Runbook, "EIMS_REQUIRE_2FA=true", "runbook must document production 2FA policy");
 assertIncludes(phase0Runbook, "pnpm doctor:production", "runbook must document production doctor gate");
 assertIncludes(
 \tphase0Runbook,
@@ -6454,9 +6482,12 @@ not embed authority cancellation protocol details.
 
 Before production go-live, run \`pnpm test:eims:production-readiness\` and
 \`pnpm doctor:production\`. The preflight checks SDK-bound contract wiring,
-production env examples, RLS SQL, audit hash-chain SQL, and runbook artifacts.
-The doctor blocks launch if EIMS is still in mock mode, lacks production MoR
-URLs, lacks an HTTPS callback URL, uses local signing, or has Phase 0 strict mode disabled.
+production env examples, EIMS 2FA route policy, RLS SQL, audit hash-chain SQL,
+and runbook artifacts. The doctor blocks launch if EIMS is still in mock mode,
+lacks production MoR URLs, lacks an HTTPS callback URL, uses local signing, has
+Phase 0 strict mode disabled, or does not set \`EIMS_REQUIRE_2FA=true\`.
+The 2FA route guard is SaaS-side tenant access policy only; authority protocol
+behavior remains behind the SDK.
 `,
 		"EIMS_VAULT_RUNBOOK.md": `# EIMS Vault Runbook
 
@@ -6469,6 +6500,8 @@ Collect architecture diagrams, schema exports, RLS policies, audit hash-chain sa
 		"EIMS_TENANT_ONBOARDING.md": `# EIMS Tenant Onboarding
 
 Onboarding follows: 2FA setup, enterprise, establishment, source system, MoR approval, CSR/certificate, credentials, sandbox test, production switch.
+
+Production EIMS tenant routes require the organization \`force2fa\` security setting when \`EIMS_REQUIRE_2FA=true\` or \`EIMS_ENV=production\`.
 
 The concierge launch console is the primary UI for staff-assisted EIMS launches. EIMS tax operations remain available under \`/eims\`, but production approval should happen from the onboarding task after evidence, certificate, and first live invoice checks are complete.
 `,

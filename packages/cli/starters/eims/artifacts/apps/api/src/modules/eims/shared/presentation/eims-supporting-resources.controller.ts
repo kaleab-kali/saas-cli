@@ -15,13 +15,14 @@ import { EimsOfflinePendingSyncPersistenceService } from "../offline/eims-offlin
 import { EimsOfflineReplayService } from "../offline/eims-offline-replay.service";
 import { type EimsPrintProofInput, EimsPrintProofService } from "../printing/eims-print-proof.service";
 import { EimsOfflineReplayQueueService } from "../queues/eims-offline-replay-queue.service";
+import { EimsTwoFactorPolicyGuard } from "../security/eims-two-factor-policy.guard";
 
 interface AuthedRequest {
 	organizationId: string;
 }
 
 @Controller("eims")
-@UseGuards(AuthGuard, PermissionsGuard)
+@UseGuards(AuthGuard, EimsTwoFactorPolicyGuard, PermissionsGuard)
 export class EimsSupportingResourcesController {
 	constructor(
 		@Inject(EIMS_BACKEND_REPOSITORY) private readonly repository: EimsBackendRepository,

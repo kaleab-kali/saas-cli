@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
+import { EimsTwoFactorPolicyGuard } from "../../shared/security/eims-two-factor-policy.guard";
 import { EimsReceiptsService } from "../application/eims-receipts.service";
 
 interface AuthedRequest {
@@ -9,7 +10,7 @@ interface AuthedRequest {
 }
 
 @Controller("eims/receipts")
-@UseGuards(AuthGuard, PermissionsGuard)
+@UseGuards(AuthGuard, EimsTwoFactorPolicyGuard, PermissionsGuard)
 export class EimsReceiptsController {
 	constructor(private readonly receipts: EimsReceiptsService) {}
 

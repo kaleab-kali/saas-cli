@@ -2,6 +2,7 @@ import { Controller, Get, Headers, Param, Res, UseGuards } from "@nestjs/common"
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
+import { EimsTwoFactorPolicyGuard } from "../security/eims-two-factor-policy.guard";
 import { EimsLookupService } from "./eims-lookup.service";
 
 interface CacheAwareResponse {
@@ -10,7 +11,7 @@ interface CacheAwareResponse {
 }
 
 @Controller("eims/lookups")
-@UseGuards(AuthGuard, PermissionsGuard)
+@UseGuards(AuthGuard, EimsTwoFactorPolicyGuard, PermissionsGuard)
 export class EimsLookupController {
 	constructor(private readonly lookups: EimsLookupService) {}
 

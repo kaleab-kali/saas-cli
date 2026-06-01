@@ -50,6 +50,7 @@ const requiredDirs = [
 	"apps/api/src/modules/eims/shared/printing",
 	"apps/api/src/modules/eims/shared/queues",
 	"apps/api/src/modules/eims/shared/schemas",
+	"apps/api/src/modules/eims/shared/security",
 	"apps/api/src/modules/eims/shared/signing",
 	"apps/api/src/modules/eims/submission/application",
 	"apps/api/src/modules/eims/submission/domain",
@@ -114,6 +115,8 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.ts",
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts",
+	"apps/api/src/modules/eims/shared/security/eims-two-factor-policy.guard.ts",
+	"apps/api/src/modules/eims/shared/security/eims-two-factor-policy.guard.spec.ts",
 	"apps/api/src/modules/eims/setup/presentation/eims-setup.controller.ts",
 	"apps/api/src/modules/eims/submission/presentation/eims-submission.controller.ts",
 	"apps/api/src/modules/eims/receipts/application/eims-receipts.service.ts",
@@ -384,6 +387,10 @@ function assertGeneratedStructure() {
 		"generated EIMS local test gate includes distributed source lock tests",
 	);
 	assert(
+		packageJson.scripts["test:eims:local"]?.includes("eims-two-factor-policy.guard.spec.ts"),
+		"generated EIMS local test gate includes EIMS 2FA policy guard tests",
+	);
+	assert(
 		packageJson.scripts["test:eims:sdk-contract"]?.includes("scripts/eims-sdk-contract.ts"),
 		"generated package has EIMS SDK contract command",
 	);
@@ -429,6 +436,7 @@ function assertGeneratedStructure() {
 	assert(eimsStarter.envVars?.includes("EIMS_TIMEOUT_MS"), "scaffold state records EIMS SDK timeout env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_MAX_RETRIES"), "scaffold state records EIMS SDK retry env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_PHASE0_STRICT"), "scaffold state records EIMS strict-mode env metadata");
+	assert(eimsStarter.envVars?.includes("EIMS_REQUIRE_2FA"), "scaffold state records EIMS 2FA policy env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_CALLBACK_HMAC_SECRET"), "scaffold state records EIMS callback HMAC env metadata");
 	assert(eimsStarter.envVars?.includes("EIMS_LOOKUP_CACHE_TTL_SECONDS"), "scaffold state records EIMS lookup cache env metadata");
 	assert(
@@ -503,6 +511,7 @@ function assertGeneratedStructure() {
 	assert(productionEnvExample.includes("EIMS_MOCK_MODE=false"), "EIMS production env example disables mock mode");
 	assert(productionEnvExample.includes("EIMS_SIGNING_PROVIDER=vault"), "EIMS production env example uses non-local signing");
 	assert(productionEnvExample.includes("EIMS_PHASE0_STRICT=true"), "EIMS production env example enables Phase 0 strict mode");
+	assert(productionEnvExample.includes("EIMS_REQUIRE_2FA=true"), "EIMS production env example requires tenant 2FA policy");
 	assert(productionEnvExample.includes("EIMS_CALLBACK_HMAC_SECRET="), "EIMS production env example documents callback HMAC secret");
 	assert(
 		productionEnvExample.includes("EIMS_SUBMISSION_DISTRIBUTED_LOCKS=true"),
@@ -612,6 +621,10 @@ function assertGeneratedStructure() {
 		"EIMS production readiness preflight verifies bulk reconciliation deployment env",
 	);
 	assert(
+		eimsProductionReadiness.includes("EIMS 2FA policy guard must require the tenant force2fa policy"),
+		"EIMS production readiness preflight verifies EIMS 2FA policy guard",
+	);
+	assert(
 		eimsProductionReadiness.includes("RLS policies must protect writes"),
 		"EIMS production readiness preflight verifies RLS write protection",
 	);
@@ -628,6 +641,10 @@ function assertGeneratedStructure() {
 	assert(
 		eimsSecuritySmoke.includes("EIMS credential rotation must require rotate permission"),
 		"EIMS security smoke enforces credential rotation permission",
+	);
+	assert(
+		eimsSecuritySmoke.includes("EIMS 2FA guard must require the tenant force2fa setting"),
+		"EIMS security smoke enforces EIMS 2FA policy guard",
 	);
 	assert(
 		eimsSecuritySmoke.includes("EIMS credential persistence must create durable rows"),
@@ -705,6 +722,7 @@ function assertGeneratedStructure() {
 	assert(eimsSecuritySmoke.includes("must block deletes"), "EIMS security smoke enforces audit immutability");
 	const eimsPhase0Runbook = readProjectFile("docs/EIMS_PHASE0_RUNBOOK.md");
 	assert(eimsPhase0Runbook.includes("pnpm test:eims:sdk-contract"), "EIMS runbook documents SDK contract gate");
+	assert(eimsPhase0Runbook.includes("EIMS_REQUIRE_2FA=true"), "EIMS runbook documents production 2FA policy gate");
 	assert(
 		eimsPhase0Runbook.includes("pnpm test:eims:production-readiness"),
 		"EIMS runbook documents production readiness preflight",
@@ -713,6 +731,7 @@ function assertGeneratedStructure() {
 	assert(eimsPhase0Runbook.includes("Phase 0 strict mode"), "EIMS runbook documents strict production readiness");
 	const eimsTenantOnboardingGuide = readProjectFile("docs/EIMS_TENANT_ONBOARDING.md");
 	assert(eimsTenantOnboardingGuide.includes("concierge launch console"), "EIMS tenant guide names onboarding as primary launch UI");
+	assert(eimsTenantOnboardingGuide.includes("force2fa"), "EIMS tenant guide documents tenant 2FA policy");
 
 	const appSidebar = readProjectFile("apps/web/src/components/layout/AppSidebar.tsx");
 	assert(appSidebar.includes('labelKey: "sidebar.eims"'), "tenant sidebar includes EIMS navigation group");
@@ -889,6 +908,10 @@ function assertGeneratedStructure() {
 	const sdkExternalClientSpec = readProjectFile("apps/api/src/modules/eims/shared/client/eims-sdk-external.client.spec.ts");
 	const sdkContractScript = readProjectFile("apps/api/scripts/eims-sdk-contract.ts");
 	const eimsSharedModule = readProjectFile("apps/api/src/modules/eims/shared/eims-shared.module.ts");
+	const twoFactorGuard = readProjectFile("apps/api/src/modules/eims/shared/security/eims-two-factor-policy.guard.ts");
+	const twoFactorGuardSpec = readProjectFile(
+		"apps/api/src/modules/eims/shared/security/eims-two-factor-policy.guard.spec.ts",
+	);
 	const lookupService = readProjectFile("apps/api/src/modules/eims/shared/lookups/eims-lookup.service.ts");
 	const lookupController = readProjectFile("apps/api/src/modules/eims/shared/lookups/eims-lookup.controller.ts");
 	const lookupServiceSpec = readProjectFile("apps/api/src/modules/eims/shared/lookups/eims-lookup.service.spec.ts");
@@ -974,6 +997,13 @@ function assertGeneratedStructure() {
 	assert(sourceLock.includes("EIMS_SUBMISSION_DISTRIBUTED_LOCKS"), "EIMS source lock is explicitly enabled by env");
 	assert(sourceLock.includes('"PX"') && sourceLock.includes('"NX"'), "EIMS source lock uses bounded exclusive Redis locks");
 	assert(sourceLock.includes("pexpire"), "EIMS source lock renews long SDK dispatches");
+	assert(twoFactorGuard.includes("EIMS_REQUIRE_2FA"), "EIMS 2FA guard supports explicit enforcement");
+	assert(twoFactorGuard.includes('EIMS_ENV === "production"'), "EIMS 2FA guard is mandatory in production");
+	assert(twoFactorGuard.includes("securitySettings.findUnique"), "EIMS 2FA guard reads tenant security settings");
+	assert(twoFactorGuard.includes("force2fa"), "EIMS 2FA guard requires tenant force2fa policy");
+	assert(twoFactorGuard.includes("ForbiddenException"), "EIMS 2FA guard fails closed");
+	assert(twoFactorGuardSpec.includes("EIMS_REQUIRE_2FA"), "EIMS 2FA guard tests cover explicit enforcement");
+	assert(twoFactorGuardSpec.includes("EIMS production mode"), "EIMS 2FA guard tests cover production enforcement");
 	assert(queueSpec.includes("serializes submissions per source"), "EIMS queue tests cover per-source serialization");
 	assert(
 		queueSpec.includes("keeps retryable and unknown outcomes out of the accepted counter chain"),
@@ -1091,6 +1121,7 @@ assert(sdkExternalClient.includes("cancelInvoice"), "EIMS SDK adapter delegates 
 	assert(eimsSharedModule.includes('process.env.EIMS_MOCK_MODE === "false"'), "EIMS shared module switches to SDK outside mock mode");
 	assert(eimsSharedModule.includes("EimsSubmissionQueueService"), "EIMS shared module exports queue coordinator");
 	assert(eimsSharedModule.includes("EimsSubmissionSourceLockService"), "EIMS shared module exports source lock service");
+	assert(eimsSharedModule.includes("EimsTwoFactorPolicyGuard"), "EIMS shared module exports 2FA policy guard");
 	assert(eimsSharedModule.includes("EimsOfflineReplayQueueService"), "EIMS shared module exports offline replay queue");
 	assert(
 		eimsSharedModule.includes("EimsBulkReconciliationQueueService"),
@@ -1107,6 +1138,7 @@ assert(sdkExternalClient.includes("cancelInvoice"), "EIMS SDK adapter delegates 
 	assert(lookupService.includes("EIMS_LOOKUP_CACHE_TTL_SECONDS"), "EIMS lookup service honors lookup cache TTL env");
 	assert(lookupService.includes("cacheControl"), "EIMS lookup service returns cache-control metadata");
 	assert(lookupService.includes("matchesEtag"), "EIMS lookup service supports conditional requests");
+	assert(lookupController.includes("EimsTwoFactorPolicyGuard"), "EIMS lookup controller requires 2FA policy guard");
 	assert(lookupController.includes('Headers("if-none-match")'), "EIMS lookup controller reads If-None-Match");
 	assert(lookupController.includes("response.status(304)"), "EIMS lookup controller returns 304 for fresh lookup caches");
 	assert(lookupServiceSpec.includes("deterministic ETag"), "EIMS lookup tests cover deterministic ETags");

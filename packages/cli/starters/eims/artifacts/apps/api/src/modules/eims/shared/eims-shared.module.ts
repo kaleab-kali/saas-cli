@@ -28,6 +28,7 @@ import { EimsOfflineReplayQueueService } from "./queues/eims-offline-replay-queu
 import { EimsSubmissionQueueService } from "./queues/eims-submission-queue.service";
 import { EimsSubmissionQueuePersistenceService } from "./queues/eims-submission-queue-persistence.service";
 import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source-lock.service";
+import { EimsTwoFactorPolicyGuard } from "./security/eims-two-factor-policy.guard";
 
 @Module({
 	controllers: [EimsLookupController, EimsSupportingResourcesController, EimsBulkCallbackController],
@@ -52,6 +53,7 @@ import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source
 		EimsOfflineReplayQueueService,
 		EimsPrintProofService,
 		EimsSubmissionSourceLockService,
+		EimsTwoFactorPolicyGuard,
 		EimsMockService,
 		MockEimsExternalClient,
 		EimsSdkClientProvider,
@@ -85,6 +87,7 @@ import { EimsSubmissionSourceLockService } from "./queues/eims-submission-source
 		EimsOfflineReplayQueueService,
 		EimsPrintProofService,
 		EimsSubmissionSourceLockService,
+		EimsTwoFactorPolicyGuard,
 		EimsMockService,
 		EimsSdkExternalClient,
 		EIMS_BACKEND_REPOSITORY,
