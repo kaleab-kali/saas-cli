@@ -11,6 +11,7 @@ export const parseArgs = (argv) => {
 		seed: false,
 		production: false,
 		refresh: false,
+		eimsSdkPackage: null,
 		starters: [],
 	};
 
@@ -31,6 +32,15 @@ export const parseArgs = (argv) => {
 		else if (a === "--seed") out.seed = true;
 		else if (a === "--production" || a === "--prod") out.production = true;
 		else if (a === "--refresh") out.refresh = true;
+		else if (a === "--eims-sdk-package") {
+			const packageName = argv[i + 1];
+			if (packageName && !packageName.startsWith("-")) {
+				out.eimsSdkPackage = packageName;
+				i += 1;
+			}
+		} else if (a.startsWith("--eims-sdk-package=")) {
+			out.eimsSdkPackage = a.slice("--eims-sdk-package=".length);
+		}
 		else if (a === "--starter") {
 			const starter = argv[i + 1];
 			if (starter && !starter.startsWith("-")) {

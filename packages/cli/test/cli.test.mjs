@@ -46,6 +46,7 @@ test("prints help for the CLI command surface", () => {
 	assert.match(output, /create-vyllion-saas doctor/);
 	assert.match(output, /create-vyllion-saas add starter <pack>/);
 	assert.match(output, /comma-separated/);
+	assert.match(output, /--eims-sdk-package/);
 });
 
 test("lists starter pack metadata", () => {
@@ -78,6 +79,11 @@ test("parses starter refresh flag", () => {
 	assert.equal(args.command, "add-starter");
 	assert.equal(args.starterName, "eims");
 	assert.equal(args.refresh, true);
+});
+
+test("parses EIMS SDK package override", () => {
+	const args = parseArgs(["my-app", "--starter", "eims", "--eims-sdk-package", "@vyllion/eims-sdk"]);
+	assert.equal(args.eimsSdkPackage, "@vyllion/eims-sdk");
 });
 
 test("doctor command runs in advisory mode", () => {
@@ -323,6 +329,32 @@ test("adds and removes the EIMS starter without leaving generated residue", () =
 			Object.keys(packageJson.scripts ?? {}).every((key) => !key.toLowerCase().includes("eims")),
 			"EIMS scripts should be removed",
 		);
+	} finally {
+		removeDir(targetDir);
+	}
+});
+
+test("installs EIMS starter with a configured SDK package", () => {
+	const targetDir = path.join(tmpRoot, `eims-sdk-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
+	removeDir(targetDir);
+
+	try {
+		const result = runCli([targetDir, "--yes", "--starter", "eims", "--eims-sdk-package", "@vyllion/eims-sdk"], {
+			timeout: 120_000,
+		});
+		assert.equal(result.status, 0, outputOf(result));
+
+		const apiEnv = readEnv(path.join(targetDir, "apps/api/.env"));
+		const productionEnv = readEnv(path.join(targetDir, ".env.production.example"));
+		const apiPackageJson = JSON.parse(readFileSync(path.join(targetDir, "apps/api/package.json"), "utf8"));
+		const scaffoldState = JSON.parse(readFileSync(path.join(targetDir, ".scaffold-state.json"), "utf8"));
+		const eimsStarter = scaffoldState.starters.find((starter) => starter.name === "eims");
+
+		assert.equal(apiEnv.EIMS_SDK_PACKAGE_NAME, "@vyllion/eims-sdk");
+		assert.equal(productionEnv.EIMS_SDK_PACKAGE_NAME, "@vyllion/eims-sdk");
+		assert.equal(apiPackageJson.dependencies["@vyllion/eims-sdk"], "^0.1.0");
+		assert.equal(eimsStarter.dependencies["@vyllion/eims-sdk"], "^0.1.0");
+		assert.equal(eimsStarter.dependencies["@yourcompany/eims-sdk"], undefined);
 	} finally {
 		removeDir(targetDir);
 	}

@@ -53,7 +53,12 @@ export const run = async (argv) => {
 	}
 
 	if (args.command === "add-starter") {
-		await addStarterPack({ cwd: process.cwd(), starterName: args.starterName, refresh: args.refresh });
+		await addStarterPack({
+			cwd: process.cwd(),
+			starterName: args.starterName,
+			refresh: args.refresh,
+			eimsSdkPackage: args.eimsSdkPackage,
+		});
 		return;
 	}
 
@@ -106,7 +111,7 @@ export const run = async (argv) => {
 			seed: args.seed,
 			afterTemplate: async (createdDir) => {
 				for (const starterName of requestedStarters) {
-					await addStarterPack({ cwd: createdDir, starterName });
+					await addStarterPack({ cwd: createdDir, starterName, eimsSdkPackage: args.eimsSdkPackage });
 				}
 			},
 		},
@@ -135,6 +140,8 @@ ${pc.bold("Options:")}
   --db-push        Run pnpm db:push after scaffold
   --seed           Run pnpm db:seed after scaffold
   --bootstrap      Run install + db:push + seed
+  --eims-sdk-package <name>
+                  Use this package when installing the EIMS starter SDK adapter
   --production     Run stricter production-readiness checks with doctor
   --help, -h       Show this help
 

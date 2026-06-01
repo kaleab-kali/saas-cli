@@ -159,6 +159,8 @@ const EIMS_REFRESHABLE_ARTIFACTS = new Set([
 	"apps/web/src/routes/_authenticated/eims",
 	"apps/web/src/routes/admin/eims",
 ]);
+const DEFAULT_EIMS_SDK_PACKAGE_NAME = "@yourcompany/eims-sdk";
+const DEFAULT_EIMS_SDK_PACKAGE_VERSION = "^0.1.0";
 
 export const listStarterPacks = () => Object.keys(STARTER_PACKS);
 
@@ -258,7 +260,7 @@ const isStarterInstalled = async (cwd, slug) => {
 	return state.starters.some((starter) => starter.name === slug);
 };
 
-const recordStarterInstalled = async (cwd, slug, pack) => {
+const recordStarterInstalled = async (cwd, slug, pack, overrides = {}) => {
 	const state = await readScaffoldState(cwd);
 	const existing = state.starters.find((starter) => starter.name === slug);
 	const installedAt = new Date().toISOString();
@@ -275,7 +277,7 @@ const recordStarterInstalled = async (cwd, slug, pack) => {
 		seedData: detail?.seedData ?? [],
 		queues: detail?.queues ?? [],
 		crons: detail?.crons ?? [],
-		dependencies: detail?.dependencies ?? {},
+		dependencies: overrides.dependencies ?? detail?.dependencies ?? {},
 		devDependencies: detail?.devDependencies ?? {},
 		installedAt,
 	};
@@ -1310,10 +1312,40 @@ const patchEnvListValue = async (file, key, values) => {
 	return true;
 };
 
-const patchEimsEnvExamples = async (root) => {
+const patchEnvValue = async (file, key, value) => {
+	if (!(await fs.pathExists(file))) return false;
+	let text = await fs.readFile(file, "utf8");
+	const lineRegex = new RegExp(`^${key}=.*$`, "m");
+	const nextLine = `${key}=${value}`;
+	text = lineRegex.test(text) ? text.replace(lineRegex, nextLine) : `${text.trimEnd()}\n${nextLine}\n`;
+	await fs.writeFile(file, text, "utf8");
+	return true;
+};
+
+const resolveEimsSdkPackageName = (sdkPackageName) => {
+	const value = String(sdkPackageName ?? process.env.CREATE_VYLLION_EIMS_SDK_PACKAGE ?? "").trim();
+	return value || DEFAULT_EIMS_SDK_PACKAGE_NAME;
+};
+
+const eimsSdkDependencies = (sdkPackageName) => ({
+	[resolveEimsSdkPackageName(sdkPackageName)]: DEFAULT_EIMS_SDK_PACKAGE_VERSION,
+});
+
+const patchEimsSdkDependency = async (root, sdkPackageName) => {
+	const resolvedPackageName = resolveEimsSdkPackageName(sdkPackageName);
+	if (resolvedPackageName === DEFAULT_EIMS_SDK_PACKAGE_NAME) return false;
+	return patchJsonFile(path.join(root, "apps/api/package.json"), (json) => {
+		json.dependencies ??= {};
+		json.dependencies[resolvedPackageName] ??= DEFAULT_EIMS_SDK_PACKAGE_VERSION;
+		return json;
+	});
+};
+
+const patchEimsEnvExamples = async (root, sdkPackageName) => {
+	const resolvedPackageName = resolveEimsSdkPackageName(sdkPackageName);
 	const block = `# --- EIMS / Ethiopian e-invoicing (optional starter) ---
 EIMS_ENV=sandbox
-EIMS_SDK_PACKAGE_NAME=@yourcompany/eims-sdk
+EIMS_SDK_PACKAGE_NAME=${resolvedPackageName}
 EIMS_API_URL=
 EIMS_BASE_URL_SANDBOX=
 EIMS_BASE_URL_PRODUCTION=
@@ -1343,7 +1375,7 @@ EIMS_OFFLINE_REPLAY_BATCH_LIMIT=10
 EIMS_OFFLINE_REPLAY_ORGANIZATION_LIMIT=50`;
 	const productionBlock = `# --- EIMS / Ethiopian e-invoicing (optional starter) ---
 EIMS_ENV=production
-EIMS_SDK_PACKAGE_NAME=@yourcompany/eims-sdk
+EIMS_SDK_PACKAGE_NAME=${resolvedPackageName}
 EIMS_API_URL=https://eims.example.gov.et
 EIMS_BASE_URL_SANDBOX=
 EIMS_BASE_URL_PRODUCTION=https://eims.example.gov.et
@@ -1400,6 +1432,7 @@ EIMS_OFFLINE_REPLAY_ORGANIZATION_LIMIT=50`;
 		path.join(root, "apps/api/.env"),
 	]) {
 		await patchEnvListValue(envFile, "BULLMQ_QUEUES", eimsQueueNames);
+		await patchEnvValue(envFile, "EIMS_SDK_PACKAGE_NAME", resolvedPackageName);
 	}
 	return true;
 };
@@ -6825,9 +6858,10 @@ const writeEimsSupplementalFiles = async (root) => {
 	);
 };
 
-const addEimsStarterPack = async ({ cwd }) => {
+const addEimsStarterPack = async ({ cwd, eimsSdkPackage }) => {
 	await assertEimsCanBeCreated(cwd);
 	console.log(pc.bold("Scaffolding EIMS/EIRMS e-invoicing starter pack"));
+	const sdkPackageName = resolveEimsSdkPackageName(eimsSdkPackage);
 	await copyEimsStarterArtifacts(cwd);
 	await ensureEimsDirectorySkeleton(cwd);
 	await patchEimsPrismaSchema(cwd);
@@ -6842,7 +6876,8 @@ const addEimsStarterPack = async ({ cwd }) => {
 	await patchEimsFeatureKeys(cwd);
 	await patchEimsPackageScripts(cwd);
 	await patchEimsSeedScript(cwd);
-	await patchEimsEnvExamples(cwd);
+	await patchEimsEnvExamples(cwd, sdkPackageName);
+	await patchEimsSdkDependency(cwd, sdkPackageName);
 	await patchSidebar(cwd, "eims", "EIMS", "eims");
 	console.log(pc.green("EIMS starter pack scaffolded."));
 	console.log(
@@ -6852,14 +6887,16 @@ const addEimsStarterPack = async ({ cwd }) => {
 	);
 };
 
-const refreshEimsStarterPack = async ({ cwd }) => {
+const refreshEimsStarterPack = async ({ cwd, eimsSdkPackage }) => {
 	console.log(pc.bold("Refreshing EIMS/EIRMS starter-owned UI and verification files"));
+	const sdkPackageName = resolveEimsSdkPackageName(eimsSdkPackage);
 	await copyEimsStarterArtifacts(cwd, { refresh: true });
 	await patchEimsRouteTree(cwd);
 	await patchEimsLandingRoute(cwd);
 	await patchEimsPackageScripts(cwd);
 	await patchEimsSeedScript(cwd);
-	await patchEimsEnvExamples(cwd);
+	await patchEimsEnvExamples(cwd, sdkPackageName);
+	await patchEimsSdkDependency(cwd, sdkPackageName);
 	await patchSidebar(cwd, "eims", "EIMS", "eims");
 	console.log(pc.green("EIMS starter refresh complete."));
 	console.log(
@@ -6869,7 +6906,7 @@ const refreshEimsStarterPack = async ({ cwd }) => {
 	);
 };
 
-export const addStarterPack = async ({ cwd, starterName, refresh = false }) => {
+export const addStarterPack = async ({ cwd, starterName, refresh = false, eimsSdkPackage = null }) => {
 	if (!starterName) {
 		throw new Error(
 			`Usage: create-vyllion-saas add starter <pack>\nAvailable packs: ${listStarterPacks().join(", ")}`,
@@ -6887,8 +6924,10 @@ export const addStarterPack = async ({ cwd, starterName, refresh = false }) => {
 
 	if (await isStarterInstalled(cwd, slug)) {
 		if (pack.custom === "eims" && refresh) {
-			await refreshEimsStarterPack({ cwd });
-			await recordStarterInstalled(cwd, slug, pack);
+			await refreshEimsStarterPack({ cwd, eimsSdkPackage });
+			await recordStarterInstalled(cwd, slug, pack, {
+				dependencies: eimsSdkDependencies(eimsSdkPackage),
+			});
 			return;
 		}
 		console.log(pc.green(`${pack.label} starter pack is already installed.`));
@@ -6900,8 +6939,10 @@ export const addStarterPack = async ({ cwd, starterName, refresh = false }) => {
 	}
 
 	if (pack.custom === "eims") {
-		await addEimsStarterPack({ cwd });
-		await recordStarterInstalled(cwd, slug, pack);
+		await addEimsStarterPack({ cwd, eimsSdkPackage });
+		await recordStarterInstalled(cwd, slug, pack, {
+			dependencies: eimsSdkDependencies(eimsSdkPackage),
+		});
 		return;
 	}
 
