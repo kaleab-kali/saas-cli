@@ -43,9 +43,14 @@ interface MatrixCellProps {
 }
 
 const MatrixCell = React.memo(
-	({ resource: _resource, action, checked, onChange }: MatrixCellProps) => (
+	({ resource, action, checked, onChange }: MatrixCellProps) => (
 		<label className="flex items-center gap-2 text-sm">
-			<input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+			<input
+				type="checkbox"
+				aria-label={`${resource} ${action}`}
+				checked={checked}
+				onChange={(e) => onChange(e.target.checked)}
+			/>
 			<span className="font-mono text-xs">{action}</span>
 		</label>
 	),
@@ -149,7 +154,7 @@ const CreateRoleDialog = React.memo(() => {
 				{step === 1 && (
 					<div className="space-y-3">
 						<div>
-							<Label>{t("settings.roles.copyFrom")}</Label>
+							<Label htmlFor="custom-role-copy-from">{t("settings.roles.copyFrom")}</Label>
 							<Select
 								value={copyFrom}
 								onValueChange={(v) => {
@@ -157,7 +162,7 @@ const CreateRoleDialog = React.memo(() => {
 									loadFromSystem(v);
 								}}
 							>
-								<SelectTrigger>
+								<SelectTrigger id="custom-role-copy-from">
 									<SelectValue placeholder={t("settings.roles.blankNoInheritance")} />
 								</SelectTrigger>
 								<SelectContent>
@@ -318,6 +323,7 @@ const RoleRow = React.memo(
 					<Button
 						size="sm"
 						variant="ghost"
+						aria-label={`${t("common.delete")} ${role.nameEn}`}
 						onClick={() => {
 							if (confirm(t("settings.roles.deleteConfirm", { name: role.nameEn }))) onDelete(role.id);
 						}}

@@ -243,6 +243,44 @@ async function installAuthenticatedMocks(page: Page) {
 		createdAt: now(),
 		updatedAt: now(),
 	};
+	const roleMatrix = {
+		organization: ["read", "update"],
+		team: ["read", "invite"],
+		billing: ["read"],
+	};
+	const systemRoles = [
+		{
+			slug: "owner",
+			statements: { organization: ["read", "update"], team: ["read", "invite"], billing: ["read"] },
+		},
+		{
+			slug: "admin",
+			statements: { organization: ["read", "update"], team: ["read"], billing: ["read"] },
+		},
+		{
+			slug: "viewer",
+			statements: { organization: ["read"] },
+		},
+	];
+	let customRoles = [
+		{
+			id: "role_existing",
+			organizationId: "org_smoke",
+			slug: "auditor",
+			nameEn: "Auditor",
+			nameAm: null,
+			description: "Read-only audit access",
+			inheritsFromSlug: "viewer",
+			permissionsJson: { organization: ["read"] },
+			scopeJson: null,
+			createdByUserId: "user_smoke",
+			isSystem: false,
+			active: true,
+			createdAt: now(),
+			updatedAt: now(),
+			memberCount: 0,
+		},
+	];
 
 	await page.route("**/api/v1/**", async (route: Route) => {
 		const url = route.request().url();
@@ -335,6 +373,47 @@ async function installAuthenticatedMocks(page: Page) {
 				return;
 			}
 			await route.fulfill(ok({ data: organizationSettings }));
+			return;
+		}
+		if (pathname === "/api/v1/roles/matrix") {
+			await route.fulfill(ok({ data: roleMatrix }));
+			return;
+		}
+		if (pathname === "/api/v1/roles/system") {
+			await route.fulfill(ok({ data: systemRoles }));
+			return;
+		}
+		if (pathname === "/api/v1/roles") {
+			if (route.request().method() === "POST") {
+				const body = JSON.parse(route.request().postData() ?? "{}");
+				const role = {
+					id: "role_created",
+					organizationId: "org_smoke",
+					slug: body.slug,
+					nameEn: body.nameEn,
+					nameAm: body.nameAm ?? null,
+					description: body.description ?? null,
+					inheritsFromSlug: body.inheritsFromSlug ?? null,
+					permissionsJson: body.permissionsJson ?? {},
+					scopeJson: body.scopeJson ?? null,
+					createdByUserId: "user_smoke",
+					isSystem: false,
+					active: true,
+					createdAt: now(),
+					updatedAt: now(),
+					memberCount: 0,
+				};
+				customRoles = [role, ...customRoles];
+				await route.fulfill(ok({ data: role }));
+				return;
+			}
+			await route.fulfill(ok({ data: customRoles }));
+			return;
+		}
+		if (pathname.startsWith("/api/v1/roles/") && route.request().method() === "DELETE") {
+			const roleId = pathname.split("/").at(-1);
+			customRoles = customRoles.filter((role) => role.id !== roleId);
+			await route.fulfill(ok({ data: { id: roleId } }));
 			return;
 		}
 		if (pathname === "/api/v1/team/members") {
@@ -1076,6 +1155,66 @@ test("tenant security settings smoke saves 2FA policy and IP allowlist", async (
 		ipAllowlist: ["203.0.113.5", "198.51.100.10"],
 	});
 	await expect(force2faSwitch).toBeChecked();
+	assertNoErrors();
+});
+
+test("tenant custom roles smoke creates and deletes delegated permissions", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAuthenticatedMocks(page);
+
+	await page.goto("/settings/roles", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Roles" })).toBeVisible();
+	await expect(page.getByRole("cell", { name: "Auditor", exact: true })).toBeVisible();
+	const newRoleButton = page.getByRole("button", { name: "New custom role" });
+	await expect(newRoleButton).toBeVisible();
+	await expect(newRoleButton).toBeEnabled();
+
+	await newRoleButton.focus();
+	await page.keyboard.press("Enter");
+	await page.locator("#custom-role-copy-from").click();
+	await page.getByRole("option", { name: "Admin" }).click();
+	await page.getByRole("textbox", { name: "Name (English)" }).fill("Support Lead");
+	await page.getByRole("textbox", { name: "Name (Amharic)" }).fill("Support Lead AM");
+	await page.getByRole("textbox", { name: "Slug" }).fill("support-lead");
+	await page.getByRole("textbox", { name: "Description" }).fill("Can support tenants without billing write access");
+	await page.getByRole("button", { name: "Next" }).click();
+
+	await expect(page.getByText("4 permissions selected")).toBeVisible();
+	await page.getByRole("checkbox", { name: "billing read" }).uncheck();
+	await expect(page.getByText("3 permissions selected")).toBeVisible();
+	await page.getByRole("button", { name: "Next" }).click();
+	await expect(page.getByText("support-lead")).toBeVisible();
+	await expect(page.getByText("3 permissions")).toBeVisible();
+
+	const createRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/roles") && request.method() === "POST",
+	);
+	await page.getByRole("button", { name: "Create role" }).click();
+	const createPayload = JSON.parse((await createRequest).postData() ?? "{}");
+
+	expect(createPayload).toMatchObject({
+		slug: "support-lead",
+		nameEn: "Support Lead",
+		nameAm: "Support Lead AM",
+		description: "Can support tenants without billing write access",
+		inheritsFromSlug: "admin",
+		permissionsJson: {
+			organization: ["read", "update"],
+			team: ["read"],
+		},
+	});
+	expect(createPayload.permissionsJson.billing).toBeUndefined();
+	await expect(page.getByRole("row", { name: /Support Lead/ })).toContainText("support-lead");
+
+	page.once("dialog", (dialog) => dialog.accept());
+	const deleteRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/roles/role_created") && request.method() === "DELETE",
+	);
+	await page.getByRole("button", { name: "Delete Support Lead" }).click();
+	await deleteRequest;
+	await expect(page.getByRole("row", { name: /Support Lead/ })).toBeHidden();
+
 	assertNoErrors();
 });
 

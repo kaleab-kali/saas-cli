@@ -614,6 +614,7 @@ function assertFrontendImprovementSurface() {
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
 	const organizationSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/organization.tsx");
 	const securitySettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/security.tsx");
+	const rolesSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/roles.tsx");
 	const membersSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/members.tsx");
 	const apiKeysSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/api-keys.tsx");
 	const apiKeyCreateDialog = readProjectFile("apps/web/src/features/platform/components/ApiKeyCreateDialog.tsx");
@@ -651,6 +652,13 @@ function assertFrontendImprovementSurface() {
 	assert(
 		securitySettingsPage.includes('aria-label={t("settings.security.ipAllowlist")}'),
 		"security IP allowlist is accessible by label",
+	);
+	assert(rolesSettingsPage.includes('htmlFor="custom-role-copy-from"'), "custom role inheritance select has a label");
+	assert(rolesSettingsPage.includes('id="custom-role-copy-from"'), "custom role inheritance select exposes a stable UI target");
+	assert(rolesSettingsPage.includes('aria-label={`${resource} ${action}`}'), "role permission checkboxes are accessible");
+	assert(
+		rolesSettingsPage.includes('aria-label={`${t("common.delete")} ${role.nameEn}`}'),
+		"custom role delete controls are accessible per role",
 	);
 	assert(membersSettingsPage.includes('id="member-invite-email"'), "members invite email exposes a stable UI target");
 	assert(membersSettingsPage.includes('id="member-invite-role"'), "members invite role exposes a stable UI target");
@@ -870,6 +878,11 @@ function assertFrontendImprovementSurface() {
 	);
 	assert(e2eSmoke.includes("/api/v1/organization-settings"), "E2E smoke mocks organization settings API contracts");
 	assert(e2eSmoke.includes("tenant security settings smoke saves 2FA policy"), "E2E smoke covers security settings save");
+	assert(
+		e2eSmoke.includes("tenant custom roles smoke creates and deletes delegated permissions"),
+		"E2E smoke covers custom role lifecycle",
+	);
+	assert(e2eSmoke.includes("/api/v1/roles/matrix"), "E2E smoke mocks role matrix API contracts");
 	assert(
 		e2eSmoke.includes("tenant members smoke invites, updates roles, and cancels invitations"),
 		"E2E smoke covers tenant member management",
