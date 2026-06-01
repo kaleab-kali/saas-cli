@@ -224,6 +224,44 @@ async function installAuthenticatedMocks(page: Page) {
 			await route.fulfill(ok({ data: onboardingTask }));
 			return;
 		}
+		if (url.includes("/security-settings")) {
+			if (route.request().method() === "PATCH") {
+				const body = JSON.parse(route.request().postData() ?? "{}");
+				await route.fulfill(
+					ok({
+						data: {
+							passwordMinLength: 10,
+							passwordRequireUpper: true,
+							passwordRequireLower: true,
+							passwordRequireDigit: true,
+							passwordRequireSymbol: true,
+							passwordMaxAgeDays: 90,
+							sessionTimeoutMinutes: 60,
+							force2fa: false,
+							ipAllowlist: [],
+							...body,
+						},
+					}),
+				);
+				return;
+			}
+			await route.fulfill(
+				ok({
+					data: {
+						passwordMinLength: 10,
+						passwordRequireUpper: true,
+						passwordRequireLower: true,
+						passwordRequireDigit: true,
+						passwordRequireSymbol: true,
+						passwordMaxAgeDays: 90,
+						sessionTimeoutMinutes: 60,
+						force2fa: false,
+						ipAllowlist: ["203.0.113.5"],
+					},
+				}),
+			);
+			return;
+		}
 		await route.fulfill(ok({ data: {} }));
 	});
 }
@@ -753,6 +791,33 @@ test("tenant onboarding smoke renders workflow and command palette", async ({ pa
 	await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
 	await expect(page.getByRole("button", { name: /Organization settings/i })).toBeVisible();
 
+	assertNoErrors();
+});
+
+test("tenant security settings smoke saves 2FA policy and IP allowlist", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAuthenticatedMocks(page);
+
+	await page.goto("/settings/security", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Security settings" })).toBeVisible();
+	const force2faSwitch = page.getByRole("switch", { name: "Require 2FA for all members" });
+	await expect(force2faSwitch).toBeVisible();
+	await expect(force2faSwitch).not.toBeChecked();
+	await page.getByRole("textbox", { name: "IP allowlist" }).fill("203.0.113.5\n198.51.100.10");
+
+	const saveRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/security-settings") && request.method() === "PATCH",
+	);
+	await force2faSwitch.click();
+	await page.getByRole("button", { name: "Save" }).click();
+	const payload = JSON.parse((await saveRequest).postData() ?? "{}");
+
+	expect(payload).toMatchObject({
+		force2fa: true,
+		ipAllowlist: ["203.0.113.5", "198.51.100.10"],
+	});
+	await expect(force2faSwitch).toBeChecked();
 	assertNoErrors();
 });
 

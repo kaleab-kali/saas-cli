@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const parsedWebPort = Number.parseInt(process.env.E2E_WEB_PORT ?? "5173", 10);
+const webPort = Number.isNaN(parsedWebPort) ? 5173 : parsedWebPort;
+const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${webPort}`;
+const reuseExistingServer = process.env.E2E_REUSE_EXISTING_SERVER === "true";
+
 export default defineConfig({
 	testDir: "./tests",
 	timeout: 60_000,
@@ -8,7 +13,7 @@ export default defineConfig({
 	workers: 1,
 	reporter: [["list"], ["html", { open: "never" }]],
 	use: {
-		baseURL: process.env.E2E_BASE_URL ?? "http://localhost:5173",
+		baseURL,
 		trace: "on-first-retry",
 		screenshot: "only-on-failure",
 	},
@@ -19,9 +24,10 @@ export default defineConfig({
 	webServer: process.env.E2E_BASE_URL
 		? undefined
 		: {
-				command: "pnpm --filter web dev",
-				url: "http://localhost:5173",
-				reuseExistingServer: true,
+				command: `pnpm exec vite --host 127.0.0.1 --port ${webPort}`,
+				cwd: "../web",
+				url: baseURL,
+				reuseExistingServer,
 				timeout: 120_000,
 			},
 });

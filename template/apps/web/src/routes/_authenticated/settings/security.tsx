@@ -62,8 +62,10 @@ function Page() {
 		try {
 			const ipAllowlist = ipStr
 				.split(/\s+/)
-				.map((s) => s.trim())
-				.filter(Boolean);
+				.flatMap((s) => {
+					const trimmed = s.trim();
+					return trimmed ? [trimmed] : [];
+				});
 			await update.mutateAsync({ ...form, ipAllowlist });
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : t("common.saveFailed"));
@@ -160,6 +162,8 @@ function Page() {
 				</CardHeader>
 				<CardContent>
 					<textarea
+						id="security-ip-allowlist"
+						aria-label={t("settings.security.ipAllowlist")}
 						rows={4}
 						className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm font-mono"
 						value={ipStr}

@@ -615,6 +615,8 @@ function assertFrontendImprovementSurface() {
 	const securitySettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/security.tsx");
 	const frontendConventions = readProjectFile("docs/FRONTEND_CONVENTIONS.md");
 	const opsGuide = readProjectFile("docs/ADMIN_OPERATIONS_GUIDE.md");
+	const e2eConfig = readProjectFile("apps/e2e/playwright.config.ts");
+	const e2eReadme = readProjectFile("apps/e2e/README.md");
 	const e2eSmoke = readProjectFile("apps/e2e/tests/smoke.spec.ts");
 	assert(webMain.includes("shouldRetryQuery"), "QueryClient uses a named retry policy");
 	assert(webMain.includes("error instanceof ApiError"), "QueryClient retry policy inspects API status codes");
@@ -624,6 +626,11 @@ function assertFrontendImprovementSurface() {
 	assert(webMain.includes("mutations:") && webMain.includes("retry: false"), "QueryClient disables mutation retries");
 	assert(securitySettingsPage.includes('htmlFor="security-force2fa"'), "security 2FA switch has an accessible label");
 	assert(securitySettingsPage.includes('id="security-force2fa"'), "security 2FA switch exposes a stable UI target");
+	assert(securitySettingsPage.includes('id="security-ip-allowlist"'), "security IP allowlist exposes a stable UI target");
+	assert(
+		securitySettingsPage.includes('aria-label={t("settings.security.ipAllowlist")}'),
+		"security IP allowlist is accessible by label",
+	);
 	assert(
 		frontendConventions.includes("Every feature API module exports a named query key factory"),
 		"frontend docs require query key factories",
@@ -813,7 +820,16 @@ function assertFrontendImprovementSurface() {
 	);
 	assert(emailDeliveryHandler.includes("emailDeliverySort(q.sort)"), "email delivery API applies server-side sorting");
 	assert(emailDeliveryHandler.includes("q.search?.trim()"), "email delivery API applies server-side search");
+	assert(e2eConfig.includes("E2E_WEB_PORT"), "E2E config supports isolated dev-server ports");
+	assert(e2eConfig.includes("pnpm exec vite"), "E2E config starts Vite from the web workspace");
+	assert(e2eConfig.includes('cwd: "../web"'), "E2E config sets the managed server cwd to the web workspace");
+	assert(
+		e2eConfig.includes('process.env.E2E_REUSE_EXISTING_SERVER === "true"'),
+		"E2E config only reuses existing servers when explicitly requested",
+	);
+	assert(e2eReadme.includes("E2E_REUSE_EXISTING_SERVER=true"), "E2E README documents explicit server reuse");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
+	assert(e2eSmoke.includes("tenant security settings smoke saves 2FA policy"), "E2E smoke covers security settings save");
 	assert(e2eSmoke.includes("Admin command"), "E2E smoke covers admin command palette trigger");
 	assert(e2eSmoke.includes("Billing dashboard"), "E2E smoke covers admin command palette routes");
 	assert(e2eSmoke.includes("Operational handoff map"), "E2E smoke covers assisted launch desk");
