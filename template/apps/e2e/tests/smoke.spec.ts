@@ -1158,6 +1158,193 @@ async function installAdminMocks(page: Page) {
 	return { onboardingListRequests };
 }
 
+interface TeamFlowUser {
+	id: string;
+	name: string;
+	email: string;
+}
+
+interface TeamFlowState {
+	baseURL: string;
+	nextInvitationNumber: number;
+	teamMembers: Array<{
+		id: string;
+		organizationId: string;
+		userId: string;
+		role: string;
+		createdAt: string;
+		user: TeamFlowUser & { image: string | null };
+	}>;
+	teamInvitations: Array<{
+		id: string;
+		organizationId: string;
+		email: string;
+		role: string;
+		status: string;
+		expiresAt: string;
+		inviterId: string;
+		createdAt: string;
+		acceptUrl: string;
+	}>;
+}
+
+const createTeamFlowState = (baseURL: string): TeamFlowState => ({
+	baseURL,
+	nextInvitationNumber: 1,
+	teamMembers: [
+		{
+			id: "member_owner",
+			organizationId: "org_smoke",
+			userId: "user_owner",
+			role: "owner",
+			createdAt: now(),
+			user: { id: "user_owner", name: "Demo Owner", email: "owner@example.test", image: null },
+		},
+	],
+	teamInvitations: [],
+});
+
+const installTeamFlowMocks = async (page: Page, state: TeamFlowState, user: TeamFlowUser) => {
+	await page.unroute("**/api/auth/get-session").catch(() => undefined);
+	await page.route("**/api/auth/**", async (route: Route) => {
+		const url = route.request().url();
+		if (url.includes("/organization/list")) {
+			await route.fulfill(ok([{ id: "org_smoke", name: "Demo Cafe", slug: "demo-cafe" }]));
+			return;
+		}
+		if (url.includes("/organization/get-full-organization")) {
+			await route.fulfill(ok({ id: "org_smoke", name: "Demo Cafe", slug: "demo-cafe" }));
+			return;
+		}
+		await route.fulfill(
+			ok({
+				session: {
+					id: `session_${user.id}`,
+					userId: user.id,
+					activeOrganizationId: "org_smoke",
+					expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+				},
+				user,
+			}),
+		);
+	});
+
+	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this isolated mock keeps a two-user invitation flow stateful.
+	await page.route("**/api/v1/**", async (route: Route) => {
+		const request = route.request();
+		const pathname = new URL(request.url()).pathname;
+		if (pathname === "/api/v1/billing/me") {
+			await route.fulfill(ok({ data: { subscription: null, lifecycle: null, entitlements: {} } }));
+			return;
+		}
+		if (pathname === "/api/v1/billing/capabilities") {
+			await route.fulfill(
+				ok({
+					data: {
+						"platform.team": {
+							key: "platform.team",
+							label: "Team",
+							category: "platform",
+							enabled: true,
+							limit: 10,
+							used: state.teamMembers.length,
+							remaining: 10 - state.teamMembers.length,
+							reason: "included",
+						},
+					},
+				}),
+			);
+			return;
+		}
+		if (pathname === "/api/v1/notifications/stream") {
+			await route.fulfill({
+				status: 200,
+				contentType: "text/event-stream",
+				headers: { "cache-control": "no-cache", connection: "keep-alive" },
+				body: `event: ping\ndata: ${JSON.stringify({ connected: true })}\n\n`,
+			});
+			return;
+		}
+		if (pathname === "/api/v1/notifications") {
+			await route.fulfill(ok({ data: [], meta: { total: 0, unread: 0, page: 1, limit: 10, totalPages: 1 } }));
+			return;
+		}
+		if (pathname === "/api/v1/onboarding") {
+			await route.fulfill(ok({ data: onboardingTask }));
+			return;
+		}
+		if (pathname === "/api/v1/team/members") {
+			await route.fulfill(ok({ data: state.teamMembers }));
+			return;
+		}
+		if (pathname === "/api/v1/team/invitations") {
+			if (request.method() === "POST") {
+				const body = JSON.parse(request.postData() ?? "{}");
+				const email = String(body.email ?? "")
+					.toLowerCase()
+					.trim();
+				const existing = state.teamInvitations.find(
+					(invitation) => invitation.email === email && invitation.status === "pending",
+				);
+				if (existing) {
+					await route.fulfill(ok({ data: existing }));
+					return;
+				}
+				const id = `inv_${state.nextInvitationNumber}`;
+				state.nextInvitationNumber += 1;
+				const invitation = {
+					id,
+					organizationId: "org_smoke",
+					email,
+					role: body.role ?? "member",
+					status: "pending",
+					expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+					inviterId: user.id,
+					createdAt: now(),
+					acceptUrl: `${state.baseURL}/settings/members?invitationId=${id}`,
+				};
+				state.teamInvitations = [invitation, ...state.teamInvitations];
+				await route.fulfill(ok({ data: invitation }));
+				return;
+			}
+			await route.fulfill(ok({ data: state.teamInvitations }));
+			return;
+		}
+		const acceptInvitationMatch = pathname.match(/^\/api\/v1\/team\/invitations\/([^/]+)\/accept$/);
+		if (acceptInvitationMatch && request.method() === "POST") {
+			const invitationId = acceptInvitationMatch[1];
+			const invitation = state.teamInvitations.find((item) => item.id === invitationId);
+			if (!invitation || invitation.status !== "pending" || invitation.email !== user.email.toLowerCase()) {
+				await route.fulfill({
+					status: 400,
+					contentType: "application/json",
+					body: JSON.stringify({ message: "invitation email does not match current user" }),
+				});
+				return;
+			}
+			state.teamInvitations = state.teamInvitations.map((item) =>
+				item.id === invitationId ? { ...item, status: "accepted" } : item,
+			);
+			if (!state.teamMembers.some((member) => member.userId === user.id)) {
+				state.teamMembers = [
+					...state.teamMembers,
+					{
+						id: `member_${user.id}`,
+						organizationId: invitation.organizationId,
+						userId: user.id,
+						role: invitation.role,
+						createdAt: now(),
+						user: { ...user, image: null },
+					},
+				];
+			}
+			await route.fulfill(ok({ data: state.teamInvitations.find((item) => item.id === invitationId) }));
+			return;
+		}
+		await route.fulfill(ok({ data: {} }));
+	});
+};
+
 async function expectNoConsoleErrors(page: Page) {
 	const errors: string[] = [];
 	page.on("console", (message) => {
@@ -1479,6 +1666,73 @@ test("tenant members smoke accepts invitation links", async ({ page }) => {
 	await expect(acceptedRow.getByRole("button", { name: /Cancel/ })).toHaveCount(0);
 
 	assertNoErrors();
+});
+
+test("tenant members smoke syncs invitation acceptance across owner and invited user", async ({
+	browser,
+}, testInfo) => {
+	test.skip(testInfo.project.name !== "chromium", "Multi-user browser flow runs once in Chromium.");
+	const parsedWebPort = Number.parseInt(process.env.E2E_WEB_PORT ?? "5173", 10);
+	const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${Number.isNaN(parsedWebPort) ? 5173 : parsedWebPort}`;
+	const state = createTeamFlowState(baseURL);
+	const invitedUser = { id: "user_invited", name: "New Teammate", email: "new.teammate@example.test" };
+	const invitedEmail = new RegExp(invitedUser.email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+	const ownerContext = await browser.newContext({ baseURL });
+	const invitedContext = await browser.newContext({ baseURL });
+	const ownerPage = await ownerContext.newPage();
+	const invitedPage = await invitedContext.newPage();
+	const assertOwnerNoErrors = await expectNoConsoleErrors(ownerPage);
+	const assertInvitedNoErrors = await expectNoConsoleErrors(invitedPage);
+	try {
+		await installTeamFlowMocks(ownerPage, state, { id: "user_owner", name: "Demo Owner", email: "owner@example.test" });
+		await installTeamFlowMocks(invitedPage, state, invitedUser);
+
+		await ownerPage.goto("/settings/members", { waitUntil: "networkidle" });
+		await expect(ownerPage.getByRole("heading", { name: "Members" })).toBeVisible();
+		await ownerPage.getByRole("textbox", { name: "Email" }).fill(invitedUser.email);
+		await ownerPage.locator("#member-invite-role").click();
+		await ownerPage.getByRole("option", { name: "Viewer" }).click();
+		const inviteResponse = ownerPage.waitForResponse(
+			(response) => response.url().includes("/api/v1/team/invitations") && response.request().method() === "POST",
+		);
+		await ownerPage.getByRole("button", { name: "Invite" }).click();
+		const inviteBody = await (await inviteResponse).json();
+		expect(inviteBody.data).toMatchObject({ email: invitedUser.email, role: "viewer", status: "pending" });
+		await expect(ownerPage.locator("tr", { hasText: invitedEmail }).filter({ hasText: "pending" })).toBeVisible();
+
+		const acceptResponse = invitedPage.waitForResponse(
+			(response) =>
+				response.url().includes(`/api/v1/team/invitations/${inviteBody.data.id}/accept`) &&
+				response.request().method() === "POST" &&
+				response.ok(),
+		);
+		await invitedPage.goto(`/settings/members?invitationId=${inviteBody.data.id}`, { waitUntil: "networkidle" });
+		await acceptResponse;
+		await expect(invitedPage.locator("tr", { hasText: invitedEmail }).filter({ hasText: "accepted" })).toBeVisible();
+		await expect(invitedPage.locator("tr", { hasText: invitedEmail }).filter({ hasText: "Remove" })).toContainText(
+			"Viewer",
+		);
+
+		await ownerPage.reload({ waitUntil: "networkidle" });
+		await expect(ownerPage.locator("tr", { hasText: invitedEmail }).filter({ hasText: "accepted" })).toBeVisible();
+		await expect(ownerPage.locator("tr", { hasText: invitedEmail }).filter({ hasText: "Remove" })).toContainText(
+			"Viewer",
+		);
+		await expect(
+			ownerPage
+				.locator("tr", { hasText: invitedEmail })
+				.filter({ hasText: "accepted" })
+				.getByRole("button", {
+					name: /Cancel/,
+				}),
+		).toHaveCount(0);
+
+		assertOwnerNoErrors();
+		assertInvitedNoErrors();
+	} finally {
+		await invitedContext.close();
+		await ownerContext.close();
+	}
 });
 
 test("tenant API keys smoke creates and revokes scoped keys", async ({ page }) => {

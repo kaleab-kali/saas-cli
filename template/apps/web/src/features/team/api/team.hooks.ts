@@ -86,7 +86,7 @@ export const useAcceptInvitation = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (id: string) => api.post<{ data: TeamInvitation }>(`/team/invitations/${id}/accept`, {}),
-		onSuccess: (result, id) => {
+		onSuccess: async (result, id) => {
 			qc.setQueryData<{ data: TeamInvitation[] }>(teamKeys.invitations(), (existing) =>
 				existing
 					? {
@@ -95,7 +95,10 @@ export const useAcceptInvitation = () => {
 						}
 					: existing,
 			);
-			qc.invalidateQueries({ queryKey: teamKeys.all });
+			await Promise.all([
+				qc.invalidateQueries({ queryKey: teamKeys.members() }),
+				qc.invalidateQueries({ queryKey: teamKeys.invitations() }),
+			]);
 		},
 	});
 };

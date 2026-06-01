@@ -929,6 +929,11 @@ function assertFrontendImprovementSurface() {
 		"E2E smoke covers tenant member management",
 	);
 	assert(e2eSmoke.includes("tenant members smoke accepts invitation links"), "E2E smoke covers invitation acceptance");
+	assert(
+		e2eSmoke.includes("tenant members smoke syncs invitation acceptance across owner and invited user"),
+		"E2E smoke covers multi-user invitation acceptance",
+	);
+	assert(e2eSmoke.includes("browser.newContext"), "E2E smoke exercises separate browser contexts");
 	assert(e2eSmoke.includes("/api/v1/team/invitations"), "E2E smoke mocks team invitation API contracts");
 	assert(e2eSmoke.includes("tenant API keys smoke creates and revokes scoped keys"), "E2E smoke covers API key management");
 	assert(e2eSmoke.includes("/api/v1/api-keys/key_active"), "E2E smoke mocks API key revoke contracts");
