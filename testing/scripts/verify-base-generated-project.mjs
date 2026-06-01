@@ -612,6 +612,7 @@ function assertFrontendImprovementSurface() {
 		"apps/api/src/modules/notification/application/queries/list-email-deliveries.handler.ts",
 	);
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
+	const organizationSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/organization.tsx");
 	const securitySettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/security.tsx");
 	const membersSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/members.tsx");
 	const apiKeysSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/api-keys.tsx");
@@ -628,6 +629,22 @@ function assertFrontendImprovementSurface() {
 	assert(webMain.includes("gcTime: 5 * 60_000"), "QueryClient keeps generated app query cache bounded");
 	assert(webMain.includes("throwOnError: false"), "QueryClient keeps query errors render-safe by default");
 	assert(webMain.includes("mutations:") && webMain.includes("retry: false"), "QueryClient disables mutation retries");
+	assert(
+		organizationSettingsPage.includes('id="organization-timezone"'),
+		"organization timezone select exposes a stable UI target",
+	);
+	assert(
+		organizationSettingsPage.includes('id="organization-invoice-prefix"'),
+		"organization invoice prefix input exposes a stable UI target",
+	);
+	assert(
+		organizationSettingsPage.includes('id="organization-company-address"'),
+		"organization address field exposes a stable UI target",
+	);
+	assert(
+		organizationSettingsPage.includes('aria-label={t("settings.organization.emailFooter")}'),
+		"organization email footer field is accessible by label",
+	);
 	assert(securitySettingsPage.includes('htmlFor="security-force2fa"'), "security 2FA switch has an accessible label");
 	assert(securitySettingsPage.includes('id="security-force2fa"'), "security 2FA switch exposes a stable UI target");
 	assert(securitySettingsPage.includes('id="security-ip-allowlist"'), "security IP allowlist exposes a stable UI target");
@@ -847,6 +864,11 @@ function assertFrontendImprovementSurface() {
 	);
 	assert(e2eReadme.includes("E2E_REUSE_EXISTING_SERVER=true"), "E2E README documents explicit server reuse");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
+	assert(
+		e2eSmoke.includes("tenant organization settings smoke saves regional and company profile"),
+		"E2E smoke covers organization settings save",
+	);
+	assert(e2eSmoke.includes("/api/v1/organization-settings"), "E2E smoke mocks organization settings API contracts");
 	assert(e2eSmoke.includes("tenant security settings smoke saves 2FA policy"), "E2E smoke covers security settings save");
 	assert(
 		e2eSmoke.includes("tenant members smoke invites, updates roles, and cancels invitations"),

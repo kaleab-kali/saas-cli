@@ -221,6 +221,28 @@ async function installAuthenticatedMocks(page: Page) {
 			updatedAt: now(),
 		},
 	];
+	let organizationSettings = {
+		id: "org_settings_smoke",
+		organizationId: "org_smoke",
+		timezone: "UTC",
+		currency: "USD",
+		areaUnit: "sqm",
+		dateFormat: "YYYY-MM-DD",
+		fiscalYearStartMonth: 1,
+		invoiceNumberPrefix: "INV",
+		invoiceNumberPadding: 5,
+		emailFooter: "Demo footer",
+		logoUrl: "https://example.test/logo.png",
+		primaryColor: "#3b82f6",
+		companyAddress: "Bole, Addis Ababa",
+		companyPhone: "+251911000000",
+		companyEmail: "billing@example.test",
+		taxId: "0011223344",
+		allowGmViewAgentContacts: false,
+		allowGmExportAgentContacts: false,
+		createdAt: now(),
+		updatedAt: now(),
+	};
 
 	await page.route("**/api/v1/**", async (route: Route) => {
 		const url = route.request().url();
@@ -303,6 +325,16 @@ async function installAuthenticatedMocks(page: Page) {
 		}
 		if (url.endsWith("/api/v1/onboarding")) {
 			await route.fulfill(ok({ data: onboardingTask }));
+			return;
+		}
+		if (pathname === "/api/v1/organization-settings") {
+			if (route.request().method() === "PATCH") {
+				const body = JSON.parse(route.request().postData() ?? "{}");
+				organizationSettings = { ...organizationSettings, ...body, updatedAt: now() };
+				await route.fulfill(ok({ data: organizationSettings }));
+				return;
+			}
+			await route.fulfill(ok({ data: organizationSettings }));
 			return;
 		}
 		if (pathname === "/api/v1/team/members") {
@@ -962,6 +994,60 @@ test("tenant onboarding smoke renders workflow and command palette", async ({ pa
 	await page.keyboard.press(process.platform === "darwin" ? "Meta+K" : "Control+K");
 	await expect(page.getByRole("dialog", { name: "Command palette" })).toBeVisible();
 	await expect(page.getByRole("button", { name: /Organization settings/i })).toBeVisible();
+
+	assertNoErrors();
+});
+
+test("tenant organization settings smoke saves regional and company profile", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAuthenticatedMocks(page);
+
+	await page.goto("/settings/organization", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Organization settings" })).toBeVisible();
+	await expect(page.locator("#organization-timezone")).toContainText("UTC");
+	await expect(page.getByRole("textbox", { name: "Invoice prefix" })).toHaveValue("INV");
+	await expect(page.getByRole("textbox", { name: "Email", exact: true })).toHaveValue("billing@example.test");
+
+	await page.locator("#organization-timezone").click();
+	await page.getByRole("option", { name: "Africa/Addis_Ababa" }).click();
+	await page.locator("#organization-currency").click();
+	await page.getByRole("option", { name: "ETB" }).click();
+	await page.locator("#organization-date-format").click();
+	await page.getByRole("option", { name: "DD/MM/YYYY" }).click();
+	await page.locator("#organization-fiscal-year-start").click();
+	await page.getByRole("option", { name: "March" }).click();
+	await page.getByRole("textbox", { name: "Invoice prefix" }).fill("PF-INV");
+	await page.getByRole("spinbutton", { name: "Invoice padding" }).fill("6");
+	await page.getByRole("textbox", { name: "Email", exact: true }).fill("finance@example.test");
+	await page.getByRole("textbox", { name: "Phone" }).fill("+251922000000");
+	await page.getByRole("textbox", { name: "Address" }).fill("Kazanchis, Addis Ababa");
+	await page.getByRole("textbox", { name: "Tax ID" }).fill("0099887766");
+	await page.getByRole("textbox", { name: "Logo URL" }).fill("https://example.test/new-logo.png");
+	await page.getByRole("textbox", { name: "Primary color" }).fill("#0f766e");
+	await page.getByRole("textbox", { name: "Email footer" }).fill("Thanks for choosing Demo Cafe.");
+
+	const saveRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/organization-settings") && request.method() === "PATCH",
+	);
+	await page.getByRole("button", { name: "Save" }).click();
+	const payload = JSON.parse((await saveRequest).postData() ?? "{}");
+
+	expect(payload).toMatchObject({
+		timezone: "Africa/Addis_Ababa",
+		currency: "ETB",
+		dateFormat: "DD/MM/YYYY",
+		fiscalYearStartMonth: 3,
+		invoiceNumberPrefix: "PF-INV",
+		invoiceNumberPadding: 6,
+		companyEmail: "finance@example.test",
+		companyPhone: "+251922000000",
+		companyAddress: "Kazanchis, Addis Ababa",
+		taxId: "0099887766",
+		logoUrl: "https://example.test/new-logo.png",
+		primaryColor: "#0f766e",
+		emailFooter: "Thanks for choosing Demo Cafe.",
+	});
 
 	assertNoErrors();
 });

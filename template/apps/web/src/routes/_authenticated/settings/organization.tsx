@@ -96,9 +96,9 @@ function Page() {
 				</CardHeader>
 				<CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
 					<div>
-						<Label>{t("settings.organization.timezone")}</Label>
+						<Label htmlFor="organization-timezone">{t("settings.organization.timezone")}</Label>
 						<Select value={(form.timezone as string) ?? ""} onValueChange={(v) => setField("timezone", v)}>
-							<SelectTrigger>
+							<SelectTrigger id="organization-timezone" aria-label={t("settings.organization.timezone")}>
 								<SelectValue placeholder={t("settings.orgExt.pickTimezone")} />
 							</SelectTrigger>
 							<SelectContent>
@@ -111,9 +111,9 @@ function Page() {
 						</Select>
 					</div>
 					<div>
-						<Label>{t("settings.organization.currency")}</Label>
+						<Label htmlFor="organization-currency">{t("settings.organization.currency")}</Label>
 						<Select value={(form.currency as string) ?? ""} onValueChange={(v) => setField("currency", v)}>
-							<SelectTrigger>
+							<SelectTrigger id="organization-currency" aria-label={t("settings.organization.currency")}>
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
@@ -126,9 +126,9 @@ function Page() {
 						</Select>
 					</div>
 					<div>
-						<Label>{t("settings.organization.dateFormat")}</Label>
+						<Label htmlFor="organization-date-format">{t("settings.organization.dateFormat")}</Label>
 						<Select value={(form.dateFormat as string) ?? ""} onValueChange={(v) => setField("dateFormat", v)}>
-							<SelectTrigger>
+							<SelectTrigger id="organization-date-format" aria-label={t("settings.organization.dateFormat")}>
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
@@ -141,12 +141,15 @@ function Page() {
 						</Select>
 					</div>
 					<div>
-						<Label>{t("settings.organization.fiscalYearStart")}</Label>
+						<Label htmlFor="organization-fiscal-year-start">{t("settings.organization.fiscalYearStart")}</Label>
 						<Select
 							value={String((form.fiscalYearStartMonth as number) ?? 1)}
 							onValueChange={(v) => setField("fiscalYearStartMonth", Number(v))}
 						>
-							<SelectTrigger>
+							<SelectTrigger
+								id="organization-fiscal-year-start"
+								aria-label={t("settings.organization.fiscalYearStart")}
+							>
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
@@ -167,15 +170,17 @@ function Page() {
 				</CardHeader>
 				<CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
 					<div>
-						<Label>{t("settings.organization.invoicePrefix")}</Label>
+						<Label htmlFor="organization-invoice-prefix">{t("settings.organization.invoicePrefix")}</Label>
 						<Input
+							id="organization-invoice-prefix"
 							value={(form.invoiceNumberPrefix as string) ?? ""}
 							onChange={(e) => setField("invoiceNumberPrefix", e.target.value)}
 						/>
 					</div>
 					<div>
-						<Label>{t("settings.organization.invoicePadding")}</Label>
+						<Label htmlFor="organization-invoice-padding">{t("settings.organization.invoicePadding")}</Label>
 						<Input
+							id="organization-invoice-padding"
 							type="number"
 							min={1}
 							max={10}
@@ -192,22 +197,26 @@ function Page() {
 				</CardHeader>
 				<CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
 					<div>
-						<Label>{t("common.email")}</Label>
+						<Label htmlFor="organization-company-email">{t("common.email")}</Label>
 						<Input
+							id="organization-company-email"
 							value={(form.companyEmail as string) ?? ""}
 							onChange={(e) => setField("companyEmail", e.target.value)}
 						/>
 					</div>
 					<div>
-						<Label>{t("common.phone")}</Label>
+						<Label htmlFor="organization-company-phone">{t("common.phone")}</Label>
 						<Input
+							id="organization-company-phone"
 							value={(form.companyPhone as string) ?? ""}
 							onChange={(e) => setField("companyPhone", e.target.value)}
 						/>
 					</div>
 					<div className="md:col-span-2">
-						<Label>{t("common.address")}</Label>
+						<Label htmlFor="organization-company-address">{t("common.address")}</Label>
 						<textarea
+							id="organization-company-address"
+							aria-label={t("common.address")}
 							rows={2}
 							className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
 							value={(form.companyAddress as string) ?? ""}
@@ -215,24 +224,35 @@ function Page() {
 						/>
 					</div>
 					<div>
-						<Label>{t("settings.organization.taxId")}</Label>
-						<Input value={(form.taxId as string) ?? ""} onChange={(e) => setField("taxId", e.target.value)} />
-					</div>
-					<div>
-						<Label>{t("settings.organization.logoUrl")}</Label>
-						<Input value={(form.logoUrl as string) ?? ""} onChange={(e) => setField("logoUrl", e.target.value)} />
-					</div>
-					<div>
-						<Label>{t("settings.organization.primaryColor")}</Label>
+						<Label htmlFor="organization-tax-id">{t("settings.organization.taxId")}</Label>
 						<Input
+							id="organization-tax-id"
+							value={(form.taxId as string) ?? ""}
+							onChange={(e) => setField("taxId", e.target.value)}
+						/>
+					</div>
+					<div>
+						<Label htmlFor="organization-logo-url">{t("settings.organization.logoUrl")}</Label>
+						<Input
+							id="organization-logo-url"
+							value={(form.logoUrl as string) ?? ""}
+							onChange={(e) => setField("logoUrl", e.target.value)}
+						/>
+					</div>
+					<div>
+						<Label htmlFor="organization-primary-color">{t("settings.organization.primaryColor")}</Label>
+						<Input
+							id="organization-primary-color"
 							value={(form.primaryColor as string) ?? ""}
 							onChange={(e) => setField("primaryColor", e.target.value)}
 							placeholder="#3b82f6"
 						/>
 					</div>
 					<div className="md:col-span-2">
-						<Label>{t("settings.organization.emailFooter")}</Label>
+						<Label htmlFor="organization-email-footer">{t("settings.organization.emailFooter")}</Label>
 						<textarea
+							id="organization-email-footer"
+							aria-label={t("settings.organization.emailFooter")}
 							rows={3}
 							className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
 							value={(form.emailFooter as string) ?? ""}
