@@ -6,6 +6,15 @@ This starter pack is installed with:
 create-vyllion-saas add starter eims
 ```
 
+When you are building or linking the real SDK, pass the package coordinates at scaffold time instead of patching the generated app later:
+
+```bash
+create-vyllion-saas my-app --starter eims --eims-sdk-package @vyllion/eims-sdk --eims-sdk-version workspace:*
+create-vyllion-saas add starter eims --eims-sdk-package @vyllion/eims-sdk --eims-sdk-version 0.2.0-beta.3
+```
+
+`--eims-sdk-package` sets `EIMS_SDK_PACKAGE_NAME`, `apps/api` runtime dependencies, and `.scaffold-state.json` starter metadata. `--eims-sdk-version` controls the dependency range or local workspace/file spec. You can also use `CREATE_VYLLION_EIMS_SDK_PACKAGE` and `CREATE_VYLLION_EIMS_SDK_VERSION` in automation.
+
 The base scaffold is intentionally domain-neutral. EIMS files are added only when this pack is installed, and install state is tracked in `.scaffold-state.json` so repeat installs are safe.
 
 To update an existing generated project after this starter's UI changes:

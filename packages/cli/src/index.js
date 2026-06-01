@@ -58,6 +58,7 @@ export const run = async (argv) => {
 			starterName: args.starterName,
 			refresh: args.refresh,
 			eimsSdkPackage: args.eimsSdkPackage,
+			eimsSdkVersion: args.eimsSdkVersion,
 		});
 		return;
 	}
@@ -111,7 +112,12 @@ export const run = async (argv) => {
 			seed: args.seed,
 			afterTemplate: async (createdDir) => {
 				for (const starterName of requestedStarters) {
-					await addStarterPack({ cwd: createdDir, starterName, eimsSdkPackage: args.eimsSdkPackage });
+					await addStarterPack({
+						cwd: createdDir,
+						starterName,
+						eimsSdkPackage: args.eimsSdkPackage,
+						eimsSdkVersion: args.eimsSdkVersion,
+					});
 				}
 			},
 		},
@@ -142,6 +148,8 @@ ${pc.bold("Options:")}
   --bootstrap      Run install + db:push + seed
   --eims-sdk-package <name>
                   Use this package when installing the EIMS starter SDK adapter
+  --eims-sdk-version <range>
+                  Use this dependency version/range for the configured EIMS SDK package
   --production     Run stricter production-readiness checks with doctor
   --help, -h       Show this help
 

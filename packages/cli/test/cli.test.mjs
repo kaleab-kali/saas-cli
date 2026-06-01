@@ -47,6 +47,7 @@ test("prints help for the CLI command surface", () => {
 	assert.match(output, /create-vyllion-saas add starter <pack>/);
 	assert.match(output, /comma-separated/);
 	assert.match(output, /--eims-sdk-package/);
+	assert.match(output, /--eims-sdk-version/);
 });
 
 test("lists starter pack metadata", () => {
@@ -82,8 +83,16 @@ test("parses starter refresh flag", () => {
 });
 
 test("parses EIMS SDK package override", () => {
-	const args = parseArgs(["my-app", "--starter", "eims", "--eims-sdk-package", "@vyllion/eims-sdk"]);
+	const args = parseArgs([
+		"my-app",
+		"--starter",
+		"eims",
+		"--eims-sdk-package",
+		"@vyllion/eims-sdk",
+		"--eims-sdk-version=workspace:*",
+	]);
 	assert.equal(args.eimsSdkPackage, "@vyllion/eims-sdk");
+	assert.equal(args.eimsSdkVersion, "workspace:*");
 });
 
 test("doctor command runs in advisory mode", () => {
@@ -339,9 +348,21 @@ test("installs EIMS starter with a configured SDK package", () => {
 	removeDir(targetDir);
 
 	try {
-		const result = runCli([targetDir, "--yes", "--starter", "eims", "--eims-sdk-package", "@vyllion/eims-sdk"], {
-			timeout: 120_000,
-		});
+		const result = runCli(
+			[
+				targetDir,
+				"--yes",
+				"--starter",
+				"eims",
+				"--eims-sdk-package",
+				"@vyllion/eims-sdk",
+				"--eims-sdk-version",
+				"workspace:*",
+			],
+			{
+				timeout: 120_000,
+			},
+		);
 		assert.equal(result.status, 0, outputOf(result));
 
 		const apiEnv = readEnv(path.join(targetDir, "apps/api/.env"));
@@ -352,8 +373,8 @@ test("installs EIMS starter with a configured SDK package", () => {
 
 		assert.equal(apiEnv.EIMS_SDK_PACKAGE_NAME, "@vyllion/eims-sdk");
 		assert.equal(productionEnv.EIMS_SDK_PACKAGE_NAME, "@vyllion/eims-sdk");
-		assert.equal(apiPackageJson.dependencies["@vyllion/eims-sdk"], "^0.1.0");
-		assert.equal(eimsStarter.dependencies["@vyllion/eims-sdk"], "^0.1.0");
+		assert.equal(apiPackageJson.dependencies["@vyllion/eims-sdk"], "workspace:*");
+		assert.equal(eimsStarter.dependencies["@vyllion/eims-sdk"], "workspace:*");
 		assert.equal(eimsStarter.dependencies["@yourcompany/eims-sdk"], undefined);
 	} finally {
 		removeDir(targetDir);

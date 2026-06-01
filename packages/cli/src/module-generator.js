@@ -1327,16 +1327,22 @@ const resolveEimsSdkPackageName = (sdkPackageName) => {
 	return value || DEFAULT_EIMS_SDK_PACKAGE_NAME;
 };
 
-const eimsSdkDependencies = (sdkPackageName) => ({
-	[resolveEimsSdkPackageName(sdkPackageName)]: DEFAULT_EIMS_SDK_PACKAGE_VERSION,
+const resolveEimsSdkPackageVersion = (sdkPackageVersion) => {
+	const value = String(sdkPackageVersion ?? process.env.CREATE_VYLLION_EIMS_SDK_VERSION ?? "").trim();
+	return value || DEFAULT_EIMS_SDK_PACKAGE_VERSION;
+};
+
+const eimsSdkDependencies = (sdkPackageName, sdkPackageVersion) => ({
+	[resolveEimsSdkPackageName(sdkPackageName)]: resolveEimsSdkPackageVersion(sdkPackageVersion),
 });
 
-const patchEimsSdkDependency = async (root, sdkPackageName) => {
+const patchEimsSdkDependency = async (root, sdkPackageName, sdkPackageVersion) => {
 	const resolvedPackageName = resolveEimsSdkPackageName(sdkPackageName);
+	const resolvedPackageVersion = resolveEimsSdkPackageVersion(sdkPackageVersion);
 	if (resolvedPackageName === DEFAULT_EIMS_SDK_PACKAGE_NAME) return false;
 	return patchJsonFile(path.join(root, "apps/api/package.json"), (json) => {
 		json.dependencies ??= {};
-		json.dependencies[resolvedPackageName] ??= DEFAULT_EIMS_SDK_PACKAGE_VERSION;
+		json.dependencies[resolvedPackageName] = resolvedPackageVersion;
 		return json;
 	});
 };
@@ -6488,10 +6494,14 @@ Layer A runs locally and proves signing, canonicalization, date, decimal, lookup
 Layer B runs against INSA/MoR sandbox after credentials and certificates are available.
 
 After publishing or linking the real SDK package, set \`EIMS_SDK_PACKAGE_NAME\`
-and run \`pnpm test:eims:sdk-contract\`. This imports the SDK package, builds the
-same options used by the Nest provider, and verifies the package exposes the
-\`registerInvoice\`, \`registerReceipt\`, \`verifyIrn\`, bulk submission, bulk-status polling, invoice cancellation, and credential validation
-methods consumed by the SaaS adapter before sandbox credentials are exercised.
+and run \`pnpm test:eims:sdk-contract\`. Prefer installing the starter with
+\`--eims-sdk-package <name>\` and \`--eims-sdk-version <range>\` so
+\`apps/api/package.json\`, env examples, and scaffold metadata all point at the
+same SDK package. This imports the SDK package, builds the same options used by
+the Nest provider, and verifies the package exposes \`registerInvoice\`,
+\`registerReceipt\`, \`verifyIrn\`, bulk submission, bulk-status polling, invoice
+cancellation, and credential validation methods consumed by the SaaS adapter
+before sandbox credentials are exercised.
 
 Receipt submission is SaaS-validated for receipt number and linked invoice IRN,
 then sent through the SDK \`registerReceipt\` capability. The generated app does
@@ -6858,7 +6868,7 @@ const writeEimsSupplementalFiles = async (root) => {
 	);
 };
 
-const addEimsStarterPack = async ({ cwd, eimsSdkPackage }) => {
+const addEimsStarterPack = async ({ cwd, eimsSdkPackage, eimsSdkVersion }) => {
 	await assertEimsCanBeCreated(cwd);
 	console.log(pc.bold("Scaffolding EIMS/EIRMS e-invoicing starter pack"));
 	const sdkPackageName = resolveEimsSdkPackageName(eimsSdkPackage);
@@ -6877,7 +6887,7 @@ const addEimsStarterPack = async ({ cwd, eimsSdkPackage }) => {
 	await patchEimsPackageScripts(cwd);
 	await patchEimsSeedScript(cwd);
 	await patchEimsEnvExamples(cwd, sdkPackageName);
-	await patchEimsSdkDependency(cwd, sdkPackageName);
+	await patchEimsSdkDependency(cwd, sdkPackageName, eimsSdkVersion);
 	await patchSidebar(cwd, "eims", "EIMS", "eims");
 	console.log(pc.green("EIMS starter pack scaffolded."));
 	console.log(
@@ -6887,7 +6897,7 @@ const addEimsStarterPack = async ({ cwd, eimsSdkPackage }) => {
 	);
 };
 
-const refreshEimsStarterPack = async ({ cwd, eimsSdkPackage }) => {
+const refreshEimsStarterPack = async ({ cwd, eimsSdkPackage, eimsSdkVersion }) => {
 	console.log(pc.bold("Refreshing EIMS/EIRMS starter-owned UI and verification files"));
 	const sdkPackageName = resolveEimsSdkPackageName(eimsSdkPackage);
 	await copyEimsStarterArtifacts(cwd, { refresh: true });
@@ -6896,7 +6906,7 @@ const refreshEimsStarterPack = async ({ cwd, eimsSdkPackage }) => {
 	await patchEimsPackageScripts(cwd);
 	await patchEimsSeedScript(cwd);
 	await patchEimsEnvExamples(cwd, sdkPackageName);
-	await patchEimsSdkDependency(cwd, sdkPackageName);
+	await patchEimsSdkDependency(cwd, sdkPackageName, eimsSdkVersion);
 	await patchSidebar(cwd, "eims", "EIMS", "eims");
 	console.log(pc.green("EIMS starter refresh complete."));
 	console.log(
@@ -6906,7 +6916,7 @@ const refreshEimsStarterPack = async ({ cwd, eimsSdkPackage }) => {
 	);
 };
 
-export const addStarterPack = async ({ cwd, starterName, refresh = false, eimsSdkPackage = null }) => {
+export const addStarterPack = async ({ cwd, starterName, refresh = false, eimsSdkPackage = null, eimsSdkVersion = null }) => {
 	if (!starterName) {
 		throw new Error(
 			`Usage: create-vyllion-saas add starter <pack>\nAvailable packs: ${listStarterPacks().join(", ")}`,
@@ -6924,9 +6934,9 @@ export const addStarterPack = async ({ cwd, starterName, refresh = false, eimsSd
 
 	if (await isStarterInstalled(cwd, slug)) {
 		if (pack.custom === "eims" && refresh) {
-			await refreshEimsStarterPack({ cwd, eimsSdkPackage });
+			await refreshEimsStarterPack({ cwd, eimsSdkPackage, eimsSdkVersion });
 			await recordStarterInstalled(cwd, slug, pack, {
-				dependencies: eimsSdkDependencies(eimsSdkPackage),
+				dependencies: eimsSdkDependencies(eimsSdkPackage, eimsSdkVersion),
 			});
 			return;
 		}
@@ -6939,9 +6949,9 @@ export const addStarterPack = async ({ cwd, starterName, refresh = false, eimsSd
 	}
 
 	if (pack.custom === "eims") {
-		await addEimsStarterPack({ cwd, eimsSdkPackage });
+		await addEimsStarterPack({ cwd, eimsSdkPackage, eimsSdkVersion });
 		await recordStarterInstalled(cwd, slug, pack, {
-			dependencies: eimsSdkDependencies(eimsSdkPackage),
+			dependencies: eimsSdkDependencies(eimsSdkPackage, eimsSdkVersion),
 		});
 		return;
 	}

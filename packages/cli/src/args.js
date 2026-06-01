@@ -12,6 +12,7 @@ export const parseArgs = (argv) => {
 		production: false,
 		refresh: false,
 		eimsSdkPackage: null,
+		eimsSdkVersion: null,
 		starters: [],
 	};
 
@@ -40,8 +41,15 @@ export const parseArgs = (argv) => {
 			}
 		} else if (a.startsWith("--eims-sdk-package=")) {
 			out.eimsSdkPackage = a.slice("--eims-sdk-package=".length);
-		}
-		else if (a === "--starter") {
+		} else if (a === "--eims-sdk-version") {
+			const packageVersion = argv[i + 1];
+			if (packageVersion && !packageVersion.startsWith("-")) {
+				out.eimsSdkVersion = packageVersion;
+				i += 1;
+			}
+		} else if (a.startsWith("--eims-sdk-version=")) {
+			out.eimsSdkVersion = a.slice("--eims-sdk-version=".length);
+		} else if (a === "--starter") {
 			const starter = argv[i + 1];
 			if (starter && !starter.startsWith("-")) {
 				addStarterValues(starter);
