@@ -47,7 +47,7 @@ function OrgOverrideDialog({ flagName, orgNameMap }: { readonly flagName: string
 				</DialogHeader>
 				<div className="space-y-3">
 					<Select value={orgId} onValueChange={setOrgId}>
-						<SelectTrigger>
+						<SelectTrigger aria-label="Organization">
 							<SelectValue placeholder="Pick organization" />
 						</SelectTrigger>
 						<SelectContent>
@@ -59,7 +59,7 @@ function OrgOverrideDialog({ flagName, orgNameMap }: { readonly flagName: string
 						</SelectContent>
 					</Select>
 					<Select value={enabled ? "on" : "off"} onValueChange={(value) => setEnabled(value === "on")}>
-						<SelectTrigger>
+						<SelectTrigger aria-label="Override state">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>

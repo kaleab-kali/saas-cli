@@ -617,10 +617,49 @@ async function installAuthenticatedMocks(page: Page) {
 
 async function installAdminMocks(page: Page) {
 	const onboardingListRequests: string[] = [];
+	let featureFlags = [
+		{
+			id: "flag_api",
+			name: "platform.api-keys",
+			description: "Allow organizations to create scoped API keys",
+			enabledGlobal: true,
+			overrides: [
+				{
+					id: "override_demo",
+					organizationId: "org_smoke",
+					enabled: false,
+				},
+			],
+		},
+		{
+			id: "flag_reports",
+			name: "platform.reports",
+			description: "Enable saved reports and dashboard exports",
+			enabledGlobal: false,
+			overrides: [],
+		},
+	];
+	let entitlementOverrides = [
+		{
+			id: "override_demo",
+			organizationId: "org_smoke",
+			featureKey: "platform.api-keys",
+			enabled: true,
+			limit: 25,
+			expiresAt: null,
+			reason: "beta access",
+			grantedByUserId: "admin_smoke",
+			createdAt: now(),
+			updatedAt: now(),
+		},
+	];
 
 	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this e2e mock dispatches many independent admin API fixtures.
 	await page.route("**/api/v1/**", async (route: Route) => {
 		const url = route.request().url();
+		const request = route.request();
+		const requestUrl = new URL(url);
+		const pathname = requestUrl.pathname;
 		if (url.includes("/admin/auth/me")) {
 			await route.fulfill(
 				ok({
@@ -726,24 +765,34 @@ async function installAdminMocks(page: Page) {
 			return;
 		}
 		if (url.includes("/admin/entitlement-overrides")) {
-			await route.fulfill(
-				ok({
-					data: [
-						{
-							id: "override_demo",
-							organizationId: "org_smoke",
-							featureKey: "platform.api-keys",
-							enabled: true,
-							limit: 25,
-							expiresAt: null,
-							reason: "beta access",
-							grantedByUserId: "admin_smoke",
-							createdAt: now(),
-							updatedAt: now(),
-						},
-					],
-				}),
-			);
+			if (request.method() === "POST") {
+				const body = JSON.parse(request.postData() ?? "{}");
+				const override = {
+					id: "override_created",
+					organizationId: body.organizationId,
+					featureKey: body.featureKey,
+					enabled: body.enabled,
+					limit: body.limit ?? null,
+					expiresAt: body.expiresAt ?? null,
+					reason: body.reason ?? null,
+					grantedByUserId: "admin_smoke",
+					createdAt: now(),
+					updatedAt: now(),
+				};
+				entitlementOverrides = [
+					override,
+					...entitlementOverrides.filter((item) => item.featureKey !== body.featureKey),
+				];
+				await route.fulfill(ok({ data: override }));
+				return;
+			}
+			if (request.method() === "DELETE") {
+				const overrideId = pathname.split("/").at(-1);
+				entitlementOverrides = entitlementOverrides.filter((override) => override.id !== overrideId);
+				await route.fulfill(ok({ data: { id: overrideId } }));
+				return;
+			}
+			await route.fulfill(ok({ data: entitlementOverrides }));
 			return;
 		}
 		if (url.includes("/admin/plans/feature-keys")) {
@@ -1034,32 +1083,38 @@ async function installAdminMocks(page: Page) {
 			return;
 		}
 		if (url.includes("/admin/settings/feature-flags")) {
-			await route.fulfill(
-				ok({
-					data: [
-						{
-							id: "flag_api",
-							name: "platform.api-keys",
-							description: "Allow organizations to create scoped API keys",
-							enabledGlobal: true,
-							overrides: [
-								{
-									id: "override_demo",
-									organizationId: "org_smoke",
-									enabled: false,
-								},
-							],
-						},
-						{
-							id: "flag_reports",
-							name: "platform.reports",
-							description: "Enable saved reports and dashboard exports",
-							enabledGlobal: false,
-							overrides: [],
-						},
-					],
-				}),
-			);
+			const globalToggleMatch = pathname.match(/\/admin\/settings\/feature-flags\/(.+)\/global$/);
+			const orgToggleMatch = pathname.match(/\/admin\/settings\/feature-flags\/(.+)\/org\/([^/]+)$/);
+			if (request.method() === "PUT" && globalToggleMatch) {
+				const body = JSON.parse(request.postData() ?? "{}");
+				const flagName = decodeURIComponent(globalToggleMatch[1]);
+				featureFlags = featureFlags.map((flag) =>
+					flag.name === flagName ? { ...flag, enabledGlobal: Boolean(body.enabled) } : flag,
+				);
+				await route.fulfill(ok({ data: featureFlags.find((flag) => flag.name === flagName) ?? null }));
+				return;
+			}
+			if (request.method() === "PUT" && orgToggleMatch) {
+				const body = JSON.parse(request.postData() ?? "{}");
+				const flagName = decodeURIComponent(orgToggleMatch[1]);
+				const orgId = orgToggleMatch[2];
+				featureFlags = featureFlags.map((flag) => {
+					if (flag.name !== flagName) return flag;
+					const existingOverride = flag.overrides.find((override) => override.organizationId === orgId);
+					const nextOverride = {
+						id: existingOverride?.id ?? `override_${orgId}`,
+						organizationId: orgId,
+						enabled: Boolean(body.enabled),
+					};
+					return {
+						...flag,
+						overrides: [nextOverride, ...flag.overrides.filter((override) => override.organizationId !== orgId)],
+					};
+				});
+				await route.fulfill(ok({ data: featureFlags.find((flag) => flag.name === flagName) ?? null }));
+				return;
+			}
+			await route.fulfill(ok({ data: featureFlags }));
 			return;
 		}
 		if (url.includes("/admin/audit-logs")) {
@@ -1409,14 +1464,19 @@ test("tenant members smoke accepts invitation links", async ({ page }) => {
 	const assertNoErrors = await expectNoConsoleErrors(page);
 	await installAuthenticatedMocks(page);
 
-	const acceptRequest = page.waitForRequest(
-		(request) => request.url().includes("/api/v1/team/invitations/inv_existing/accept") && request.method() === "POST",
+	const acceptResponse = page.waitForResponse(
+		(response) =>
+			response.url().includes("/api/v1/team/invitations/inv_existing/accept") &&
+			response.request().method() === "POST" &&
+			response.ok(),
 	);
 	await page.goto("/settings/members?invitationId=inv_existing", { waitUntil: "networkidle" });
-	await acceptRequest;
+	await acceptResponse;
 
 	await expect(page.getByRole("heading", { name: "Members" })).toBeVisible();
-	await expect(page.getByRole("row", { name: /pending@example\.test/ })).toContainText("accepted");
+	const acceptedRow = page.getByRole("row", { name: /pending@example\.test/ });
+	await expect(acceptedRow).toContainText("accepted");
+	await expect(acceptedRow.getByRole("button", { name: /Cancel/ })).toHaveCount(0);
 
 	assertNoErrors();
 });
@@ -1568,6 +1628,37 @@ test("admin feature flags smoke renders rollout table", async ({ page }) => {
 	await expect(page.getByText("1 selected")).toBeVisible();
 	await expect(page.getByRole("button", { name: "Bulk actions" })).toBeVisible();
 
+	const globalToggleRequest = page.waitForRequest(
+		(request) =>
+			request.url().includes("/api/v1/admin/settings/feature-flags/platform.api-keys/global") &&
+			request.method() === "PUT",
+	);
+	await page.getByRole("switch", { name: "Toggle platform.api-keys globally" }).click();
+	expect(JSON.parse((await globalToggleRequest).postData() ?? "{}")).toEqual({ enabled: false });
+	await expect(page.getByRole("switch", { name: "Toggle platform.api-keys globally" })).not.toBeChecked();
+
+	const orgToggleRequest = page.waitForRequest(
+		(request) =>
+			request.url().includes("/api/v1/admin/settings/feature-flags/platform.api-keys/org/org_smoke") &&
+			request.method() === "PUT",
+	);
+	await page.getByRole("switch", { name: "Toggle platform.api-keys for Demo Cafe" }).click();
+	expect(JSON.parse((await orgToggleRequest).postData() ?? "{}")).toEqual({ enabled: true });
+	await expect(page.getByRole("switch", { name: "Toggle platform.api-keys for Demo Cafe" })).toBeChecked();
+
+	await page.getByRole("button", { name: "Add override" }).first().click();
+	await page.getByRole("combobox", { name: "Organization" }).click();
+	await page.getByRole("option", { name: /Demo Cafe/ }).click();
+	await page.getByRole("combobox", { name: "Override state" }).click();
+	await page.getByRole("option", { name: "Disable" }).click();
+	const addOverrideRequest = page.waitForRequest(
+		(request) =>
+			request.url().includes("/api/v1/admin/settings/feature-flags/platform.api-keys/org/org_smoke") &&
+			request.method() === "PUT",
+	);
+	await page.getByRole("button", { name: "Apply" }).click();
+	expect(JSON.parse((await addOverrideRequest).postData() ?? "{}")).toEqual({ enabled: false });
+
 	assertNoErrors();
 });
 
@@ -1626,9 +1717,38 @@ test("admin organization detail smoke renders member and entitlement tables", as
 	await expect(page.getByRole("textbox", { name: /Search overrides/i })).toBeVisible();
 	await expect(page.getByText("platform.api-keys")).toBeVisible();
 	await expect(page.getByText("beta access")).toBeVisible();
-	await expect(page.getByRole("button", { name: "Remove" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Remove platform.api-keys override" })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Export CSV" })).toHaveCount(2);
 	await expect(page.getByRole("button", { name: "Saved views" })).toHaveCount(2);
+
+	await page.getByRole("combobox", { name: "Feature key" }).click();
+	await page.getByRole("option", { name: "platform.reports" }).click();
+	await page.getByRole("combobox", { name: "Mode" }).click();
+	await page.getByRole("option", { name: "Block" }).click();
+	await page.getByRole("spinbutton", { name: "Limit" }).fill("5");
+	await page.getByLabel("Expires").fill("2026-12-31");
+	await page.getByRole("textbox", { name: "Reason" }).fill("contract exception");
+	const applyRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/admin/entitlement-overrides") && request.method() === "POST",
+	);
+	await page.getByRole("button", { name: "Apply entitlement override" }).click();
+	expect(JSON.parse((await applyRequest).postData() ?? "{}")).toEqual({
+		organizationId: "org_smoke",
+		featureKey: "platform.reports",
+		enabled: false,
+		limit: 5,
+		expiresAt: "2026-12-31",
+		reason: "contract exception",
+	});
+	await expect(page.getByRole("row", { name: /platform\.reports/ })).toContainText("Block");
+
+	const removeRequest = page.waitForRequest(
+		(request) =>
+			request.url().includes("/api/v1/admin/entitlement-overrides/override_created") && request.method() === "DELETE",
+	);
+	await page.getByRole("button", { name: "Remove platform.reports override" }).click();
+	await removeRequest;
+	await expect(page.getByRole("row", { name: /platform\.reports/ })).toBeHidden();
 
 	assertNoErrors();
 });

@@ -628,7 +628,9 @@ function assertFrontendImprovementSurface() {
 		readProjectFile("apps/web/src/features/platform/components/SecuritySettingsPage.tsx");
 	const rolesSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/roles.tsx");
 	const lookupsSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/lookups.tsx");
-	const membersSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/members.tsx");
+	const membersSettingsPage =
+		readProjectFile("apps/web/src/routes/_authenticated/settings/members.tsx") +
+		readProjectFile("apps/web/src/features/team/components/MembersPage.tsx");
 	const apiKeysSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/api-keys.tsx");
 	const apiKeyCreateDialog = readProjectFile("apps/web/src/features/platform/components/ApiKeyCreateDialog.tsx");
 	const apiKeyPlainKeyDialog = readProjectFile("apps/web/src/features/platform/components/ApiKeyPlainKeyDialog.tsx");

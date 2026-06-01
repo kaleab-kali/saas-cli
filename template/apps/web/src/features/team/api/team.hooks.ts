@@ -85,7 +85,17 @@ export const useRemoveMember = () => {
 export const useAcceptInvitation = () => {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (id: string) => api.post(`/team/invitations/${id}/accept`, {}),
-		onSuccess: () => qc.invalidateQueries({ queryKey: teamKeys.all }),
+		mutationFn: (id: string) => api.post<{ data: TeamInvitation }>(`/team/invitations/${id}/accept`, {}),
+		onSuccess: (result, id) => {
+			qc.setQueryData<{ data: TeamInvitation[] }>(teamKeys.invitations(), (existing) =>
+				existing
+					? {
+							...existing,
+							data: existing.data.map((invitation) => (invitation.id === id ? result.data : invitation)),
+						}
+					: existing,
+			);
+			qc.invalidateQueries({ queryKey: teamKeys.all });
+		},
 	});
 };

@@ -29,6 +29,11 @@ export const OrgEntitlementOverridesPanel = React.memo(
 		const [limit, setLimit] = React.useState("");
 		const [expiresAt, setExpiresAt] = React.useState("");
 		const [reason, setReason] = React.useState("");
+		const featureKeyId = "org-entitlement-feature-key";
+		const modeId = "org-entitlement-mode";
+		const limitId = "org-entitlement-limit";
+		const expiresAtId = "org-entitlement-expires-at";
+		const reasonId = "org-entitlement-reason";
 
 		const handleGrant = React.useCallback(() => {
 			if (!featureKey) return;
@@ -100,7 +105,13 @@ export const OrgEntitlementOverridesPanel = React.memo(
 					enableSorting: false,
 					enableColumnFilter: false,
 					cell: ({ row }) => (
-						<Button variant="ghost" size="sm" onClick={() => del.mutate(row.original.id)} disabled={del.isPending}>
+						<Button
+							variant="ghost"
+							size="sm"
+							aria-label={`Remove ${row.original.featureKey} override`}
+							onClick={() => del.mutate(row.original.id)}
+							disabled={del.isPending}
+						>
 							Remove
 						</Button>
 					),
@@ -124,9 +135,9 @@ export const OrgEntitlementOverridesPanel = React.memo(
 				<CardContent className="space-y-4">
 					<div className="grid grid-cols-1 md:grid-cols-[2fr_auto_auto_auto_2fr_auto] gap-2 items-end">
 						<div className="space-y-1">
-							<Label>Feature key</Label>
+							<Label htmlFor={featureKeyId}>Feature key</Label>
 							<Select value={featureKey} onValueChange={setFeatureKey}>
-								<SelectTrigger>
+								<SelectTrigger id={featureKeyId} aria-label="Feature key">
 									<SelectValue placeholder="Pick feature" />
 								</SelectTrigger>
 								<SelectContent>
@@ -139,9 +150,9 @@ export const OrgEntitlementOverridesPanel = React.memo(
 							</Select>
 						</div>
 						<div className="space-y-1">
-							<Label>Mode</Label>
+							<Label htmlFor={modeId}>Mode</Label>
 							<Select value={enabled ? "on" : "off"} onValueChange={(v) => setEnabled(v === "on")}>
-								<SelectTrigger className="w-28">
+								<SelectTrigger id={modeId} aria-label="Mode" className="w-28">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
@@ -151,8 +162,9 @@ export const OrgEntitlementOverridesPanel = React.memo(
 							</Select>
 						</div>
 						<div className="space-y-1">
-							<Label>Limit</Label>
+							<Label htmlFor={limitId}>Limit</Label>
 							<Input
+								id={limitId}
 								type="number"
 								value={limit}
 								onChange={(e) => setLimit(e.target.value)}
@@ -161,14 +173,29 @@ export const OrgEntitlementOverridesPanel = React.memo(
 							/>
 						</div>
 						<div className="space-y-1">
-							<Label>Expires</Label>
-							<Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className="w-40" />
+							<Label htmlFor={expiresAtId}>Expires</Label>
+							<Input
+								id={expiresAtId}
+								type="date"
+								value={expiresAt}
+								onChange={(e) => setExpiresAt(e.target.value)}
+								className="w-40"
+							/>
 						</div>
 						<div className="space-y-1">
-							<Label>Reason</Label>
-							<Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. beta access" />
+							<Label htmlFor={reasonId}>Reason</Label>
+							<Input
+								id={reasonId}
+								value={reason}
+								onChange={(e) => setReason(e.target.value)}
+								placeholder="e.g. beta access"
+							/>
 						</div>
-						<Button onClick={handleGrant} disabled={!featureKey || upsert.isPending}>
+						<Button
+							onClick={handleGrant}
+							disabled={!featureKey || upsert.isPending}
+							aria-label="Apply entitlement override"
+						>
 							{upsert.isPending ? "..." : "Apply"}
 						</Button>
 					</div>
