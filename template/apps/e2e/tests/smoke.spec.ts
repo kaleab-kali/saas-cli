@@ -158,8 +158,41 @@ async function installAuthenticatedMocks(page: Page) {
 		);
 	});
 
+	let teamMembers = [
+		{
+			id: "member_owner",
+			organizationId: "org_smoke",
+			userId: "user_smoke",
+			role: "owner",
+			createdAt: now(),
+			user: { id: "user_smoke", name: "Demo Owner", email: "owner@example.test", image: null },
+		},
+		{
+			id: "member_staff",
+			organizationId: "org_smoke",
+			userId: "user_staff",
+			role: "member",
+			createdAt: now(),
+			user: { id: "user_staff", name: "Staff User", email: "staff@example.test", image: null },
+		},
+	];
+	let teamInvitations = [
+		{
+			id: "inv_existing",
+			organizationId: "org_smoke",
+			email: "pending@example.test",
+			role: "viewer",
+			status: "pending",
+			expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+			inviterId: "user_smoke",
+			createdAt: now(),
+			acceptUrl: "http://localhost:5173/settings/members?invitationId=inv_existing",
+		},
+	];
+
 	await page.route("**/api/v1/**", async (route: Route) => {
 		const url = route.request().url();
+		const pathname = new URL(url).pathname;
 		if (url.includes("/billing/me")) {
 			await route.fulfill(ok({ data: { subscription: null, lifecycle: null, entitlements: {} } }));
 			return;
@@ -222,6 +255,63 @@ async function installAuthenticatedMocks(page: Page) {
 		}
 		if (url.endsWith("/api/v1/onboarding")) {
 			await route.fulfill(ok({ data: onboardingTask }));
+			return;
+		}
+		if (pathname === "/api/v1/team/members") {
+			await route.fulfill(ok({ data: teamMembers }));
+			return;
+		}
+		if (pathname.startsWith("/api/v1/team/members/")) {
+			const memberId = pathname.split("/").at(-1);
+			if (route.request().method() === "PATCH") {
+				const body = JSON.parse(route.request().postData() ?? "{}");
+				teamMembers = teamMembers.map((member) =>
+					member.id === memberId ? { ...member, role: body.role ?? member.role } : member,
+				);
+				await route.fulfill(ok({ data: teamMembers.find((member) => member.id === memberId) ?? null }));
+				return;
+			}
+			if (route.request().method() === "DELETE") {
+				teamMembers = teamMembers.filter((member) => member.id !== memberId);
+				await route.fulfill(ok({ data: { id: memberId } }));
+				return;
+			}
+		}
+		const acceptInvitationMatch = pathname.match(/^\/api\/v1\/team\/invitations\/([^/]+)\/accept$/);
+		if (acceptInvitationMatch && route.request().method() === "POST") {
+			const invitationId = acceptInvitationMatch[1];
+			teamInvitations = teamInvitations.map((invitation) =>
+				invitation.id === invitationId ? { ...invitation, status: "accepted" } : invitation,
+			);
+			await route.fulfill(ok({ data: teamInvitations.find((invitation) => invitation.id === invitationId) ?? null }));
+			return;
+		}
+		if (pathname === "/api/v1/team/invitations") {
+			if (route.request().method() === "POST") {
+				const body = JSON.parse(route.request().postData() ?? "{}");
+				const invitationId = `inv_${teamInvitations.length + 1}`;
+				const invitation = {
+					id: invitationId,
+					organizationId: "org_smoke",
+					email: body.email,
+					role: body.role ?? "member",
+					status: "pending",
+					expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+					inviterId: "user_smoke",
+					createdAt: now(),
+					acceptUrl: `http://localhost:5173/settings/members?invitationId=${invitationId}`,
+				};
+				teamInvitations = [invitation, ...teamInvitations];
+				await route.fulfill(ok({ data: invitation }));
+				return;
+			}
+			await route.fulfill(ok({ data: teamInvitations }));
+			return;
+		}
+		if (pathname.startsWith("/api/v1/team/invitations/") && route.request().method() === "DELETE") {
+			const invitationId = pathname.split("/").at(-1);
+			teamInvitations = teamInvitations.filter((invitation) => invitation.id !== invitationId);
+			await route.fulfill(ok({ data: { id: invitationId } }));
 			return;
 		}
 		if (url.includes("/security-settings")) {
@@ -818,6 +908,72 @@ test("tenant security settings smoke saves 2FA policy and IP allowlist", async (
 		ipAllowlist: ["203.0.113.5", "198.51.100.10"],
 	});
 	await expect(force2faSwitch).toBeChecked();
+	assertNoErrors();
+});
+
+test("tenant members smoke invites, updates roles, and cancels invitations", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAuthenticatedMocks(page);
+
+	await page.goto("/settings/members", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Members" })).toBeVisible();
+	await expect(page.getByRole("cell", { name: "owner@example.test", exact: true })).toBeVisible();
+	await expect(page.getByRole("cell", { name: "staff@example.test", exact: true })).toBeVisible();
+	await expect(page.getByRole("cell", { name: "pending@example.test", exact: true })).toBeVisible();
+
+	const inviteEmail = page.getByRole("textbox", { name: "Email" });
+	await inviteEmail.fill("new.member@example.test");
+	await page.locator("#member-invite-role").click();
+	await page.getByRole("option", { name: "Admin" }).click();
+
+	const inviteRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/team/invitations") && request.method() === "POST",
+	);
+	await page.getByRole("button", { name: "Invite" }).click();
+	const invitePayload = JSON.parse((await inviteRequest).postData() ?? "{}");
+
+	expect(invitePayload).toEqual({
+		email: "new.member@example.test",
+		role: "admin",
+	});
+	await expect(inviteEmail).toHaveValue("");
+	await expect(page.getByRole("cell", { name: "new.member@example.test", exact: true })).toBeVisible();
+
+	const staffRow = page.getByRole("row", { name: /staff@example\.test/ });
+	const roleRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/team/members/member_staff") && request.method() === "PATCH",
+	);
+	await staffRow.getByRole("combobox", { name: /Role for staff@example\.test/i }).click();
+	await page.getByRole("option", { name: "Viewer" }).click();
+	const rolePayload = JSON.parse((await roleRequest).postData() ?? "{}");
+
+	expect(rolePayload).toEqual({ role: "viewer" });
+	await expect(staffRow.getByRole("combobox", { name: /Role for staff@example\.test/i })).toContainText("Viewer");
+
+	const cancelRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/team/invitations/inv_existing") && request.method() === "DELETE",
+	);
+	await page.getByRole("row", { name: /pending@example\.test/ }).getByRole("button", { name: /Cancel/ }).click();
+	await cancelRequest;
+	await expect(page.getByText("pending@example.test")).toBeHidden();
+
+	assertNoErrors();
+});
+
+test("tenant members smoke accepts invitation links", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAuthenticatedMocks(page);
+
+	const acceptRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/team/invitations/inv_existing/accept") && request.method() === "POST",
+	);
+	await page.goto("/settings/members?invitationId=inv_existing", { waitUntil: "networkidle" });
+	await acceptRequest;
+
+	await expect(page.getByRole("heading", { name: "Members" })).toBeVisible();
+	await expect(page.getByRole("row", { name: /pending@example\.test/ })).toContainText("accepted");
+
 	assertNoErrors();
 });
 

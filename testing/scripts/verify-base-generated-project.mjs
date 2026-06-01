@@ -613,6 +613,7 @@ function assertFrontendImprovementSurface() {
 	);
 	const authShell = readProjectFile("apps/web/src/shared/components/AuthShell.tsx");
 	const securitySettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/security.tsx");
+	const membersSettingsPage = readProjectFile("apps/web/src/routes/_authenticated/settings/members.tsx");
 	const frontendConventions = readProjectFile("docs/FRONTEND_CONVENTIONS.md");
 	const opsGuide = readProjectFile("docs/ADMIN_OPERATIONS_GUIDE.md");
 	const e2eConfig = readProjectFile("apps/e2e/playwright.config.ts");
@@ -630,6 +631,12 @@ function assertFrontendImprovementSurface() {
 	assert(
 		securitySettingsPage.includes('aria-label={t("settings.security.ipAllowlist")}'),
 		"security IP allowlist is accessible by label",
+	);
+	assert(membersSettingsPage.includes('id="member-invite-email"'), "members invite email exposes a stable UI target");
+	assert(membersSettingsPage.includes('id="member-invite-role"'), "members invite role exposes a stable UI target");
+	assert(
+		membersSettingsPage.includes('aria-label={`${t("common.role")} for ${member.user.email}`}'),
+		"member role controls are accessible per user",
 	);
 	assert(
 		frontendConventions.includes("Every feature API module exports a named query key factory"),
@@ -830,6 +837,12 @@ function assertFrontendImprovementSurface() {
 	assert(e2eReadme.includes("E2E_REUSE_EXISTING_SERVER=true"), "E2E README documents explicit server reuse");
 	assert(e2eSmoke.includes("tenant onboarding smoke renders workflow and command palette"), "E2E smoke covers tenant onboarding");
 	assert(e2eSmoke.includes("tenant security settings smoke saves 2FA policy"), "E2E smoke covers security settings save");
+	assert(
+		e2eSmoke.includes("tenant members smoke invites, updates roles, and cancels invitations"),
+		"E2E smoke covers tenant member management",
+	);
+	assert(e2eSmoke.includes("tenant members smoke accepts invitation links"), "E2E smoke covers invitation acceptance");
+	assert(e2eSmoke.includes("/api/v1/team/invitations"), "E2E smoke mocks team invitation API contracts");
 	assert(e2eSmoke.includes("Admin command"), "E2E smoke covers admin command palette trigger");
 	assert(e2eSmoke.includes("Billing dashboard"), "E2E smoke covers admin command palette routes");
 	assert(e2eSmoke.includes("Operational handoff map"), "E2E smoke covers assisted launch desk");

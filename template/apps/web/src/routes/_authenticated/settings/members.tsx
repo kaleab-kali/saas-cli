@@ -78,17 +78,18 @@ function MembersPage() {
 				</CardHeader>
 				<CardContent className="grid gap-3 md:grid-cols-[1fr_180px_auto] md:items-end">
 					<div>
-						<Label>{t("common.email")}</Label>
+						<Label htmlFor="member-invite-email">{t("common.email")}</Label>
 						<Input
+							id="member-invite-email"
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
 							placeholder={t("settings.membersPage.emailPlaceholder")}
 						/>
 					</div>
 					<div>
-						<Label>{t("common.role")}</Label>
+						<Label htmlFor="member-invite-role">{t("common.role")}</Label>
 						<Select value={role} onValueChange={(value) => setRole(value as TeamRole)}>
-							<SelectTrigger className="w-full">
+							<SelectTrigger id="member-invite-role" className="w-full" aria-label={t("common.role")}>
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
@@ -136,7 +137,7 @@ function MembersPage() {
 												value={member.role}
 												onValueChange={(value) => updateRole.mutate({ id: member.id, role: value as TeamRole })}
 											>
-												<SelectTrigger size="sm">
+												<SelectTrigger size="sm" aria-label={`${t("common.role")} for ${member.user.email}`}>
 													<SelectValue />
 												</SelectTrigger>
 												<SelectContent>
@@ -150,7 +151,12 @@ function MembersPage() {
 										</TableCell>
 										<TableCell className="p-2 text-xs">{new Date(member.createdAt).toLocaleDateString()}</TableCell>
 										<TableCell className="p-2 text-right">
-											<Button size="sm" variant="ghost" onClick={() => remove.mutate(member.id)}>
+											<Button
+												size="sm"
+												variant="ghost"
+												aria-label={`${t("settings.membersPage.remove")} ${member.user.email}`}
+												onClick={() => remove.mutate(member.id)}
+											>
 												{t("settings.membersPage.remove")}
 											</Button>
 										</TableCell>
@@ -201,6 +207,7 @@ function MembersPage() {
 										<Button
 											size="sm"
 											variant="outline"
+											aria-label={`${t("settings.membersPage.copyLink")} ${invitation.email}`}
 											onClick={() =>
 												navigator.clipboard
 													.writeText(
@@ -214,7 +221,12 @@ function MembersPage() {
 											{t("settings.membersPage.copyLink")}
 										</Button>
 										{invitation.status === "pending" && (
-											<Button size="sm" variant="ghost" onClick={() => cancelInvitation.mutate(invitation.id)}>
+											<Button
+												size="sm"
+												variant="ghost"
+												aria-label={`${t("common.cancel")} ${invitation.email}`}
+												onClick={() => cancelInvitation.mutate(invitation.id)}
+											>
 												{t("common.cancel")}
 											</Button>
 										)}
