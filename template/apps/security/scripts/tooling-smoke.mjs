@@ -1,17 +1,25 @@
 import { spawnSync } from "node:child_process";
 
 const tools = [
-	{ command: "gitleaks", versionArgs: ["version"] },
-	{ command: "osv-scanner", versionArgs: ["--version"] },
-	{ command: "semgrep", versionArgs: ["--version"] },
-	{ command: "nuclei", versionArgs: ["-version"] },
+	{ name: "gitleaks", candidates: [{ command: "gitleaks", versionArgs: ["version"] }] },
+	{ name: "osv-scanner", candidates: [{ command: "osv-scanner", versionArgs: ["--version"] }] },
+	{
+		name: "semgrep",
+		candidates: [
+			{ command: "semgrep", versionArgs: ["--version"] },
+			{ command: "python", versionArgs: ["-m", "semgrep", "--version"] },
+		],
+	},
+	{ name: "nuclei", candidates: [{ command: "nuclei", versionArgs: ["-version"] }] },
 ];
 const missingTools = [];
 const unusableTools = [];
 const strict = process.env.SECURITY_STRICT_TOOLS === "1" || process.argv.includes("--strict");
 const timeoutMs = Number(process.env.SECURITY_TOOLING_TIMEOUT_MS ?? 10_000);
 
-const checkTool = ({ command, versionArgs }) => {
+const labelFor = ({ command, versionArgs }) => [command, ...versionArgs].join(" ");
+
+const checkCandidate = ({ command, versionArgs }) => {
 	const result = spawnSync(command, versionArgs, {
 		encoding: "utf8",
 		shell: process.platform === "win32",
@@ -28,12 +36,34 @@ const checkTool = ({ command, versionArgs }) => {
 	return { status: "installed", detail: version };
 };
 
+const checkTool = ({ candidates }) => {
+	const results = candidates.map((candidate) => ({ candidate, result: checkCandidate(candidate) }));
+	const installed = results.find(({ result }) => result.status === "installed");
+	if (installed) {
+		const fallbackDetail = installed.candidate === candidates[0] ? "" : ` via ${labelFor(installed.candidate)}`;
+		return {
+			status: "installed",
+			detail: `${installed.result.detail}${fallbackDetail}`,
+		};
+	}
+	if (results.some(({ result }) => result.status === "unusable")) {
+		return {
+			status: "unusable",
+			detail: results
+				.filter(({ result }) => result.status === "unusable")
+				.map(({ candidate, result }) => `${labelFor(candidate)} ${result.detail}`)
+				.join("; "),
+		};
+	}
+	return { status: "missing" };
+};
+
 for (const tool of tools) {
 	const result = checkTool(tool);
-	if (result.status === "missing") missingTools.push(tool.command);
-	if (result.status === "unusable") unusableTools.push(tool.command);
+	if (result.status === "missing") missingTools.push(tool.name);
+	if (result.status === "unusable") unusableTools.push(tool.name);
 	const detail = result.detail ? ` (${result.detail})` : "";
-	console.log(`${tool.command}: ${result.status}${detail}`);
+	console.log(`${tool.name}: ${result.status}${detail}`);
 }
 
 if ((missingTools.length > 0 || unusableTools.length > 0) && strict) {

@@ -1,7 +1,7 @@
 import { createHash, createHmac } from "node:crypto";
 import * as path from "node:path";
 import { Injectable } from "@nestjs/common";
-import { createId } from "@paralleldrive/cuid2";
+import { createId } from "#shared/lib/id";
 import type { StorageDriver, StoredFile } from "./storage.interface";
 
 const MAX_FILENAME_LENGTH = 80;

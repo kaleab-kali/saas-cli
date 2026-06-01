@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { createId } from "@paralleldrive/cuid2";
 import { PrismaService } from "#shared/database/prisma.service";
+import { createId } from "#shared/lib/id";
 import type { Prisma } from "../../generated/prisma/client";
 
 const ALLOWED_ENTITIES = ["user", "member", "report", "notification"] as const;

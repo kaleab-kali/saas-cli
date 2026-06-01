@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { createId } from "@paralleldrive/cuid2";
 import { UsageTrackerService } from "#modules/billing/application/services/usage-tracker.service";
 import { PrismaService } from "#shared/database/prisma.service";
+import { createId } from "#shared/lib/id";
 import type { InviteMemberDto, TeamRole } from "./team.dto";
 
 const INVITATION_TTL_DAYS = 7;

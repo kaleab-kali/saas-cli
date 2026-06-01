@@ -43,7 +43,6 @@
 		"@nestjs/terminus": "11.1.1",
 		"@nestjs/throttler": "6.5.0",
 		"@nestjs/websockets": "11.1.19",
-		"@paralleldrive/cuid2": "2.3.1",
 		"@prisma/adapter-pg": "7.8.0",
 		"@prisma/client": "7.8.0",
 		"@thallesp/nestjs-better-auth": "2.6.0",

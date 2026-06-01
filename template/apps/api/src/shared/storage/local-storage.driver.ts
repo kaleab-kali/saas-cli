@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
 import { Injectable } from "@nestjs/common";
-import { createId } from "@paralleldrive/cuid2";
+import { createId } from "#shared/lib/id";
 import type { StorageDriver, StoredFile } from "./storage.interface";
 
 const UPLOADS_DIR = path.resolve(process.cwd(), "uploads");

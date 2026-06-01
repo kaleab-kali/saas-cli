@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { createId } from "@paralleldrive/cuid2";
 import { DomainEventBus } from "#shared/events/domain-event.bus";
+import { createId } from "#shared/lib/id";
 import { ReportSchedule } from "../../../domain/entities/report-schedule.entity";
 import { REPORTING_EVENTS } from "../../../domain/events/reporting.events";
 import { ReportScheduleRepository } from "../../../domain/repositories/report-schedule.repository";

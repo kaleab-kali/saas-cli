@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { createId } from "@paralleldrive/cuid2";
 import { PrismaService } from "#shared/database/prisma.service";
+import { createId } from "#shared/lib/id";
 import { KNOWN_LOOKUP_KINDS, LOOKUP_DEFAULTS, type LookupKind } from "./lookup-defaults";
 
 export { KNOWN_LOOKUP_KINDS, type LookupKind } from "./lookup-defaults";

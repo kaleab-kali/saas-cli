@@ -15,6 +15,7 @@
 	"devDependencies": {
 		"@playwright/test": "1.60.0",
 		"@stoplight/spectral-cli": "6.16.0",
-		"@usebruno/cli": "3.4.0"
+		"@usebruno/cli": "3.4.0",
+		"axios": "1.16.0"
 	}
 }

@@ -64,6 +64,7 @@ const mustExist = [
 	"apps/api/src/shared/i18n/money.util.property.spec.ts",
 	"apps/api/src/shared/i18n/phone.util.ts",
 	"apps/api/src/shared/i18n/phone.util.property.spec.ts",
+	"apps/api/src/shared/lib/id.ts",
 	"apps/api/src/shared/rate-limit/rate-limit.config.ts",
 	"apps/api/src/shared/rate-limit/tenant-throttler.guard.ts",
 	"apps/api/src/shared/rate-limit/tenant-throttler.guard.spec.ts",
@@ -240,6 +241,7 @@ function assertDeployGateBuilds() {
 	assert(apiHttpRunner.includes("local deterministic mock API"), "HTTP API command has deterministic mock fallback");
 	assert(apiHttpRunner.includes("scripts/with-mock-api.mjs"), "HTTP API command runs the mock API fallback");
 	assert(apiTestsPackageJson.scripts?.["test:bruno"] === "node scripts/run-bruno.mjs", "Bruno API command uses runner");
+	assert(apiTestsPackageJson.devDependencies?.axios, "Bruno API workspace declares axios for pnpm strict installs");
 	assert(brunoRunner.includes("local deterministic mock API"), "Bruno API command has deterministic mock fallback");
 	assert(brunoRunner.includes("scripts/with-mock-api.mjs"), "Bruno API command runs the mock API fallback");
 	assert(!brunoRunner.includes("Skipping Bruno API collection"), "Bruno API command does not silently skip");
@@ -260,6 +262,8 @@ function assertDeployGateBuilds() {
 	assert(securityTooling.includes("missingTools"), "security tooling smoke tracks missing scanner tools");
 	assert(securityTooling.includes("unusableTools"), "security tooling smoke tracks unusable scanner tools");
 	assert(securityTooling.includes("versionArgs"), "security tooling smoke executes scanner version checks");
+	assert(securityTooling.includes("candidates"), "security tooling smoke supports fallback scanner commands");
+	assert(securityTooling.includes('"python", versionArgs: ["-m", "semgrep", "--version"]'), "security tooling smoke can probe Semgrep through Python");
 	assert(securityTooling.includes("SECURITY_TOOLING_TIMEOUT_MS"), "security tooling smoke bounds scanner version checks");
 	assert(securityTooling.includes('process.argv.includes("--strict")'), "security tooling smoke supports strict CLI mode");
 	assert(securityTooling.includes("SECURITY_STRICT_TOOLS"), "security tooling smoke supports strict production mode");
@@ -301,9 +305,9 @@ function assertDeployGateBuilds() {
 	assert(apiPackageJson.scripts?.["test:unit"] === "jest --runInBand", "API workspace exposes unit test command");
 	assert(apiPackageJson.scripts?.["test:integration"]?.includes("jest-e2e.json"), "API workspace exposes integration test command");
 	assert(
-		apiPackageJson.dependencies?.["@paralleldrive/cuid2"] === "2.3.1",
-		"API uses CommonJS-compatible cuid2",
-		"Nest API builds commonjs, so ESM-only cuid2 releases break Jest and runtime require()",
+		readProjectFile("apps/api/src/shared/lib/id.ts").includes("randomUUID"),
+		"API uses runtime-safe local ID helper",
+		"Nest API builds CommonJS, so direct ESM-only ID dependencies can break Jest and runtime require()",
 	);
 	assert(
 		apiPackageJson.scripts?.["test:mutation:module"] === "node scripts/run-module-mutation.mjs",
@@ -1089,6 +1093,17 @@ function assertApiFormattingPolicy() {
 	assert(sourceSecurity.includes("uses ad hoc formatting"), "source security gate enforces shared i18n formatters");
 }
 
+function assertApiIdPolicy() {
+	const idHelper = readProjectFile("apps/api/src/shared/lib/id.ts");
+	const apiSourceFiles = listProjectFiles("apps/api/src").filter((relPath) => /\.[cm]?[tj]sx?$/.test(relPath));
+	const directCuidImports = apiSourceFiles.filter((relPath) =>
+		readProjectFile(relPath).includes('from "@paralleldrive/cuid2"'),
+	);
+
+	assert(idHelper.includes("randomUUID"), "API source has a local runtime-safe ID helper");
+	assert(directCuidImports.length === 0, "API source avoids direct ESM-only cuid imports", directCuidImports.join(", "));
+}
+
 function assertAdminJobsQueueSurface() {
 	const queueMonitor = readProjectFile("apps/api/src/modules/admin/application/services/queue-monitor.service.ts");
 	const jobsController = readProjectFile("apps/api/src/modules/admin/presentation/controllers/admin-jobs.controller.ts");
@@ -1198,6 +1213,7 @@ async function main() {
 	assertWebBundleImportPolicy();
 	assertWebTableMarkupPolicy();
 	assertApiFormattingPolicy();
+	assertApiIdPolicy();
 	assertAdminJobsQueueSurface();
 	assertWebhookSurface();
 	assertGeneratedSecrets();

@@ -74,9 +74,6 @@ importers:
       '@nestjs/websockets':
         specifier: 11.1.19
         version: 11.1.19(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19)(@nestjs/platform-socket.io@11.1.19)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@paralleldrive/cuid2':
-        specifier: 2.3.1
-        version: 2.3.1
       '@prisma/adapter-pg':
         specifier: 7.8.0
         version: 7.8.0
@@ -252,6 +249,9 @@ importers:
       '@usebruno/cli':
         specifier: 3.4.0
         version: 3.4.0
+      axios:
+        specifier: 1.16.0
+        version: 1.16.0(debug@4.4.3)
 
   apps/e2e:
     devDependencies:

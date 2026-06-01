@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { createId } from "@paralleldrive/cuid2";
+import { createId } from "#shared/lib/id";
 import { BulkCommunication } from "../../../domain/entities/bulk-communication.entity";
 import { BulkCommunicationRepository } from "../../../domain/repositories/bulk-communication.repository";
 import type { AudienceType } from "../../../domain/value-objects/notification.vo";

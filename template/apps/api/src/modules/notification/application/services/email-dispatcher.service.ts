@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { createId } from "@paralleldrive/cuid2";
 import { PrismaService } from "#shared/database/prisma.service";
 import { EmailService } from "#shared/email/email.service";
+import { createId } from "#shared/lib/id";
 
 interface DispatchInput {
 	organizationId: string;

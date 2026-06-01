@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { createId } from "@paralleldrive/cuid2";
 import { DomainEventBus } from "#shared/events/domain-event.bus";
+import { createId } from "#shared/lib/id";
 import { Notification } from "../../../domain/entities/notification.entity";
 import { NOTIFICATION_EVENTS } from "../../../domain/events/notification.events";
 import { NotificationRepository } from "../../../domain/repositories/notification.repository";
