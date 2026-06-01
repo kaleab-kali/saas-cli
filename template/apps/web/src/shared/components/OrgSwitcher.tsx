@@ -42,17 +42,17 @@ export const OrgSwitcher = React.memo(
 		return (
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
-					<SidebarMenuButton size="lg" className="w-full">
+					<SidebarMenuButton
+						size="lg"
+						className="h-11 w-full rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-2.5"
+					>
 						<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
 							<HugeiconsIcon icon={Building06Icon} size={16} />
 						</div>
-						<div className="grid flex-1 text-left text-sm leading-tight">
+						<div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
 							<span className="truncate font-semibold">{activeName}</span>
-							<span className="truncate text-xs text-muted-foreground">
-								{t("common.currentTenant", { defaultValue: "Current tenant" })}
-							</span>
 						</div>
-						<HugeiconsIcon icon={Sorting01Icon} size={16} className="ml-auto" />
+						<HugeiconsIcon icon={Sorting01Icon} size={16} className="ml-auto group-data-[collapsible=icon]:hidden" />
 					</SidebarMenuButton>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-56" align="start">

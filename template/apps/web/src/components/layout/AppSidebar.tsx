@@ -1,6 +1,5 @@
 import ChartLineData02Icon from "@hugeicons/core-free-icons/ChartLineData02Icon";
 import DashboardSquare01Icon from "@hugeicons/core-free-icons/DashboardSquare01Icon";
-import Home02Icon from "@hugeicons/core-free-icons/Home02Icon";
 import Megaphone01Icon from "@hugeicons/core-free-icons/Megaphone01Icon";
 import Settings02Icon from "@hugeicons/core-free-icons/Settings02Icon";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -75,7 +74,6 @@ const NAV_ITEMS: readonly NavItemDef[] = [
 ] as const;
 
 const SETTINGS_ITEM = { labelKey: "sidebar.settings", to: "/settings", icon: Settings02Icon } as const;
-const APP_NAME = import.meta.env.VITE_APP_NAME ?? "SaaS";
 
 const NavItem = React.memo(
 	({
@@ -171,15 +169,6 @@ export const AppSidebar = React.memo(() => {
 	return (
 		<Sidebar collapsible="icon">
 			<SidebarHeader className="border-b border-sidebar-border p-2">
-				<div className="flex items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/60 px-2.5 py-2">
-					<div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-						<HugeiconsIcon icon={Home02Icon} size={18} />
-					</div>
-					<div className="min-w-0 group-data-[collapsible=icon]:hidden">
-						<div className="truncate text-sm font-semibold">{APP_NAME}</div>
-						<div className="truncate text-xs text-sidebar-foreground/60">Tenant console</div>
-					</div>
-				</div>
 				<OrgSwitcher />
 			</SidebarHeader>
 			<SidebarContent>
@@ -196,15 +185,6 @@ export const AppSidebar = React.memo(() => {
 								/>
 							))}
 						</SidebarMenu>
-					</SidebarGroupContent>
-				</SidebarGroup>
-				<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-					<SidebarGroupLabel>Setup status</SidebarGroupLabel>
-					<SidebarGroupContent>
-						<div className="mx-2 rounded-lg border border-sidebar-border bg-sidebar-accent/45 p-3 text-xs">
-							<div className="font-medium text-sidebar-foreground">Onboarding active</div>
-							<div className="mt-1 text-sidebar-foreground/62">Finish setup first, then add vertical modules.</div>
-						</div>
 					</SidebarGroupContent>
 				</SidebarGroup>
 			</SidebarContent>

@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
 import vm from "node:vm";
 
@@ -111,6 +112,26 @@ const samplePlan = {
 	entitlements: [{ featureKey: "platform.api-keys", enabled: true, limit: 25 }],
 };
 
+const sampleStarterPlan = {
+	id: "plan_starter",
+	slug: "starter",
+	nameEn: "Starter",
+	nameAm: "Starter",
+	description: "Entry plan for small tenant teams",
+	priceMonthlyMinor: 150000,
+	priceAnnualMinor: 1500000,
+	currency: "ETB",
+	userCap: 5,
+	supportSlaHours: 72,
+	stripeSupported: false,
+	stripePriceIdMonthly: null,
+	stripePriceIdAnnual: null,
+	chapaSupported: true,
+	manualSupported: true,
+	sortOrder: 5,
+	entitlements: [{ featureKey: "platform.api-keys", enabled: true, limit: 5 }],
+};
+
 const sampleInvoice = {
 	id: "invoice_smoke",
 	number: "INV-1001",
@@ -200,11 +221,17 @@ async function waitForServer(url) {
 
 function startWebServer() {
 	if (process.env.UI_AUDIT_BASE_URL) return null;
-	const command = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-	const child = spawn(command, ["exec", "vite", "--host", "127.0.0.1", "--port", String(port)], {
+	const command =
+		process.platform === "win32"
+			? join(process.env.SystemRoot ?? "C:\\WINDOWS", "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
+			: "pnpm";
+	const args =
+		process.platform === "win32"
+			? ["-NoProfile", "-Command", `pnpm exec vite --host 127.0.0.1 --port ${port}`]
+			: ["exec", "vite", "--host", "127.0.0.1", "--port", String(port)];
+	const child = spawn(command, args, {
 		cwd: webRoot,
 		env: { ...process.env, BROWSER: "none" },
-		shell: process.platform === "win32",
 		stdio: ["ignore", "pipe", "pipe"],
 		windowsHide: true,
 	});
@@ -271,7 +298,27 @@ async function installTenantAuditMocks(page) {
 			return;
 		}
 		if (pathname === "/api/v1/billing/plans") {
-			await route.fulfill(ok([samplePlan]));
+			await route.fulfill(ok([sampleStarterPlan, samplePlan]));
+			return;
+		}
+		if (pathname === "/api/v1/billing/subscription/change-plan" && request.method() === "POST") {
+			await route.fulfill(ok({ changed: true }));
+			return;
+		}
+		if (pathname === "/api/v1/billing/subscription" && request.method() === "POST") {
+			await route.fulfill(ok({ started: true }));
+			return;
+		}
+		if (pathname === "/api/v1/billing/payments/manual" && request.method() === "POST") {
+			await route.fulfill(ok({ id: "manual_payment_smoke", verified: false }));
+			return;
+		}
+		if (pathname === "/api/v1/billing/chapa/initiate" && request.method() === "POST") {
+			await route.fulfill(ok({ checkoutUrl: `${baseURL}/mock-checkout/chapa`, txRef: "CHAPA-SMOKE" }));
+			return;
+		}
+		if (pathname === "/api/v1/billing/stripe/initiate" && request.method() === "POST") {
+			await route.fulfill(ok({ checkoutUrl: `${baseURL}/mock-checkout/stripe` }));
 			return;
 		}
 		if (pathname === "/api/v1/billing/subscription") {
@@ -506,6 +553,358 @@ async function capture(page, group, name, routePath) {
 	};
 }
 
+async function captureCurrent(page, group, name, routePath, description) {
+	const file = join(outputRoot, group, `${name}.png`);
+	await mkdir(dirname(file), { recursive: true });
+	const errors = [];
+	page.on("pageerror", (error) => errors.push(error.message));
+	console.log(`Capturing ${group}/${name} ${routePath}`);
+	await page.waitForLoadState("networkidle", { timeout: 4_000 }).catch(() => undefined);
+	await page.waitForTimeout(250);
+	await page.screenshot({ path: file, fullPage: true });
+	const title = await page.title().catch(() => "");
+	const h1 = await page.locator("h1").first().textContent({ timeout: 1000 }).catch(() => "");
+	const rawI18nText = await page.evaluate(() =>
+		Array.from(new Set(document.body.innerText.split(/\n+/).map((text) => text.trim()).filter(Boolean)))
+			.filter((text) => /\b[a-z][a-z0-9]*(?:\.[a-zA-Z0-9_{}-]+){1,}\b/.test(text))
+			.filter((text) => !text.includes("@") && !/^https?:\/\//.test(text))
+			.filter((text) => !text.includes("e.g."))
+			.filter((text) => !/^(platform|billing|dunning|tenant)\./.test(text))
+			.slice(0, 25),
+	);
+	return {
+		group,
+		name,
+		kind: "flow",
+		path: routePath,
+		status: null,
+		title,
+		heading: h1?.trim() ?? "",
+		description,
+		screenshot: file,
+		relativeScreenshot: relative(repoRoot, file),
+		pageErrors: errors,
+		rawI18nText,
+	};
+}
+
+async function gotoFlow(page, routePath) {
+	await page.goto(`${baseURL}${routePath}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+	await page.waitForLoadState("networkidle", { timeout: 4_000 }).catch(() => undefined);
+	await page.waitForTimeout(250);
+}
+
+async function captureTenantFlows(page, manifest) {
+	await gotoFlow(page, "/onboarding");
+	await page.getByRole("button", { name: /Demo Cafe|Select tenant/i }).first().click();
+	manifest.push(
+		await captureCurrent(
+			page,
+			"tenant-flows",
+			"tenant-org-switcher-open",
+			"/onboarding#org-switcher",
+			"Tenant sidebar top control open, showing organization switch/create actions.",
+		),
+	);
+
+	await gotoFlow(page, "/settings/members");
+	await page.getByLabel("Email").fill("new.member@example.test");
+	await page.locator("#member-invite-role").click();
+	manifest.push(
+		await captureCurrent(
+			page,
+			"tenant-flows",
+			"tenant-members-invite-role-select",
+			"/settings/members#invite-role",
+			"Tenant member invitation form with role picker open.",
+		),
+	);
+
+	await gotoFlow(page, "/settings/roles");
+	await page.getByRole("button", { name: "New custom role" }).click();
+	await page.getByLabel("Name (English)").fill("Operations Lead");
+	await page.getByLabel("Description").fill("Can manage operations and reporting.");
+	manifest.push(
+		await captureCurrent(
+			page,
+			"tenant-flows",
+			"tenant-roles-create-step-1",
+			"/settings/roles#create-role-step-1",
+			"Tenant custom role creation dialog, basics step.",
+		),
+	);
+	await page.getByRole("button", { name: "Next" }).click();
+	manifest.push(
+		await captureCurrent(
+			page,
+			"tenant-flows",
+			"tenant-roles-create-step-2",
+			"/settings/roles#create-role-step-2",
+			"Tenant custom role creation dialog, permission selection step.",
+		),
+	);
+
+	await gotoFlow(page, "/settings/api-keys");
+	await page.getByRole("button", { name: "New key" }).click();
+	await page.getByLabel("Name").fill("Reporting automation");
+	await page.getByLabel("read:report").check();
+	manifest.push(
+		await captureCurrent(
+			page,
+			"tenant-flows",
+			"tenant-api-key-create-dialog",
+			"/settings/api-keys#create-api-key",
+			"Tenant API key creation dialog with scoped access selected.",
+		),
+	);
+
+	await gotoFlow(page, "/settings/billing");
+	await page.getByRole("button", { name: "Annual" }).click();
+	manifest.push(
+		await captureCurrent(
+			page,
+			"tenant-flows",
+			"tenant-billing-annual-plans",
+			"/settings/billing#annual-plans",
+			"Tenant billing page with annual interval selected across available plans.",
+		),
+	);
+	await page.getByRole("button", { name: "Manual" }).first().click();
+	await page.getByLabel(/Receipt number/i).fill("RCPT-AUDIT-001");
+	await page.getByLabel(/Bank reference/i).fill("BANK-AUDIT-001");
+	manifest.push(
+		await captureCurrent(
+			page,
+			"tenant-flows",
+			"tenant-billing-manual-payment-dialog",
+			"/settings/billing#manual-payment",
+			"Tenant invoice manual payment dialog.",
+		),
+	);
+
+	await gotoFlow(page, "/reports/new");
+	await page.getByPlaceholder("Weekly usage summary").fill("Weekly member activity");
+	await page.locator("input").nth(1).fill("Operations view by role and creation date.");
+	await page.getByRole("checkbox", { name: "name" }).first().check();
+	await page.getByRole("checkbox", { name: "role" }).first().check();
+	await page.getByRole("checkbox", { name: "role" }).last().check();
+	manifest.push(
+		await captureCurrent(
+			page,
+			"tenant-flows",
+			"tenant-report-builder-filled",
+			"/reports/new#builder-filled",
+			"Tenant custom report builder with selected columns and grouping.",
+		),
+	);
+
+	await gotoFlow(page, "/reports/schedules");
+	await page.getByRole("button", { name: "New schedule" }).click();
+	await page.getByRole("combobox").first().click();
+	await page.getByRole("option", { name: "Usage overview" }).click();
+	await page.getByPlaceholder("owner@example.com, ops@example.com").fill("owner@example.test");
+	manifest.push(
+		await captureCurrent(
+			page,
+			"tenant-flows",
+			"tenant-report-schedule-dialog",
+			"/reports/schedules#new-schedule",
+			"Tenant saved report schedule dialog.",
+		),
+	);
+
+	await gotoFlow(page, "/notifications/templates");
+	await page.getByRole("button", { name: "New template" }).click();
+	await page.getByPlaceholder("billing.invoice.created").fill("billing.invoice.created");
+	await page.getByPlaceholder("Your invoice is ready").fill("Invoice ready");
+	await page.locator("textarea").first().fill("<p>Your invoice {{invoiceNumber}} is ready.</p>");
+	manifest.push(
+		await captureCurrent(
+			page,
+			"tenant-flows",
+			"tenant-notification-template-dialog",
+			"/notifications/templates#new-template",
+			"Tenant notification template creation dialog.",
+		),
+	);
+}
+
+async function captureAdminFlows(page, manifest) {
+	await gotoFlow(page, "/admin/plans/new");
+	await page.getByLabel(/Slug/i).fill("growth");
+	await page.getByLabel(/Name \(English\)/i).fill("Growth");
+	await page.getByLabel(/Name \(Amharic\)/i).fill("Growth");
+	await page.getByLabel("Description").fill("Higher limits for scaling tenants.");
+	await page.getByLabel(/Monthly/i).fill("900000");
+	await page.getByLabel(/Annual/i).fill("9000000");
+	await page.getByLabel(/User Cap/i).fill("75");
+	manifest.push(
+		await captureCurrent(
+			page,
+			"admin-flows",
+			"admin-plan-new-filled",
+			"/admin/plans/new#filled",
+			"Super-admin plan creation form with pricing, currency, and limits.",
+		),
+	);
+
+	await gotoFlow(page, "/admin/plans/plan_pro");
+	await page.getByLabel("Name (English)").fill("Pro Plus");
+	await page.getByRole("row", { name: /platform\.reports/ }).getByRole("switch").click();
+	await page.getByRole("row", { name: /platform\.reports/ }).getByRole("spinbutton").fill("15");
+	manifest.push(
+		await captureCurrent(
+			page,
+			"admin-flows",
+			"admin-plan-detail-entitlements-edit",
+			"/admin/plans/plan_pro#entitlements-edit",
+			"Super-admin plan detail editing form and entitlement matrix.",
+		),
+	);
+
+	await gotoFlow(page, "/admin/billing/sub_smoke");
+	await page.getByRole("button", { name: "Pay" }).click();
+	const paymentDialog = page.getByRole("dialog", { name: /Record payment/i });
+	await paymentDialog.getByRole("spinbutton", { name: /Amount/i }).fill("450000");
+	await paymentDialog.getByLabel(/Receipt No/i).fill("RCPT-ADMIN-001");
+	await paymentDialog.getByLabel(/Bank Ref/i).fill("BANK-ADMIN-001");
+	manifest.push(
+		await captureCurrent(
+			page,
+			"admin-flows",
+			"admin-subscription-record-payment-dialog",
+			"/admin/billing/sub_smoke#record-payment",
+			"Super-admin subscription invoice record-payment dialog.",
+		),
+	);
+
+	await gotoFlow(page, "/admin/billing/sub_smoke");
+	await page.getByRole("tab", { name: "Actions" }).click();
+	manifest.push(
+		await captureCurrent(
+			page,
+			"admin-flows",
+			"admin-subscription-actions-tab",
+			"/admin/billing/sub_smoke#actions",
+			"Super-admin subscription actions for extension, credit, plan change, and status override.",
+		),
+	);
+
+	await page.getByRole("combobox").first().click();
+	manifest.push(
+		await captureCurrent(
+			page,
+			"admin-flows",
+			"admin-subscription-change-plan-select",
+			"/admin/billing/sub_smoke#change-plan",
+			"Super-admin subscription change-plan select menu.",
+		),
+	);
+
+	await gotoFlow(page, "/admin/billing/sub_smoke");
+	await page.getByRole("tab", { name: /Dunning/i }).click();
+	manifest.push(
+		await captureCurrent(
+			page,
+			"admin-flows",
+			"admin-subscription-dunning-tab",
+			"/admin/billing/sub_smoke#dunning",
+			"Super-admin subscription dunning controls and history.",
+		),
+	);
+
+	await gotoFlow(page, "/admin/billing/sub_smoke");
+	await page.getByRole("tab", { name: "Usage" }).click();
+	manifest.push(
+		await captureCurrent(
+			page,
+			"admin-flows",
+			"admin-subscription-usage-tab",
+			"/admin/billing/sub_smoke#usage",
+			"Super-admin subscription usage history table.",
+		),
+	);
+}
+
+const escapeHtml = (value) =>
+	String(value)
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;");
+
+function relativeWebPath(file) {
+	return relative(outputRoot, file).replaceAll("\\", "/");
+}
+
+function renderGalleryHtml(entries, title) {
+	const items = entries
+		.map(
+			(entry) => `
+				<article class="tile">
+					<img src="${escapeHtml(relativeWebPath(entry.screenshot))}" alt="${escapeHtml(entry.name)}" />
+					<div class="meta">
+						<div class="name">${escapeHtml(entry.name)}</div>
+						<div class="path">${escapeHtml(entry.path)}</div>
+						${entry.description ? `<div class="description">${escapeHtml(entry.description)}</div>` : ""}
+					</div>
+				</article>`,
+		)
+		.join("\n");
+	return `<!doctype html>
+		<html lang="en">
+			<head>
+				<meta charset="utf-8" />
+				<title>${escapeHtml(title)}</title>
+				<style>
+					:root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+					body { margin: 0; background: #f7f7f5; color: #171717; }
+					header { position: sticky; top: 0; z-index: 1; border-bottom: 1px solid #deded8; background: rgba(247,247,245,.94); padding: 18px 24px; backdrop-filter: blur(8px); }
+					h1 { margin: 0; font-size: 22px; }
+					.count { margin-top: 4px; color: #6b6b63; font-size: 13px; }
+					main { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 18px 24px 28px; }
+					.tile { overflow: hidden; border: 1px solid #ddddd5; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+					img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: top left; border-bottom: 1px solid #e7e7df; background: #f4f4ef; }
+					.meta { padding: 10px 12px 12px; min-height: 82px; }
+					.name { font-size: 13px; font-weight: 700; }
+					.path { margin-top: 3px; font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; color: #76766e; }
+					.description { margin-top: 7px; color: #494943; font-size: 12px; line-height: 1.35; }
+				</style>
+			</head>
+			<body>
+				<header>
+					<h1>${escapeHtml(title)}</h1>
+					<div class="count">${entries.length} screenshots</div>
+				</header>
+				<main>${items}</main>
+			</body>
+		</html>`;
+}
+
+async function writeGallery(browser, manifest) {
+	const groups = [...new Set(manifest.map((entry) => entry.group))];
+	const indexSections = groups
+		.map((group) => {
+			const entries = manifest.filter((entry) => entry.group === group);
+			return `<section><h2>${escapeHtml(group)}</h2><p>${entries.length} screenshots</p><a href="${group}.html">${group}.html</a></section>`;
+		})
+		.join("\n");
+	await writeFile(
+		join(outputRoot, "index.html"),
+		`<!doctype html><html lang="en"><head><meta charset="utf-8" /><title>Base UI Audit</title><style>body{font-family:Inter,system-ui,sans-serif;margin:24px;background:#f7f7f5;color:#171717}section{margin:0 0 16px;padding:16px;border:1px solid #ddd;background:#fff;border-radius:8px}a{color:#155eef}</style></head><body><h1>Base UI Audit</h1>${indexSections}</body></html>`,
+	);
+	for (const group of groups) {
+		const entries = manifest.filter((entry) => entry.group === group);
+		const htmlPath = join(outputRoot, `${group}.html`);
+		const sheetPath = join(outputRoot, `${group}-contact-sheet.png`);
+		await writeFile(htmlPath, renderGalleryHtml(entries, `Base UI Audit: ${group}`));
+		const galleryPage = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+		await galleryPage.goto(pathToFileURL(htmlPath).href, { waitUntil: "networkidle" });
+		await galleryPage.screenshot({ path: sheetPath, fullPage: true });
+		await galleryPage.close();
+	}
+}
+
 async function run() {
 	const server = startWebServer();
 	try {
@@ -535,6 +934,7 @@ async function run() {
 			for (const [name, routePath] of tenantRoutes) {
 				manifest.push(await capture(tenantPage, "tenant", name, routePath));
 			}
+			await captureTenantFlows(tenantPage, manifest);
 			await tenantPage.close();
 
 			const adminPage = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
@@ -543,7 +943,10 @@ async function run() {
 			for (const [name, routePath] of adminRoutes) {
 				manifest.push(await capture(adminPage, "admin", name, routePath));
 			}
+			await captureAdminFlows(adminPage, manifest);
 			await adminPage.close();
+
+			await writeGallery(browser, manifest);
 		} finally {
 			await browser.close();
 		}

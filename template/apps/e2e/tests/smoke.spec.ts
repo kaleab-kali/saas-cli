@@ -297,6 +297,83 @@ async function installAuthenticatedMocks(page: Page) {
 			updatedAt: now(),
 		},
 	];
+	const tenantPlans = [
+		{
+			id: "plan_starter",
+			slug: "starter",
+			nameEn: "Starter",
+			nameAm: "Starter",
+			description: "Entry plan for small tenant teams",
+			priceMonthlyMinor: 150000,
+			priceAnnualMinor: 1500000,
+			currency: "ETB",
+			userCap: 5,
+			supportSlaHours: 72,
+			stripeSupported: false,
+			stripePriceIdMonthly: null,
+			stripePriceIdAnnual: null,
+			chapaSupported: true,
+			manualSupported: true,
+			sortOrder: 5,
+			entitlements: [],
+		},
+		{
+			id: "plan_pro",
+			slug: "pro",
+			nameEn: "Pro",
+			nameAm: "Pro",
+			description: "Production plan for growing tenants",
+			priceMonthlyMinor: 450000,
+			priceAnnualMinor: 4500000,
+			currency: "ETB",
+			userCap: 25,
+			supportSlaHours: 24,
+			stripeSupported: false,
+			stripePriceIdMonthly: null,
+			stripePriceIdAnnual: null,
+			chapaSupported: true,
+			manualSupported: true,
+			sortOrder: 10,
+			entitlements: [],
+		},
+	];
+	let tenantSubscription = {
+		id: "tenant_sub_smoke",
+		organizationId: "org_smoke",
+		planId: "plan_pro",
+		planSlug: "pro",
+		status: "active",
+		billingInterval: "monthly",
+		currency: "ETB",
+		gateway: "manual",
+		currentPeriodStart: now(),
+		currentPeriodEnd: now(),
+		canceledAt: null,
+		cancelAtPeriodEnd: false,
+		trialEndsAt: null,
+		creditBalanceMinor: 0,
+	};
+	let tenantInvoice = {
+		id: "tenant_invoice_smoke",
+		number: "INV-TENANT-001",
+		status: "sent",
+		issueDate: now(),
+		dueDate: now(),
+		periodStart: now(),
+		periodEnd: now(),
+		currency: "ETB",
+		subtotalMinor: 450000,
+		taxMinor: 0,
+		totalMinor: 450000,
+		amountPaidMinor: 0,
+		lineType: "subscription",
+		description: "Pro monthly subscription",
+		stripeInvoiceId: null,
+		chapaTxRef: null,
+		checkoutUrl: null,
+		pdfUrl: null,
+		paidAt: null,
+	};
 
 	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: this e2e mock dispatches many independent tenant API fixtures.
 	await page.route("**/api/v1/**", async (route: Route) => {
@@ -324,6 +401,71 @@ async function installAuthenticatedMocks(page: Page) {
 					},
 				}),
 			);
+			return;
+		}
+		if (pathname === "/api/v1/billing/plans") {
+			await route.fulfill(ok({ data: tenantPlans }));
+			return;
+		}
+		if (pathname === "/api/v1/billing/subscription") {
+			if (route.request().method() === "POST") {
+				const body = JSON.parse(route.request().postData() ?? "{}");
+				tenantSubscription = {
+					...tenantSubscription,
+					planSlug: body.planSlug,
+					billingInterval: body.billingInterval ?? "monthly",
+				};
+				await route.fulfill(ok({ data: tenantSubscription }));
+				return;
+			}
+			await route.fulfill(
+				ok({
+					data: {
+						subscription: tenantSubscription,
+						plan: tenantPlans.find((plan) => plan.slug === tenantSubscription.planSlug) ?? tenantPlans[0],
+					},
+				}),
+			);
+			return;
+		}
+		if (pathname === "/api/v1/billing/subscription/change-plan" && route.request().method() === "POST") {
+			const body = JSON.parse(route.request().postData() ?? "{}");
+			tenantSubscription = {
+				...tenantSubscription,
+				planSlug: body.planSlug,
+				billingInterval: body.billingInterval ?? tenantSubscription.billingInterval,
+			};
+			await route.fulfill(ok({ data: tenantSubscription }));
+			return;
+		}
+		if (pathname === "/api/v1/billing/usage") {
+			await route.fulfill(
+				ok({
+					data: {
+						userCount: 2,
+						apiCallCount: 128,
+						emailCount: 6,
+						caps: { users: 25 },
+						usagePct: { users: 8 },
+						metrics: { reports: 3 },
+					},
+				}),
+			);
+			return;
+		}
+		if (pathname === "/api/v1/billing/invoices") {
+			await route.fulfill(ok({ data: [tenantInvoice], meta: { total: 1 } }));
+			return;
+		}
+		if (pathname === "/api/v1/billing/payments/manual" && route.request().method() === "POST") {
+			const body = JSON.parse(route.request().postData() ?? "{}");
+			tenantInvoice = {
+				...tenantInvoice,
+				status: body.amountMinor >= tenantInvoice.totalMinor ? "paid" : tenantInvoice.status,
+				amountPaidMinor: body.amountMinor,
+				paidAt: body.paidAt ?? now(),
+			};
+			await route.fulfill(ok({ data: { id: "tenant_payment_smoke", ...body, verified: false } }));
 			return;
 		}
 		if (url.includes("/notifications/stream")) {
@@ -1824,6 +1966,46 @@ test("tenant API keys smoke creates and revokes scoped keys", async ({ page }) =
 	await page.getByRole("button", { name: "Revoke Automation token" }).click();
 	await revokeRequest;
 	await expect(page.getByRole("row", { name: /Automation token/ })).toContainText("Revoked");
+
+	assertNoErrors();
+});
+
+test("tenant billing smoke renders plans and records manual payment", async ({ page }) => {
+	const assertNoErrors = await expectNoConsoleErrors(page);
+	await installAuthenticatedMocks(page);
+
+	await page.goto("/settings/billing", { waitUntil: "networkidle" });
+
+	await expect(page.getByRole("heading", { name: "Billing" })).toBeVisible();
+	await expect(page.getByText("Current subscription")).toBeVisible();
+	await expect(page.getByText("Production plan for growing tenants")).toBeVisible();
+	await expect(page.getByText("Starter", { exact: true })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Annual" })).toBeVisible();
+	await expect(page.getByRole("cell", { name: "INV-TENANT-001" })).toBeVisible();
+
+	await page.getByRole("button", { name: "Annual" }).click();
+	await expect(page.getByRole("button", { name: "Choose plan" })).toBeVisible();
+
+	await page.getByRole("button", { name: "Manual" }).click();
+	const paymentDialog = page.getByRole("dialog", { name: "Record manual payment" });
+	await expect(paymentDialog).toBeVisible();
+	await paymentDialog.getByRole("spinbutton", { name: "Amount (minor units)" }).fill("450000");
+	await paymentDialog.getByRole("textbox", { name: "Receipt number" }).fill("RCPT-TENANT-001");
+	await paymentDialog.getByRole("textbox", { name: "Bank reference" }).fill("BANK-TENANT-001");
+	await paymentDialog.getByRole("textbox", { name: "Note" }).fill("Confirmed by finance");
+	const paymentRequest = page.waitForRequest(
+		(request) => request.url().includes("/api/v1/billing/payments/manual") && request.method() === "POST",
+	);
+	await paymentDialog.getByRole("button", { name: "Submit payment" }).click();
+	expect(JSON.parse((await paymentRequest).postData() ?? "{}")).toMatchObject({
+		invoiceId: "tenant_invoice_smoke",
+		amountMinor: 450000,
+		method: "manual_bank",
+		receiptNumber: "RCPT-TENANT-001",
+		bankReference: "BANK-TENANT-001",
+		note: "Confirmed by finance",
+	});
+	await expect(page.getByRole("row", { name: /INV-TENANT-001/ })).toContainText("paid");
 
 	assertNoErrors();
 });

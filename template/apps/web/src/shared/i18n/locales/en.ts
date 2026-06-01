@@ -43,7 +43,7 @@ export const en = {
 		saveFailed: "Could not save changes",
 		retry: "Retry",
 		currentTenant: "Current tenant",
-		selectOrganization: "Select organization",
+		selectOrganization: "Select tenant",
 		organizationsLabel: "Organizations",
 		createOrganization: "Create organization",
 		somethingWentWrong: "Something went wrong",
