@@ -14,7 +14,7 @@ export const TopBar = React.memo(() => {
 			<SidebarTrigger className="-ml-1" />
 			<Separator orientation="vertical" className="h-5" />
 			<div className="min-w-0">
-				<p className="truncate text-sm font-medium">Workspace command center</p>
+				<p className="truncate text-sm font-medium">Tenant command center</p>
 				<p className="hidden truncate text-xs text-muted-foreground sm:block">
 					Onboarding, reports, notifications, and settings are one command away.
 				</p>

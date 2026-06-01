@@ -177,7 +177,7 @@ export const AppSidebar = React.memo(() => {
 					</div>
 					<div className="min-w-0 group-data-[collapsible=icon]:hidden">
 						<div className="truncate text-sm font-semibold">{APP_NAME}</div>
-						<div className="truncate text-xs text-sidebar-foreground/60">Tenant workspace</div>
+						<div className="truncate text-xs text-sidebar-foreground/60">Tenant console</div>
 					</div>
 				</div>
 				<OrgSwitcher />
@@ -199,11 +199,11 @@ export const AppSidebar = React.memo(() => {
 					</SidebarGroupContent>
 				</SidebarGroup>
 				<SidebarGroup className="group-data-[collapsible=icon]:hidden">
-					<SidebarGroupLabel>Launch status</SidebarGroupLabel>
+					<SidebarGroupLabel>Setup status</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<div className="mx-2 rounded-lg border border-sidebar-border bg-sidebar-accent/45 p-3 text-xs">
-							<div className="font-medium text-sidebar-foreground">Concierge setup ready</div>
-							<div className="mt-1 text-sidebar-foreground/62">Use onboarding first, then attach vertical packs.</div>
+							<div className="font-medium text-sidebar-foreground">Onboarding active</div>
+							<div className="mt-1 text-sidebar-foreground/62">Finish setup first, then add vertical modules.</div>
 						</div>
 					</SidebarGroupContent>
 				</SidebarGroup>

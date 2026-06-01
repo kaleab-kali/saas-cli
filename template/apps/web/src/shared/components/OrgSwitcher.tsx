@@ -49,7 +49,7 @@ export const OrgSwitcher = React.memo(
 						<div className="grid flex-1 text-left text-sm leading-tight">
 							<span className="truncate font-semibold">{activeName}</span>
 							<span className="truncate text-xs text-muted-foreground">
-								{t("common.workspace", { defaultValue: "Workspace" })}
+								{t("common.currentTenant", { defaultValue: "Current tenant" })}
 							</span>
 						</div>
 						<HugeiconsIcon icon={Sorting01Icon} size={16} className="ml-auto" />

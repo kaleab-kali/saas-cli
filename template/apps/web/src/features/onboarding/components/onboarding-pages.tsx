@@ -41,6 +41,7 @@ const statusVariant = (status: string) => {
 };
 
 const modeLabel = (mode: OnboardingMode) => mode.replace("_", " ");
+const tenantModeLabel = (mode: OnboardingMode) => (mode === "CONCIERGE" ? "ASSISTED" : modeLabel(mode));
 const statusFilters = ["ALL", "ACTIVE", "COMPLETED", "BLOCKED", "CANCELLED"] as const;
 const modeFilters = ["ALL", "CONCIERGE", "SELF_SERVICE", "HYBRID"] as const;
 const staleFilters = ["ALL", "5", "10", "15"] as const;
@@ -101,6 +102,8 @@ const currentStep = (task: OnboardingTask) =>
 	task.steps.find((step) => step.status !== "COMPLETED") ??
 	null;
 
+const tenantAssigneeLabel = (assigneeType: string) => (assigneeType === "TENANT" ? "You" : "Support");
+
 const currentStepDays = (task: OnboardingTask) => daysSince(currentStep(task)?.startedAt ?? task.startedAt);
 
 const averageCompletedDays = (tasks: readonly OnboardingTask[]) => {
@@ -144,11 +147,13 @@ function StepList({
 	onComplete,
 	isCompleting,
 	tenantOnly,
+	tenantLabels,
 }: {
 	readonly steps: readonly OnboardingStep[];
 	readonly onComplete?: (step: OnboardingStep) => void;
 	readonly isCompleting?: boolean;
 	readonly tenantOnly?: boolean;
+	readonly tenantLabels?: boolean;
 }) {
 	return (
 		<ol className="space-y-3">
@@ -177,7 +182,9 @@ function StepList({
 									<div className="flex flex-wrap items-center gap-2">
 										<h3 className="font-medium">{step.title}</h3>
 										<Badge variant={statusVariant(step.status)}>{step.status.replace("_", " ")}</Badge>
-										<Badge variant="outline">{step.assigneeType}</Badge>
+										<Badge variant="outline">
+											{tenantLabels ? tenantAssigneeLabel(step.assigneeType) : step.assigneeType}
+										</Badge>
 										<Badge variant="secondary">{step.category}</Badge>
 									</div>
 									{step.description && <p className="text-sm text-muted-foreground">{step.description}</p>}
@@ -295,14 +302,14 @@ function OnboardingConsoleBand({
 						</Badge>
 					</div>
 					<div className="space-y-2">
-						<h2 className="text-2xl font-semibold tracking-normal">Concierge launch workflow</h2>
+						<h2 className="text-2xl font-semibold tracking-normal">Your setup checklist</h2>
 						<p className="max-w-2xl text-sm leading-6 text-white/65">
-							The base template now treats tenant setup as an operational workflow: staff-assisted by default,
-							self-service when appropriate, and starter-pack ready for EIMS or any future vertical.
+							Complete the steps needed to make this tenant ready. Items marked You can be finished here; items marked
+							Support are handled by your support team.
 						</p>
 					</div>
 					<div className="grid gap-2 sm:grid-cols-3">
-						{["Collect tenant details", "Complete assisted setup", "Verify first live action"].map((item, index) => (
+						{["Confirm company profile", "Invite your team", "Support go-live review"].map((item, index) => (
 							<div key={item} className="rounded-md border border-white/10 bg-white/[0.04] p-3">
 								<div className="font-mono text-xs text-white/40">0{index + 1}</div>
 								<div className="mt-2 text-sm font-medium">{item}</div>
@@ -312,10 +319,9 @@ function OnboardingConsoleBand({
 				</div>
 				<div className="rounded-lg border border-white/10 bg-white/[0.05] p-4">
 					<div className="text-xs font-medium uppercase text-white/45">Current action</div>
-					<div className="mt-3 text-xl font-semibold">{current?.title ?? "Ready to create workflow"}</div>
+					<div className="mt-3 text-xl font-semibold">{current?.title ?? "Waiting for setup to start"}</div>
 					<p className="mt-2 text-sm leading-6 text-white/62">
-						{current?.description ??
-							"Create or assign a tenant workflow from the admin onboarding queue to start tracking setup."}
+						{current?.description ?? "Your next setup action appears here once support starts the onboarding workflow."}
 					</p>
 					<div className="mt-5">
 						<ProgressBar {...progress} />
@@ -328,24 +334,24 @@ function OnboardingConsoleBand({
 
 const assistedLaunchLanes = [
 	{
-		title: "Tenant intake",
-		owner: "Staff",
-		detail: "Business identity, payment evidence, contact channel, and support owner.",
+		title: "Company profile",
+		owner: "You",
+		detail: "Confirm legal name, tax ID, currency, timezone, and operating details.",
 	},
 	{
-		title: "Setup execution",
-		owner: "Staff + tenant",
-		detail: "Workspace settings, access, billing checks, and starter-pack tasks.",
+		title: "Team access",
+		owner: "You",
+		detail: "Invite teammates and make sure the right people can access the tenant.",
 	},
 	{
-		title: "Tenant handoff",
-		owner: "Tenant",
-		detail: "Self-service steps, training checkpoints, and first operator confirmation.",
+		title: "Support setup",
+		owner: "Support",
+		detail: "Support handles staff-owned setup, billing checks, and any assisted steps.",
 	},
 	{
-		title: "Launch proof",
-		owner: "Staff",
-		detail: "Final readiness note, blocked-task audit, and production approval.",
+		title: "Go-live review",
+		owner: "Support",
+		detail: "Support confirms readiness after required tenant steps are complete.",
 	},
 ] as const;
 
@@ -364,16 +370,15 @@ function AssistedLaunchDesk({
 		<section className="rounded-md border bg-background">
 			<div className="grid gap-4 border-b bg-muted/30 p-4 lg:grid-cols-[1fr_20rem]">
 				<div>
-					<p className="text-sm font-semibold">Assisted launch desk</p>
-					<h2 className="mt-1 text-xl font-semibold tracking-normal">Operational handoff map</h2>
+					<p className="text-sm font-semibold">Setup guide</p>
+					<h2 className="mt-1 text-xl font-semibold tracking-normal">What happens next</h2>
 					<p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-						{displayMode} mode keeps the current owner, next handoff, and launch evidence visible before the tenant
-						reaches production.
+						{displayMode} setup shows which items are yours and which items support will finish for you.
 					</p>
 				</div>
 				<div className="rounded-md border bg-background p-3">
-					<div className="text-xs font-medium uppercase text-muted-foreground">Now handling</div>
-					<div className="mt-2 text-lg font-semibold">{current?.title ?? "Workflow not started"}</div>
+					<div className="text-xs font-medium uppercase text-muted-foreground">Next step</div>
+					<div className="mt-2 text-lg font-semibold">{current?.title ?? "Setup not started"}</div>
 					<div className="mt-1 text-sm text-muted-foreground">
 						{progress.completed}/{progress.total} checkpoints complete
 					</div>
@@ -386,9 +391,9 @@ function AssistedLaunchDesk({
 						(index === 0
 							? ["setup", "profile"].includes(current.category)
 							: index === 1
-								? ["access", "billing"].includes(current.category)
+								? ["team", "access"].includes(current.category)
 								: index === 2
-									? current.assigneeType === "TENANT"
+									? current.assigneeType !== "TENANT" && !["launch", "verification"].includes(current.category)
 									: ["launch", "verification"].includes(current.category));
 					return (
 						<div key={lane.title} className={`rounded-md border p-4 ${active ? "border-primary/45 bg-primary/5" : ""}`}>
@@ -702,23 +707,23 @@ export function TenantOnboardingPage() {
 		return (
 			<div className="space-y-6">
 				<PageHeader
-					eyebrow="Workspace setup"
-					title="Launch console"
-					description="The default SaaS entry screen now shows the assisted onboarding workflow instead of a generic starter page."
+					eyebrow="Tenant setup"
+					title="Setup checklist"
+					description="Review the default setup steps a new tenant completes after signup."
 				/>
 				<OnboardingConsoleBand
-					mode="CONCIERGE DEFAULT"
+					mode="ASSISTED SETUP"
 					progress={{ completed: 0, total: previewSteps.length, percent: 0 }}
 					current={previewSteps[0] ?? null}
 				/>
 				<AssistedLaunchDesk
-					mode="CONCIERGE"
+					mode="ASSISTED"
 					progress={{ completed: 0, total: previewSteps.length, percent: 0 }}
 					current={previewSteps[0] ?? null}
 				/>
 				<div className="grid gap-4 md:grid-cols-3">
-					<MetricCard label="Default mode" value="Concierge" helper="Staff-assisted setup is ready by default." />
-					<MetricCard label="Self-service" value="Available" helper="Tenant-visible steps can be completed here." />
+					<MetricCard label="Default mode" value="Assisted" helper="Support can help complete staff-owned steps." />
+					<MetricCard label="Your actions" value="Available" helper="Tenant-visible steps can be completed here." />
 					<MetricCard label="Checklist" value={previewSteps.length} helper="Starter packs can add their own steps." />
 				</div>
 				<Card>
@@ -727,7 +732,7 @@ export function TenantOnboardingPage() {
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<CategoryBreakdown steps={previewSteps} />
-						<StepList steps={previewSteps} tenantOnly />
+						<StepList steps={previewSteps} tenantOnly tenantLabels />
 					</CardContent>
 				</Card>
 			</div>
@@ -739,19 +744,19 @@ export function TenantOnboardingPage() {
 	return (
 		<div className="space-y-6">
 			<PageHeader
-				eyebrow="Workspace setup"
-				title="Launch console"
-				description="Your active tenant setup workflow, shared with support staff when concierge or hybrid mode is enabled."
+				eyebrow="Tenant setup"
+				title="Setup checklist"
+				description="Track what is complete, what you can finish now, and what support will review before launch."
 				actions={
 					<>
 						<Badge variant={statusVariant(data.status)}>{data.status}</Badge>
-						<Badge variant="outline">{modeLabel(data.mode)}</Badge>
+						<Badge variant="outline">{tenantModeLabel(data.mode)}</Badge>
 					</>
 				}
 			/>
 
-			<OnboardingConsoleBand mode={modeLabel(data.mode)} progress={data.progress} current={step} />
-			<AssistedLaunchDesk mode={data.mode} progress={data.progress} current={step} />
+			<OnboardingConsoleBand mode={tenantModeLabel(data.mode)} progress={data.progress} current={step} />
+			<AssistedLaunchDesk mode={tenantModeLabel(data.mode)} progress={data.progress} current={step} />
 
 			<div className="grid gap-4 md:grid-cols-3">
 				<MetricCard
@@ -761,9 +766,9 @@ export function TenantOnboardingPage() {
 				/>
 				<MetricCard label="Current step" value={step?.stepOrder ?? "-"} helper={step?.title ?? "No active step"} />
 				<MetricCard
-					label="Assignee"
-					value={step?.assigneeType ?? "-"}
-					helper={data.assignedTo?.name ?? "Shared workflow"}
+					label="Owner"
+					value={step ? tenantAssigneeLabel(step.assigneeType) : "-"}
+					helper={data.assignedTo?.name ?? "Support"}
 				/>
 			</div>
 
@@ -778,7 +783,7 @@ export function TenantOnboardingPage() {
 							<div className="flex flex-wrap items-center gap-2">
 								<h2 className="font-medium">{step.title}</h2>
 								<Badge variant="outline">{step.category}</Badge>
-								<Badge variant="secondary">{step.assigneeType}</Badge>
+								<Badge variant="secondary">{tenantAssigneeLabel(step.assigneeType)}</Badge>
 							</div>
 							{step.description && <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>}
 						</div>
@@ -802,7 +807,13 @@ export function TenantOnboardingPage() {
 						onChange={(event) => setNotes(event.target.value)}
 					/>
 					<CategoryBreakdown steps={data.steps} />
-					<StepList steps={data.steps} onComplete={handleComplete} isCompleting={complete.isPending} tenantOnly />
+					<StepList
+						steps={data.steps}
+						onComplete={handleComplete}
+						isCompleting={complete.isPending}
+						tenantOnly
+						tenantLabels
+					/>
 				</CardContent>
 			</Card>
 		</div>

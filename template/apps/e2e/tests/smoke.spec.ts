@@ -1412,9 +1412,9 @@ test("tenant onboarding smoke renders workflow and command palette", async ({ pa
 
 	await page.goto("/onboarding", { waitUntil: "networkidle" });
 
-	await expect(page.getByRole("heading", { name: "Launch console" })).toBeVisible();
-	await expect(page.getByRole("heading", { name: "Concierge launch workflow" })).toBeVisible();
-	await expect(page.getByRole("heading", { name: "Operational handoff map" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Setup checklist", exact: true })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Your setup checklist" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "What happens next" })).toBeVisible();
 	await expect(page.getByText("Current action").first()).toBeVisible();
 	await expect(page.getByRole("heading", { name: "Company profile" }).first()).toBeVisible();
 	await expect(page.getByText("25%", { exact: true })).toBeVisible();
