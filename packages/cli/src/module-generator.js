@@ -81,6 +81,8 @@ const STARTER_ALIASES = {
 	projects: "project-management",
 	pm: "project-management",
 	support: "helpdesk",
+	emis: "eims",
+	eirms: "eims",
 };
 
 const STATE_FILE = ".scaffold-state.json";

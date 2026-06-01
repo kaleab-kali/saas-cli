@@ -6,6 +6,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "../src/args.js";
+import { validateStarterPackNames } from "../src/module-generator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,6 +74,11 @@ test("lists starter pack metadata", () => {
 test("parses repeated and comma-separated starter flags", () => {
 	const args = parseArgs(["my-app", "--starter", "eims,crm", "--starter=helpdesk"]);
 	assert.deepEqual(args.starters, ["eims", "crm", "helpdesk"]);
+});
+
+test("accepts EMIS/EIRMS aliases for the EIMS starter", () => {
+	assert.deepEqual(validateStarterPackNames(["emis"]), ["eims"]);
+	assert.deepEqual(validateStarterPackNames(["eirms"]), ["eims"]);
 });
 
 test("parses starter refresh flag", () => {
