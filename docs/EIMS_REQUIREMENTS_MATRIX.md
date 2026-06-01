@@ -68,7 +68,7 @@ Current implementation note:
 | B2B/B2C/G2C buyer TIN conditions | `EIMS_compliance_Draft.pdf` schema detail says buyer TIN required unless transaction type allows no-TIN flow | missing | Add transaction-type validator, property tests, API tests. |
 | Document type support | `EIMS_compliance_Draft.pdf` lists document types such as invoice, credit note, debit note, interim/final/retainer/mixed/proforma/overdue | missing | Add enum/value object, document reason rules, credit/debit/cancellation mapping. |
 | Document number and date validation | `EIMS_compliance_Draft.pdf` schema detail | missing | Add document-number policy per source and ISO/date validation. |
-| Source system number/type in invoice | Postman fields `SystemNumber`, `SystemType`; source registration guide | missing | Link every invoice to an approved `EimsSourceSystem`. |
+| Source system number/type in invoice | Postman fields `SystemNumber`, `SystemType`; source registration guide | partial | Generated starter now requires an explicit source ID, checks approved/active source readiness before SDK dispatch, and keeps authority payload mapping behind the EIMS SDK boundary. Sandbox proof with the real SDK remains required. |
 | Seller details | Postman variables and invoice body fields include seller legal name, TIN, VAT, email, phone, region, woreda | missing | Add taxpayer profile setup and seller snapshot at invoice time. |
 | Buyer details | Postman sample and buyer/government list files include buyer TIN, legal name, address/contact fields | missing | Add buyer model or reusable customer mapping. |
 | Item list fields | Postman body includes item code, description, quantity, unit, unit price, tax code, tax amount, total line amount | missing | Add invoice line model and validation. |
@@ -85,7 +85,7 @@ Current implementation note:
 | Certificate request requires contact, taxpayer, TIN, and at least one System ID | `Certificate Request form v.1.docx` | missing | Add setup checklist and validation that source/system ID exists before certificate setup. |
 | Certificate import | Certificate guideline requires using certificate for signed submissions | missing | Add certificate import, fingerprint, validity dates, TIN/source match checks. |
 | Certificate expiry handling | Certificate/security requirements imply certificate lifecycle management | missing | Add expiry warnings, blocking behavior, rotation flow, admin dashboard. |
-| Source registration pending/approval workflow | `Self-onboarding and Source Registration Guide.pdf` | missing | Add source status fields and UI: draft, submitted, pending, approved, rejected, disabled. |
+| Source registration pending/approval workflow | `Self-onboarding and Source Registration Guide.pdf` | partial | Generated starter now has draft, submitted, pending MoR approval, approved, rejected, and disabled states with timestamps/notes, guarded transitions, API/UI workflow controls, and pre-SDK submission blocking. |
 | Taxpayer self-onboarding and 2FA | Self-onboarding guide says signup, OTP, login credentials, enable 2FA | partial | Scaffold has auth/security settings; add EIMS onboarding docs/checklist, not a direct MoR portal replacement. |
 
 ## 4. Multi-Tenant SaaS and Admin Operations

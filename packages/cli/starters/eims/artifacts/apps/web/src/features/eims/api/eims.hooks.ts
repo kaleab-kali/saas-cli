@@ -48,6 +48,11 @@ export interface EimsOverview {
 		systemNumber: string;
 		systemType: string;
 		approvalStatus: string;
+		active?: boolean;
+		approvalSubmittedAt?: string | null;
+		approvalDecidedAt?: string | null;
+		approvalNotes?: string | null;
+		disabledAt?: string | null;
 		lastAcceptedCounter?: number;
 	}>;
 	blockers: string[];
@@ -119,6 +124,12 @@ export interface CreateEimsSourceInput {
 	systemNumber?: string;
 	softwareVersion?: string;
 	inHouseDeveloped?: boolean;
+}
+
+export interface UpdateEimsSourceApprovalInput {
+	sourceSystemId: string;
+	approvalStatus: "submitted" | "pending_mor_approval" | "approved" | "rejected" | "disabled";
+	approvalNotes?: string;
 }
 
 export interface SaveEimsCredentialInput {
@@ -425,6 +436,18 @@ export const useCreateEimsSourceSystem = () => {
 	return useMutation({
 		mutationFn: (input: CreateEimsSourceInput) =>
 			api.post<{ data: EimsActionResult & CreateEimsSourceInput }>("/eims/setup/sources", input),
+		onSuccess: () => invalidateEims(queryClient),
+	});
+};
+
+export const useUpdateEimsSourceApproval = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({ sourceSystemId, ...input }: UpdateEimsSourceApprovalInput) =>
+			api.patch<{ data: EimsActionResult & { approvalStatus: string } }>(
+				`/eims/setup/sources/${sourceSystemId}/approval`,
+				input,
+			),
 		onSuccess: () => invalidateEims(queryClient),
 	});
 };

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@thallesp/nestjs-better-auth";
 import { PermissionsGuard } from "#modules/auth/guards/permissions.guard";
 import { RequirePermissions } from "#shared/decorators/permissions.decorator";
@@ -6,10 +6,12 @@ import { EimsTwoFactorPolicyGuard } from "../../shared/security/eims-two-factor-
 import { CreateEimsEnterpriseHandler } from "../application/commands/create-enterprise.handler";
 import { CreateEimsEstablishmentHandler } from "../application/commands/create-establishment.handler";
 import { CreateEimsSourceSystemHandler } from "../application/commands/create-source-system.handler";
+import { UpdateEimsSourceApprovalHandler } from "../application/commands/update-source-approval.handler";
 import {
 	CreateEimsEnterpriseDto,
 	CreateEimsEstablishmentDto,
 	CreateEimsSourceSystemDto,
+	UpdateEimsSourceApprovalDto,
 } from "../application/dto/eims-setup.dto";
 import { ListEimsSetupHandler } from "../application/queries/list-eims-setup.handler";
 import { EimsSetupRepository } from "../domain/eims-setup.repository";
@@ -26,6 +28,7 @@ export class EimsSetupController {
 		private readonly createEnterpriseHandler: CreateEimsEnterpriseHandler,
 		private readonly createEstablishmentHandler: CreateEimsEstablishmentHandler,
 		private readonly createSourceSystemHandler: CreateEimsSourceSystemHandler,
+		private readonly updateSourceApprovalHandler: UpdateEimsSourceApprovalHandler,
 		private readonly repo: EimsSetupRepository,
 	) {}
 
@@ -90,6 +93,22 @@ export class EimsSetupController {
 				...source,
 				message:
 					"Register/POS details saved. Final tax sync remains blocked until connection details and certificate are valid.",
+			},
+		};
+	}
+
+	@Patch("sources/:sourceSystemId/approval")
+	@RequirePermissions("eims-source:update")
+	async updateSourceApproval(
+		@Param("sourceSystemId") sourceSystemId: string,
+		@Body() dto: UpdateEimsSourceApprovalDto,
+		@Req() req: AuthedRequest,
+	) {
+		const source = await this.updateSourceApprovalHandler.execute(req.organizationId, sourceSystemId, dto);
+		return {
+			data: {
+				...source,
+				message: `Source approval moved to ${source.approvalStatus}`,
 			},
 		};
 	}

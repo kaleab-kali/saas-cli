@@ -1216,7 +1216,7 @@ const patchEimsPackageScripts = async (root) => {
 	await patchJsonFile(path.join(root, "package.json"), (json) => {
 		json.scripts ??= {};
 		json.scripts["test:eims:local"] ??=
-			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/bulk/eims-bulk-submission.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-scheduler.service.spec.ts src/modules/eims/shared/cancellations/eims-cancellation.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.spec.ts src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/shared/security/eims-two-factor-policy.guard.spec.ts src/modules/eims/receipts/application/eims-receipts.service.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
+			"pnpm --filter api test -- --runTestsByPath src/modules/eims/shared/constants/eims-lookup-values.spec.ts src/modules/eims/shared/client/mock-eims-external.client.spec.ts src/modules/eims/shared/client/eims-sdk-client.provider.spec.ts src/modules/eims/shared/client/eims-sdk-external.client.spec.ts src/modules/eims/shared/bulk/eims-bulk-submission.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-callback-persistence.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-polling.service.spec.ts src/modules/eims/shared/callbacks/eims-bulk-reconciliation-scheduler.service.spec.ts src/modules/eims/shared/cancellations/eims-cancellation.service.spec.ts src/modules/eims/shared/crypto/eims-credential-secret.service.spec.ts src/modules/eims/shared/crypto/eims-credential-persistence.service.spec.ts src/modules/eims/shared/crypto/eims-credential-validation.service.spec.ts src/modules/eims/shared/lookups/eims-lookup.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-cache.service.spec.ts src/modules/eims/shared/offline/eims-offline-pending-sync-persistence.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay.service.spec.ts src/modules/eims/shared/offline/eims-offline-replay-scheduler.service.spec.ts src/modules/eims/shared/printing/eims-print-proof.service.spec.ts src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.spec.ts src/modules/eims/shared/queues/eims-offline-replay-queue.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue-persistence.service.spec.ts src/modules/eims/shared/queues/eims-submission-source-lock.service.spec.ts src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts src/modules/eims/shared/security/eims-two-factor-policy.guard.spec.ts src/modules/eims/receipts/application/eims-receipts.service.spec.ts src/modules/eims/setup/domain/source-approval.workflow.spec.ts src/modules/eims/setup/domain/source-submission.guard.spec.ts src/modules/eims/submission/application/eims-submission.service.spec.ts src/modules/invoicing/domain/canonical-invoice.spec.ts";
 		json.scripts["phase0:eims:local"] ??=
 			"pnpm --filter api exec tsx scripts/phase0/layer-a/run-all.ts";
 		json.scripts["test:eims:sdk-contract"] ??=
@@ -1522,6 +1522,10 @@ model EimsSourceSystem {
   simCardNo             String?
   inHouseDeveloped      Boolean   @default(false)
   approvalStatus        String    @default("draft")
+  approvalSubmittedAt   DateTime?
+  approvalDecidedAt     DateTime?
+  approvalNotes         String?
+  disabledAt            DateTime?
   active                Boolean   @default(false)
   credentialId          String?
   certificateId         String?
@@ -6403,6 +6407,22 @@ for (const methodName of [
 \tassertIncludes(sdkAdapter, methodName, \`SaaS adapter must delegate \${methodName} to the SDK\`);
 }
 assertIncludes(sdkAdapter, "this.requireSdk()", "SaaS adapter must fail closed when SDK wiring is missing");
+
+const setupController = readRequired("apps/api/src/modules/eims/setup/presentation/eims-setup.controller.ts");
+const sourceApprovalWorkflow = readRequired("apps/api/src/modules/eims/setup/domain/source-approval.workflow.ts");
+const submissionService = readRequired("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");
+assertIncludes(
+	setupController,
+	'Patch("sources/:sourceSystemId/approval")',
+	"source approval workflow endpoint must exist",
+);
+assertIncludes(sourceApprovalWorkflow, "pending_mor_approval", "source workflow must track MoR pending approval");
+assertIncludes(sourceApprovalWorkflow, "disabled", "source workflow must support disabling approved sources");
+assertIncludes(
+	submissionService,
+	"evaluateSourceSubmissionReadiness",
+	"invoice submission must check source readiness before SDK dispatch",
+);
 
 const twoFactorGuard = readRequired("apps/api/src/modules/eims/shared/security/eims-two-factor-policy.guard.ts");
 assertIncludes(twoFactorGuard, "EIMS_REQUIRE_2FA", "EIMS 2FA policy guard must support explicit enforcement");

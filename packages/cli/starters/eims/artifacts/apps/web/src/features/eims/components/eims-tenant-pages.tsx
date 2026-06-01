@@ -34,6 +34,7 @@ import {
 	useReconcileEimsBulkBatch,
 	useSaveEimsCredential,
 	useTestEimsCredential,
+	useUpdateEimsSourceApproval,
 } from "#features/eims/api/eims.hooks";
 import { DataTable as SharedDataTable } from "#shared/components/DataTable";
 import { Badge } from "@/components/ui/badge";
@@ -1326,6 +1327,50 @@ function SourceReferenceForm({
 	);
 }
 
+function SourceApprovalPanel({ sources }: { readonly sources: EimsSetupState["sourceSystems"] }) {
+	const mutation = useUpdateEimsSourceApproval();
+	const [message, setMessage] = React.useState<string | null>(null);
+	const primarySource = sources[0];
+	const moveSource = async (
+		approvalStatus: "submitted" | "pending_mor_approval" | "approved" | "rejected" | "disabled",
+	) => {
+		if (!primarySource) return;
+		const result = await mutation.mutateAsync({
+			sourceSystemId: primarySource.id,
+			approvalStatus,
+			approvalNotes: `Marked ${approvalStatus} from the SaaS source registration workflow.`,
+		});
+		setMessage(result.data.message ?? `Source moved to ${approvalStatus}`);
+	};
+
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle className="text-base">Source approval workflow</CardTitle>
+			</CardHeader>
+			<CardContent className="space-y-4">
+				<p className="text-sm text-muted-foreground">
+					Track the MoR portal state for the selected register/POS before invoice submission is enabled.
+				</p>
+				<div className="flex flex-wrap gap-2">
+					{(["submitted", "pending_mor_approval", "approved", "rejected", "disabled"] as const).map((status) => (
+						<Button
+							key={status}
+							type="button"
+							variant={primarySource?.approvalStatus === status ? "default" : "outline"}
+							disabled={!primarySource || mutation.isPending}
+							onClick={() => void moveSource(status)}
+						>
+							{businessStatusLabel(status)}
+						</Button>
+					))}
+				</div>
+				<ActionResult message={message} />
+			</CardContent>
+		</Card>
+	);
+}
+
 function SecureConnectionPanel({ sourceSystemId }: { readonly sourceSystemId: string }) {
 	const saveCredential = useSaveEimsCredential();
 	const testCredential = useTestEimsCredential();
@@ -1813,6 +1858,7 @@ export function EimsDirectoryPage({ kind }: { readonly kind: DirectoryKind }) {
 				enterpriseId={setup.enterprises[0]?.id ?? "ent_test_1"}
 				establishmentId={setup.establishments[0]?.id ?? "est_test_1"}
 			/>
+			<SourceApprovalPanel sources={setup.sourceSystems} />
 			<Card>
 				<CardHeader>
 					<CardTitle className="text-base">Saved references</CardTitle>

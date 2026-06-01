@@ -486,6 +486,11 @@ const overview = {
 				systemNumber: "329D03B6F0",
 				systemType: "POS",
 				approvalStatus: "approved",
+				active: true,
+				approvalSubmittedAt: "2026-05-20T08:00:00.000Z",
+				approvalDecidedAt: "2026-05-22T08:00:00.000Z",
+				approvalNotes: "Approved in MoR portal",
+				disabledAt: null,
 				lastAcceptedCounter: 128,
 			},
 			{
@@ -494,6 +499,11 @@ const overview = {
 				systemNumber: "PENDING",
 				systemType: "POS",
 				approvalStatus: "pending_mor_approval",
+				active: false,
+				approvalSubmittedAt: "2026-05-23T08:00:00.000Z",
+				approvalDecidedAt: null,
+				approvalNotes: "Waiting for MoR approval",
+				disabledAt: null,
 				lastAcceptedCounter: 0,
 			},
 		],
@@ -1210,7 +1220,25 @@ async function handleTenantEimsRoutes(req, res, path) {
 				...body,
 				id: "src_mock_created",
 				message: `Source system saved: ${body.name ?? "source"}. Submissions remain blocked until MoR approval.`,
-				status: "draft",
+				approvalStatus: "draft",
+				active: false,
+			},
+		});
+	}
+	if (path.match(/^\/api\/v1\/eims\/setup\/sources\/[^/]+\/approval$/) && req.method === "PATCH") {
+		const sourceSystemId = decodeURIComponent(path.split("/")[6]);
+		const body = await readJson(req);
+		const source = overview.data.sourceSystems.find((candidate) => candidate.id === sourceSystemId);
+		const approvalStatus = body.approvalStatus ?? source?.approvalStatus ?? "submitted";
+		return sendJson(res, 200, {
+			data: {
+				...(source ?? { id: sourceSystemId }),
+				approvalStatus,
+				active: approvalStatus === "approved",
+				approvalNotes: body.approvalNotes ?? null,
+				approvalDecidedAt: ["approved", "rejected"].includes(approvalStatus) ? "2026-05-26T10:30:00.000Z" : null,
+				disabledAt: approvalStatus === "disabled" ? "2026-05-26T10:30:00.000Z" : null,
+				message: `Source approval moved to ${approvalStatus}`,
 			},
 		});
 	}

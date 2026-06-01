@@ -1,4 +1,5 @@
 import { IsBoolean, IsIn, IsOptional, IsString, Length, Matches } from "class-validator";
+import { EIMS_SOURCE_APPROVAL_STATUSES } from "../../domain/source-approval.workflow";
 
 export class CreateEimsEnterpriseDto {
 	@IsString()
@@ -76,4 +77,14 @@ export class CreateEimsSourceSystemDto {
 	@IsOptional()
 	@IsBoolean()
 	inHouseDeveloped?: boolean;
+}
+
+export class UpdateEimsSourceApprovalDto {
+	@IsIn(EIMS_SOURCE_APPROVAL_STATUSES)
+	approvalStatus!: string;
+
+	@IsOptional()
+	@IsString()
+	@Length(0, 500)
+	approvalNotes?: string;
 }

@@ -28,6 +28,10 @@ export interface EimsSourceSystemRecord {
 	systemType: string;
 	approvalStatus: string;
 	active: boolean;
+	approvalSubmittedAt?: Date | string | null;
+	approvalDecidedAt?: Date | string | null;
+	approvalNotes?: string | null;
+	disabledAt?: Date | string | null;
 }
 
 export interface CreateEimsEnterpriseInput {
@@ -56,4 +60,9 @@ export interface CreateEimsSourceSystemInput {
 	systemNumber?: string | null;
 	softwareVersion?: string | null;
 	inHouseDeveloped?: boolean;
+}
+
+export interface UpdateEimsSourceApprovalInput {
+	approvalStatus: string;
+	approvalNotes?: string | null;
 }

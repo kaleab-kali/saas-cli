@@ -5,7 +5,9 @@ import type {
 	EimsEnterpriseRecord,
 	EimsEstablishmentRecord,
 	EimsSourceSystemRecord,
+	UpdateEimsSourceApprovalInput,
 } from "./eims-setup.types";
+import type { SourceSubmissionReadiness } from "./source-submission.guard";
 
 export abstract class EimsSetupRepository {
 	abstract createEnterprise(organizationId: string, input: CreateEimsEnterpriseInput): Promise<EimsEnterpriseRecord>;
@@ -25,4 +27,15 @@ export abstract class EimsSetupRepository {
 	): Promise<EimsSourceSystemRecord>;
 
 	abstract listSourceSystems(organizationId: string, establishmentId?: string): Promise<EimsSourceSystemRecord[]>;
+
+	abstract updateSourceApproval(
+		organizationId: string,
+		sourceSystemId: string,
+		input: UpdateEimsSourceApprovalInput,
+	): Promise<EimsSourceSystemRecord>;
+
+	abstract getSourceSubmissionReadiness(
+		organizationId: string,
+		sourceSystemId: string,
+	): Promise<SourceSubmissionReadiness | null>;
 }

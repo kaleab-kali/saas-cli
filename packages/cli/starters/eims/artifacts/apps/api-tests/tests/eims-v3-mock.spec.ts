@@ -113,6 +113,25 @@ test.describe("EIMS V3 backend mock API contract", () => {
 		);
 	});
 
+	test("source approval workflow records MoR portal state before SDK submission", async ({ request }) => {
+		const response = await request.patch("/api/v1/eims/setup/sources/src_mock_2/approval", {
+			data: {
+				approvalStatus: "approved",
+				approvalNotes: "MoR portal approval received",
+			},
+		});
+		expect(response.status()).toBe(200);
+		const body = await response.json();
+
+		expect(body.data).toMatchObject({
+			id: "src_mock_2",
+			approvalStatus: "approved",
+			active: true,
+			approvalNotes: "MoR portal approval received",
+		});
+		expect(body.data.message).toContain("approved");
+	});
+
 	test("lookup endpoints expose V3 enum values and validation metadata", async ({ request }) => {
 		const documentTypes = await (await request.get("/api/v1/eims/lookups/document-types")).json();
 		expect(documentTypes.version).toBe("eims-lookup-seed-v3");

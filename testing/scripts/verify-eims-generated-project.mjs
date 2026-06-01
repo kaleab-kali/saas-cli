@@ -117,6 +117,9 @@ const requiredFiles = [
 	"apps/api/src/modules/eims/shared/queues/eims-submission-queue.service.spec.ts",
 	"apps/api/src/modules/eims/shared/security/eims-two-factor-policy.guard.ts",
 	"apps/api/src/modules/eims/shared/security/eims-two-factor-policy.guard.spec.ts",
+	"apps/api/src/modules/eims/setup/application/commands/update-source-approval.handler.ts",
+	"apps/api/src/modules/eims/setup/domain/source-approval.workflow.ts",
+	"apps/api/src/modules/eims/setup/domain/source-approval.workflow.spec.ts",
 	"apps/api/src/modules/eims/setup/presentation/eims-setup.controller.ts",
 	"apps/api/src/modules/eims/submission/presentation/eims-submission.controller.ts",
 	"apps/api/src/modules/eims/receipts/application/eims-receipts.service.ts",
@@ -241,6 +244,16 @@ async function getJson(route) {
 async function postJson(route, data) {
 	const response = await fetch(`${baseUrl}${route}`, {
 		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify(data),
+	});
+	const body = await response.json();
+	return { response, body };
+}
+
+async function patchJson(route, data) {
+	const response = await fetch(`${baseUrl}${route}`, {
+		method: "PATCH",
 		headers: { "content-type": "application/json" },
 		body: JSON.stringify(data),
 	});
@@ -390,6 +403,10 @@ function assertGeneratedStructure() {
 	assert(
 		packageJson.scripts["test:eims:local"]?.includes("eims-two-factor-policy.guard.spec.ts"),
 		"generated EIMS local test gate includes EIMS 2FA policy guard tests",
+	);
+	assert(
+		packageJson.scripts["test:eims:local"]?.includes("source-approval.workflow.spec.ts"),
+		"generated EIMS local test gate includes source approval workflow tests",
 	);
 	assert(
 		packageJson.scripts["test:eims:sdk-contract"]?.includes("scripts/eims-sdk-contract.ts"),
@@ -644,6 +661,11 @@ function assertGeneratedStructure() {
 		"EIMS production readiness preflight verifies EIMS 2FA policy guard",
 	);
 	assert(
+		eimsProductionReadiness.includes("source approval workflow endpoint must exist") &&
+			eimsProductionReadiness.includes("invoice submission must check source readiness before SDK dispatch"),
+		"EIMS production readiness preflight verifies source approval workflow",
+	);
+	assert(
 		eimsProductionReadiness.includes("RLS policies must protect writes"),
 		"EIMS production readiness preflight verifies RLS write protection",
 	);
@@ -782,11 +804,13 @@ function assertGeneratedStructure() {
 	assert(eimsMockServer.includes("ipAllowlist: []"), "EIMS mock server matches security settings IP allowlist shape");
 	assert(eimsMockServer.includes("/api/v1/onboarding"), "EIMS mock server supports onboarding landing data");
 	assert(eimsMockServer.includes("/api/v1/notifications/stream"), "EIMS mock server supports notification SSE stream");
+	assert(eimsMockServer.includes("/approval") && eimsMockServer.includes("Source approval moved"), "EIMS mock server supports source approval workflow");
 	const englishLocale = readProjectFile("apps/web/src/shared/i18n/locales/en.ts");
 	assert(englishLocale.includes('eims: "Tax tools"'), "tenant EIMS nav is business-facing");
 	assert(englishLocale.includes('eimsCancellations: "Cancellations"'), "tenant EIMS nav labels include cancellations");
 	assert(englishLocale.includes('eimsOperations: "EIMS operations"'), "admin EIMS nav labels are installed");
 	const tenantPages = readProjectFile("apps/web/src/features/eims/components/eims-tenant-pages.tsx");
+	const eimsHooks = readProjectFile("apps/web/src/features/eims/api/eims.hooks.ts");
 	assert(tenantPages.includes("Ethiopia tax workspace"), "tenant EIMS UI has a domain-specific workspace header");
 	assert(tenantPages.includes("EIMS compliance dashboard"), "tenant EIMS status page is the compliance dashboard");
 	assert(tenantPages.includes("overview.setupProgress"), "tenant EIMS dashboard renders backend setup progress gates");
@@ -816,6 +840,10 @@ function assertGeneratedStructure() {
 	assert(tenantPages.includes("First live invoice"), "tenant EIMS timeline includes the production launch checkpoint");
 	assert(tenantPages.includes("Current staff handoff"), "tenant EIMS setup page has a concierge handoff panel");
 	assert(tenantPages.includes("Tenant handoff dossier"), "tenant EIMS setup page keeps tenant blockers visible");
+	assert(tenantPages.includes("Source approval workflow"), "tenant EIMS source page exposes approval workflow controls");
+	assert(tenantPages.includes("useUpdateEimsSourceApproval"), "tenant EIMS source page can update source approval state");
+	assert(eimsHooks.includes("useUpdateEimsSourceApproval"), "tenant EIMS hooks expose source approval mutation");
+	assert(eimsHooks.includes("/approval"), "tenant EIMS source approval mutation calls approval endpoint");
 	assert(tenantPages.includes("SharedDataTable"), "tenant EIMS pages use the shared DataTable surface");
 	assert(!tenantPages.includes("@/components/ui/table"), "tenant EIMS pages do not use raw table primitives");
 	const adminPages = readProjectFile("apps/web/src/features/eims/components/eims-admin-pages.tsx");
@@ -849,6 +877,10 @@ function assertGeneratedStructure() {
 	}
 	assert(prismaSchema.includes("rotationRevision"), "Prisma EimsCredential stores rotation revisions");
 	assert(prismaSchema.includes("rotationEvidenceSha256"), "Prisma EimsCredential stores rotation evidence hashes");
+	assert(prismaSchema.includes("approvalSubmittedAt"), "Prisma EimsSourceSystem stores source approval submission time");
+	assert(prismaSchema.includes("approvalDecidedAt"), "Prisma EimsSourceSystem stores source approval decision time");
+	assert(prismaSchema.includes("approvalNotes"), "Prisma EimsSourceSystem stores source approval notes");
+	assert(prismaSchema.includes("disabledAt"), "Prisma EimsSourceSystem stores source disable time");
 	assert(
 		prismaSchema.includes("@@unique([organizationId, sourceSystemId, environment])"),
 		"Prisma EimsCredential enforces one credential per source environment",
@@ -924,7 +956,21 @@ function assertGeneratedStructure() {
 	const bulkReconciliationQueueSpec = readProjectFile(
 		"apps/api/src/modules/eims/shared/queues/eims-bulk-reconciliation-queue.service.spec.ts",
 	);
+	const setupController = readProjectFile("apps/api/src/modules/eims/setup/presentation/eims-setup.controller.ts");
+	const setupModule = readProjectFile("apps/api/src/modules/eims/setup/eims-setup.module.ts");
+	const setupRepository = readProjectFile("apps/api/src/modules/eims/setup/domain/eims-setup.repository.ts");
+	const prismaSetupRepository = readProjectFile(
+		"apps/api/src/modules/eims/setup/infrastructure/repositories/prisma-eims-setup.repository.ts",
+	);
+	const sourceApprovalWorkflow = readProjectFile("apps/api/src/modules/eims/setup/domain/source-approval.workflow.ts");
+	const sourceApprovalWorkflowSpec = readProjectFile(
+		"apps/api/src/modules/eims/setup/domain/source-approval.workflow.spec.ts",
+	);
 	const submissionService = readProjectFile("apps/api/src/modules/eims/submission/application/eims-submission.service.ts");
+	const submissionServiceSpec = readProjectFile(
+		"apps/api/src/modules/eims/submission/application/eims-submission.service.spec.ts",
+	);
+	const submissionModule = readProjectFile("apps/api/src/modules/eims/submission/eims-submission.module.ts");
 	const receiptService = readProjectFile("apps/api/src/modules/eims/receipts/application/eims-receipts.service.ts");
 	const receiptServiceSpec = readProjectFile("apps/api/src/modules/eims/receipts/application/eims-receipts.service.spec.ts");
 	const externalClient = readProjectFile("apps/api/src/modules/eims/shared/client/eims-external-client.ts");
@@ -1084,6 +1130,26 @@ function assertGeneratedStructure() {
 		submissionService.includes("EimsSubmissionQueueService"),
 		"EIMS submission service uses queue/counter coordinator",
 	);
+	assert(sourceApprovalWorkflow.includes("pending_mor_approval"), "EIMS source workflow models MoR pending approval");
+	assert(sourceApprovalWorkflow.includes("approved") && sourceApprovalWorkflow.includes("disabled"), "EIMS source workflow covers approved and disabled states");
+	assert(sourceApprovalWorkflow.includes("Cannot move EIMS source approval"), "EIMS source workflow rejects skipped transitions");
+	assert(sourceApprovalWorkflowSpec.includes("draft") && sourceApprovalWorkflowSpec.includes("submitted"), "EIMS source workflow tests cover draft submission");
+	assert(setupRepository.includes("updateSourceApproval"), "EIMS setup repository exposes source approval updates");
+	assert(setupRepository.includes("getSourceSubmissionReadiness"), "EIMS setup repository exposes source readiness checks");
+	assert(prismaSetupRepository.includes("approvalSubmittedAt"), "EIMS setup repository stores source approval submitted timestamp");
+	assert(prismaSetupRepository.includes("approvalDecidedAt"), "EIMS setup repository stores source approval decision timestamp");
+	assert(prismaSetupRepository.includes("disabledAt"), "EIMS setup repository stores disabled timestamp");
+	assert(prismaSetupRepository.includes("eimsCredential.findFirst"), "EIMS source readiness checks credential test proof");
+	assert(prismaSetupRepository.includes("eimsCertificate.findFirst"), "EIMS source readiness checks certificate validity");
+	assert(prismaSetupRepository.includes("eimsSourceSystemCounter.findUnique"), "EIMS source readiness checks counter initialization");
+	assert(setupController.includes('Patch("sources/:sourceSystemId/approval")'), "EIMS setup API exposes source approval workflow endpoint");
+	assert(setupController.includes('@RequirePermissions("eims-source:update")'), "EIMS source approval endpoint requires update permission");
+	assert(setupModule.includes("UpdateEimsSourceApprovalHandler"), "EIMS setup module registers source approval handler");
+	assert(submissionModule.includes("EimsSetupModule"), "EIMS submission module imports setup readiness boundary");
+	assert(submissionService.includes("evaluateSourceSubmissionReadiness"), "EIMS submission service validates source readiness before SDK dispatch");
+	assert(submissionService.includes("sourceSystemId is required"), "EIMS submission service requires explicit source system IDs");
+	assert(submissionService.includes("ForbiddenException"), "EIMS submission service blocks unready sources before SDK dispatch");
+	assert(submissionServiceSpec.includes("blocks SDK dispatch"), "EIMS submission tests cover source readiness blocking");
 	assert(receiptService.includes("EIMS_EXTERNAL_CLIENT"), "EIMS receipt service uses SDK client boundary");
 	assert(receiptService.includes("registerReceipt"), "EIMS receipt service delegates to SDK");
 	assert(
@@ -1469,6 +1535,14 @@ async function assertBackendMockData() {
 	assert(overview.body.data.sourceSystems[0].approvalStatus === "approved", "source approval guard has approved source");
 	assert(overview.body.data.sourceSystems[1].approvalStatus === "pending_mor_approval", "source approval exposes pending source");
 	assert(overview.body.data.sourceSystems[0].lastAcceptedCounter === 128, "counter state is exposed");
+	const sourceApproval = await patchJson("/api/v1/eims/setup/sources/src_mock_2/approval", {
+		approvalStatus: "approved",
+		approvalNotes: "MoR portal approval received",
+	});
+	assert(sourceApproval.response.status === 200, "source approval workflow status is 200");
+	assert(sourceApproval.body.data.approvalStatus === "approved", "source approval workflow returns approved state");
+	assert(sourceApproval.body.data.active === true, "source approval workflow activates approved source");
+	assert(sourceApproval.body.data.approvalNotes === "MoR portal approval received", "source approval workflow stores notes");
 	assert(
 		overview.body.data.blockers.includes("EIMS certificate and API credentials still need to be added"),
 		"sandbox blocker is explicit",
