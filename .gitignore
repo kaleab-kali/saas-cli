@@ -10,5 +10,6 @@ build
 .cache
 artifacts/
 testing/eims-v3-generated/
+testing/eims-ui-demo-*/
 testing/.tmp-*/
 packages/cli/template/

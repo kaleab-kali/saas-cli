@@ -76,6 +76,7 @@ export const en = {
 		signInDesc: "Enter your credentials to access this app",
 		email: "Email",
 		password: "Password",
+		passwordPlaceholder: "Password",
 		signUp: "Sign up",
 		createAccount: "Create Account",
 		getStarted: "Get started",

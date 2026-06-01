@@ -78,7 +78,7 @@ const LoginForm = React.memo(
 							<Input
 								id="password"
 								type="password"
-								placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+								placeholder={t("auth.passwordPlaceholder")}
 								value={password}
 								onChange={handlePasswordChange}
 								required

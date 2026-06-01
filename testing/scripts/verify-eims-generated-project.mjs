@@ -775,14 +775,16 @@ function assertGeneratedStructure() {
 	assert(eimsTenantOnboardingGuide.includes("force2fa"), "EIMS tenant guide documents tenant 2FA policy");
 
 	const appSidebar = readProjectFile("apps/web/src/components/layout/AppSidebar.tsx");
+	const webLocale = readProjectFile("apps/web/src/shared/i18n/locales/en.ts");
 	assert(appSidebar.includes('labelKey: "sidebar.eims"'), "tenant sidebar includes EIMS navigation group");
 	assert(appSidebar.includes('labelKey: "sidebar.eimsStatus"'), "tenant sidebar exposes EIMS status child route");
 	assert(appSidebar.includes('labelKey: "sidebar.eimsExports"'), "tenant sidebar exposes records export child route");
 	assert(appSidebar.includes("FileValidationIcon"), "tenant sidebar uses a tax/compliance icon for EIMS");
-	assert(appSidebar.includes("EIMS tax workspace"), "tenant shell is visibly EIMS-specific after installing the starter");
-	assert(appSidebar.includes("Tax launch status"), "tenant shell launch panel changes for EIMS installs");
-	assert(appSidebar.includes("EIMS setup active"), "tenant shell status panel names the EIMS setup");
-	assert(appSidebar.includes("Start in onboarding"), "tenant shell keeps onboarding as the primary EIMS launch surface");
+	assert(webLocale.includes('eims: "Tax tools"'), "tenant sidebar labels EIMS routes as business-facing tax tools");
+	assert(appSidebar.includes("<OrgSwitcher />"), "tenant sidebar keeps the tenant switcher as the only header control");
+	assert(!appSidebar.includes("EIMS tax workspace"), "tenant sidebar does not add a duplicate EIMS workspace header");
+	assert(!appSidebar.includes("Tax launch status"), "tenant sidebar does not add a duplicate EIMS launch panel");
+	assert(!appSidebar.includes("EIMS setup active"), "tenant sidebar does not add a duplicate EIMS status panel");
 	const adminSidebar = readProjectFile("apps/web/src/components/layout/AdminSidebar.tsx");
 	assert(adminSidebar.includes("const EIMS_ADMIN_NAV"), "admin sidebar includes EIMS operations group");
 	assert(adminSidebar.includes('admin.nav.eimsOperations'), "admin sidebar exposes EIMS operations label");
