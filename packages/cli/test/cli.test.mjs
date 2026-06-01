@@ -178,6 +178,60 @@ test("production doctor blocks unsafe EIMS go-live settings", () => {
 	}
 });
 
+test("production doctor requires the configured EIMS SDK package in API dependencies", () => {
+	const targetDir = path.join(tmpRoot, `doctor-eims-sdk-dep-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
+	removeDir(targetDir);
+
+	try {
+		mkdirSync(path.join(targetDir, "apps/api"), { recursive: true });
+		writeFileSync(path.join(targetDir, "package.json"), JSON.stringify({ scripts: {} }), "utf8");
+		writeFileSync(path.join(targetDir, "apps/api/package.json"), JSON.stringify({ dependencies: {} }), "utf8");
+		writeFileSync(
+			path.join(targetDir, ".scaffold-state.json"),
+			JSON.stringify({ version: 1, starters: [{ name: "eims" }] }),
+			"utf8",
+		);
+		writeFileSync(
+			path.join(targetDir, "apps/api/.env"),
+			[
+				"NODE_ENV=production",
+				"DATABASE_URL=postgresql://app:secret@127.0.0.1:5432/app",
+				"REDIS_URL=redis://127.0.0.1:6379",
+				"MASTER_KEY=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+				"BETTER_AUTH_SECRET=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+				"BETTER_AUTH_URL=https://app.vyllion.test",
+				"FRONTEND_URL=https://app.vyllion.test",
+				"METRICS_TOKEN=metrics-token",
+				"SMTP_HOST=smtp.vyllion.test",
+				"SMTP_FROM=noreply@vyllion.test",
+				"API_RATE_LIMIT_PER_TENANT=60",
+				"EIMS_ENV=production",
+				"EIMS_MOCK_MODE=false",
+				"EIMS_SDK_PACKAGE_NAME=@vyllion/eims-sdk",
+				"EIMS_BASE_URL_PRODUCTION=https://eims.gov.et",
+				"EIMS_BULK_URL_PRODUCTION=https://bulk.eims.gov.et",
+				"EIMS_CALLBACK_PUBLIC_URL=https://app.vyllion.test/api/v1/eims/callbacks/bulk",
+				"EIMS_CALLBACK_HMAC_SECRET=real-callback-hmac-secret",
+				"EIMS_SIGNING_PROVIDER=vault",
+				"EIMS_PHASE0_STRICT=true",
+				"EIMS_REQUIRE_2FA=true",
+				"EIMS_WORKERS_ENABLED=true",
+				"EIMS_SUBMISSION_DISTRIBUTED_LOCKS=true",
+				"EIMS_OFFLINE_REPLAY_SCHEDULER_ENABLED=true",
+				"EIMS_BULK_RECONCILIATION_SCHEDULER_ENABLED=true",
+				"BULLMQ_QUEUES=eims-submission-retry,eims-bulk-callback,eims-offline-replay",
+			].join("\n"),
+			"utf8",
+		);
+
+		const result = runCli(["doctor", "--production"], { cwd: targetDir });
+		assert.notEqual(result.status, 0, outputOf(result));
+		assert.match(outputOf(result), /EIMS SDK package dependency.*install @vyllion\/eims-sdk in apps\/api/);
+	} finally {
+		removeDir(targetDir);
+	}
+});
+
 test("unknown starter fails before creating the target project", () => {
 	const targetDir = path.join(tmpRoot, `unknown-starter-${Date.now()}-${Math.floor(Math.random() * 10000)}`);
 	removeDir(targetDir);

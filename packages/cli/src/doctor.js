@@ -62,6 +62,8 @@ const readJson = (file) => {
 
 const hasScript = (pkg, name) => Boolean(pkg?.scripts?.[name]);
 const placeholderPattern = /change-me|generate_with|strong_password|your-domain|yourcompany|example\./i;
+const runtimeDependencyFields = ["dependencies", "optionalDependencies"];
+const nonRuntimeDependencyFields = ["devDependencies", "peerDependencies"];
 
 const requireScript = (pkg, name, production) => {
 	if (hasScript(pkg, name)) ok(`script:${name}`);
@@ -118,6 +120,25 @@ const requireEnvListIncludes = (env, key, requiredValues, production, detail) =>
 	return false;
 };
 
+const requirePackageDependency = (cwd, packageName, production) => {
+	const apiPkg = readJson(path.join(cwd, "apps/api/package.json"));
+	if (!apiPkg) {
+		production ? fail("EIMS SDK package dependency", "apps/api/package.json is required") : warn("EIMS SDK package dependency", "apps/api/package.json not found");
+		return;
+	}
+	if (runtimeDependencyFields.some((field) => Object.prototype.hasOwnProperty.call(apiPkg[field] ?? {}, packageName))) {
+		ok("EIMS SDK package dependency", packageName);
+		return;
+	}
+	if (nonRuntimeDependencyFields.some((field) => Object.prototype.hasOwnProperty.call(apiPkg[field] ?? {}, packageName))) {
+		const message = `move ${packageName} to apps/api dependencies before production`;
+		production ? fail("EIMS SDK package dependency", message) : warn("EIMS SDK package dependency", message);
+		return;
+	}
+	const message = `install ${packageName} in apps/api before go-live`;
+	production ? fail("EIMS SDK package dependency", message) : warn("EIMS SDK package dependency", message);
+};
+
 const requireDeployEnv = (cwd, production) => {
 	const generic = path.join(cwd, ".env.deploy");
 	const prod = path.join(cwd, ".env.deploy.production");
@@ -154,7 +175,7 @@ const checkProductionCoreEnv = (apiEnv, cwd, production) => {
 	}
 };
 
-const checkEimsProductionEnv = (apiEnv, production) => {
+const checkEimsProductionEnv = (apiEnv, production, cwd) => {
 	if (!production) return;
 	if (apiEnv.EIMS_ENV !== "production") fail("EIMS_ENV", "must be production before real EIMS go-live");
 	else ok("EIMS_ENV", "production");
@@ -162,7 +183,9 @@ const checkEimsProductionEnv = (apiEnv, production) => {
 	if (apiEnv.EIMS_MOCK_MODE === "false") ok("EIMS_MOCK_MODE", "false");
 	else fail("EIMS_MOCK_MODE", "must be false before production go-live");
 
-	requireEnvValue(apiEnv, "EIMS_SDK_PACKAGE_NAME", production, "configure the published EIMS SDK package name before go-live");
+	if (requireEnvValue(apiEnv, "EIMS_SDK_PACKAGE_NAME", production, "configure the published EIMS SDK package name before go-live")) {
+		requirePackageDependency(cwd, envValue(apiEnv, "EIMS_SDK_PACKAGE_NAME"), production);
+	}
 	requireHttpsEnvUrl(apiEnv, "EIMS_BASE_URL_PRODUCTION", production);
 	requireHttpsEnvUrl(apiEnv, "EIMS_BULK_URL_PRODUCTION", production);
 	requireHttpsEnvUrl(apiEnv, "EIMS_CALLBACK_PUBLIC_URL", production);
@@ -204,7 +227,7 @@ const checkEimsProductionEnv = (apiEnv, production) => {
 	);
 };
 
-const checkStarterEnvVars = (starters, apiEnv, production) => {
+const checkStarterEnvVars = (starters, apiEnv, production, cwd) => {
 	for (const starter of starters) {
 		const name = starter?.name;
 		const detail = getStarterPackDetail(name);
@@ -229,7 +252,7 @@ const checkStarterEnvVars = (starters, apiEnv, production) => {
 			production ? fail(`starter:${label} env`, message) : warn(`starter:${label} env`, message);
 		}
 
-		if (name === "eims") checkEimsProductionEnv(apiEnv, production);
+		if (name === "eims") checkEimsProductionEnv(apiEnv, production, cwd);
 	}
 };
 
@@ -287,7 +310,7 @@ export const runDoctor = async (cwd, options = {}) => {
 
 	if (scaffoldState?.starters?.length) {
 		ok("starter state", scaffoldState.starters.map((starter) => starter.name).join(", "));
-		checkStarterEnvVars(scaffoldState.starters, apiEnv, production);
+		checkStarterEnvVars(scaffoldState.starters, apiEnv, production, cwd);
 	} else {
 		ok("starter state", "base scaffold has no optional starter packs installed");
 	}
